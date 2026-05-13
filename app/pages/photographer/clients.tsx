@@ -9,6 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import SortDropdown from '../../components/SortDropdown';
 
 // Icons
 const SearchIcon = () => (
@@ -76,12 +77,6 @@ const CalendarIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
     <path d="M16 2V6M8 2V6M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-const SortIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 6H21M6 12H18M9 18H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
@@ -225,41 +220,54 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.45)',
+      backdropFilter: 'blur(2px)',
+      WebkitBackdropFilter: 'blur(2px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
+      padding: '1rem',
     }} onClick={onClose}>
       <div className="mobile-modal" style={{
+        position: 'relative',
         backgroundColor: colors.bgCard,
-        borderRadius: '0.75rem',
+        borderRadius: 18,
         padding: '1.5rem',
+        paddingTop: 'calc(1.5rem + 3px)',
         maxWidth: maxWidth,
-        width: '90%',
+        width: '95%',
         maxHeight: '90vh',
         overflowY: 'auto',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+        border: `1px solid ${colors.borderPrimary}`,
       }} onClick={(e) => e.stopPropagation()}>
+        <span aria-hidden style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+          background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+        }} />
         {title && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>{title}</h3>
             <button
               onClick={onClose}
+              aria-label="Close"
               style={{
                 background: colors.bgTertiary,
-                border: `2px solid ${colors.borderPrimary}`,
+                border: `1px solid ${colors.borderPrimary}`,
                 cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '0.375rem',
+                width: 30, height: 30,
+                borderRadius: 9,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: colors.textPrimary,
-                transition: 'all 0.2s'
+                color: colors.textSecondary,
+                transition: 'border-color 0.15s, color 0.15s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.color = colors.textPrimary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textSecondary; }}
             >
-              <CloseIcon />
+              <i className="bi bi-x-lg" style={{ fontSize: 13 }} />
             </button>
           </div>
         )}
@@ -780,43 +788,31 @@ export default function Clients() {
 
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
           {/* Header */}
-          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div className="mobile-header-title">
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>My Clients</h1>
-              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                Clients who&apos;ve booked your services - manage relationships
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
+            <div className="mobile-header-title" style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>RELATIONSHIPS</div>
+              <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>My clients</h1>
+              <p style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
+                Manage relationships with clients who&apos;ve booked your services.
               </p>
             </div>
             <div className="mobile-header-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {/* Sort Dropdown */}
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={`${sortBy}-${sortOrder}`}
-                  onChange={(e) => {
-                    const [newSort, newOrder] = e.target.value.split('-');
-                    setSortBy(newSort as typeof sortBy);
-                    setSortOrder(newOrder as typeof sortOrder);
-                  }}
-                  style={{
-                    appearance: 'none',
-                    backgroundColor: colors.bgCard,
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    padding: '0.5rem 2rem 0.5rem 0.75rem',
-                    fontSize: '0.9rem',
-                    color: colors.textPrimary,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="recent-desc">Most Recent</option>
-                  <option value="recent-asc">Oldest First</option>
-                  <option value="bookings-desc">Most Bookings</option>
-                  <option value="spent-desc">Highest Spent</option>
-                </select>
-                <div style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                  <SortIcon />
-                </div>
-              </div>
+              <SortDropdown
+                value={`${sortBy}-${sortOrder}`}
+                onChange={(v) => {
+                  const [newSort, newOrder] = v.split('-');
+                  setSortBy(newSort as typeof sortBy);
+                  setSortOrder(newOrder as typeof sortOrder);
+                }}
+                options={[
+                  { value: 'recent-desc', label: 'Most Recent', icon: 'bi-clock-history' },
+                  { value: 'recent-asc', label: 'Oldest First', icon: 'bi-clock' },
+                  { value: 'bookings-desc', label: 'Most Bookings', icon: 'bi-calendar-event-fill' },
+                  { value: 'spent-desc', label: 'Highest Spent', icon: 'bi-cash-stack' },
+                ]}
+                minWidth={170}
+              />
               {/* View Mode Toggle */}
               <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                 <button
@@ -858,7 +854,7 @@ export default function Clients() {
           </header>
 
           {/* Page Tabs: Clients | Bookings */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+          <div className="ck-tabs" style={{ marginBottom: '1.5rem' }}>
             {[
               { key: 'clients' as PageTab, label: 'Clients', count: clients.length },
               { key: 'bookings' as PageTab, label: 'Bookings', count: bookings.length, pendingCount },
@@ -866,38 +862,29 @@ export default function Clients() {
               <button
                 key={tab.key}
                 onClick={() => setPageTab(tab.key)}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  border: pageTab === tab.key ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  backgroundColor: pageTab === tab.key ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                  color: pageTab === tab.key ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
-                  fontSize: '0.9rem',
-                  fontWeight: pageTab === tab.key ? '600' : '500',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s',
-                }}
+                className={`ck-tab ${pageTab === tab.key ? 'is-active' : ''}`}
               >
-                {tab.label}
+                <span>{tab.label}</span>
                 <span style={{
-                  backgroundColor: pageTab === tab.key ? 'rgba(8, 58, 133, 0.15)' : colors.bgTertiary,
-                  padding: '0.125rem 0.5rem',
+                  marginLeft: 6,
+                  backgroundColor: pageTab === tab.key ? 'rgba(255,255,255,0.22)' : 'rgba(8,58,133,0.10)',
+                  color: pageTab === tab.key ? '#fff' : '#083A85',
+                  padding: '0.06rem 0.42rem',
                   borderRadius: '9999px',
-                  fontSize: '0.8rem',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
                 }}>
                   {tab.count}
                 </span>
                 {tab.key === 'bookings' && pendingCount > 0 && (
                   <span style={{
+                    marginLeft: 4,
                     backgroundColor: '#FEF3C7',
                     color: '#B45309',
-                    padding: '0.125rem 0.5rem',
+                    padding: '0.06rem 0.42rem',
                     borderRadius: '9999px',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
                   }}>
                     {pendingCount} pending
                   </span>
@@ -909,143 +896,117 @@ export default function Clients() {
           {/* Clients Tab Content */}
           {pageTab === 'clients' && (<>
           {/* Stats Cards */}
-          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #083A85' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Clients</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{clients.length}</div>
-            </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #3B82F6' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
-                {clients.reduce((sum, c) => sum + c.totalBookings, 0)}
-              </div>
-            </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #10B981' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earned</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
-                {formatPrice(clients.reduce((sum, c) => sum + c.totalSpent, 0))}
-              </div>
-            </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderRight: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderBottom: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F59E0B' }}>
-              <div style={{ fontSize: '0.85rem', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <GiftIcon />
-                Tips
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#F59E0B') : colors.textSecondary }}>
-                {formatPrice(totalTips)}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>From clients</div>
-            </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #16A34A' }}>
-              <div style={{ fontSize: '0.85rem', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <GiftIcon />
-                Bonus
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#16A34A') : colors.textSecondary }}>
-                {formatPrice(platformBonus)}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
-            </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F20C8F' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
-                {clients.filter(c => c.isFavorite).length}
-              </div>
-            </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #DC2626' }}>
-              <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                {totalPendingAmount > 0 && <AlertCircleIcon />}
-                Pending Payments
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : colors.textSecondary }}>
-                {formatPrice(totalPendingAmount)}
-              </div>
-            </div>
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+            {(() => {
+              const totalBookingsCount = clients.reduce((sum, c) => sum + c.totalBookings, 0);
+              const totalEarnedAmt = clients.reduce((sum, c) => sum + c.totalSpent, 0);
+              const favoritesCount = clients.filter(c => c.isFavorite).length;
+              const cards: Array<{
+                label: string;
+                value: string;
+                accent: string;
+                tint: string;
+                icon: string;
+                helper?: string;
+                alert?: boolean;
+              }> = [
+                { label: 'Total Clients',   value: String(clients.length),         accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-people-fill' },
+                { label: 'Total Bookings',  value: String(totalBookingsCount),     accent: '#3B82F6', tint: 'rgba(59,130,246,0.12)', icon: 'bi-calendar-check-fill' },
+                { label: 'Total Earned',    value: formatPrice(totalEarnedAmt),    accent: '#10B981', tint: 'rgba(16,185,129,0.12)', icon: 'bi-cash-stack' },
+                { label: 'Tips',            value: formatPrice(totalTips),         accent: '#F59E0B', tint: 'rgba(245,158,11,0.12)', icon: 'bi-gift-fill', helper: 'From clients' },
+                { label: 'Bonus',           value: formatPrice(platformBonus),     accent: '#16A34A', tint: 'rgba(22,163,74,0.12)',  icon: 'bi-award-fill', helper: `${totalCompletedEvents}/10 events (${bonusEligibleSets > 0 ? '10%' : '0%'})` },
+                { label: 'Favorites',       value: String(favoritesCount),         accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-heart-fill' },
+                { label: 'Pending Payments',value: formatPrice(totalPendingAmount),accent: '#DC2626', tint: 'rgba(220,38,38,0.12)',  icon: 'bi-exclamation-triangle-fill', alert: totalPendingAmount > 0 },
+              ];
+              return cards.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="ck-card mobile-stats-card"
+                  style={{ position: 'relative', overflow: 'hidden', padding: '14px 14px 14px' }}
+                >
+                  <span aria-hidden style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                    background: `linear-gradient(90deg, ${stat.accent} 0%, #F20C8F 130%)`,
+                  }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 9,
+                      background: stat.tint,
+                      border: `1px solid ${stat.accent}33`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <i className={`bi ${stat.icon}`} style={{ fontSize: 14, color: stat.accent }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginBottom: 1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.label}</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: stat.alert ? stat.accent : colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.value}</div>
+                    </div>
+                  </div>
+                  {stat.helper && (
+                    <div style={{ fontSize: '0.66rem', color: colors.textSecondary, marginTop: 8, fontWeight: 500 }}>{stat.helper}</div>
+                  )}
+                </div>
+              ));
+            })()}
           </div>
 
           {/* Tabs */}
-          <div className="mobile-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+          <div className="ck-tabs mobile-tabs" style={{ marginBottom: '1.25rem' }}>
             {[
               { key: 'all', label: 'All Clients', count: clients.length },
               { key: 'active', label: 'Active', count: clients.filter(c => c.status === 'active').length },
               { key: 'favorites', label: 'Favorites', count: clients.filter(c => c.isFavorite).length },
               { key: 'pending_payments', label: 'Pending Payments', count: clientsWithPendingPayments.length, alert: true }
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveFilter(tab.key as FilterType)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  backgroundColor: activeFilter === tab.key
-                    ? ((tab as { alert?: boolean }).alert ? '#F20C8F' : '#083A85')
-                    : colors.bgCard,
-                  color: activeFilter === tab.key ? 'white' : colors.textSecondary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                {tab.label}
-                <span style={{
-                  backgroundColor: activeFilter === tab.key
-                    ? 'rgba(255,255,255,0.2)'
-                    : ((tab as { alert?: boolean }).alert && tab.count > 0 ? '#FEE2E2' : colors.bgTertiary),
-                  color: (tab as { alert?: boolean }).alert && tab.count > 0 && activeFilter !== tab.key ? '#DC2626' : undefined,
-                  padding: '0.125rem 0.5rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.8rem'
-                }}>
-                  {tab.count}
-                </span>
-              </button>
-            ))}
+            ].map((tab) => {
+              const isAlert = (tab as { alert?: boolean }).alert === true;
+              const isActive = activeFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveFilter(tab.key as FilterType)}
+                  className={`ck-tab ${isActive ? 'is-active' : ''}`}
+                  style={isActive && isAlert ? { background: '#F20C8F', color: '#fff', borderColor: '#F20C8F' } : undefined}
+                >
+                  <span>{tab.label}</span>
+                  <span style={{
+                    marginLeft: 6,
+                    backgroundColor: isActive
+                      ? 'rgba(255,255,255,0.22)'
+                      : (isAlert && tab.count > 0 ? '#FEE2E2' : 'rgba(8,58,133,0.10)'),
+                    color: isActive
+                      ? '#fff'
+                      : (isAlert && tab.count > 0 ? '#DC2626' : '#083A85'),
+                    padding: '0.06rem 0.42rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                  }}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Search and Filters */}
-          <div className="mobile-search-bar" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="mobile-search-bar" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'center' }}>
             {/* Search */}
-            <div style={{ flex: 1, position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }}>
-                <SearchIcon />
-              </div>
+            <div className="ck-search" style={{ flex: 1 }}>
+              <i className="bi bi-search" />
               <input
-                type="text"
-                placeholder="Search your clients..."
+                type="search"
+                placeholder="Search your clients…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.95rem',
-                  fontWeight: '500',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  outline: 'none'
-                }}
               />
             </div>
             {/* Filter Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: showFilters ? '#083A85' : colors.bgCard,
-                color: showFilters ? 'white' : colors.textSecondary,
-                border: `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.5rem',
-                padding: '0.75rem 1rem',
-                fontSize: '0.9rem',
-                cursor: 'pointer'
-              }}
+              className={showFilters ? 'ck-btn ck-btn-primary' : 'ck-btn ck-btn-soft'}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              aria-pressed={showFilters}
             >
               <FilterIcon />
               Filters
@@ -1053,24 +1014,54 @@ export default function Clients() {
           </div>
 
           {/* Results Count */}
-          <div style={{ marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
-              Showing {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''}
+          <div style={{ marginBottom: '1rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '0.2rem 0.55rem',
+              background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)',
+              border: '1px solid rgba(8,58,133,0.18)',
+              borderRadius: 9999,
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              color: actualTheme === 'dark' ? '#BFDBFE' : '#083A85',
+              letterSpacing: '-0.005em',
+            }}>
+              <i className="bi bi-people-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
+              {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {/* Clients Grid/List */}
           {clientsLoading ? (
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '1rem', color: colors.textSecondary }}>Loading clients...</div>
+            <div className="ck-card" style={{ padding: '3rem', textAlign: 'center' }}>
+              <div className="ck-spinner" style={{ margin: '0 auto 0.75rem' }} />
+              <div style={{ fontSize: '0.95rem', color: colors.textSecondary, fontWeight: 500 }}>Loading clients…</div>
             </div>
           ) : filteredClients.length === 0 ? (
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
-              <UserIcon />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>No clients found</h3>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
-                {activeFilter === 'favorites' ? 'You haven\'t added any clients to favorites yet.' : 'Try adjusting your search or filters.'}
-              </p>
+            <div className="ck-empty ck-card" style={{
+              padding: '3.5rem 1.5rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 12,
+            }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: 18,
+                background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.10) 100%)',
+                border: '1px solid var(--ck-stroke)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <i className="bi bi-people" style={{ fontSize: 26, color: '#083A85' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>No clients found</div>
+                <p style={{ margin: '4px auto 0', fontSize: '0.9rem', color: colors.textSecondary, maxWidth: 420, lineHeight: 1.5 }}>
+                  {activeFilter === 'favorites'
+                    ? "You haven't added any clients to favorites yet. Star a client from their profile to see them here."
+                    : 'Try adjusting your search or filters. Clients appear here once they book your services.'}
+                </p>
+              </div>
             </div>
           ) : viewMode === 'grid' ? (
             <div className="mobile-clients-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
@@ -1080,206 +1071,249 @@ export default function Clients() {
                   className="mobile-client-card"
                   style={{
                     backgroundColor: colors.bgCard,
-                    borderRadius: '1rem',
+                    borderRadius: 16,
                     overflow: 'hidden',
-                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 16px -6px rgba(8, 58, 133, 0.10)',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    transition: 'transform 0.18s, box-shadow 0.18s, border-color 0.18s',
                     cursor: 'pointer',
                     padding: '1rem',
-                    position: 'relative'
+                    position: 'relative',
                   }}
                   onClick={() => setSelectedClient(client)}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 35px 60px -15px rgba(0, 0, 0, 0.2), 0 15px 30px -10px rgba(0, 0, 0, 0.15)';
-                    e.currentTarget.style.borderColor = '#083A85';
+                    e.currentTarget.style.boxShadow = '0 20px 38px -16px rgba(8,58,133,0.22)';
+                    e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px -6px rgba(8, 58, 133, 0.10)';
+                    e.currentTarget.style.borderColor = colors.borderPrimary;
                   }}
                 >
                   {/* Header Row - Profile Image, Name, Actions */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.625rem' }}>
-                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                      </svg>
-                      {client.profileImage && (
-                        <img src={client.profileImage} alt={client.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                      )}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.7rem' }}>
+                    <div style={{
+                      width: 54, height: 54, borderRadius: '50%',
+                      padding: 2,
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                      flexShrink: 0,
+                      boxShadow: '0 4px 10px rgba(8,58,133,0.20)',
+                    }}>
+                      <div style={{
+                        width: '100%', height: '100%', borderRadius: '50%',
+                        overflow: 'hidden', position: 'relative',
+                        backgroundColor: colors.bgCard,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                        </svg>
+                        {client.profileImage && (
+                          <img src={client.profileImage} alt={client.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        )}
+                      </div>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {client.firstName} {client.lastName}
                         </h3>
                         {client.verified && <VerifiedIcon />}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.125rem' }}>
-                        <LocationIcon />
-                        <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
-                          {client.location.city}, {client.location.country}
-                        </span>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3, fontSize: '0.78rem', color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                        <i className="bi bi-geo-alt-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
+                        {(client.location.city || client.location.country)
+                          ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {client.location.city}{client.location.city && client.location.country ? ', ' : ''}{client.location.country}
+                            </span>
+                          : <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Location not set</span>}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
                         <span style={{
-                          backgroundColor: client.status === 'active'
-                            ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
-                            : (actualTheme === 'dark' ? '#374151' : '#F3F4F6'),
-                          color: client.status === 'active'
-                            ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
-                            : (actualTheme === 'dark' ? '#9CA3AF' : '#6B7280'),
-                          padding: '0.125rem 0.375rem',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          textTransform: 'uppercase'
+                          background: client.status === 'active'
+                            ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                            : (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF'),
+                          color: 'white',
+                          padding: '0.18rem 0.5rem',
+                          borderRadius: 9999,
+                          fontSize: '0.6rem', fontWeight: 800,
+                          letterSpacing: '0.06em', textTransform: 'uppercase',
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          boxShadow: client.status === 'active' ? '0 3px 8px rgba(16,185,129,0.30)' : 'none',
                         }}>
+                          {client.status === 'active' && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 6px #fff' }} />}
                           {client.status}
                         </span>
                         <span style={{
-                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                          color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8',
-                          padding: '0.125rem 0.375rem',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.75rem',
-                          fontWeight: '600'
+                          background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)',
+                          color: actualTheme === 'dark' ? '#BFDBFE' : '#083A85',
+                          padding: '0.18rem 0.55rem',
+                          borderRadius: 9999,
+                          fontSize: '0.66rem', fontWeight: 700,
+                          letterSpacing: '-0.005em',
+                          border: '1px solid rgba(8,58,133,0.18)',
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
                         }}>
+                          <i className="bi bi-calendar-event-fill" style={{ fontSize: 9, color: '#F20C8F' }} />
                           {client.totalBookings} booking{client.totalBookings > 1 ? 's' : ''}
                         </span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleFavorite(client.id); }}
+                        title={client.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                         style={{
-                          backgroundColor: 'transparent',
-                          border: 'none',
+                          width: 30, height: 30, borderRadius: 9,
+                          background: client.isFavorite
+                            ? 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)'
+                            : colors.bgTertiary,
+                          border: client.isFavorite ? 'none' : `1px solid ${colors.borderPrimary}`,
                           cursor: 'pointer',
-                          padding: '0.25rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: client.isFavorite ? '#fff' : '#F20C8F',
+                          boxShadow: client.isFavorite ? '0 4px 10px rgba(242,12,143,0.32)' : 'none',
+                          transition: 'all 0.15s',
                         }}
-                        title="Add to favorites"
                       >
-                        <HeartIcon filled={client.isFavorite} />
+                        <i className={`bi ${client.isFavorite ? 'bi-heart-fill' : 'bi-heart'}`} style={{ fontSize: 12 }} />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setDeleteConfirmClient(client); }}
-                        style={{
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '0.25rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#9CA3AF',
-                          transition: 'color 0.2s'
-                        }}
                         title="Remove client"
-                        onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = '#9CA3AF'; }}
+                        style={{
+                          width: 30, height: 30, borderRadius: 9,
+                          background: colors.bgTertiary,
+                          border: `1px solid ${colors.borderPrimary}`,
+                          cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: colors.textSecondary,
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = colors.bgTertiary; e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.borderColor = colors.borderPrimary; }}
                       >
-                        <TrashIcon />
+                        <i className="bi bi-trash3-fill" style={{ fontSize: 11 }} />
                       </button>
                     </div>
                   </div>
 
                   {/* Quick Stats Row */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', marginBottom: '0.5rem' }}>
-                    <div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{client.lastEventType ? `Last: ${client.lastEventType}` : 'First Contact'}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(client.lastBookingDate || client.joinDate)}</div>
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '0.65rem 0.85rem',
+                    background: actualTheme === 'dark'
+                      ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.10) 100%)'
+                      : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)',
+                    border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.32)' : 'rgba(8,58,133,0.14)'}`,
+                    borderRadius: 11,
+                    marginBottom: '0.6rem',
+                    position: 'relative', overflow: 'hidden',
+                  }}>
+                    <span aria-hidden style={{
+                      position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                      background: 'linear-gradient(180deg, #083A85 0%, #F20C8F 100%)',
+                    }} />
+                    <div style={{ paddingLeft: 6, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 1 }}>
+                        {client.lastEventType ? `Last · ${client.lastEventType}` : 'First Contact'}
+                      </div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <i className="bi bi-calendar3" style={{ fontSize: 10, color: colors.textSecondary }} />
+                        {formatDate(client.lastBookingDate || client.joinDate)}
+                      </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Spent</div>
-                      <div style={{ fontSize: '1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(client.totalSpent)}</div>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 1 }}>Total Spent</div>
+                      <div style={{
+                        fontSize: '1.02rem', fontWeight: 800,
+                        letterSpacing: '-0.01em',
+                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}>{formatPrice(client.totalSpent)}</div>
                     </div>
                   </div>
 
                   {/* Review - Compact */}
                   {client.review ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '0.3rem 0.6rem',
+                      background: actualTheme === 'dark' ? 'rgba(251,191,36,0.10)' : 'rgba(251,191,36,0.08)',
+                      border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(251,191,36,0.25)'}`,
+                      borderRadius: 9999,
+                      marginBottom: '0.6rem',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {renderStars(client.review.rating)}
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: '#1D4ED8', fontWeight: '500' }}>Reviewed</span>
+                      <span style={{ fontSize: '0.72rem', color: actualTheme === 'dark' ? '#FBBF24' : '#B45309', fontWeight: 700, letterSpacing: '-0.005em' }}>Reviewed</span>
                     </div>
                   ) : (
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>No review yet</span>
+                    <div style={{ marginBottom: '0.6rem' }}>
+                      <span style={{ fontSize: '0.74rem', color: colors.textSecondary, fontStyle: 'italic', opacity: 0.75, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <i className="bi bi-star" style={{ fontSize: 10 }} />
+                        No review yet
+                      </span>
                     </div>
                   )}
 
                     {/* Payment Status for Bookings */}
                     {client.bookings.length > 0 && (
-                      <div style={{ marginBottom: '0.5rem' }}>
+                      <div style={{ marginBottom: '0.6rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {client.bookings.slice(0, 2).map((booking) => {
-                          const paymentColor = getPaymentStatusColor(booking.paymentStatus);
                           const amountDue = booking.totalAmount - booking.paidAmount;
                           const isPaid = booking.paymentStatus === 'paid';
                           const isPending = booking.paymentStatus === 'pending';
                           const isPartiallyPaid = booking.paymentStatus === 'partially_paid';
                           const isFailed = booking.paymentStatus === 'failed';
 
-                          const containerBg = isPaid
-                            ? (actualTheme === 'dark' ? '#064E3B' : '#DCFCE7')
+                          const cfg = isPaid
+                            ? { stripe: 'linear-gradient(180deg, #10B981 0%, #059669 100%)', pillGrad: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', tintBg: actualTheme === 'dark' ? 'rgba(16,185,129,0.14)' : 'rgba(220,252,231,0.55)', tintBorder: actualTheme === 'dark' ? 'rgba(16,185,129,0.35)' : 'rgba(16,185,129,0.30)', text: actualTheme === 'dark' ? '#86EFAC' : '#065F46' }
                             : isPending
-                            ? (actualTheme === 'dark' ? '#78350F' : '#FEF3C7')
+                            ? { stripe: 'linear-gradient(180deg, #F59E0B 0%, #D97706 100%)', pillGrad: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', tintBg: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(254,243,199,0.55)', tintBorder: actualTheme === 'dark' ? 'rgba(245,158,11,0.35)' : 'rgba(245,158,11,0.30)', text: actualTheme === 'dark' ? '#FCD34D' : '#92400E' }
                             : isPartiallyPaid
-                            ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE')
+                            ? { stripe: 'linear-gradient(180deg, #083A85 0%, #F20C8F 100%)', pillGrad: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)', tintBg: actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : 'rgba(219,234,254,0.55)', tintBorder: actualTheme === 'dark' ? 'rgba(8,58,133,0.35)' : 'rgba(8,58,133,0.22)', text: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF' }
                             : isFailed
-                            ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2')
-                            : (actualTheme === 'dark' ? colors.bgTertiary : '#F9FAFB');
-                          const containerBorder = isPaid
-                            ? (actualTheme === 'dark' ? '#10B981' : '#86EFAC')
-                            : isPending
-                            ? (actualTheme === 'dark' ? '#F59E0B' : '#FCD34D')
-                            : isPartiallyPaid
-                            ? (actualTheme === 'dark' ? '#3B82F6' : '#93C5FD')
-                            : isFailed
-                            ? (actualTheme === 'dark' ? '#EF4444' : '#FCA5A5')
-                            : (actualTheme === 'dark' ? colors.borderPrimary : '#E5E7EB');
-                          const textColor = isPaid
-                            ? (actualTheme === 'dark' ? '#6EE7B7' : '#15803D')
-                            : isPending
-                            ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E')
-                            : isPartiallyPaid
-                            ? (actualTheme === 'dark' ? '#93C5FD' : '#1E40AF')
-                            : isFailed
-                            ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B')
-                            : (actualTheme === 'dark' ? colors.textSecondary : '#6B7280');
+                            ? { stripe: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)', pillGrad: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', tintBg: actualTheme === 'dark' ? 'rgba(220,38,38,0.16)' : 'rgba(254,226,226,0.55)', tintBorder: actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : 'rgba(220,38,38,0.30)', text: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B' }
+                            : { stripe: 'linear-gradient(180deg, #9CA3AF 0%, #6B7280 100%)', pillGrad: 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)', tintBg: colors.bgTertiary, tintBorder: colors.borderPrimary, text: colors.textSecondary };
 
                           return (
                             <div key={booking.id} style={{
-                              padding: '0.375rem 0.5rem',
-                              backgroundColor: containerBg,
-                              borderRadius: '0.375rem',
-                              border: `1px solid ${containerBorder}`,
-                              marginBottom: '0.25rem'
+                              padding: '0.5rem 0.6rem 0.5rem 0.85rem',
+                              background: cfg.tintBg,
+                              border: `1px solid ${cfg.tintBorder}`,
+                              borderRadius: 10,
+                              position: 'relative', overflow: 'hidden',
                             }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                  <div style={{ fontSize: '0.85rem', color: textColor, fontWeight: '500' }}>{booking.eventName}</div>
+                              <span aria-hidden style={{
+                                position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                                background: cfg.stripe,
+                              }} />
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontSize: '0.8rem', color: colors.textPrimary, fontWeight: 700, letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{booking.eventName}</div>
                                   <span style={{
-                                    backgroundColor: paymentColor.bg,
-                                    color: paymentColor.text,
-                                    padding: '0.0625rem 0.25rem',
-                                    borderRadius: '0.25rem',
-                                    fontSize: '0.7rem',
-                                    fontWeight: '600',
-                                    textTransform: 'capitalize'
+                                    background: cfg.pillGrad,
+                                    color: 'white',
+                                    padding: '0.1rem 0.4rem',
+                                    borderRadius: 9999,
+                                    fontSize: '0.6rem',
+                                    fontWeight: 800,
+                                    letterSpacing: '0.06em',
+                                    textTransform: 'uppercase',
+                                    display: 'inline-flex', alignItems: 'center',
+                                    marginTop: 3,
                                   }}>
                                     {booking.paymentStatus.replace('_', ' ')}
                                   </span>
                                 </div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: textColor }}>
+                                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: cfg.text, letterSpacing: '-0.005em', flexShrink: 0 }}>
                                   {isPaid ? formatPrice(booking.totalAmount) : `${formatPrice(amountDue)} due`}
                                 </div>
                               </div>
@@ -1290,28 +1324,33 @@ export default function Clients() {
                     )}
 
                     {/* Action Buttons - Compact */}
-                    <div style={{ display: 'flex', gap: '0.375rem' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
                       <Link
                         href={`/user/photographer/inbox?client=${encodeURIComponent(`${client.firstName} ${client.lastName}`)}`}
                         onClick={(e) => e.stopPropagation()}
                         style={{
                           flex: 1,
-                          padding: '0.375rem',
-                          borderRadius: '0.375rem',
-                          border: '2px solid #062a63',
-                          backgroundColor: '#083A85',
+                          padding: '0.5rem 0.6rem',
+                          borderRadius: 10,
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                           color: 'white',
-                          fontSize: '0.85rem',
-                          fontWeight: '500',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          letterSpacing: '-0.005em',
                           cursor: 'pointer',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '0.25rem',
-                          textDecoration: 'none'
+                          gap: 5,
+                          textDecoration: 'none',
+                          boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
+                          transition: 'transform 0.15s, box-shadow 0.15s',
                         }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(242,12,143,0.32)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(8,58,133,0.28)'; }}
                       >
-                        <i className="bi bi-chat-dots" style={{ fontSize: '0.9rem' }}></i>
+                        <i className="bi bi-chat-dots-fill" style={{ fontSize: 12 }} />
                         Message
                       </Link>
                       <Link
@@ -1319,57 +1358,70 @@ export default function Clients() {
                         onClick={(e) => e.stopPropagation()}
                         style={{
                           flex: 1,
-                          padding: '0.375rem',
-                          borderRadius: '0.375rem',
-                          border: `2px solid ${colors.borderSecondary}`,
-                          backgroundColor: colors.bgCard,
-                          color: colors.textSecondary,
-                          fontSize: '0.85rem',
-                          fontWeight: '500',
+                          padding: '0.5rem 0.6rem',
+                          borderRadius: 10,
+                          border: `1px solid ${colors.borderPrimary}`,
+                          background: colors.bgTertiary,
+                          color: colors.textPrimary,
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          letterSpacing: '-0.005em',
                           cursor: 'pointer',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '0.25rem',
-                          textDecoration: 'none'
+                          gap: 5,
+                          textDecoration: 'none',
+                          transition: 'border-color 0.15s, background-color 0.15s',
                         }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.35)'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.05)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
                       >
-                        <i className="bi bi-image" style={{ fontSize: '0.9rem' }}></i>
+                        <i className="bi bi-images" style={{ fontSize: 12, color: '#F20C8F' }} />
                         Gallery
                       </Link>
                     </div>
 
                     {/* Tips Button - Compact */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTipsClient(client);
-                        setShowTipsModal(true);
-                      }}
-                      style={{
-                        width: '100%',
-                        marginTop: '0.375rem',
-                        padding: '0.375rem',
-                        borderRadius: '0.375rem',
-                        border: '2px solid #C0096D',
-                        backgroundColor: '#F20C8F',
-                        color: 'white',
-                        fontSize: '0.85rem',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.25rem',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <GiftIcon />
-                      Tips: {client.tipsAndBonuses.filter(t => t.type === 'tip').length > 0
-                        ? formatPrice(client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0))
-                        : 'None'
-                      }
-                    </button>
+                    {(() => {
+                      const tipTotal = client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0);
+                      const hasTip = tipTotal > 0;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTipsClient(client);
+                            setShowTipsModal(true);
+                          }}
+                          style={{
+                            width: '100%',
+                            marginTop: 6,
+                            padding: '0.5rem 0.6rem',
+                            borderRadius: 10,
+                            border: 'none',
+                            background: hasTip
+                              ? 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)'
+                              : 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)',
+                            color: 'white',
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
+                            letterSpacing: '-0.005em',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            boxShadow: hasTip ? '0 4px 10px rgba(245,158,11,0.30)' : '0 4px 10px rgba(242,12,143,0.30)',
+                            transition: 'transform 0.15s, box-shadow 0.15s',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = hasTip ? '0 8px 18px rgba(245,158,11,0.35)' : '0 8px 18px rgba(242,12,143,0.35)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = hasTip ? '0 4px 10px rgba(245,158,11,0.30)' : '0 4px 10px rgba(242,12,143,0.30)'; }}
+                        >
+                          <i className={`bi ${hasTip ? 'bi-gift-fill' : 'bi-gift'}`} style={{ fontSize: 12 }} />
+                          {hasTip ? `Tips · ${formatPrice(tipTotal)}` : 'No tips yet'}
+                        </button>
+                      );
+                    })()}
                 </div>
               ))}
             </div>
@@ -1382,248 +1434,333 @@ export default function Clients() {
                   onClick={() => setSelectedClient(client)}
                   style={{
                     backgroundColor: colors.bgCard,
-                    borderRadius: '1rem',
-                    padding: '1rem',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    borderRadius: 14,
+                    padding: '0.95rem 1.1rem',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    boxShadow: '0 4px 16px -6px rgba(8, 58, 133, 0.10)',
                     cursor: 'pointer',
-                    transition: 'all 0.3s ease',
+                    transition: 'transform 0.18s, box-shadow 0.18s, border-color 0.18s',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '1rem'
+                    gap: '0.9rem',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 35px 60px -15px rgba(0, 0, 0, 0.2), 0 15px 30px -10px rgba(0, 0, 0, 0.15)';
-                    e.currentTarget.style.borderColor = '#083A85';
+                    e.currentTarget.style.boxShadow = '0 20px 38px -16px rgba(8,58,133,0.22)';
+                    e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px -6px rgba(8, 58, 133, 0.10)';
+                    e.currentTarget.style.borderColor = colors.borderPrimary;
                   }}
                 >
-                  {/* Avatar */}
-                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                    </svg>
-                    {client.profileImage && (
-                      <img src={client.profileImage} alt={client.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                    )}
+                  {/* Avatar with brand gradient ring */}
+                  <div style={{ position: 'relative', width: 58, height: 58, flexShrink: 0 }}>
+                    <div style={{
+                      width: 58, height: 58, borderRadius: '50%',
+                      padding: 2,
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                      boxShadow: '0 4px 10px rgba(8,58,133,0.18)',
+                    }}>
+                      <div style={{
+                        width: '100%', height: '100%', borderRadius: '50%',
+                        overflow: 'hidden', position: 'relative',
+                        backgroundColor: colors.bgCard,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                        </svg>
+                        {client.profileImage && (
+                          <img src={client.profileImage} alt={client.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Name & Location */}
                   <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <h3 style={{
-                        fontSize: '1.1rem',
-                        fontWeight: '600',
+                        fontSize: '1rem',
+                        fontWeight: 800,
                         color: colors.textPrimary,
                         margin: 0,
+                        letterSpacing: '-0.01em',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
                       }}>{client.firstName} {client.lastName}</h3>
                       {client.verified && <VerifiedIcon />}
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleFavorite(client.id); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem', marginLeft: '0.25rem' }}
+                        title={client.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                        style={{
+                          width: 26, height: 26, borderRadius: 8,
+                          background: client.isFavorite ? 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)' : 'transparent',
+                          border: client.isFavorite ? 'none' : `1px solid ${colors.borderPrimary}`,
+                          cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: client.isFavorite ? '#fff' : '#F20C8F',
+                          marginLeft: 2,
+                          boxShadow: client.isFavorite ? '0 4px 10px rgba(242,12,143,0.30)' : 'none',
+                          transition: 'all 0.15s',
+                        }}
                       >
-                        <HeartIcon filled={client.isFavorite} />
+                        <i className={`bi ${client.isFavorite ? 'bi-heart-fill' : 'bi-heart'}`} style={{ fontSize: 10 }} />
                       </button>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                      <LocationIcon />
-                      <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
-                        {client.location.city}, {client.location.country}
-                      </span>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3, fontSize: '0.8rem', color: colors.textSecondary, maxWidth: '100%' }}>
+                      <i className="bi bi-geo-alt-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
+                      {(client.location.city || client.location.country)
+                        ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {client.location.city}{client.location.city && client.location.country ? ', ' : ''}{client.location.country}
+                          </span>
+                        : <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Location not set</span>}
                     </div>
                   </div>
 
                   {/* Last Booking */}
-                  <div style={{ flex: '0 0 180px' }}>
-                    <p style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, margin: 0, marginBottom: '0.125rem' }}>
-                      {client.lastEventName}
-                    </p>
-                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      {client.lastEventType ? `${client.lastEventType} • ` : ''}{formatDate(client.lastBookingDate || client.joinDate)}
+                  <div style={{ flex: '0 0 180px', minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                      marginBottom: 1,
+                    }}>Last Booking</div>
+                    {client.lastEventName ? (
+                      <p style={{ fontSize: '0.86rem', fontWeight: 700, color: colors.textPrimary, margin: 0, letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {client.lastEventName}
+                      </p>
+                    ) : (
+                      <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: 0, fontStyle: 'italic', opacity: 0.7 }}>None yet</p>
+                    )}
+                    <p style={{ fontSize: '0.74rem', color: colors.textSecondary, margin: 0, marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {client.lastEventType && <span style={{ textTransform: 'capitalize' }}>{client.lastEventType}</span>}
+                      {client.lastEventType && (client.lastBookingDate || client.joinDate) && <span style={{ opacity: 0.5 }}>•</span>}
+                      <i className="bi bi-calendar3" style={{ fontSize: 10 }} />
+                      {formatDate(client.lastBookingDate || client.joinDate)}
                     </p>
                   </div>
 
-                  {/* Stats */}
+                  {/* Bookings count */}
                   <div style={{ flex: '0 0 80px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', margin: 0, marginBottom: '0.125rem' }}>
+                    <div style={{
+                      fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                      marginBottom: 1,
+                    }}>Bookings</div>
+                    <p style={{ fontSize: '1.05rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
                       {client.totalBookings}
                     </p>
-                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>Bookings</p>
                   </div>
 
-                  <div style={{ flex: '0 0 100px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.125rem' }}>
-                      {formatPrice(client.totalSpent)}
-                    </p>
-                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>Total Spent</p>
+                  {/* Total Spent with gradient text */}
+                  <div style={{ flex: '0 0 110px', textAlign: 'center' }}>
+                    <div style={{
+                      fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                      marginBottom: 1,
+                    }}>Total Spent</div>
+                    <p style={{
+                      fontSize: '1.02rem', fontWeight: 800,
+                      letterSpacing: '-0.01em',
+                      margin: 0,
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    }}>{formatPrice(client.totalSpent)}</p>
                   </div>
 
                   {/* Payment Status */}
                   <div style={{ flex: '0 0 110px', textAlign: 'center' }}>
                     {(() => {
                       const latestBooking = client.bookings[0];
-                      if (!latestBooking) return <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>No bookings</span>;
-
-                      const paymentColor = getPaymentStatusColor(latestBooking.paymentStatus);
+                      if (!latestBooking) return <span style={{ fontSize: '0.78rem', color: colors.textSecondary, fontStyle: 'italic', opacity: 0.7 }}>No bookings</span>;
+                      const isPaid = latestBooking.paymentStatus === 'paid';
+                      const isPending = latestBooking.paymentStatus === 'pending';
+                      const isPartial = latestBooking.paymentStatus === 'partially_paid';
+                      const isFailed = latestBooking.paymentStatus === 'failed';
+                      const grad = isPaid ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                        : isPending ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+                        : isPartial ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
+                        : isFailed ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
+                        : 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)';
+                      const shadow = isPaid ? 'rgba(16,185,129,0.28)'
+                        : isPending ? 'rgba(245,158,11,0.28)'
+                        : isPartial ? 'rgba(8,58,133,0.28)'
+                        : isFailed ? 'rgba(220,38,38,0.28)'
+                        : 'rgba(0,0,0,0.12)';
                       return (
-                        <div style={{
-                          display: 'inline-block',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '0.375rem',
-                          backgroundColor: paymentColor.bg,
-                          fontSize: '0.85rem',
-                          fontWeight: '600',
-                          color: paymentColor.text,
-                          textTransform: 'capitalize'
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '0.22rem 0.6rem',
+                          borderRadius: 9999,
+                          background: grad,
+                          fontSize: '0.62rem',
+                          fontWeight: 800,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          color: '#fff',
+                          boxShadow: `0 3px 8px ${shadow}`,
                         }}>
                           {latestBooking.paymentStatus.replace('_', ' ')}
-                        </div>
+                        </span>
                       );
                     })()}
                   </div>
 
                   {/* Client's Review */}
-                  <div style={{ flex: '0 0 140px', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <div style={{ flex: '0 0 140px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                     {client.review ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                        {renderStars(client.review.rating)}
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '0.22rem 0.55rem',
+                        borderRadius: 9999,
+                        background: actualTheme === 'dark' ? 'rgba(251,191,36,0.12)' : 'rgba(251,191,36,0.08)',
+                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.35)' : 'rgba(251,191,36,0.30)'}`,
+                      }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center' }}>{renderStars(client.review.rating)}</div>
                         <span style={{
-                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE',
-                          color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8',
-                          padding: '0.125rem 0.375rem',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.8rem',
-                          fontWeight: '600'
-                        }}>
-                          Reviewed
-                        </span>
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color: actualTheme === 'dark' ? '#FBBF24' : '#B45309',
+                          letterSpacing: '-0.005em',
+                        }}>Reviewed</span>
                       </div>
                     ) : (
-                      <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>No review</span>
+                      <span style={{ fontSize: '0.78rem', color: colors.textSecondary, fontStyle: 'italic', opacity: 0.7, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <i className="bi bi-star" style={{ fontSize: 10 }} />
+                        No review
+                      </span>
                     )}
                   </div>
 
-                  {/* Status */}
-                  <div style={{ flex: '0 0 70px', textAlign: 'center' }}>
-                    <div style={{
-                      display: 'inline-block',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.375rem',
-                      backgroundColor: client.status === 'active'
-                        ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
-                        : (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2'),
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
-                      color: client.status === 'active'
-                        ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
-                        : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
-                      textTransform: 'capitalize'
+                  {/* Status pill */}
+                  <div style={{ flex: '0 0 80px', textAlign: 'center' }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '0.22rem 0.55rem',
+                      borderRadius: 9999,
+                      background: client.status === 'active'
+                        ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                        : 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)',
+                      fontSize: '0.62rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      color: '#fff',
+                      boxShadow: client.status === 'active' ? '0 3px 8px rgba(16,185,129,0.28)' : 'none',
                     }}>
+                      {client.status === 'active' && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 6px #fff' }} />}
                       {client.status}
-                    </div>
+                    </span>
                   </div>
 
-                  {/* Actions */}
-                  <div style={{ flex: '0 0 auto', display: 'flex', gap: '0.375rem' }}>
+                  {/* Actions: Message, Gallery, Delete (icon-only chips) */}
+                  <div style={{ flex: '0 0 auto', display: 'flex', gap: 5 }}>
                     <Link
                       href={`/user/photographer/inbox?client=${encodeURIComponent(`${client.firstName} ${client.lastName}`)}`}
                       onClick={(e) => e.stopPropagation()}
+                      title="Message client"
                       style={{
-                        padding: '0.375rem 0.625rem',
-                        borderRadius: '0.375rem',
-                        border: '2px solid #062a63',
-                        backgroundColor: '#083A85',
+                        width: 32, height: 32,
+                        borderRadius: 9,
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                         color: 'white',
-                        fontSize: '0.75rem',
                         cursor: 'pointer',
-                        transition: 'all 0.2s',
                         textDecoration: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
+                        transition: 'transform 0.15s',
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
-                      <i className="bi bi-chat-dots"></i>
+                      <i className="bi bi-chat-dots-fill" style={{ fontSize: 12 }} />
                     </Link>
                     <Link
                       href="/user/photographer/events"
                       onClick={(e) => e.stopPropagation()}
+                      title="View gallery"
                       style={{
-                        padding: '0.375rem 0.625rem',
-                        borderRadius: '0.375rem',
-                        border: `2px solid ${colors.borderSecondary}`,
-                        backgroundColor: colors.bgCard,
-                        color: colors.textSecondary,
-                        fontSize: '0.75rem',
+                        width: 32, height: 32,
+                        borderRadius: 9,
+                        border: `1px solid ${colors.borderPrimary}`,
+                        background: colors.bgTertiary,
+                        color: colors.textPrimary,
                         cursor: 'pointer',
-                        transition: 'all 0.2s',
                         textDecoration: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'border-color 0.15s, background-color 0.15s',
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.05)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
                     >
-                      <i className="bi bi-image"></i>
+                      <i className="bi bi-images" style={{ fontSize: 12, color: '#F20C8F' }} />
                     </Link>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteConfirmClient(client); }}
-                      style={{
-                        padding: '0.375rem 0.625rem',
-                        borderRadius: '0.375rem',
-                        border: '2px solid #FCA5A5',
-                        backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2',
-                        color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
-                        fontSize: '0.75rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
                       title="Remove client"
+                      style={{
+                        width: 32, height: 32,
+                        borderRadius: 9,
+                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+                        background: actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)',
+                        color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)'; e.currentTarget.style.color = actualTheme === 'dark' ? '#FCA5A5' : '#DC2626'; e.currentTarget.style.borderColor = actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'; }}
                     >
-                      <TrashIcon />
+                      <i className="bi bi-trash3-fill" style={{ fontSize: 11 }} />
                     </button>
                   </div>
 
-                  {/* Tips */}
-                  <div style={{ flex: '0 0 100px', textAlign: 'center' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTipsClient(client);
-                        setShowTipsModal(true);
-                      }}
-                      style={{
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '0.375rem',
-                        border: '2px solid #C0096D',
-                        backgroundColor: '#F20C8F',
-                        color: 'white',
-                        fontSize: '0.7rem',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <GiftIcon />
-                      Tips: {client.tipsAndBonuses.filter(t => t.type === 'tip').length > 0
-                        ? formatPrice(client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0))
-                        : 'None'
-                      }
-                    </button>
+                  {/* Tips chip */}
+                  <div style={{ flex: '0 0 auto' }}>
+                    {(() => {
+                      const tipTotal = client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0);
+                      const hasTip = tipTotal > 0;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTipsClient(client);
+                            setShowTipsModal(true);
+                          }}
+                          title={hasTip ? `Tips received: ${formatPrice(tipTotal)}` : 'No tips yet'}
+                          style={{
+                            padding: '0.45rem 0.75rem',
+                            borderRadius: 9,
+                            border: 'none',
+                            background: hasTip
+                              ? 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)'
+                              : 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)',
+                            color: 'white',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            letterSpacing: '-0.005em',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            boxShadow: hasTip ? '0 4px 10px rgba(245,158,11,0.28)' : '0 4px 10px rgba(242,12,143,0.28)',
+                            transition: 'transform 0.15s, box-shadow 0.15s',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                          <i className={`bi ${hasTip ? 'bi-gift-fill' : 'bi-gift'}`} style={{ fontSize: 11 }} />
+                          {hasTip ? formatPrice(tipTotal) : 'No tips'}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
@@ -1851,99 +1988,185 @@ export default function Clients() {
         {selectedClient && (
           <div>
             {/* Client Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                </svg>
-                {selectedClient.profileImage && (
-                  <img src={selectedClient.profileImage} alt={selectedClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{
+                width: 84, height: 84, borderRadius: '50%',
+                padding: 3,
+                background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                flexShrink: 0,
+                boxShadow: '0 8px 20px rgba(8,58,133,0.22)',
+              }}>
+                <div style={{
+                  width: '100%', height: '100%', borderRadius: '50%',
+                  overflow: 'hidden', position: 'relative',
+                  backgroundColor: colors.bgCard,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {selectedClient.profileImage && (
+                    <img src={selectedClient.profileImage} alt={selectedClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedClient.firstName} {selectedClient.lastName}
                   </h3>
                   {selectedClient.verified && <VerifiedIcon />}
                   <button
                     onClick={() => toggleFavorite(selectedClient.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                    title={selectedClient.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      background: selectedClient.isFavorite ? 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)' : 'transparent',
+                      border: selectedClient.isFavorite ? 'none' : `1px solid ${colors.borderPrimary}`,
+                      cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: selectedClient.isFavorite ? '#fff' : '#F20C8F',
+                      boxShadow: selectedClient.isFavorite ? '0 4px 10px rgba(242,12,143,0.32)' : 'none',
+                      transition: 'all 0.15s',
+                    }}
                   >
-                    <HeartIcon filled={selectedClient.isFavorite} />
+                    <i className={`bi ${selectedClient.isFavorite ? 'bi-heart-fill' : 'bi-heart'}`} style={{ fontSize: 11 }} />
                   </button>
                 </div>
-                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0.25rem 0' }}>{selectedClient.email}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <LocationIcon />
-                  <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
-                    {selectedClient.location.city}, {selectedClient.location.country}
-                  </span>
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.3rem 0 0.25rem', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <i className="bi bi-envelope-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
+                  {selectedClient.email}
+                </p>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.82rem', color: colors.textSecondary }}>
+                  <i className="bi bi-geo-alt-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
+                  {(selectedClient.location.city || selectedClient.location.country)
+                    ? <span>{selectedClient.location.city}{selectedClient.location.city && selectedClient.location.country ? ', ' : ''}{selectedClient.location.country}</span>
+                    : <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Location not set</span>}
                 </div>
               </div>
               <div style={{
-                padding: '0.375rem 0.75rem',
-                borderRadius: '0.5rem',
-                backgroundColor: selectedClient.status === 'active'
-                  ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
-                  : (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2'),
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                color: selectedClient.status === 'active'
-                  ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
-                  : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
-                textTransform: 'capitalize'
+                padding: '0.3rem 0.7rem',
+                borderRadius: 9999,
+                background: selectedClient.status === 'active'
+                  ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                  : 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)',
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'white',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                boxShadow: selectedClient.status === 'active' ? '0 4px 10px rgba(16,185,129,0.30)' : 'none',
+                flexShrink: 0,
               }}>
+                {selectedClient.status === 'active' && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 6px #fff' }} />}
                 {selectedClient.status}
               </div>
             </div>
 
             {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <p style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', margin: 0, marginBottom: '0.25rem' }}>
-                  {selectedClient.totalBookings}
-                </p>
-                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Bookings</p>
-              </div>
-              <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <p style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', margin: 0, marginBottom: '0.25rem' }}>
-                  {formatPrice(selectedClient.totalSpent)}
-                </p>
-                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Total Spent</p>
-              </div>
-              <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <p style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, margin: 0, marginBottom: '0.25rem' }}>
-                  {formatDate(selectedClient.lastBookingDate || selectedClient.joinDate)}
-                </p>
-                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>{selectedClient.lastBookingDate ? 'Last Booking' : 'First Contact'}</p>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem', marginBottom: '1.4rem' }}>
+              {[
+                { icon: 'bi-calendar-event-fill', value: selectedClient.totalBookings, label: 'Bookings', highlight: false },
+                { icon: 'bi-cash-stack', value: formatPrice(selectedClient.totalSpent), label: 'Total Spent', highlight: true },
+                { icon: 'bi-clock-history', value: formatDate(selectedClient.lastBookingDate || selectedClient.joinDate), label: selectedClient.lastBookingDate ? 'Last Booking' : 'First Contact', highlight: false, small: true },
+              ].map((stat, i) => (
+                <div key={i} style={{
+                  background: colors.bgCard,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  padding: '0.8rem 0.65rem',
+                  borderRadius: 12,
+                  textAlign: 'center',
+                  transition: 'transform 0.15s, border-color 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(8,58,133,0.10)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  <div style={{
+                    width: 26, height: 26, borderRadius: 8,
+                    margin: '0 auto 6px',
+                    background: 'linear-gradient(135deg, rgba(8,58,133,0.12) 0%, rgba(242,12,143,0.10) 100%)',
+                    border: '1px solid rgba(8,58,133,0.18)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <i className={`bi ${stat.icon}`} style={{ fontSize: 11, color: '#083A85' }} />
+                  </div>
+                  <p style={{
+                    fontSize: stat.small ? '0.88rem' : '1.15rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.01em',
+                    color: colors.textPrimary,
+                    margin: 0,
+                    marginBottom: 2,
+                    ...(stat.highlight ? {
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    } : {}),
+                  }}>{stat.value}</p>
+                  <p style={{ fontSize: '0.7rem', color: colors.textSecondary, margin: 0, fontWeight: 600 }}>{stat.label}</p>
+                </div>
+              ))}
             </div>
 
             {/* Client's Review */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Review for You</h4>
+            <div style={{ marginBottom: '1.4rem' }}>
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: '0.65rem',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}>
+                <i className="bi bi-quote" style={{ fontSize: 11 }} /> Review for You
+              </div>
               {selectedClient.review ? (
-                <div style={{ padding: '1rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.5rem', border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BFDBFE'}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
+                <div style={{
+                  padding: '0.95rem 1rem',
+                  background: actualTheme === 'dark' ? 'rgba(251,191,36,0.10)' : 'rgba(251,191,36,0.06)',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(251,191,36,0.25)'}`,
+                  borderRadius: 12,
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                  <span aria-hidden style={{
+                    position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                    background: 'linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%)',
+                  }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem', paddingLeft: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       {renderStars(selectedClient.review.rating)}
                     </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: actualTheme === 'dark' ? '#FBBF24' : '#B45309', letterSpacing: '-0.005em' }}>
                       {selectedClient.review.rating}/5
                     </span>
-                    <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
+                    <span style={{ fontSize: '0.74rem', color: colors.textSecondary, marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <i className="bi bi-calendar3" style={{ fontSize: 10 }} />
                       {formatDate(selectedClient.review.reviewDate)}
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.9rem', color: colors.textPrimary, margin: 0, lineHeight: '1.5' }}>
+                  <p style={{ fontSize: '0.9rem', color: colors.textPrimary, margin: 0, lineHeight: 1.55, fontStyle: 'italic', paddingLeft: 6 }}>
                     &ldquo;{selectedClient.review.reviewText}&rdquo;
                   </p>
                 </div>
               ) : (
-                <div style={{ padding: '1rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', textAlign: 'center' }}>
-                  <p style={{ fontSize: '0.85rem', color: '#9CA3AF', margin: 0 }}>
+                <div style={{
+                  padding: '1.1rem',
+                  background: colors.bgTertiary,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  borderRadius: 12,
+                  textAlign: 'center',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 9,
+                    background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)',
+                    border: '1px solid rgba(8,58,133,0.16)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <i className="bi bi-chat-square-text" style={{ fontSize: 13, color: '#083A85' }} />
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, fontStyle: 'italic' }}>
                     This client has not left a review yet
                   </p>
                 </div>
@@ -1951,21 +2174,42 @@ export default function Clients() {
             </div>
 
             {/* Contact Info */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Contact Information</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <i className="bi bi-envelope" style={{ fontSize: '0.875rem', color: colors.textSecondary, width: '1rem' }}></i>
-                  <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{selectedClient.email}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <i className="bi bi-telephone" style={{ fontSize: '0.875rem', color: colors.textSecondary, width: '1rem' }}></i>
-                  <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{selectedClient.phone}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <i className="bi bi-clock" style={{ fontSize: '0.875rem', color: colors.textSecondary, width: '1rem' }}></i>
-                  <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>Last active {selectedClient.lastActive}</span>
-                </div>
+            <div style={{ marginBottom: '1.4rem' }}>
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: '0.65rem',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}>
+                <i className="bi bi-person-vcard-fill" style={{ fontSize: 11 }} /> Contact Information
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[
+                  { icon: 'bi-envelope-fill', label: 'Email', value: selectedClient.email },
+                  { icon: 'bi-telephone-fill', label: 'Phone', value: selectedClient.phone || '—' },
+                  { icon: 'bi-clock-fill', label: 'Last Active', value: selectedClient.lastActive },
+                ].map((row, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '0.55rem 0.75rem',
+                    background: colors.bgTertiary,
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 10,
+                  }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      background: 'linear-gradient(135deg, rgba(8,58,133,0.12) 0%, rgba(242,12,143,0.10) 100%)',
+                      border: '1px solid rgba(8,58,133,0.18)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <i className={`bi ${row.icon}`} style={{ fontSize: 11, color: '#083A85' }} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{row.label}</div>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.value}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -2049,51 +2293,58 @@ export default function Clients() {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <Link
                 href={`/user/photographer/inbox?client=${encodeURIComponent(`${selectedClient.firstName} ${selectedClient.lastName}`)}`}
                 style={{
                   flex: 1,
-                  padding: '0.75rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid #062a63',
-                  backgroundColor: '#083A85',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 11,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                   color: 'white',
                   fontSize: '0.9rem',
-                  fontWeight: '500',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.5rem',
-                  textDecoration: 'none'
+                  gap: 7,
+                  textDecoration: 'none',
+                  boxShadow: '0 8px 18px rgba(8,58,133,0.30)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(8,58,133,0.30)'; }}
               >
-                <i className="bi bi-chat-dots" style={{ fontSize: '1rem' }}></i>
+                <i className="bi bi-chat-dots-fill" style={{ fontSize: 13 }} />
                 Send Message
               </Link>
               <Link
                 href="/user/photographer/events"
                 style={{
                   flex: 1,
-                  padding: '0.75rem',
-                  borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderSecondary}`,
-                  backgroundColor: colors.bgCard,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 11,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  background: colors.bgTertiary,
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
-                  fontWeight: '500',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.5rem',
-                  textDecoration: 'none'
+                  gap: 7,
+                  textDecoration: 'none',
+                  transition: 'border-color 0.15s, background-color 0.15s',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.35)'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
               >
-                <i className="bi bi-image" style={{ fontSize: '1rem' }}></i>
+                <i className="bi bi-images" style={{ fontSize: 13, color: '#F20C8F' }} />
                 View Gallery
               </Link>
             </div>
@@ -2103,23 +2354,26 @@ export default function Clients() {
               onClick={() => setDeleteConfirmClient(selectedClient)}
               style={{
                 width: '100%',
-                marginTop: '0.75rem',
-                padding: '0.75rem',
-                borderRadius: '0.5rem',
-                border: `2px solid ${actualTheme === 'dark' ? '#7F1D1D' : '#FCA5A5'}`,
-                backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEF2F2',
-                color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
-                fontSize: '0.9rem',
-                fontWeight: '500',
+                marginTop: 8,
+                padding: '0.6rem 1rem',
+                borderRadius: 11,
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+                background: actualTheme === 'dark' ? 'rgba(220,38,38,0.16)' : 'rgba(254,242,242,0.85)',
+                color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
+                fontSize: '0.84rem',
+                fontWeight: 700,
+                letterSpacing: '-0.005em',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.5rem'
+                gap: 6,
+                transition: 'all 0.15s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = actualTheme === 'dark' ? 'rgba(220,38,38,0.16)' : 'rgba(254,242,242,0.85)'; e.currentTarget.style.color = actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C'; e.currentTarget.style.borderColor = actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'; }}
             >
-              <TrashIcon />
+              <i className="bi bi-trash3-fill" style={{ fontSize: 12 }} />
               Remove Client
             </button>
           </div>
@@ -2136,95 +2390,167 @@ export default function Clients() {
         title="Tips from Client"
         maxWidth="500px"
       >
-        {tipsClient && (
+        {tipsClient && (() => {
+          const tipsOnly = tipsClient.tipsAndBonuses.filter(t => t.type === 'tip');
+          const totalTips = tipsOnly.reduce((sum, t) => sum + t.amount, 0);
+          const hasTips = tipsOnly.length > 0;
+          return (
           <div>
             {/* Client Header */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
-              marginBottom: '1.25rem',
-              padding: '0.75rem',
-              backgroundColor: colors.bgTertiary,
-              borderRadius: '0.5rem'
+              gap: '0.85rem',
+              marginBottom: '1.1rem',
+              padding: '0.85rem 0.95rem',
+              background: actualTheme === 'dark'
+                ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.10) 100%)'
+                : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.32)' : 'rgba(8,58,133,0.14)'}`,
+              borderRadius: 12,
             }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                </svg>
-                {tipsClient.profileImage && (
-                  <img src={tipsClient.profileImage} alt={tipsClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                )}
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                padding: 2,
+                background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                flexShrink: 0,
+                boxShadow: '0 4px 10px rgba(8,58,133,0.20)',
+              }}>
+                <div style={{
+                  width: '100%', height: '100%', borderRadius: '50%',
+                  overflow: 'hidden', position: 'relative',
+                  background: colors.bgCard,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {tipsClient.profileImage && (
+                    <img src={tipsClient.profileImage} alt={tipsClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.95rem' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 800, color: colors.textPrimary, fontSize: '1rem', letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {tipsClient.firstName} {tipsClient.lastName}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
-                  {tipsClient.location.city}, {tipsClient.location.country}
+                <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <i className="bi bi-geo-alt-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
+                  {(tipsClient.location.city || tipsClient.location.country)
+                    ? `${tipsClient.location.city}${tipsClient.location.city && tipsClient.location.country ? ', ' : ''}${tipsClient.location.country}`
+                    : <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Location not set</span>}
                 </div>
               </div>
             </div>
 
-            {/* Total Summary - Only Tips */}
+            {/* Total Summary Hero - Only Tips */}
             <div style={{
-              backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
-              borderRadius: '0.5rem',
-              padding: '1rem',
+              background: hasTips
+                ? 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)'
+                : (actualTheme === 'dark' ? 'linear-gradient(135deg, rgba(251,191,36,0.18) 0%, rgba(245,158,11,0.10) 100%)' : 'linear-gradient(135deg, rgba(254,243,199,0.85) 0%, rgba(254,243,199,0.55) 100%)'),
+              borderRadius: 14,
+              padding: '1.25rem 1rem',
               textAlign: 'center',
-              border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}`,
-              marginBottom: '1.25rem'
+              border: hasTips ? 'none' : `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.40)' : 'rgba(245,158,11,0.30)'}`,
+              marginBottom: '1.25rem',
+              boxShadow: hasTips ? '0 12px 24px rgba(245,158,11,0.32)' : 'none',
+              position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309' }}>
-                ${tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0)}
+              {!hasTips && (
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                  background: 'linear-gradient(90deg, #FBBF24 0%, #F59E0B 100%)',
+                }} />
+              )}
+              <div style={{
+                width: 44, height: 44, margin: '0 auto 0.55rem', borderRadius: 12,
+                background: hasTips ? 'rgba(255,255,255,0.22)' : 'rgba(245,158,11,0.18)',
+                border: hasTips ? '1px solid rgba(255,255,255,0.30)' : '1px solid rgba(245,158,11,0.35)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backdropFilter: 'blur(6px)',
+              }}>
+                <i className={`bi ${hasTips ? 'bi-gift-fill' : 'bi-gift'}`} style={{ fontSize: 18, color: hasTips ? '#fff' : (actualTheme === 'dark' ? '#FCD34D' : '#B45309') }} />
               </div>
-              <div style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FBBF24' : '#92400E' }}>Total Tips Received</div>
-              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                {tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').length} tip{tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').length !== 1 ? 's' : ''} from this client
+              <div style={{
+                fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em',
+                color: hasTips ? '#fff' : (actualTheme === 'dark' ? '#FCD34D' : '#B45309'),
+                lineHeight: 1.1,
+                textShadow: hasTips ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
+              }}>
+                {formatPrice(totalTips)}
+              </div>
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 700,
+                color: hasTips ? 'rgba(255,255,255,0.95)' : (actualTheme === 'dark' ? '#FCD34D' : '#92400E'),
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginTop: 4,
+              }}>Total Tips Received</div>
+              <div style={{
+                fontSize: '0.78rem',
+                color: hasTips ? 'rgba(255,255,255,0.85)' : colors.textSecondary,
+                marginTop: 4,
+                fontWeight: 500,
+              }}>
+                {tipsOnly.length} tip{tipsOnly.length !== 1 ? 's' : ''} from this client
               </div>
             </div>
 
             {/* Tips List */}
             <div>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-                Tips History
-              </h4>
-              {tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').map((item) => (
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: '0.65rem',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}>
+                <i className="bi bi-clock-history" style={{ fontSize: 11 }} /> Tips History
+              </div>
+              {hasTips ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {tipsOnly.map((item) => (
                     <div key={item.id} style={{
-                      padding: '0.75rem',
-                      borderRadius: '0.5rem',
-                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
-                      border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}`
+                      padding: '0.85rem 0.95rem',
+                      borderRadius: 12,
+                      background: actualTheme === 'dark' ? 'rgba(251,191,36,0.10)' : 'rgba(254,251,235,0.85)',
+                      border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(251,191,36,0.32)'}`,
+                      position: 'relative', overflow: 'hidden',
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.375rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span aria-hidden style={{
+                        position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                        background: 'linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%)',
+                      }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6, paddingLeft: 6, gap: 8 }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <span style={{
-                            padding: '0.125rem 0.375rem',
-                            borderRadius: '0.25rem',
-                            backgroundColor: actualTheme === 'dark' ? '#92400E' : '#FEF3C7',
-                            color: actualTheme === 'dark' ? '#FCD34D' : '#B45309',
-                            fontSize: '0.65rem',
-                            fontWeight: '600',
-                            textTransform: 'uppercase'
+                            padding: '0.18rem 0.5rem',
+                            borderRadius: 9999,
+                            background: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
+                            color: 'white',
+                            fontSize: '0.6rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.08em', textTransform: 'uppercase',
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            boxShadow: '0 3px 8px rgba(245,158,11,0.30)',
                           }}>
-                            TIP
+                            <i className="bi bi-gift-fill" style={{ fontSize: 9 }} /> Tip
                           </span>
-                          <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                          <span style={{ fontSize: '0.74rem', color: colors.textSecondary, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <i className="bi bi-calendar3" style={{ fontSize: 10 }} />
                             {formatDate(item.date)}
                           </span>
                         </div>
                         <span style={{
-                          fontSize: '1rem',
-                          fontWeight: '700',
-                          color: actualTheme === 'dark' ? '#FCD34D' : '#B45309'
+                          fontSize: '1.05rem',
+                          fontWeight: 800,
+                          letterSpacing: '-0.01em',
+                          color: actualTheme === 'dark' ? '#FCD34D' : '#B45309',
+                          flexShrink: 0,
                         }}>
-                          +${item.amount}
+                          +{formatPrice(item.amount)}
                         </span>
                       </div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: colors.textPrimary, marginBottom: 3, paddingLeft: 6, letterSpacing: '-0.005em' }}>
                         {item.eventName}
                       </div>
                       {item.message && (
@@ -2232,7 +2558,9 @@ export default function Clients() {
                           fontSize: '0.8rem',
                           color: colors.textSecondary,
                           margin: 0,
-                          fontStyle: 'italic'
+                          fontStyle: 'italic',
+                          paddingLeft: 6,
+                          lineHeight: 1.5,
                         }}>
                           &ldquo;{item.message}&rdquo;
                         </p>
@@ -2242,24 +2570,33 @@ export default function Clients() {
                 </div>
               ) : (
                 <div style={{
-                  padding: '2rem',
+                  padding: '2rem 1rem',
                   textAlign: 'center',
-                  backgroundColor: colors.bgTertiary,
-                  borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`
+                  background: colors.bgTertiary,
+                  borderRadius: 12,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
                 }}>
-                  <div style={{ color: '#9CA3AF', marginBottom: '0.5rem' }}>
-                    <GiftIcon />
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12,
+                    background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)',
+                    border: '1px solid rgba(8,58,133,0.16)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <i className="bi bi-gift" style={{ fontSize: 18, color: '#083A85' }} />
                   </div>
-                  <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0 }}>
+                  <p style={{ fontSize: '0.9rem', color: colors.textPrimary, margin: 0, fontWeight: 700, letterSpacing: '-0.005em' }}>
                     No tips from this client yet
+                  </p>
+                  <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: 0, maxWidth: 320, lineHeight: 1.5 }}>
+                    Tips will appear here when this client shows appreciation for your work.
                   </p>
                 </div>
               )}
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: '1.25rem', alignItems: 'center' }}>
               <button
                 onClick={() => {
                   setShowTipsModal(false);
@@ -2268,20 +2605,25 @@ export default function Clients() {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
+                  border: `1px solid ${colors.borderPrimary}`,
+                  borderRadius: 11,
                   background: colors.bgTertiary,
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
               >
                 Close
               </button>
             </div>
           </div>
-        )}
+          );
+        })()}
       </Modal>
 
       {/* Delete Confirmation Modal */}
@@ -2293,55 +2635,115 @@ export default function Clients() {
       >
         {deleteConfirmClient && (
           <div>
+            {/* Danger icon hero */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.9rem' }}>
+              <div style={{
+                width: 60, height: 60, borderRadius: 18,
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                boxShadow: '0 12px 28px rgba(220,38,38,0.40)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <i className="bi bi-trash3-fill" style={{ fontSize: 24, color: '#fff' }} />
+              </div>
+            </div>
+            <div style={{ textAlign: 'center', marginBottom: '1.1rem' }}>
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 700, color: '#DC2626',
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: 4,
+              }}>Remove client</div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                Remove from your list?
+              </h3>
+            </div>
+
+            {/* Client preview */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
-              marginBottom: '1.25rem',
-              padding: '0.75rem',
-              backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEF2F2',
-              borderRadius: '0.5rem',
-              border: `1px solid ${actualTheme === 'dark' ? '#7F1D1D' : '#FECACA'}`
+              gap: '0.85rem',
+              marginBottom: '1.1rem',
+              padding: '0.85rem 0.95rem',
+              background: actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : 'rgba(220,38,38,0.25)'}`,
+              borderRadius: 12,
+              position: 'relative',
+              overflow: 'hidden',
             }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                </svg>
-                {deleteConfirmClient.profileImage && (
-                  <img src={deleteConfirmClient.profileImage} alt={deleteConfirmClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                )}
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                background: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)',
+              }} />
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                padding: 2,
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                flexShrink: 0,
+                marginLeft: 6,
+              }}>
+                <div style={{
+                  width: '100%', height: '100%', borderRadius: '50%',
+                  overflow: 'hidden', position: 'relative',
+                  background: colors.bgCard,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {deleteConfirmClient.profileImage && (
+                    <img src={deleteConfirmClient.profileImage} alt={deleteConfirmClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
               </div>
-              <div>
-                <p style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {deleteConfirmClient.firstName} {deleteConfirmClient.lastName}
                 </p>
-                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.125rem 0 0' }}>
+                <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '2px 0 0', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 10, color: '#DC2626' }} />
                   {deleteConfirmClient.totalBookings} booking{deleteConfirmClient.totalBookings !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
 
-            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.25rem', lineHeight: '1.5' }}>
-              Are you sure you want to remove this client from your list? This action cannot be undone.
+            <p style={{
+              fontSize: '0.9rem', color: colors.textSecondary, margin: '0 auto 0.45rem',
+              textAlign: 'center', lineHeight: 1.55,
+            }}>
+              Are you sure you want to remove this client from your list?
+            </p>
+            <p style={{
+              fontSize: '0.82rem',
+              color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
+              margin: '0 0 1.4rem',
+              textAlign: 'center',
+              fontWeight: 600,
+              letterSpacing: '-0.005em',
+            }}>
+              This action cannot be undone.
             </p>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => setDeleteConfirmClient(null)}
                 disabled={deleting}
                 style={{
                   flex: 1,
-                  padding: '0.75rem',
-                  borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderSecondary}`,
-                  backgroundColor: colors.bgCard,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 11,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  background: colors.bgTertiary,
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
-                  fontWeight: '500',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
                   cursor: deleting ? 'not-allowed' : 'pointer',
-                  opacity: deleting ? 0.5 : 1
+                  opacity: deleting ? 0.5 : 1,
+                  transition: 'border-color 0.15s',
                 }}
+                onMouseEnter={(e) => { if (!deleting) e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
               >
                 Cancel
               </button>
@@ -2349,23 +2751,34 @@ export default function Clients() {
                 onClick={() => deleteClient(deleteConfirmClient.id)}
                 disabled={deleting}
                 style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid #B91C1C',
-                  backgroundColor: '#DC2626',
+                  flex: 1.4,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 11,
+                  border: 'none',
+                  background: deleting
+                    ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
+                    : 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
                   color: 'white',
-                  fontSize: '0.9rem',
-                  fontWeight: '500',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
                   cursor: deleting ? 'not-allowed' : 'pointer',
                   opacity: deleting ? 0.7 : 1,
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.5rem'
+                  gap: 7,
+                  boxShadow: deleting ? 'none' : '0 8px 18px rgba(220,38,38,0.32)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
                 }}
+                onMouseEnter={(e) => { if (!deleting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(220,38,38,0.38)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = deleting ? 'none' : '0 8px 18px rgba(220,38,38,0.32)'; }}
               >
-                {deleting ? 'Removing...' : 'Remove'}
+                {deleting ? (
+                  <><i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} /> Removing...</>
+                ) : (
+                  <><i className="bi bi-trash3-fill" style={{ fontSize: 13 }} /> Remove</>
+                )}
               </button>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
+import EventConfirmModal from '../../components/EventConfirmModal';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -587,125 +588,72 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
         <Topbar userRole={userRole} />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           {/* Page Header */}
-          <div className="mobile-header" style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '0.5rem',
-                background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white'
-              }}>
-                <BroadcastIcon />
-              </div>
-              <div>
-                <h1 className="mobile-title" style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
-                  Completed Streams
-                </h1>
-                <p className="mobile-subtitle" style={{ fontSize: '0.875rem', color: colors.textSecondary, margin: 0 }}>
-                  View messages and videos from your past event streams
-                </p>
-              </div>
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>LIBRARY</div>
+              <h1 className="mobile-title" style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>
+                Completed streams
+              </h1>
+              <p className="mobile-subtitle" style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
+                Browse messages and videos from your past event streams.
+              </p>
             </div>
-          </div>
+          </header>
 
           {/* Stats Cards */}
-          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #3B82F6' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#60A5FA' : '#1D4ED8' }}>
-                  <BroadcastIcon />
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>{streams.length}</div>
-                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Streams</div>
-                </div>
-              </div>
-            </div>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #10B981' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' }}>
-                  <UsersIcon />
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>
-                    {streams.reduce((acc, s) => acc + s.totalViewers, 0).toLocaleString()}
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginBottom: '1.5rem' }}>
+            {([
+              { label: 'Total streams',  value: streams.length.toString(),                                                      accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-broadcast-pin' },
+              { label: 'Total viewers',  value: streams.reduce((acc, s) => acc + s.totalViewers, 0).toLocaleString(),           accent: '#10B981', tint: 'rgba(16,185,129,0.12)', icon: 'bi-people-fill' },
+              { label: 'Chat messages',  value: streams.reduce((acc, s) => acc + s.totalMessages, 0).toString(),                accent: '#F59E0B', tint: 'rgba(245,158,11,0.12)', icon: 'bi-chat-dots-fill' },
+              { label: 'Video messages', value: streams.reduce((acc, s) => acc + s.totalVideoMessages, 0).toString(),           accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-camera-video-fill' },
+            ] as const).map((stat) => (
+              <div
+                key={stat.label}
+                className="ck-card"
+                style={{ position: 'relative', overflow: 'hidden', padding: '14px 16px 16px', cursor: 'default' }}
+              >
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                  background: `linear-gradient(90deg, ${stat.accent} 0%, #F20C8F 130%)`,
+                }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: stat.tint,
+                    border: `1px solid ${stat.accent}33`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className={`bi ${stat.icon}`} style={{ fontSize: 16, color: stat.accent }} />
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Viewers</div>
-                </div>
-              </div>
-            </div>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #F59E0B' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#FCD34D' : '#D97706' }}>
-                  <MessageIcon />
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>
-                    {streams.reduce((acc, s) => acc + s.totalMessages, 0)}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginBottom: 2, fontWeight: 600 }}>{stat.label}</div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>{stat.value}</div>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Chat Messages</div>
                 </div>
               </div>
-            </div>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #8B5CF6' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#4C1D95' : '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#A78BFA' : '#5B21B6' }}>
-                  <VideoIcon />
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>
-                    {streams.reduce((acc, s) => acc + s.totalVideoMessages, 0)}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Video Messages</div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Search and Filter Bar */}
-          <div className="mobile-filters" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
-            <div className="mobile-search" style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+          <div className="mobile-filters" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="ck-search mobile-search" style={{ flex: 1, maxWidth: 400, minWidth: 220 }}>
+              <i className="bi bi-search" />
               <input
-                type="text"
-                placeholder="Search completed streams..."
+                type="search"
+                placeholder="Search completed streams…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  outline: 'none',
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary,
-                }}
               />
-              <div style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)' }}>
-                <SearchIcon />
-              </div>
             </div>
-            <div className="mobile-filter-buttons filter-buttons">
+            <div className="ck-tabs mobile-filter-buttons filter-buttons">
               {eventTypes.map(type => (
                 <button
                   key={type}
                   onClick={() => setFilterType(type)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.5rem',
-                    border: '2px solid',
-                    borderColor: filterType === type ? '#083A85' : colors.borderPrimary,
-                    backgroundColor: filterType === type ? '#083A85' : colors.bgCard,
-                    color: filterType === type ? 'white' : colors.textSecondary,
-                    fontSize: '0.85rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    textTransform: 'capitalize',
-                  }}
+                  className={`ck-tab ${filterType === type ? 'is-active' : ''}`}
+                  style={{ textTransform: 'capitalize' }}
                 >
                   {type}
                 </button>
@@ -738,24 +686,90 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
                     {/* TOP: event type + duration/unviewed + delete */}
-                    <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ backgroundColor: '#083A85', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', pointerEvents: 'none' }}>
+                    <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 }}>
+                      <div style={{
+                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                        color: 'white',
+                        padding: '4px 10px',
+                        borderRadius: 9999,
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        border: '1px solid rgba(255,255,255,0.18)',
+                        boxShadow: '0 4px 10px rgba(8,58,133,0.30)',
+                        pointerEvents: 'none',
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#fff', boxShadow: '0 0 0 2px rgba(255,255,255,0.30)' }} />
                         {stream.eventType}
                       </div>
-                      <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {unviewedCount > 0 && (
-                          <div style={{ backgroundColor: '#DC2626', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, pointerEvents: 'none' }}>
+                          <div style={{
+                            background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                            color: 'white',
+                            padding: '4px 9px',
+                            borderRadius: 9999,
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            border: '1px solid rgba(255,255,255,0.20)',
+                            boxShadow: '0 4px 10px rgba(220,38,38,0.30)',
+                            pointerEvents: 'none',
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                          }}>
+                            <i className="bi bi-dot" style={{ fontSize: 14, lineHeight: 0 }} />
                             {unviewedCount} new
                           </div>
                         )}
-                        <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.25rem', pointerEvents: 'none' }}>
+                        <div style={{
+                          backgroundColor: 'rgba(0,0,0,0.55)',
+                          backdropFilter: 'blur(8px)',
+                          WebkitBackdropFilter: 'blur(8px)',
+                          color: '#fff',
+                          padding: '4px 10px',
+                          borderRadius: 9999,
+                          fontSize: '0.66rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.04em',
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          border: '1px solid rgba(255,255,255,0.18)',
+                          pointerEvents: 'none',
+                        }}>
                           <ClockIcon /> {stream.duration}
                         </div>
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteTarget(stream); }}
-                          style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'rgba(255,255,255,0.8)', padding: '0.3rem', borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(220,38,38,0.8)'; e.currentTarget.style.color = 'white'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.55)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+                          style={{
+                            background: 'rgba(0,0,0,0.55)',
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            color: 'rgba(255,255,255,0.9)',
+                            width: 26, height: 26,
+                            padding: 0,
+                            borderRadius: 9,
+                            border: '1px solid rgba(255,255,255,0.18)',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.15s',
+                            flexShrink: 0,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
+                            e.currentTarget.style.color = '#fff';
+                            e.currentTarget.style.borderColor = '#DC2626';
+                            e.currentTarget.style.boxShadow = '0 4px 10px rgba(220,38,38,0.30)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(0,0,0,0.55)';
+                            e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
                           title="Delete stream"
                         >
                           <TrashIcon />
@@ -776,11 +790,11 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                       </div>
 
                       {/* FOOTER: frosted glass */}
-                      <div style={{ backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.75rem 1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                      <div style={{ backgroundColor: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', padding: '0.75rem 1rem 0.85rem', borderTop: '1px solid rgba(255,255,255,0.12)' }}>
                         {/* Photographer + stats row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.65rem' }}>
+                          <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #083A85, #F20C8F)', border: '1.5px solid rgba(255,255,255,0.42)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.30)' }}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
                             </svg>
@@ -788,32 +802,76 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                               <img src={stream.photographerImage} alt={stream.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             )}
                           </div>
-                          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{stream.photographerName}</span>
-                          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexShrink: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.95)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, letterSpacing: '-0.005em' }}>{stream.photographerName}</span>
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                            <div title={`${stream.totalViewers} viewers`} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#fff', fontSize: '0.7rem', fontWeight: 600, padding: '3px 8px', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999 }}>
                               <UsersIcon /> {stream.totalViewers}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                            <div title={`${stream.totalMessages} chat messages`} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#fff', fontSize: '0.7rem', fontWeight: 600, padding: '3px 8px', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999 }}>
                               <MessageIcon /> {stream.totalMessages}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                            <div title={`${stream.totalVideoMessages} video messages`} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#fff', fontSize: '0.7rem', fontWeight: 600, padding: '3px 8px', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999 }}>
                               <VideoIcon /> {stream.totalVideoMessages}
                             </div>
                           </div>
                         </div>
                         {/* Action buttons */}
-                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
                           <button
                             onClick={() => { setSelectedStream(stream); setShowMessagesModal(true); }}
-                            style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem 0.7rem',
+                              borderRadius: 9,
+                              border: '1px solid rgba(255,255,255,0.18)',
+                              background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
+                              color: '#fff',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                              boxShadow: '0 4px 10px rgba(8,58,133,0.30)',
+                              letterSpacing: '-0.005em',
+                              transition: 'transform 0.15s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                           >
-                            <MessageIcon /> View Chats
+                            <MessageIcon /> View chats
                           </button>
                           <button
                             onClick={() => { setSelectedStream(stream); setShowVideosModal(true); }}
-                            style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem 0.7rem',
+                              borderRadius: 9,
+                              border: '1px solid rgba(255,255,255,0.18)',
+                              background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                              color: '#fff',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                              boxShadow: '0 4px 10px rgba(220,38,38,0.30)',
+                              letterSpacing: '-0.005em',
+                              transition: 'transform 0.15s',
+                              position: 'relative',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                           >
-                            <VideoIcon /> Videos {unviewedCount > 0 && `(${unviewedCount})`}
+                            <VideoIcon /> Videos
+                            {unviewedCount > 0 && (
+                              <span style={{
+                                marginLeft: 4,
+                                padding: '1px 6px',
+                                background: 'rgba(255,255,255,0.20)',
+                                border: '1px solid rgba(255,255,255,0.30)',
+                                borderRadius: 9999,
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                              }}>{unviewedCount}</span>
+                            )}
                           </button>
                         </div>
                       </div>
@@ -826,20 +884,35 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
 
           {/* Empty State */}
           {filteredStreams.length === 0 && (
-            <div style={{
+            <div className="ck-empty" style={{
+              background: colors.bgCard,
+              border: `1px solid ${colors.borderPrimary}`,
+              borderRadius: 16,
+              padding: '3.5rem 1.5rem',
               textAlign: 'center',
-              padding: '4rem 2rem',
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              border: `2px solid ${colors.borderPrimary}`,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 12,
             }}>
-              <BroadcastIcon />
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>
-                No completed streams found
-              </h3>
-              <p style={{ color: colors.textSecondary, marginTop: '0.5rem' }}>
-                Your completed event streams will appear here with viewer messages and videos.
-              </p>
+              <div style={{
+                width: 64, height: 64, borderRadius: 18,
+                background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.10) 100%)',
+                border: '1px solid var(--ck-stroke)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <i className="bi bi-broadcast-pin" style={{ fontSize: 26, color: '#083A85' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>
+                  No completed streams found
+                </div>
+                <p style={{ margin: '4px auto 0', fontSize: '0.9rem', color: colors.textSecondary, maxWidth: 460, lineHeight: 1.5 }}>
+                  {searchQuery || filterType !== 'all'
+                    ? 'Try a different keyword or filter. Your past streams will appear here once they match.'
+                    : 'Your completed event streams will appear here with viewer messages and videos.'}
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -1183,37 +1256,25 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(4px)' }} onClick={() => !isDeleting && setDeleteTarget(null)}>
-          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.5rem', maxWidth: '400px', width: '90%', boxShadow: actualTheme === 'dark' ? '0 25px 60px rgba(0,0,0,0.6)' : '0 25px 60px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.15)' : '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                </svg>
-              </div>
-            </div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 0.5rem', textAlign: 'center' }}>Delete Stream Record?</h3>
-            <p style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 1.25rem', textAlign: 'center' }}>
-              This will permanently delete the stream record for <strong style={{ color: colors.textPrimary }}>{deleteTarget.streamTitle}</strong>, including all chat messages and video messages.
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => setDeleteTarget(null)}
-                disabled={isDeleting}
-                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '0.5rem', border: `1.5px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', opacity: isDeleting ? 0.5 : 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteStream}
-                disabled={isDeleting}
-                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', opacity: isDeleting ? 0.7 : 1 }}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EventConfirmModal
+          tone="danger"
+          icon="bi-trash3-fill"
+          eyebrow="Permanent action"
+          title="Delete stream record?"
+          highlight={deleteTarget.streamTitle}
+          intro={<>This will permanently delete the stream record for <strong style={{ color: colors.textPrimary }}>&ldquo;{deleteTarget.streamTitle}&rdquo;</strong>.</>}
+          detail="All chat messages and video messages from this stream will be removed. This action cannot be undone."
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => { if (!isDeleting) setDeleteTarget(null); }}
+          closeLabel="Cancel"
+          primary={{
+            label: isDeleting ? 'Deleting…' : 'Delete stream',
+            icon: 'bi-trash3-fill',
+            tone: 'danger',
+            onClick: handleDeleteStream,
+          }}
+        />
       )}
 
       <style jsx global>{`

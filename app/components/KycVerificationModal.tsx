@@ -1042,31 +1042,47 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   if (!isOpen) return null;
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`,
-    borderRadius: '0.75rem', fontSize: '0.9rem', color: colors.textPrimary,
+    width: '100%', padding: '0.7rem 0.95rem', border: `1.5px solid ${colors.borderPrimary}`,
+    borderRadius: 11, fontSize: '0.9rem', color: colors.textPrimary,
     outline: 'none', backgroundColor: colors.bgCard, boxSizing: 'border-box',
-    transition: 'border-color 0.2s',
+    transition: 'border-color 0.18s, box-shadow 0.18s',
   };
 
   const labelStyle: React.CSSProperties = {
-    display: 'block', fontSize: '0.875rem', fontWeight: '600',
-    color: colors.textPrimary, marginBottom: '0.5rem',
+    display: 'block', fontSize: '0.7rem', fontWeight: 700,
+    color: colors.textSecondary, marginBottom: '0.4rem',
+    letterSpacing: '0.06em', textTransform: 'uppercase',
   };
 
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex',
+      backgroundColor: 'rgba(0, 0, 0, 0.45)',
+      backdropFilter: 'blur(2px)',
+      WebkitBackdropFilter: 'blur(2px)',
+      display: 'flex',
       alignItems: 'center', justifyContent: 'center', zIndex: 1000,
     }} onClick={onClose}>
       <style>{`
         /* Keyboard accessibility — visible focus outline on all interactive KYC elements */
-        .kyc-modal button:focus-visible,
+        .kyc-modal button:focus-visible {
+          outline: none !important;
+          box-shadow: 0 0 0 3px rgba(242, 12, 143, 0.30) !important;
+        }
+        .kyc-modal input:focus,
+        .kyc-modal select:focus,
+        .kyc-modal textarea:focus {
+          border-color: #083A85 !important;
+          box-shadow: 0 0 0 3px rgba(8, 58, 133, 0.14) !important;
+        }
         .kyc-modal input:focus-visible,
         .kyc-modal select:focus-visible,
         .kyc-modal textarea:focus-visible {
-          outline: 3px solid #60A5FA !important;
-          outline-offset: 2px !important;
+          outline: none !important;
+        }
+        /* Footer primary button hover lift */
+        .kyc-footer button:not([disabled]):hover {
+          transform: translateY(-1px);
         }
         /* Disabled primary button stays readable in high-contrast / low-vision setups */
         .kyc-footer button[disabled] {
@@ -1118,32 +1134,54 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
         }
       `}</style>
       <div className="kyc-modal" style={{
-        backgroundColor: colors.bgCard, borderRadius: '1rem', width: '560px', maxWidth: '95vw',
+        position: 'relative',
+        backgroundColor: colors.bgCard, borderRadius: 18, width: '560px', maxWidth: '95vw',
         maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+        border: `1px solid ${colors.borderPrimary}`,
       }} onClick={e => e.stopPropagation()}>
+        {/* Brand top stripe */}
+        <span aria-hidden style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+          background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+        }} />
 
         {/* Header */}
         <div className="kyc-header" style={{
-          padding: '1.5rem 1.5rem 0 1.5rem', display: 'flex',
-          justifyContent: 'space-between', alignItems: 'center',
+          padding: '1.4rem 1.5rem 0.25rem 1.5rem', display: 'flex',
+          justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ color: '#083A85' }}><ShieldIcon /></div>
-            <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
-                KYC Verification
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 11,
+              background: 'rgba(8,58,133,0.10)',
+              border: '1px solid rgba(8,58,133,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, color: '#083A85',
+            }}>
+              <ShieldIcon />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
+                Identity check
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                KYC verification
               </h3>
-              <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.15rem 0 0 0' }}>
-                Verify your identity to enable withdrawals
+              <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '3px 0 0 0', lineHeight: 1.45 }}>
+                Verify your identity to unlock withdrawals and full platform features.
               </p>
             </div>
           </div>
-          <button onClick={onClose} style={{
-            background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, cursor: 'pointer',
-            padding: '0.5rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: colors.textPrimary,
-          }}>
+          <button onClick={onClose} aria-label="Close" style={{
+            background: 'transparent', border: `1px solid ${colors.borderPrimary}`, cursor: 'pointer',
+            width: 32, height: 32, padding: 0, borderRadius: 9, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', color: colors.textSecondary, flexShrink: 0,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; e.currentTarget.style.borderColor = '#DC2626'; e.currentTarget.style.color = '#DC2626'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textSecondary; }}
+          >
             <CloseIcon />
           </button>
         </div>
@@ -1165,22 +1203,26 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
           {step === 'success' && (
             <div style={{ textAlign: 'center', padding: '2rem 0' }}>
               <div style={{
-                width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#16A34A',
+                width: 72, height: 72, borderRadius: 20,
+                background: 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 1.25rem', boxShadow: '0 4px 14px rgba(22,163,74,0.3)',
+                margin: '0 auto 1.25rem', boxShadow: '0 10px 24px rgba(22,163,74,0.32)',
               }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
               </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                KYC Submitted Successfully!
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>
+                KYC submitted successfully
               </h3>
-              <p style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5', marginBottom: '1.5rem' }}>
-                Your KYC verification is under review. You will be notified once it has been approved.
+              <p style={{ fontSize: '0.88rem', color: colors.textSecondary, lineHeight: 1.5, marginBottom: '1.5rem', maxWidth: 380, margin: '0 auto 1.5rem' }}>
+                Your verification is under review. We&apos;ll notify you as soon as it&apos;s approved.
               </p>
-              <button onClick={onClose} style={{
-                padding: '0.875rem 2rem', border: '2px solid #062a63', borderRadius: '0.75rem',
-                background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
-              }}>Done</button>
+              <button onClick={onClose} className="ck-btn ck-btn-primary" style={{
+                padding: '0.65rem 1.6rem', fontSize: '0.9rem',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+              }}>
+                <i className="bi bi-check2-circle" style={{ fontSize: 13 }} />
+                Done
+              </button>
             </div>
           )}
 
@@ -1188,25 +1230,28 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
           {step === 'failed' && (
             <div style={{ textAlign: 'center', padding: '2rem 0' }}>
               <div style={{
-                width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#DC2626',
+                width: 72, height: 72, borderRadius: 20,
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 1.25rem', boxShadow: '0 4px 14px rgba(220,38,38,0.3)',
+                margin: '0 auto 1.25rem', boxShadow: '0 10px 24px rgba(220,38,38,0.32)',
               }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Submission Failed
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>
+                Submission failed
               </h3>
-              <p style={{ fontSize: '0.85rem', color: '#DC2626', marginBottom: '1.5rem', lineHeight: '1.5' }}>{error}</p>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                <button onClick={() => setStep('form')} style={{
-                  padding: '0.875rem 1.5rem', border: '2px solid #062a63', borderRadius: '0.75rem',
-                  background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
-                }}>Try Again</button>
-                <button onClick={onClose} style={{
-                  padding: '0.875rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem',
-                  background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
-                }}>Close</button>
+              <p style={{ fontSize: '0.88rem', color: '#DC2626', marginBottom: '1.5rem', lineHeight: 1.5, maxWidth: 420, margin: '0 auto 1.5rem' }}>{error}</p>
+              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button onClick={() => setStep('form')} className="ck-btn ck-btn-primary" style={{
+                  padding: '0.6rem 1.3rem', fontSize: '0.88rem',
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                }}>
+                  <i className="bi bi-arrow-counterclockwise" style={{ fontSize: 13 }} />
+                  Try again
+                </button>
+                <button onClick={onClose} className="ck-btn ck-btn-soft" style={{ padding: '0.6rem 1.3rem', fontSize: '0.88rem' }}>
+                  Close
+                </button>
               </div>
             </div>
           )}
@@ -1215,15 +1260,19 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
           {step === 'uploading' && (
             <div style={{ textAlign: 'center', padding: '3rem 0' }}>
               <div style={{
-                width: '48px', height: '48px', border: '3px solid #E5E7EB',
-                borderTopColor: '#083A85', borderRadius: '50%',
-                animation: 'spin 1s linear infinite', margin: '0 auto 1.25rem',
-              }} />
-              <p style={{ fontSize: '0.95rem', fontWeight: 600, color: colors.textPrimary, marginBottom: '0.35rem' }}>
-                Submitting KYC Verification
+                position: 'relative',
+                width: 72, height: 72, borderRadius: 20,
+                background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.06) 100%)',
+                border: '1px solid rgba(8,58,133,0.20)',
+                margin: '0 auto 1.25rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span className="ck-spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
+              </div>
+              <p style={{ fontSize: '0.98rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.35rem', letterSpacing: '-0.01em' }}>
+                Submitting your verification
               </p>
-              <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Uploading your documents...</p>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              <p style={{ fontSize: '0.84rem', color: colors.textSecondary }}>Uploading your documents. This only takes a moment.</p>
             </div>
           )}
 
@@ -1231,7 +1280,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
           {step === 'form' && (
             <>
               {/* Stepper */}
-              <div className="kyc-stepper" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <div className="kyc-stepper" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '1.5rem' }}>
                 {WIZARD_LABELS.map((label, idx) => {
                   const stepNum = (idx + 1) as WizardStep;
                   const isActive = stepNum === wizardStep;
@@ -1243,34 +1292,43 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                         onClick={() => { if (canJump) { setError(''); setWizardStep(stepNum); } }}
                         disabled={!canJump}
                         style={{
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem',
                           background: 'transparent', border: 'none', padding: 0,
                           cursor: canJump ? 'pointer' : 'default', flex: '0 0 auto',
                         }}>
                         <div style={{
-                          width: '28px', height: '28px', borderRadius: '50%',
+                          width: 30, height: 30, borderRadius: '50%',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.8rem', fontWeight: 700,
-                          backgroundColor: isComplete ? '#16A34A' : isActive ? '#083A85' : colors.bgTertiary,
+                          fontSize: '0.82rem', fontWeight: 800,
+                          background: isComplete
+                            ? 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)'
+                            : isActive
+                            ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
+                            : colors.bgTertiary,
                           color: (isComplete || isActive) ? 'white' : colors.textSecondary,
-                          border: `2px solid ${isComplete ? '#16A34A' : isActive ? '#083A85' : colors.borderPrimary}`,
-                          transition: 'all 0.2s',
+                          border: `1px solid ${isComplete ? 'transparent' : isActive ? 'transparent' : colors.borderPrimary}`,
+                          boxShadow: isActive ? '0 4px 12px rgba(8,58,133,0.30)' : 'none',
+                          transition: 'all 0.18s',
                         }}>
                           {isComplete ? (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                           ) : stepNum}
                         </div>
                         <span className="kyc-step-label" style={{
-                          fontSize: '0.65rem', fontWeight: isActive ? 700 : 500,
+                          fontSize: '0.66rem', fontWeight: isActive ? 700 : 600,
                           color: isActive ? colors.textPrimary : colors.textSecondary,
                           whiteSpace: 'nowrap',
+                          letterSpacing: '0.02em',
                         }}>{label}</span>
                       </button>
                       {idx < WIZARD_LABELS.length - 1 && (
                         <div style={{
-                          flex: 1, height: '2px', marginBottom: '1rem',
-                          backgroundColor: stepNum < wizardStep ? '#16A34A' : colors.borderPrimary,
-                          transition: 'background-color 0.2s',
+                          flex: 1, height: 3, marginTop: 13.5,
+                          background: stepNum < wizardStep
+                            ? 'linear-gradient(90deg, #10B981 0%, #16A34A 100%)'
+                            : colors.borderPrimary,
+                          borderRadius: 9999,
+                          transition: 'background 0.2s',
                         }} />
                       )}
                     </React.Fragment>
@@ -1281,24 +1339,41 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               {/* Rejection notice */}
               {existingKyc?.status === 'REJECTED' && existingKyc.reviewComment && wizardStep === 1 && (
                 <div style={{
-                  padding: '0.875rem 1rem', marginBottom: '1.25rem', borderRadius: '0.75rem',
-                  backgroundColor: '#FEF2F2', border: '1px solid #FECACA',
+                  position: 'relative', overflow: 'hidden',
+                  padding: '0.85rem 1rem 0.85rem 1.1rem',
+                  marginBottom: '1.25rem', borderRadius: 11,
+                  background: actualTheme === 'dark' ? 'rgba(220,38,38,0.10)' : '#FEF2F2',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.30)' : '#FECACA'}`,
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
                 }}>
-                  <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#DC2626', margin: '0 0 0.25rem 0' }}>
-                    Previous submission rejected
-                  </p>
-                  <p style={{ fontSize: '0.8rem', color: '#991B1B', margin: 0, lineHeight: '1.4' }}>
-                    {existingKyc.reviewComment}
-                  </p>
+                  <span aria-hidden style={{
+                    position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                    background: 'linear-gradient(180deg, #DC2626 0%, #F20C8F 130%)',
+                  }} />
+                  <i className="bi bi-x-octagon-fill" style={{ color: '#DC2626', fontSize: 15, marginTop: 1, flexShrink: 0 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#DC2626', margin: 0, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      Previous submission rejected
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', margin: '4px 0 0', lineHeight: 1.45 }}>
+                      {existingKyc.reviewComment}
+                    </p>
+                  </div>
                 </div>
               )}
 
               {error && (
                 <div style={{
-                  padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '0.5rem',
-                  backgroundColor: '#FEF2F2', border: '1px solid #FECACA',
-                  color: '#DC2626', fontSize: '0.85rem',
-                }}>{error}</div>
+                  padding: '0.7rem 0.95rem', marginBottom: '1rem', borderRadius: 10,
+                  background: actualTheme === 'dark' ? 'rgba(220,38,38,0.10)' : '#FEF2F2',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.32)' : '#FECACA'}`,
+                  color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                  fontSize: '0.85rem',
+                  display: 'flex', alignItems: 'flex-start', gap: 8,
+                }}>
+                  <i className="bi bi-exclamation-circle-fill" style={{ fontSize: 14, marginTop: 1, flexShrink: 0 }} />
+                  <span>{error}</span>
+                </div>
               )}
 
               {/* Step 1: Personal Info */}
@@ -1372,10 +1447,10 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                       : faceDetected ? '#10B981' : '#F59E0B';
                     const timerStr = isChallenge && challengeTimeLeft > 0 ? ` (${challengeTimeLeft}s)` : '';
                     const stageInstruction = tooDark
-                      ? 'Too dark — move to a well-lit area'
+                      ? 'Too dark. Move to a well-lit area'
                       : livenessStage === 'loading' ? 'Loading liveness model…'
                       : livenessStage === 'searching' ? (faceDetected ? 'Center your face in the oval' : 'Looking for your face…')
-                      : livenessStage === 'timeout' ? 'Too slow — retrying this step…'
+                      : livenessStage === 'timeout' ? 'Too slow. Retrying this step…'
                       : livenessStage === 'blink' ? `Blink once${timerStr}`
                       : livenessStage === 'turn-left' ? `Slowly turn your head LEFT${timerStr}`
                       : livenessStage === 'turn-right' ? `Now turn your head RIGHT${timerStr}`
@@ -1673,9 +1748,9 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                             <span aria-hidden="true" style={{ fontSize: '1rem' }}>&#9888;</span>
                             <div>
                               <strong style={{ display: 'block', marginBottom: '0.2rem' }}>
-                                {govIdOcrWarning ? 'Wrong document — cannot continue'
-                                  : govIdFaceWarning ? 'This does not look like a document — cannot continue'
-                                  : 'Document type mismatch — cannot continue'}
+                                {govIdOcrWarning ? 'Wrong document. Cannot continue'
+                                  : govIdFaceWarning ? 'This does not look like a document. Cannot continue'
+                                  : 'Document type mismatch. Cannot continue'}
                               </strong>
                               <span>
                                 {govIdOcrWarning || govIdFaceWarning || govIdRatioWarning}
@@ -1728,7 +1803,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                             display: 'flex', gap: '0.5rem', alignItems: 'center',
                           }}>
                             <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>&#10003;</span>
-                            <span>Document verified — you can continue.</span>
+                            <span>Document verified. You can continue.</span>
                           </div>
                         )}
 
@@ -1883,7 +1958,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
 
                   <div className="kyc-review-media" style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.5rem' }}>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0 0 0.35rem 0', fontWeight: 600 }}>ID — Front</p>
+                      <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0 0 0.35rem 0', fontWeight: 600 }}>ID · Front</p>
                       {govIdFrontPreview && (
                         <img src={govIdFrontPreview} alt="ID front"
                           style={{ width: '100%', aspectRatio: '1.58 / 1', objectFit: 'cover', borderRadius: '0.5rem', border: `1px solid ${colors.borderPrimary}` }} />
@@ -1891,7 +1966,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0 0 0.35rem 0', fontWeight: 600 }}>
-                        ID — Back {documentType === 'PASSPORT' && <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(not needed)</span>}
+                        ID · Back {documentType === 'PASSPORT' && <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(not needed)</span>}
                       </p>
                       {govIdBackPreview ? (
                         <img src={govIdBackPreview} alt="ID back"
@@ -1919,31 +1994,38 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
           const showPrevious = wizardStep > 1;
 
           const primaryDisabled = !stepValid;
-          const primaryBg = primaryDisabled ? '#9CA3AF' : '#083A85';
-          const primaryBorder = primaryDisabled ? '#9CA3AF' : '#062a63';
           const primaryCursor = primaryDisabled ? 'not-allowed' : 'pointer';
 
           const secondaryButton: React.CSSProperties = {
-            flex: 1, minHeight: '48px', padding: '0.875rem',
-            border: `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.75rem', background: colors.bgTertiary, color: colors.textPrimary,
-            fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer',
+            flex: 1, minHeight: 46, padding: '0.7rem 1rem',
+            border: `1px solid ${colors.borderPrimary}`,
+            borderRadius: 11,
+            background: colors.bgCard, color: colors.textPrimary,
+            fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            transition: 'all 0.15s',
           };
           const primaryButton: React.CSSProperties = {
-            flex: showPrevious ? 2 : 1, minHeight: '48px', padding: '0.875rem',
-            border: `2px solid ${primaryBorder}`, borderRadius: '0.75rem',
-            background: primaryBg, color: 'white',
-            fontSize: '0.95rem', fontWeight: 700, cursor: primaryCursor,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            opacity: primaryDisabled ? 0.75 : 1,
+            flex: showPrevious ? 2 : 1, minHeight: 46, padding: '0.7rem 1.2rem',
+            border: 'none', borderRadius: 11,
+            background: primaryDisabled
+              ? colors.bgTertiary
+              : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+            color: primaryDisabled ? colors.textSecondary : '#fff',
+            fontSize: '0.92rem', fontWeight: 700, cursor: primaryCursor,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            opacity: primaryDisabled ? 0.65 : 1,
+            boxShadow: primaryDisabled ? 'none' : '0 6px 18px rgba(8,58,133,0.28)',
+            letterSpacing: '-0.005em',
+            transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s',
           };
 
           return (
             <div className="kyc-footer" role="group" aria-label="Wizard navigation" style={{
-              display: 'flex', gap: '0.75rem',
-              padding: '1rem 1.5rem', borderTop: `1px solid ${colors.borderPrimary}`,
+              display: 'flex', gap: '0.6rem',
+              padding: '0.9rem 1.5rem', borderTop: `1px solid ${colors.borderPrimary}`,
               backgroundColor: colors.bgCard,
-              boxShadow: '0 -8px 16px -8px rgba(0,0,0,0.15)',
+              boxShadow: '0 -8px 16px -8px rgba(8,58,133,0.10)',
               // Lift above virtual keyboard on mobile when one is open
               transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
               transition: prefersReducedMotion ? 'none' : 'transform 0.15s ease-out',
@@ -1951,7 +2033,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               {showPrevious && (
                 <button onClick={handleBack} aria-label="Go to previous step"
                   style={secondaryButton}>
-                  &#8592; Previous
+                  <i className="bi bi-arrow-left" style={{ fontSize: 13 }} /> Previous
                 </button>
               )}
               {isLastStep ? (
@@ -1959,15 +2041,15 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                   aria-label="Submit KYC verification"
                   aria-disabled={primaryDisabled}
                   style={primaryButton}>
-                  <ShieldIcon />
-                  Submit KYC Verification
+                  <i className="bi bi-shield-check" style={{ fontSize: 14 }} />
+                  Submit verification
                 </button>
               ) : (
                 <button onClick={handleNext} disabled={primaryDisabled}
                   aria-label={primaryDisabled ? 'Complete current step to continue' : 'Go to next step'}
                   aria-disabled={primaryDisabled}
                   style={primaryButton}>
-                  Next &#8594;
+                  Next <i className="bi bi-arrow-right" style={{ fontSize: 13 }} />
                 </button>
               )}
             </div>

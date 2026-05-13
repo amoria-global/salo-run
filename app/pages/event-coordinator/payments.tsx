@@ -815,13 +815,17 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
     ];
 
     return (
-      <Modal isOpen={isOpen} onClose={handleClose} title="Choose Payment Option" maxWidth="450px">
+      <Modal isOpen={isOpen} onClose={handleClose} title="Choose Payment Option" maxWidth="460px">
         <div>
-          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
-            How would you like to pay for <strong>{payment.eventName}</strong>?
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <i className="bi bi-shield-fill-check" style={{ fontSize: 12, color: '#F20C8F' }} />
+            <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Payment split</span>
+          </div>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: 1.55 }}>
+            How would you like to pay for <strong style={{ color: colors.textPrimary }}>{payment.eventName}</strong>?
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.25rem' }}>
             {options.map((opt) => {
               const isSelected = selectedEscrowOption === opt.pct;
               const isDisabled = opt.pct === 100 && !isEventCompleted;
@@ -831,54 +835,100 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                   key={opt.pct}
                   onClick={() => !isDisabled && handleSelectEscrowOption(opt.pct)}
                   style={{
-                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1rem',
-                    border: isSelected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.75rem',
+                    position: 'relative',
+                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                    padding: '0.85rem 0.95rem',
+                    border: `1.5px solid ${isSelected ? '#F20C8F' : colors.borderPrimary}`,
+                    borderRadius: 14,
                     cursor: isDisabled ? 'not-allowed' : 'pointer',
-                    opacity: isDisabled ? 0.5 : 1,
-                    backgroundColor: isSelected
-                      ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                    opacity: isDisabled ? 0.55 : 1,
+                    background: isSelected
+                      ? (actualTheme === 'dark'
+                        ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
+                        : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.05) 100%)')
                       : colors.bgCard,
-                    transition: 'all 0.2s',
+                    boxShadow: isSelected ? '0 8px 22px -8px rgba(242,12,143,0.30)' : 'none',
+                    overflow: 'hidden',
+                    transition: 'border-color 0.18s, background 0.18s, box-shadow 0.18s',
                   }}
                 >
+                  {isSelected && (
+                    <span aria-hidden style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                      background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+                    }} />
+                  )}
+                  {/* Branded radio */}
                   <div style={{
-                    width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, marginTop: '2px',
-                    border: isSelected ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                    backgroundColor: colors.bgCard,
-                  }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                      <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{opt.label}</span>
-                      <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                    width: 20, height: 20, borderRadius: '50%',
+                    flexShrink: 0, marginTop: 2,
+                    padding: isSelected ? 2 : 0,
+                    background: isSelected ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' : 'transparent',
+                    border: isSelected ? 'none' : `1.5px solid ${colors.borderPrimary}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.15s',
+                  }}>
+                    {isSelected ? (
+                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' }} />
+                      </div>
+                    ) : null}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>{opt.label}</span>
+                      <span style={{
+                        fontSize: '0.98rem', fontWeight: 800,
+                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        letterSpacing: '-0.01em',
+                      }}>
                         {formatPrice(opt.amount)}
                       </span>
                     </div>
-                    <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: 0, lineHeight: '1.4' }}>
+                    <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: 0, lineHeight: 1.45 }}>
                       {opt.desc}
                     </p>
                     {opt.pct < 100 && (
                       <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                        marginTop: '0.5rem', padding: '0.2rem 0.5rem',
-                        backgroundColor: actualTheme === 'dark' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.1)',
-                        borderRadius: '0.375rem', fontSize: '0.75rem', color: '#D97706', fontWeight: '500',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        marginTop: 7, padding: '3px 8px',
+                        background: actualTheme === 'dark' ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.12)',
+                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.40)' : 'rgba(245,158,11,0.35)'}`,
+                        borderRadius: 999, fontSize: '0.7rem',
+                        color: '#D97706', fontWeight: 700,
+                        letterSpacing: '0.03em',
                       }}>
+                        <i className="bi bi-shield-lock-fill" style={{ fontSize: 10 }} />
                         Escrow protected
                       </div>
                     )}
                     {opt.pct === 100 && !isEventCompleted && (
-                      <p style={{ fontSize: '0.78rem', color: '#EF4444', margin: '0.375rem 0 0', fontWeight: '500' }}>
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        marginTop: 7, padding: '3px 8px',
+                        background: actualTheme === 'dark' ? 'rgba(127,29,29,0.32)' : 'rgba(220,38,38,0.10)',
+                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(252,165,165,0.32)' : 'rgba(220,38,38,0.30)'}`,
+                        borderRadius: 999, fontSize: '0.7rem',
+                        color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                        fontWeight: 700, letterSpacing: '0.03em',
+                      }}>
+                        <i className="bi bi-lock-fill" style={{ fontSize: 10 }} />
                         Available after event is completed
-                      </p>
+                      </div>
                     )}
                     {opt.pct === 100 && isEventCompleted && (
                       <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                        marginTop: '0.5rem', padding: '0.2rem 0.5rem',
-                        backgroundColor: actualTheme === 'dark' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
-                        borderRadius: '0.375rem', fontSize: '0.75rem', color: '#059669', fontWeight: '500',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        marginTop: 7, padding: '3px 8px',
+                        background: actualTheme === 'dark' ? 'rgba(6,95,70,0.32)' : 'rgba(16,185,129,0.12)',
+                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(110,231,183,0.40)' : 'rgba(16,185,129,0.35)'}`,
+                        borderRadius: 999, fontSize: '0.7rem',
+                        color: '#059669', fontWeight: 700, letterSpacing: '0.03em',
                       }}>
+                        <i className="bi bi-clipboard-check-fill" style={{ fontSize: 10 }} />
                         Requires satisfaction survey
                       </div>
                     )}
@@ -889,22 +939,34 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
           </div>
 
           {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted && !checkingSurvey && (
-            <p style={{ fontSize: '0.85rem', color: '#D97706', margin: '0 0 0.75rem', textAlign: 'center', lineHeight: '1.4' }}>
-              You need to complete a satisfaction survey before making the full payment. The survey will appear in the next step.
-            </p>
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+              padding: '0.6rem 0.8rem', margin: '0 0 0.85rem',
+              background: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(245,158,11,0.08)',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(245,158,11,0.30)'}`,
+              borderRadius: 10,
+              fontSize: '0.82rem', color: '#D97706', lineHeight: 1.45,
+            }}>
+              <i className="bi bi-clipboard-check-fill" style={{ fontSize: 13, marginTop: 1, flexShrink: 0 }} />
+              <span>You need to complete a satisfaction survey before making the full payment. The survey will appear in the next step.</span>
+            </div>
           )}
 
           {checkingSurvey && (
-            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 0.75rem', textAlign: 'center' }}>
-              Checking survey status...
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 0.85rem' }}>
+              <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+              Checking survey status…
+            </div>
           )}
 
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button onClick={handleClose} style={{
-              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
-              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
-            }}>Cancel</button>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', justifyContent: 'flex-end', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+            <button
+              onClick={handleClose}
+              className="ck-btn ck-btn-soft"
+              style={{ padding: '0.65rem 1.2rem', fontSize: '0.88rem' }}
+            >
+              Cancel
+            </button>
             <button
               disabled={selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)}
               onClick={() => {
@@ -915,18 +977,34 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                 }
               }}
               style={{
-                flex: 1, padding: '0.75rem 1rem',
-                border: '2px solid #062a63', borderRadius: '0.5rem',
-                background: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? '#9CA3AF' : '#083A85',
-                color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                padding: '0.7rem 1.3rem',
+                borderRadius: 11,
+                border: 'none',
+                background: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted))
+                  ? colors.bgTertiary
+                  : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                color: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? colors.textSecondary : '#fff',
+                fontSize: '0.9rem', fontWeight: 700, letterSpacing: '-0.005em',
                 cursor: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 'not-allowed' : 'pointer',
                 opacity: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 0.7 : 1,
-                transition: 'all 0.2s',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                boxShadow: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 'none' : '0 8px 22px -6px rgba(242,12,143,0.42)',
+                transition: 'transform 0.15s, box-shadow 0.15s',
               }}
+              onMouseEnter={(e) => { if (!(selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted))) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted
-                ? 'Complete Survey First'
-                : 'Continue'}
+              {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted ? (
+                <>
+                  <i className="bi bi-clipboard-check-fill" style={{ fontSize: 13 }} />
+                  Complete survey first
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-arrow-right-circle-fill" style={{ fontSize: 13 }} />
+                  Continue
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -1035,74 +1113,121 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
 
   // Selection View (Phase 1)
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
+    <Modal isOpen={isOpen} onClose={handleClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="460px">
       <div>
         {/* Payment Method Selection */}
         <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.55rem' }}>
             Select Payment Method
-          </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div onClick={() => setSelectedPaymentMethod('card')} style={{
-              display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
-              border: selectedPaymentMethod === 'card' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-              borderRadius: '0.75rem', cursor: 'pointer',
-              backgroundColor: selectedPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
-            }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Credit/Debit Card</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay with Visa, Mastercard, etc.</div>
-              </div>
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === 'card' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard }} />
-            </div>
-
-            <div onClick={() => setSelectedPaymentMethod('mtn')} style={{
-              display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
-              border: selectedPaymentMethod === 'mtn' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-              borderRadius: '0.75rem', cursor: 'pointer',
-              backgroundColor: selectedPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
-            }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via MTN MoMo</div>
-              </div>
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === 'mtn' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard }} />
-            </div>
-
-            <div onClick={() => setSelectedPaymentMethod('airtel')} style={{
-              display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
-              border: selectedPaymentMethod === 'airtel' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-              borderRadius: '0.75rem', cursor: 'pointer',
-              backgroundColor: selectedPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
-            }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via Airtel Money</div>
-              </div>
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === 'airtel' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard }} />
-            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {([
+              {
+                id: 'card',
+                title: 'Credit/Debit Card',
+                subtitle: 'Pay with Visa, Mastercard, etc.',
+                kind: 'card' as const,
+              },
+              {
+                id: 'mtn',
+                title: 'MTN Mobile Money',
+                subtitle: 'Pay via MTN MoMo',
+                kind: 'logo' as const,
+                src: '/mtn.png',
+              },
+              {
+                id: 'airtel',
+                title: 'Airtel Mobile Money',
+                subtitle: 'Pay via Airtel Money',
+                kind: 'logo' as const,
+                src: '/airtel.png',
+              },
+            ]).map((m) => {
+              const isSelected = selectedPaymentMethod === m.id;
+              return (
+                <div
+                  key={m.id}
+                  onClick={() => setSelectedPaymentMethod(m.id)}
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.85rem',
+                    padding: '0.85rem 0.95rem',
+                    border: `1.5px solid ${isSelected ? '#F20C8F' : colors.borderPrimary}`,
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    background: isSelected
+                      ? (actualTheme === 'dark'
+                        ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
+                        : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.05) 100%)')
+                      : colors.bgCard,
+                    boxShadow: isSelected ? '0 8px 22px -8px rgba(242,12,143,0.30)' : 'none',
+                    overflow: 'hidden',
+                    transition: 'border-color 0.18s, background 0.18s, box-shadow 0.18s',
+                  }}
+                >
+                  {isSelected && (
+                    <span aria-hidden style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                      background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+                    }} />
+                  )}
+                  <div style={{
+                    width: 50, height: 46,
+                    borderRadius: 11,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: m.kind === 'card' ? 3 : 0,
+                    background: m.kind === 'card' ? colors.bgCard : 'transparent',
+                    border: m.kind === 'card' ? `1px solid ${colors.borderPrimary}` : 'none',
+                  }}>
+                    {m.kind === 'card' ? (
+                      <>
+                        <Image src="/visa.png" alt="Visa" width={22} height={36} unoptimized style={{ objectFit: 'contain' }} />
+                        <Image src="/master.png" alt="Mastercard" width={22} height={36} unoptimized style={{ objectFit: 'contain' }} />
+                      </>
+                    ) : (
+                      <Image src={m.src} alt={m.title} width={46} height={46} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>{m.title}</div>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: 2 }}>{m.subtitle}</div>
+                  </div>
+                  {/* Branded radio */}
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%',
+                    flexShrink: 0,
+                    padding: isSelected ? 2 : 0,
+                    background: isSelected ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' : 'transparent',
+                    border: isSelected ? 'none' : `1.5px solid ${colors.borderPrimary}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.15s',
+                  }}>
+                    {isSelected && (
+                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Phone Number Input (for all methods - XentriPay requires it) */}
           {selectedPaymentMethod && (
-            <div style={{ marginTop: '0.75rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>Phone Number</label>
+            <div style={{ marginTop: '0.85rem' }}>
+              <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>Phone Number</label>
               <input type="tel" placeholder="e.g. 078XXXXXXX" value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
-                style={{ width: '100%', padding: '0.7rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#083A85'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)'; }}
+                style={{ width: '100%', padding: '0.7rem 0.85rem', border: `1.5px solid ${colors.borderPrimary}`, borderRadius: 11, fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.18s, box-shadow 0.18s' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.12)'; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
               />
-              <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
+              <p style={{ fontSize: '0.76rem', color: colors.textSecondary, margin: '0.4rem 0 0 0', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <i className="bi bi-info-circle-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
                 {selectedPaymentMethod === 'card'
                   ? 'Required for payment verification'
                   : `Enter the ${selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt`}
@@ -1110,57 +1235,96 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             </div>
           )}
 
-          <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
-            <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+          <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '0.85rem 0 0 0', textAlign: 'center', display: 'inline-flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}>
+            <i className="bi bi-info-circle-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
             Manage your payment methods in <span
               onClick={() => router.push('/user/event-coordinator/preferences?tab=payments')}
-              style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
+              style={{ color: '#F20C8F', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
             >Preferences → Payment Accounts</span>
           </p>
         </div>
 
         {/* Donation Section */}
         <div style={{
-          marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
-          border: `2px solid ${donationSkipped ? colors.borderPrimary : (donationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+          position: 'relative',
+          marginBottom: '1.25rem', padding: '0.9rem 1rem',
+          borderRadius: 14,
+          border: `1.5px solid ${donationSkipped ? colors.borderPrimary : (donationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.30)')}`,
           background: actualTheme === 'dark'
-            ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)'
-            : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
-          transition: 'all 0.2s'
+            ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.14) 100%)'
+            : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.05) 100%)',
+          transition: 'border-color 0.18s, background 0.18s',
+          overflow: 'hidden',
         }}>
+          <span aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)' }} />
           <div style={{ marginBottom: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <HeartIcon />
-              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Support a Cause</span>
-              <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: 8,
+                background: 'linear-gradient(135deg, rgba(242,12,143,0.18) 0%, rgba(242,12,143,0.10) 100%)',
+                border: '1px solid rgba(242,12,143,0.32)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <i className="bi bi-heart-fill" style={{ fontSize: 12, color: '#F20C8F' }} />
+              </div>
+              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Support a Cause</span>
+              <span style={{
+                fontSize: '0.6rem', fontWeight: 700,
+                color: colors.textSecondary,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginLeft: 'auto',
+                padding: '2px 7px',
+                background: colors.bgCard,
+                border: `1px solid ${colors.borderPrimary}`,
+                borderRadius: 999,
+              }}>Optional</span>
             </div>
-            <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
-              Add a small donation to help fund community projects and initiatives
+            <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '0.4rem 0 0 0', lineHeight: 1.45 }}>
+              Add a small donation to help fund community projects and initiatives.
             </p>
           </div>
           {!donationSkipped && (
             <>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                {['5', '10', '25', '50'].map((amount) => (
-                  <button key={amount} onClick={() => handleSelectDonation(amount)} style={{
-                    padding: '0.4rem 0.75rem', border: donationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem', background: donationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
-                    color: donationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
-                  }}>{formatPrice(Number(amount))}</button>
-                ))}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: '0.75rem' }}>
+                {['5', '10', '25', '50'].map((amount) => {
+                  const isOn = donationAmount === amount;
+                  return (
+                    <button key={amount} onClick={() => handleSelectDonation(amount)} style={{
+                      padding: '0.4rem 0.75rem',
+                      border: `1.5px solid ${isOn ? '#F20C8F' : colors.borderPrimary}`,
+                      borderRadius: 10,
+                      background: isOn ? 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.14) 100%)' : colors.bgCard,
+                      color: isOn ? '#F20C8F' : colors.textSecondary,
+                      fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer',
+                      transition: 'all 0.15s', flex: 1, minWidth: 0,
+                      letterSpacing: '-0.005em',
+                      boxShadow: isOn ? '0 4px 10px -3px rgba(242,12,143,0.32)' : 'none',
+                    }}>{formatPrice(Number(amount))}</button>
+                  );
+                })}
                 <button onClick={() => handleSelectDonation('custom')} style={{
-                  padding: '0.4rem 0.75rem', border: donationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem', background: donationAmount === 'custom' ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
-                  color: donationAmount === 'custom' ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                  padding: '0.4rem 0.75rem',
+                  border: `1.5px solid ${donationAmount === 'custom' ? '#F20C8F' : colors.borderPrimary}`,
+                  borderRadius: 10,
+                  background: donationAmount === 'custom' ? 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.14) 100%)' : colors.bgCard,
+                  color: donationAmount === 'custom' ? '#F20C8F' : colors.textSecondary,
+                  fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer',
+                  transition: 'all 0.15s', flex: 1, minWidth: 0,
+                  letterSpacing: '-0.005em',
+                  boxShadow: donationAmount === 'custom' ? '0 4px 10px -3px rgba(242,12,143,0.32)' : 'none',
                 }}>Custom</button>
               </div>
               {showCustomInput && (
                 <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
-                  <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>$</span>
+                  <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: 700, color: '#F20C8F' }}>$</span>
                   <input type="number" placeholder="Enter amount" value={customDonation} onChange={(e) => setCustomDonation(e.target.value)} style={{
-                    width: '100%', padding: '0.6rem 0.75rem 0.6rem 1.75rem', border: `2px solid ${customDonation ? '#F20C8F' : colors.borderPrimary}`,
-                    borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s'
-                  }} onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)'; }}
+                    width: '100%', padding: '0.65rem 0.85rem 0.65rem 1.85rem',
+                    border: `1.5px solid ${customDonation ? '#F20C8F' : colors.borderPrimary}`,
+                    borderRadius: 11, fontSize: '0.88rem', color: colors.textPrimary,
+                    backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box',
+                    transition: 'border-color 0.18s, box-shadow 0.18s'
+                  }} onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.12)'; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = customDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
                 </div>
               )}
@@ -1183,52 +1347,100 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             </>
           )}
           <button onClick={handleSkipDonation} style={{
-            width: '100%', padding: '0.5rem 1rem', borderRadius: '9999px',
-            border: donationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
-            background: donationSkipped ? '#F20C8F' : colors.bgTertiary,
-            color: donationSkipped ? 'white' : '#374151',
-            fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
-          }}>{donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
-          <div style={{ marginTop: '0.5rem' }}>
+            width: '100%', padding: '0.55rem 1rem', borderRadius: 999,
+            border: donationSkipped ? 'none' : `1.5px solid ${colors.borderPrimary}`,
+            background: donationSkipped ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' : colors.bgCard,
+            color: donationSkipped ? '#fff' : colors.textSecondary,
+            fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+            transition: 'all 0.15s', textAlign: 'center',
+            letterSpacing: '-0.005em',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            boxShadow: donationSkipped ? '0 6px 16px -4px rgba(242,12,143,0.36)' : 'none',
+          }}>
+            {donationSkipped ? (
+              <>
+                <i className="bi bi-check2-circle" style={{ fontSize: 13 }} />
+                Donation skipped
+              </>
+            ) : 'No thanks, skip donation'}
+          </button>
+          <div style={{ marginTop: '0.55rem', textAlign: 'center' }}>
             <a href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{
-              fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500'
-            }}>Learn more about our donation program →</a>
+              fontSize: '0.78rem', color: '#F20C8F', textDecoration: 'none', fontWeight: 700,
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}>
+              Learn more about our donation program
+              <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
+            </a>
           </div>
         </div>
 
         {(!donationAddressed || !phoneValid) && (
-          <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
-            {!phoneValid ? 'Please enter your phone number' : 'Please select a donation amount or skip to continue'}
-          </p>
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8,
+            margin: '0 0 0.85rem 0',
+            padding: '0.55rem 0.8rem',
+            background: actualTheme === 'dark' ? 'rgba(127,29,29,0.32)' : '#FEF2F2',
+            border: `1px solid ${actualTheme === 'dark' ? 'rgba(252,165,165,0.32)' : '#FECACA'}`,
+            borderRadius: 10,
+            color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+            fontSize: '0.83rem',
+          }}>
+            <i className="bi bi-exclamation-circle-fill" style={{ fontSize: 13, marginTop: 1, flexShrink: 0 }} />
+            <span>{!phoneValid ? 'Please enter your phone number' : 'Please select a donation amount or skip to continue'}</span>
+          </div>
         )}
 
         {/* Escrow info banner */}
         {selectedEscrowOption && selectedEscrowOption < 100 && !payment.escrowPercentage && (
           <div style={{
-            marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem',
-            backgroundColor: actualTheme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(251, 191, 36, 0.08)',
-            border: '1px solid rgba(251, 191, 36, 0.3)',
+            display: 'flex', alignItems: 'flex-start', gap: 8,
+            marginBottom: '1rem', padding: '0.65rem 0.85rem',
+            borderRadius: 11,
+            background: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(245,158,11,0.08)',
+            border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(245,158,11,0.30)'}`,
           }}>
-            <p style={{ fontSize: '0.82rem', color: '#D97706', margin: 0, lineHeight: '1.4', fontWeight: '500' }}>
-              You are paying {selectedEscrowOption}% ({formatPrice(amountDue)}) upfront. Funds will be held securely and released after you confirm service satisfaction.
+            <i className="bi bi-shield-lock-fill" style={{ fontSize: 14, color: '#D97706', marginTop: 1, flexShrink: 0 }} />
+            <p style={{ fontSize: '0.82rem', color: '#D97706', margin: 0, lineHeight: 1.45, fontWeight: 600 }}>
+              You are paying <strong>{selectedEscrowOption}% ({formatPrice(amountDue)})</strong> upfront. Funds will be held securely and released after you confirm service satisfaction.
             </p>
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', justifyContent: 'flex-end', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
           {!payment.escrowPercentage && (
-            <button onClick={() => setEscrowStep('options')} style={{
-              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
-              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
-            }}>Back</button>
+            <button
+              onClick={() => setEscrowStep('options')}
+              className="ck-btn ck-btn-soft"
+              style={{ padding: '0.65rem 1.2rem', fontSize: '0.88rem' }}
+            >
+              <i className="bi bi-arrow-left" style={{ fontSize: 12, marginRight: 5 }} />
+              Back
+            </button>
           )}
-          <button disabled={!isPayEnabled} onClick={() => setShowReceipt(true)} style={{
-            flex: 1, padding: '0.75rem 1rem',
-            border: !isPayEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
-            borderRadius: '0.5rem', background: !isPayEnabled ? '#9CA3AF' : '#083A85',
-            color: 'white', fontSize: '0.9rem', fontWeight: '600',
-            cursor: !isPayEnabled ? 'not-allowed' : 'pointer', opacity: !isPayEnabled ? 0.7 : 1, transition: 'all 0.2s'
-          }}>Proceed to Payment</button>
+          <button
+            disabled={!isPayEnabled}
+            onClick={() => setShowReceipt(true)}
+            title={!isPayEnabled ? (!phoneValid ? 'Enter your phone number' : 'Select a donation amount or skip') : undefined}
+            style={{
+              padding: '0.7rem 1.3rem',
+              borderRadius: 11,
+              border: 'none',
+              background: !isPayEnabled ? colors.bgTertiary : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+              color: !isPayEnabled ? colors.textSecondary : '#fff',
+              fontSize: '0.9rem', fontWeight: 700, letterSpacing: '-0.005em',
+              cursor: !isPayEnabled ? 'not-allowed' : 'pointer',
+              opacity: !isPayEnabled ? 0.7 : 1,
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              boxShadow: !isPayEnabled ? 'none' : '0 8px 22px -6px rgba(242,12,143,0.42)',
+              transition: 'transform 0.15s, box-shadow 0.15s',
+            }}
+            onMouseEnter={(e) => { if (isPayEnabled) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+          >
+            <i className="bi bi-arrow-right-circle-fill" style={{ fontSize: 13 }} />
+            Proceed to payment
+          </button>
         </div>
       </div>
     </Modal>
@@ -2194,43 +2406,70 @@ Amount: ${formatPrice(payment.amountNum)}
           </div>
 
           {/* Stream Fees Section */}
-          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', marginBottom: '1rem' }}>
-            <div className="mobile-stream-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            position: 'relative',
+            backgroundColor: colors.bgCard,
+            borderRadius: 14,
+            boxShadow: '0 14px 32px -14px rgba(8,58,133,0.18), 0 4px 12px -4px rgba(0,0,0,0.06)',
+            border: `1px solid ${colors.borderPrimary}`,
+            overflow: 'hidden',
+            marginBottom: '1rem',
+          }}>
+            {/* Brand top stripe */}
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+            }} />
+            <div className="mobile-stream-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                 <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '0.5rem',
-                  backgroundColor: actualTheme === 'dark' ? '#14532D' : '#DCFCE7',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A'
+                  width: 44, height: 44,
+                  borderRadius: 12,
+                  padding: 2,
+                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                  flexShrink: 0,
+                  boxShadow: '0 6px 14px -4px rgba(242,12,143,0.30)',
                 }}>
-                  <LiveStreamIcon />
+                  <div style={{
+                    width: '100%', height: '100%',
+                    borderRadius: 10,
+                    background: colors.bgCard,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <i className="bi bi-broadcast" style={{ fontSize: 18, color: '#F20C8F' }} />
+                  </div>
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Live Stream Revenue</h2>
-                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>From ticketed live-stream viewers on ConnektLive</p>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>ConnektLive</div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Live Stream Revenue</h2>
+                  <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '2px 0 0' }}>From ticketed live-stream viewers on ConnektLive</p>
                 </div>
               </div>
               <div className="mobile-stream-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 {/* Withdrawal Setup Card */}
                 <div className="mobile-withdraw-card" style={{
-                  backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
-                  border: `1px solid ${actualTheme === 'dark' ? '#16A34A' : '#BBF7D0'}`,
-                  borderRadius: '0.5rem',
-                  padding: '0.6rem 1rem',
+                  position: 'relative',
+                  background: actualTheme === 'dark'
+                    ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
+                    : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(99,162,255,0.22)' : 'rgba(8,58,133,0.12)'}`,
+                  borderRadius: 12,
+                  padding: '0.7rem 1rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '1rem',
-                  maxWidth: '420px'
+                  gap: '0.85rem',
+                  maxWidth: 440,
+                  overflow: 'hidden',
                 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.15rem' }}>
+                  <span aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
+                      {hasWithdrawalMethod ? 'Withdrawal' : 'Setup needed'}
+                    </div>
+                    <div style={{ fontSize: '0.93rem', fontWeight: 800, color: colors.textPrimary, marginBottom: 2, letterSpacing: '-0.01em' }}>
                       {hasWithdrawalMethod ? 'Stream Revenue Earnings' : 'Withdraw Your Stream Revenue Earnings'}
                     </div>
-                    <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.35' }}>
+                    <div style={{ fontSize: '0.78rem', color: colors.textSecondary, lineHeight: 1.4 }}>
                       {hasWithdrawalMethod ? 'Withdraw your stream revenue earnings to your saved payment account.' : 'Set up your preferred account to receive payments from stream ticket sales.'}
                     </div>
                   </div>
@@ -2238,25 +2477,39 @@ Amount: ${formatPrice(payment.amountNum)}
                     <button
                       onClick={() => setShowWithdrawModal(true)}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
-                        backgroundColor: '#083A85', color: 'white', border: '2px solid #062a63',
-                        borderRadius: '0.375rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem',
-                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                        color: '#fff', border: 'none',
+                        borderRadius: 10, padding: '0.5rem 0.95rem',
+                        fontSize: '0.83rem', fontWeight: 700, letterSpacing: '-0.005em',
+                        cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                        boxShadow: '0 6px 16px -4px rgba(242,12,143,0.40)',
+                        transition: 'transform 0.15s, box-shadow 0.15s',
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
+                      <i className="bi bi-cash-coin" style={{ fontSize: 13 }} />
                       Withdraw
                     </button>
                   ) : (
                     <button
                       onClick={() => setShowStreamFeeWithdrawModal(true)}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
-                        backgroundColor: '#16A34A', color: 'white', border: '2px solid #15803D',
-                        borderRadius: '0.375rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem',
-                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                        color: '#fff', border: 'none',
+                        borderRadius: 10, padding: '0.5rem 0.95rem',
+                        fontSize: '0.83rem', fontWeight: 700, letterSpacing: '-0.005em',
+                        cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                        boxShadow: '0 6px 16px -4px rgba(242,12,143,0.40)',
+                        transition: 'transform 0.15s, box-shadow 0.15s',
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
-                      Set Up Withdrawal Method
+                      <i className="bi bi-bank2" style={{ fontSize: 13 }} />
+                      Set up withdrawal
                     </button>
                   )}
                 </div>
@@ -2265,10 +2518,20 @@ Amount: ${formatPrice(payment.amountNum)}
                   flexDirection: 'column',
                   justifyContent: 'center',
                   alignItems: 'flex-end',
-                  textAlign: 'right'
+                  textAlign: 'right',
+                  paddingLeft: 6,
+                  borderLeft: `1px solid ${colors.borderPrimary}`,
                 }}>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Revenue</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalStreamFees)}</div>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Total Revenue</div>
+                  <div style={{
+                    fontSize: '1.55rem', fontWeight: 800,
+                    background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    letterSpacing: '-0.015em',
+                    marginTop: 2,
+                  }}>{formatPrice(totalStreamFees)}</div>
                 </div>
               </div>
             </div>
@@ -2580,32 +2843,43 @@ Amount: ${formatPrice(payment.amountNum)}
         <div>
           {/* Explainer Box */}
           <div style={{
-            backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
-            border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
-            borderRadius: '0.5rem',
-            padding: '0.75rem 1rem',
+            position: 'relative',
+            background: actualTheme === 'dark'
+              ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
+              : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)',
+            border: `1px solid ${actualTheme === 'dark' ? 'rgba(99,162,255,0.22)' : 'rgba(8,58,133,0.12)'}`,
+            borderRadius: 12,
+            padding: '0.85rem 1rem',
             marginBottom: '1rem',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: '0.75rem'
+            gap: '0.85rem',
+            overflow: 'hidden',
           }}>
+            <span aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)' }} />
             <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: actualTheme === 'dark' ? '#166534' : '#DCFCE7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
+              width: 38, height: 38,
+              borderRadius: 11,
+              padding: 2,
+              background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+              flexShrink: 0,
+              boxShadow: '0 5px 12px -4px rgba(242,12,143,0.30)',
             }}>
-              <StreamFeeIcon />
+              <div style={{
+                width: '100%', height: '100%',
+                borderRadius: 9,
+                background: colors.bgCard,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <i className="bi bi-broadcast" style={{ fontSize: 16, color: '#F20C8F' }} />
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Withdrawal account</div>
+              <div style={{ fontSize: '0.93rem', fontWeight: 800, color: colors.textPrimary, marginBottom: 3, letterSpacing: '-0.01em' }}>
                 Where should we send your stream revenue earnings?
               </div>
-              <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: '1.4' }}>
+              <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: 1.45 }}>
                 When viewers pay for access to your live streams, this is the account where you&apos;ll receive those payments.
               </div>
             </div>
@@ -2614,193 +2888,168 @@ Amount: ${formatPrice(payment.amountNum)}
           {/* Rwanda Mobile Money Requirement Notice */}
           {isRwanda && (
             <div style={{
-              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-              border: `1px solid ${actualTheme === 'dark' ? '#3B82F6' : '#BFDBFE'}`,
-              borderRadius: '0.5rem',
-              padding: '0.75rem 1rem',
+              background: actualTheme === 'dark' ? 'rgba(30,58,95,0.45)' : 'rgba(8,58,133,0.06)',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(147,197,253,0.30)' : 'rgba(8,58,133,0.22)'}`,
+              borderRadius: 10,
+              padding: '0.6rem 0.85rem',
               marginBottom: '1rem',
               display: 'flex',
               alignItems: 'flex-start',
-              gap: '0.5rem'
+              gap: 8,
+              fontSize: '0.83rem',
+              color: actualTheme === 'dark' ? '#93C5FD' : '#083A85',
+              lineHeight: 1.45,
             }}>
-              <span style={{ fontSize: '1rem' }}>ℹ️</span>
-              <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF' }}>
-                <strong>Required for Rwanda:</strong> You must select either MTN or Airtel Mobile Money as a payment method. You can also add other methods optionally.
-              </div>
+              <i className="bi bi-info-circle-fill" style={{ fontSize: 14, marginTop: 1, flexShrink: 0 }} />
+              <span><strong>Required for Rwanda:</strong> You must select either MTN or Airtel Mobile Money as a payment method. You can also add other methods optionally.</span>
             </div>
           )}
 
           {/* Validation Error */}
           {validationError && (
             <div style={{
-              backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
-              border: `1px solid ${actualTheme === 'dark' ? '#F87171' : '#FECACA'}`,
-              borderRadius: '0.5rem',
-              padding: '0.75rem 1rem',
+              background: actualTheme === 'dark' ? 'rgba(127,29,29,0.32)' : '#FEF2F2',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(252,165,165,0.32)' : '#FECACA'}`,
+              borderRadius: 10,
+              padding: '0.6rem 0.8rem',
               marginBottom: '1rem',
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
+              alignItems: 'flex-start',
+              gap: 8,
+              color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+              fontSize: '0.85rem',
             }}>
-              <span style={{ fontSize: '1rem' }}>⚠️</span>
-              <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>
-                {validationError}
-              </span>
+              <i className="bi bi-exclamation-circle-fill" style={{ fontSize: 14, marginTop: 1, flexShrink: 0 }} />
+              <span>{validationError}</span>
             </div>
           )}
 
           {/* Payment Method Options */}
-          <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-            Select your withdrawal account:
+          <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.55rem' }}>
+            Select your withdrawal account
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
-            {/* MTN Mobile Money */}
-            <div
-              onClick={() => {
-                setSelectedStreamFeePaymentMethod('mtn');
-                setValidationError(null);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedStreamFeePaymentMethod === 'mtn' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedStreamFeePaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</span>
-                  {isRwanda && (
-                    <span style={{
-                      fontSize: '0.65rem',
-                      fontWeight: '600',
-                      color: '#F59E0B',
-                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
-                      padding: '0.15rem 0.4rem',
-                      borderRadius: '0.25rem',
-                      textTransform: 'uppercase'
-                    }}>Required</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.25rem' }}>
+            {([
+              { id: 'mtn',    title: 'MTN Mobile Money',    subtitle: 'Receive payments via MTN MoMo',         logo: { src: '/mtn.png' },    rwandaRequired: true },
+              { id: 'airtel', title: 'Airtel Mobile Money', subtitle: 'Receive payments via Airtel Money',     logo: { src: '/airtel.png' }, rwandaRequired: true },
+              { id: 'bank',   title: 'Bank Transfer',       subtitle: 'Receive payments to your bank account', logo: { icon: 'bi-bank2' },   rwandaRequired: false },
+            ] as const).map((m) => {
+              const isSelected = selectedStreamFeePaymentMethod === m.id;
+              const showRwandaWarning = isRwanda && m.rwandaRequired && !hasMobileMoneySelected;
+              return (
+                <div
+                  key={m.id}
+                  onClick={() => { setSelectedStreamFeePaymentMethod(m.id); setValidationError(null); }}
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.85rem',
+                    padding: '0.85rem 0.95rem',
+                    border: `1.5px solid ${isSelected ? '#F20C8F' : (showRwandaWarning ? '#F59E0B' : colors.borderPrimary)}`,
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    background: isSelected
+                      ? (actualTheme === 'dark'
+                        ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
+                        : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.05) 100%)')
+                      : colors.bgCard,
+                    boxShadow: isSelected ? '0 8px 22px -8px rgba(242,12,143,0.30)' : 'none',
+                    overflow: 'hidden',
+                    transition: 'border-color 0.18s, background 0.18s, box-shadow 0.18s',
+                  }}
+                >
+                  {isSelected && (
+                    <span aria-hidden style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                      background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+                    }} />
                   )}
+                  <div style={{
+                    width: 46, height: 46,
+                    borderRadius: 11,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    background: 'logo' in m && m.logo && 'icon' in m.logo ? 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)' : 'transparent',
+                    border: 'logo' in m && m.logo && 'icon' in m.logo ? `1px solid rgba(8,58,133,0.20)` : 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {'logo' in m && m.logo && 'src' in m.logo ? (
+                      <Image src={m.logo.src} alt={m.title} width={46} height={46} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                    ) : (
+                      <i className={`bi ${(m.logo as { icon: string }).icon}`} style={{ fontSize: 22, color: '#083A85' }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>{m.title}</span>
+                      {isRwanda && m.rwandaRequired && (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 3,
+                          fontSize: '0.6rem', fontWeight: 700,
+                          color: '#D97706',
+                          background: actualTheme === 'dark' ? 'rgba(120,53,15,0.45)' : 'rgba(245,158,11,0.14)',
+                          border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.40)' : 'rgba(245,158,11,0.35)'}`,
+                          padding: '2px 7px',
+                          borderRadius: 999,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}>
+                          <i className="bi bi-flag-fill" style={{ fontSize: 9 }} />
+                          Required
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: 2 }}>{m.subtitle}</div>
+                  </div>
+                  {/* Branded radio */}
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%',
+                    flexShrink: 0,
+                    padding: isSelected ? 2 : 0,
+                    background: isSelected ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' : 'transparent',
+                    border: isSelected ? 'none' : `1.5px solid ${colors.borderPrimary}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.15s',
+                  }}>
+                    {isSelected && (
+                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' }} />
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive payments via MTN MoMo</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedStreamFeePaymentMethod === 'mtn' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
-
-            {/* Airtel Mobile Money */}
-            <div
-              onClick={() => {
-                setSelectedStreamFeePaymentMethod('airtel');
-                setValidationError(null);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedStreamFeePaymentMethod === 'airtel' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedStreamFeePaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</span>
-                  {isRwanda && (
-                    <span style={{
-                      fontSize: '0.65rem',
-                      fontWeight: '600',
-                      color: '#F59E0B',
-                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
-                      padding: '0.15rem 0.4rem',
-                      borderRadius: '0.25rem',
-                      textTransform: 'uppercase'
-                    }}>Required</span>
-                  )}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive payments via Airtel Money</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedStreamFeePaymentMethod === 'airtel' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
-
-            {/* Bank Transfer */}
-            <div
-              onClick={() => setSelectedStreamFeePaymentMethod('bank')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedStreamFeePaymentMethod === 'bank' ? '2px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedStreamFeePaymentMethod === 'bank' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Transfer</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive payments to your bank account</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedStreamFeePaymentMethod === 'bank' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
+              );
+            })}
           </div>
 
           {/* Payment Details Form */}
           {selectedStreamFeePaymentMethod && (
             <div style={{
-              backgroundColor: colors.bgTertiary,
-              borderRadius: '0.75rem',
+              position: 'relative',
+              background: actualTheme === 'dark'
+                ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.10) 100%)'
+                : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.03) 100%)',
+              borderRadius: 14,
               padding: '1rem',
               marginBottom: '1.25rem',
-              border: `2px solid ${colors.borderPrimary}`
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(99,162,255,0.22)' : 'rgba(8,58,133,0.12)'}`,
+              overflow: 'hidden',
             }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 1rem 0' }}>
-                {selectedStreamFeePaymentMethod === 'mtn' && 'MTN Mobile Money Details'}
-                {selectedStreamFeePaymentMethod === 'airtel' && 'Airtel Mobile Money Details'}
-                {selectedStreamFeePaymentMethod === 'bank' && 'Bank Account Details'}
-              </h4>
+              <span aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.85rem' }}>
+                <i className={`bi ${selectedStreamFeePaymentMethod === 'bank' ? 'bi-bank2' : 'bi-phone-fill'}`} style={{ fontSize: 14, color: '#F20C8F' }} />
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                  {selectedStreamFeePaymentMethod === 'mtn' && 'MTN Mobile Money details'}
+                  {selectedStreamFeePaymentMethod === 'airtel' && 'Airtel Mobile Money details'}
+                  {selectedStreamFeePaymentMethod === 'bank' && 'Bank account details'}
+                </h4>
+              </div>
 
               {/* MTN Fields */}
               {selectedStreamFeePaymentMethod === 'mtn' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
                     MTN Phone Number
                   </label>
                   <input
@@ -2810,13 +3059,14 @@ Amount: ${formatPrice(payment.amountNum)}
                     onChange={(e) => setStreamFeePaymentDetails({ ...streamFeePaymentDetails, mtnNumber: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.5rem',
+                      padding: '0.7rem 0.85rem',
+                      border: `1.5px solid ${colors.borderPrimary}`,
+                      borderRadius: 11,
                       fontSize: '0.9rem',
                       backgroundColor: colors.bgCard,
                       color: colors.textPrimary,
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      outline: 'none',
                     }}
                   />
                 </div>
@@ -2825,7 +3075,7 @@ Amount: ${formatPrice(payment.amountNum)}
               {/* Airtel Fields */}
               {selectedStreamFeePaymentMethod === 'airtel' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
                     Airtel Phone Number
                   </label>
                   <input
@@ -2835,13 +3085,14 @@ Amount: ${formatPrice(payment.amountNum)}
                     onChange={(e) => setStreamFeePaymentDetails({ ...streamFeePaymentDetails, airtelNumber: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.5rem',
+                      padding: '0.7rem 0.85rem',
+                      border: `1.5px solid ${colors.borderPrimary}`,
+                      borderRadius: 11,
                       fontSize: '0.9rem',
                       backgroundColor: colors.bgCard,
                       color: colors.textPrimary,
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      outline: 'none',
                     }}
                   />
                 </div>
@@ -2849,9 +3100,9 @@ Amount: ${formatPrice(payment.amountNum)}
 
               {/* Bank Transfer Fields */}
               {selectedStreamFeePaymentMethod === 'bank' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
                       Select Bank
                     </label>
                     <select
@@ -2859,24 +3110,26 @@ Amount: ${formatPrice(payment.amountNum)}
                       onChange={(e) => setStreamFeePaymentDetails({ ...streamFeePaymentDetails, selectedBank: e.target.value })}
                       style={{
                         width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
+                        padding: '0.7rem 0.85rem',
+                        border: `1.5px solid ${streamFeePaymentDetails.selectedBank ? '#F20C8F' : colors.borderPrimary}`,
+                        borderRadius: 11,
                         fontSize: '0.9rem',
+                        fontWeight: 600,
                         backgroundColor: colors.bgCard,
                         color: colors.textPrimary,
                         boxSizing: 'border-box',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        outline: 'none',
                       }}
                     >
-                      <option value="">Choose a bank...</option>
+                      <option value="">Choose a bank…</option>
                       {bankProviders.map((bank) => (
                         <option key={bank.id} value={bank.name}>{bank.name}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
                       Account Number
                     </label>
                     <input
@@ -2886,18 +3139,19 @@ Amount: ${formatPrice(payment.amountNum)}
                       onChange={(e) => setStreamFeePaymentDetails({ ...streamFeePaymentDetails, bankAccountNumber: e.target.value })}
                       style={{
                         width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
+                        padding: '0.7rem 0.85rem',
+                        border: `1.5px solid ${colors.borderPrimary}`,
+                        borderRadius: 11,
                         fontSize: '0.9rem',
                         backgroundColor: colors.bgCard,
                         color: colors.textPrimary,
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        outline: 'none',
                       }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
                       Account Holder Name
                     </label>
                     <input
@@ -2907,13 +3161,14 @@ Amount: ${formatPrice(payment.amountNum)}
                       onChange={(e) => setStreamFeePaymentDetails({ ...streamFeePaymentDetails, bankAccountName: e.target.value })}
                       style={{
                         width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
+                        padding: '0.7rem 0.85rem',
+                        border: `1.5px solid ${colors.borderPrimary}`,
+                        borderRadius: 11,
                         fontSize: '0.9rem',
                         backgroundColor: colors.bgCard,
                         color: colors.textPrimary,
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        outline: 'none',
                       }}
                     />
                   </div>
@@ -2923,24 +3178,15 @@ Amount: ${formatPrice(payment.amountNum)}
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', justifyContent: 'flex-end', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
             <button
               onClick={() => {
                 setShowStreamFeeWithdrawModal(false);
                 setSelectedStreamFeePaymentMethod(null);
                 setValidationError(null);
               }}
-              style={{
-                flex: 1,
-                padding: '0.75rem 1rem',
-                border: `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.5rem',
-                background: colors.bgTertiary,
-                color: colors.textPrimary,
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
+              className="ck-btn ck-btn-soft"
+              style={{ padding: '0.65rem 1.2rem', fontSize: '0.88rem' }}
             >
               Cancel
             </button>
@@ -2956,20 +3202,29 @@ Amount: ${formatPrice(payment.amountNum)}
                 setValidationError(null);
               }}
               disabled={!selectedStreamFeePaymentMethod}
+              title={!selectedStreamFeePaymentMethod ? 'Select a withdrawal account first' : undefined}
               style={{
-                flex: 1,
-                padding: '0.75rem 1rem',
-                border: '2px solid #15803D',
-                borderRadius: '0.5rem',
-                background: selectedStreamFeePaymentMethod ? '#16A34A' : colors.bgTertiary,
-                color: selectedStreamFeePaymentMethod ? 'white' : colors.textSecondary,
+                padding: '0.7rem 1.3rem',
+                borderRadius: 11,
+                border: 'none',
+                background: !selectedStreamFeePaymentMethod ? colors.bgTertiary : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                color: !selectedStreamFeePaymentMethod ? colors.textSecondary : '#fff',
                 fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: selectedStreamFeePaymentMethod ? 'pointer' : 'not-allowed',
-                opacity: selectedStreamFeePaymentMethod ? 1 : 0.6
+                fontWeight: 700,
+                letterSpacing: '-0.005em',
+                cursor: !selectedStreamFeePaymentMethod ? 'not-allowed' : 'pointer',
+                opacity: !selectedStreamFeePaymentMethod ? 0.7 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: !selectedStreamFeePaymentMethod ? 'none' : '0 8px 22px -6px rgba(242,12,143,0.42)',
+                transition: 'transform 0.15s, box-shadow 0.15s',
               }}
+              onMouseEnter={(e) => { if (selectedStreamFeePaymentMethod) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              Save Withdrawal Method
+              <i className="bi bi-check2-circle" style={{ fontSize: 13 }} />
+              Save withdrawal method
             </button>
           </div>
         </div>

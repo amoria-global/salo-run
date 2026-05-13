@@ -298,22 +298,24 @@ export default function StreamPreview({
 
   const overlay: React.CSSProperties = {
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backdropFilter: 'blur(2px)',
+    WebkitBackdropFilter: 'blur(2px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     zIndex: 1100,
-    backdropFilter: 'blur(4px)',
+    padding: '1rem',
   };
 
   const modal: React.CSSProperties = {
+    position: 'relative',
     backgroundColor: colors.bgCard,
-    borderRadius: '1rem',
+    borderRadius: 18,
     width: '96%',
     maxWidth: '960px',
     maxHeight: '94vh',
     overflowY: 'auto',
-    boxShadow: isDark
-      ? '0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)'
-      : '0 25px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)',
+    boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+    border: `1px solid ${colors.borderPrimary}`,
   };
 
   const inputField: React.CSSProperties = {
@@ -385,10 +387,19 @@ export default function StreamPreview({
         width: '100%',
         minHeight: '220px',
         aspectRatio: '16/9',
-        borderRadius: '0.75rem',
+        borderRadius: 14,
         overflow: 'hidden',
-        border: isLive ? '2px solid #10B981' : isTestPreview ? '2px solid #3B82F6' : `2px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB'}`,
+        border: isLive
+          ? '2px solid #10B981'
+          : isTestPreview
+            ? '2px solid #3B82F6'
+            : `1px solid ${colors.borderPrimary}`,
         backgroundColor: '#000',
+        boxShadow: isLive
+          ? '0 12px 28px rgba(16,185,129,0.20)'
+          : isTestPreview
+            ? '0 12px 28px rgba(59,130,246,0.20)'
+            : '0 8px 20px rgba(8,58,133,0.12)',
       }}>
         {/* Live or Test Preview: show WHEP player or local camera preview */}
         {(isLive || isTestPreview) && (whepUrl || isBrowserCapturing) ? (
@@ -476,101 +487,127 @@ export default function StreamPreview({
             position: 'absolute', inset: 0,
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
-            background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
+            background: 'radial-gradient(ellipse at center, rgba(8,58,133,0.30) 0%, rgba(0,0,0,1) 70%), linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
             padding: '1.5rem 1rem',
             color: '#CBD5E1',
           }}>
             {isEnded ? (
               <>
                 <div style={{
-                  width: '64px', height: '64px', borderRadius: '50%',
-                  background: 'rgba(107,114,128,0.15)',
+                  width: 64, height: 64, borderRadius: 18,
+                  background: 'linear-gradient(135deg, rgba(107,114,128,0.30) 0%, rgba(75,85,99,0.20) 100%)',
+                  border: '1px solid rgba(107,114,128,0.40)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: '0.75rem',
+                  marginBottom: '0.85rem',
+                  backdropFilter: 'blur(6px)',
                 }}>
-                  <StopIcon />
+                  <i className="bi bi-stop-circle-fill" style={{ fontSize: 28, color: '#9CA3AF' }} />
                 </div>
-                <div style={{ color: '#6B7280', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                <div style={{
+                  fontSize: '0.62rem', fontWeight: 700, color: '#9CA3AF',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}>Broadcast finished</div>
+                <div style={{ color: '#E5E7EB', fontSize: '1rem', fontWeight: 800, marginBottom: '0.4rem', letterSpacing: '-0.01em' }}>
                   Stream Ended
                 </div>
-                <div style={{ color: '#4B5563', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4' }}>
+                <div style={{ color: '#94A3B8', fontSize: '0.78rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.5 }}>
                   This stream has ended permanently and cannot be resumed.
                 </div>
               </>
             ) : isPaused ? (
               <>
                 <div style={{
-                  width: '64px', height: '64px', borderRadius: '50%',
-                  background: 'rgba(245,158,11,0.15)',
+                  width: 64, height: 64, borderRadius: 18,
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: '0.75rem',
+                  marginBottom: '0.85rem',
+                  boxShadow: '0 12px 28px rgba(245,158,11,0.40)',
                 }}>
-                  <PauseIcon />
+                  <i className="bi bi-pause-fill" style={{ fontSize: 30, color: '#fff' }} />
                 </div>
                 <div style={{
-                  backgroundColor: 'rgba(245,158,11,0.9)',
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
                   color: 'white',
-                  padding: '0.25rem 0.7rem',
-                  borderRadius: '0.3rem',
-                  fontSize: '0.7rem',
+                  padding: '0.28rem 0.75rem',
+                  borderRadius: 9999,
+                  fontSize: '0.66rem',
                   fontWeight: 800,
                   letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
                   marginBottom: '0.6rem',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  boxShadow: '0 4px 12px rgba(245,158,11,0.36)',
                 }}>
-                  PAUSED
+                  <i className="bi bi-pause-fill" style={{ fontSize: 10 }} />
+                  Paused
                 </div>
-                <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4' }}>
+                <div style={{ color: '#CBD5E1', fontSize: '0.78rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.5 }}>
                   Stream is paused. Viewers see a paused state. Click Resume to continue.
                 </div>
               </>
             ) : isDisconnected ? (
               <>
                 <div style={{
-                  width: '64px', height: '64px', borderRadius: '50%',
-                  background: hasCredentials ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)',
+                  width: 64, height: 64, borderRadius: 18,
+                  background: hasCredentials
+                    ? 'linear-gradient(135deg, rgba(245,158,11,0.20) 0%, rgba(217,119,6,0.14) 100%)'
+                    : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                  border: hasCredentials ? '1px solid rgba(245,158,11,0.40)' : 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: '0.75rem',
+                  marginBottom: '0.85rem',
+                  boxShadow: hasCredentials ? 'none' : '0 12px 28px rgba(8,58,133,0.36)',
+                  backdropFilter: hasCredentials ? 'blur(6px)' : 'none',
                 }}>
                   {hasCredentials ? (
                     <div style={{
-                      width: '28px', height: '28px',
-                      border: '3px solid rgba(245,158,11,0.3)',
+                      width: 32, height: 32,
+                      border: '3px solid rgba(245,158,11,0.30)',
                       borderTopColor: '#F59E0B',
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite',
                     }} />
                   ) : (
-                    <BroadcastIcon />
+                    <i className="bi bi-broadcast-pin" style={{ fontSize: 28, color: '#fff' }} />
                   )}
                 </div>
-                <div style={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                  {hasCredentials ? 'Waiting for OBS...' : 'No Stream Signal'}
+                <div style={{
+                  fontSize: '0.62rem', fontWeight: 700,
+                  color: hasCredentials ? '#FCD34D' : '#F20C8F',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}>{hasCredentials ? 'Encoder pending' : 'Ready to set up'}</div>
+                <div style={{ color: '#E5E7EB', fontSize: '0.98rem', fontWeight: 800, marginBottom: '0.4rem', letterSpacing: '-0.01em' }}>
+                  {hasCredentials ? 'Waiting for OBS' : 'No Stream Signal'}
                 </div>
-                <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4', marginBottom: '0.75rem' }}>
+                <div style={{ color: '#94A3B8', fontSize: '0.78rem', maxWidth: 320, textAlign: 'center', lineHeight: 1.5, marginBottom: hasCredentials ? 0 : '0.95rem' }}>
                   {hasCredentials
                     ? 'Configure OBS with the WHIP URL and click Start Streaming.'
                     : 'Get your WHIP URL to configure OBS and start streaming.'}
                 </div>
                 {!hasCredentials && (
                   <button onClick={onStartStream} style={{
-                    padding: '0.6rem 1.5rem',
-                    borderRadius: '0.5rem',
+                    padding: '0.7rem 1.5rem',
+                    borderRadius: 11,
                     border: 'none',
-                    background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+                    background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                     color: 'white',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.005em',
                     cursor: 'pointer',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
-                    boxShadow: '0 4px 12px -2px rgba(14,165,233,0.4)',
+                    gap: 7,
+                    boxShadow: '0 10px 24px rgba(8,58,133,0.40)',
                     transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(14,165,233,0.5)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(14,165,233,0.4)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(242,12,143,0.45)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(8,58,133,0.40)'; }}
                   >
-                    <BroadcastIcon /> Get Stream Credentials
+                    <i className="bi bi-broadcast-pin" style={{ fontSize: 14 }} />
+                    Get Stream Credentials
                   </button>
                 )}
               </>
@@ -581,23 +618,36 @@ export default function StreamPreview({
 
       {/* Stream stats row — when live or paused */}
       {(isLive || isPaused) && (
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
+        <div style={{ display: 'flex', gap: 6, marginTop: '0.65rem' }}>
           {[
-            { label: 'Health', value: streamHealth?.toUpperCase() || 'N/A', color: streamHealth === 'good' ? '#10B981' : streamHealth === 'fair' ? '#F59E0B' : '#6B7280' },
-            { label: 'Upload', value: uploadSpeed || 'N/A', color: '#3B82F6' },
-            { label: 'Viewers', value: viewerCount.toLocaleString(), color: '#8B5CF6' },
-            { label: 'Peak', value: peakViewers.toLocaleString(), color: '#6B7280' },
+            { label: 'Health', value: streamHealth ? streamHealth.charAt(0).toUpperCase() + streamHealth.slice(1) : 'N/A', icon: 'bi-activity', color: streamHealth === 'good' ? '#10B981' : streamHealth === 'fair' ? '#F59E0B' : '#6B7280' },
+            { label: 'Upload', value: uploadSpeed || 'N/A', icon: 'bi-arrow-up-circle-fill', color: '#3B82F6' },
+            { label: 'Viewers', value: viewerCount.toLocaleString(), icon: 'bi-eye-fill', color: '#8B5CF6' },
+            { label: 'Peak', value: peakViewers.toLocaleString(), icon: 'bi-graph-up-arrow', color: '#F20C8F' },
           ].map(stat => (
             <div key={stat.label} style={{
               flex: 1,
-              backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : '#F9FAFB',
+              background: colors.bgCard,
               border: `1px solid ${colors.borderPrimary}`,
-              borderRadius: '0.4rem',
-              padding: '0.4rem 0.5rem',
+              borderRadius: 10,
+              padding: '0.5rem 0.55rem',
               textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '0.6rem', color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: stat.color, marginTop: '0.1rem' }}>{stat.value}</div>
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${stat.color}55`; e.currentTarget.style.boxShadow = `0 4px 10px ${stat.color}1f`; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+            >
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: '0.6rem',
+                fontWeight: 700,
+                color: '#F20C8F',
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>
+                <i className={`bi ${stat.icon}`} style={{ fontSize: 9, color: stat.color }} />
+                {stat.label}
+              </div>
+              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: stat.color, marginTop: 2, letterSpacing: '-0.01em' }}>{stat.value}</div>
             </div>
           ))}
         </div>
@@ -606,60 +656,111 @@ export default function StreamPreview({
   );
 
   const renderControlPanel = () => (
-    <div style={{ flex: '1 1 45%', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <div style={{ flex: '1 1 45%', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
       {/* Connection Status Bar */}
       <div style={{
-        backgroundColor: status.bg,
-        borderRadius: '0.5rem',
-        padding: '0.6rem 0.75rem',
+        background: status.bg,
+        borderRadius: 12,
+        padding: '0.7rem 0.9rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+        border: `1px solid ${status.color}33`,
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span aria-hidden style={{
+          position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+          background: `linear-gradient(180deg, ${status.color} 0%, ${status.color}AA 100%)`,
+        }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 6 }}>
           <div style={{
-            width: '8px', height: '8px', borderRadius: '50%',
+            width: 10, height: 10, borderRadius: '50%',
             backgroundColor: status.color,
+            boxShadow: `0 0 8px ${status.color}, 0 0 16px ${status.color}66`,
             animation: isLive ? 'pulse 2s infinite' : isPaused ? 'pulse 3s infinite' : isDisconnected ? 'pulse 1.5s infinite' : 'none',
+            flexShrink: 0,
           }} />
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary }}>{status.label}</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{status.label}</span>
         </div>
-        {isLive && <span style={{ fontSize: '0.73rem', color: colors.textSecondary }}>{viewerCount} watching</span>}
+        {isLive && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontSize: '0.7rem',
+            color: colors.textSecondary,
+            background: colors.bgCard,
+            padding: '0.2rem 0.55rem',
+            borderRadius: 9999,
+            border: `1px solid ${colors.borderPrimary}`,
+            fontWeight: 600,
+          }}>
+            <i className="bi bi-eye-fill" style={{ fontSize: 9, color: '#8B5CF6' }} />
+            {viewerCount} watching
+          </span>
+        )}
       </div>
 
       {/* Stream Credentials — WHIP or RTMP fallback */}
       {!isEnded && hasCredentials && (
         <div style={{
-          backgroundColor: isDark ? 'rgba(139,92,246,0.05)' : '#FAFAFE',
-          border: `1px solid ${isDark ? 'rgba(139,92,246,0.15)' : '#EDE9FE'}`,
-          borderRadius: '0.5rem',
-          padding: '0.75rem',
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(8,58,133,0.16) 0%, rgba(242,12,143,0.08) 100%)'
+            : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.03) 100%)',
+          border: `1px solid ${isDark ? 'rgba(8,58,133,0.30)' : 'rgba(8,58,133,0.12)'}`,
+          borderRadius: 14,
+          padding: '0.9rem 0.95rem',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
+          <span aria-hidden style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+            background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+          }} />
+
           {/* OBS Setup Steps */}
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.6rem' }}>OBS Setup (WHIP)</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem' }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: 9,
+              background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+              boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <i className="bi bi-broadcast-pin" style={{ fontSize: 14, color: '#fff' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>WebRTC streaming</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>OBS Setup (WHIP)</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: '0.9rem' }}>
             {[
-              'Open OBS → File → Settings',
-              'Go to Stream tab',
-              'Set Service to WHIP',
-              'Paste the WHIP URL below into the Server field',
-              'Leave Bearer Token empty',
-              'Click Apply → close Settings',
-              'Click Start Streaming in OBS',
+              'Open OBS. Go to File then Settings.',
+              'Go to the Stream tab.',
+              'Set Service to WHIP.',
+              'Paste the WHIP URL below into the Server field.',
+              'Leave Bearer Token empty.',
+              'Click Apply, then close Settings.',
+              'Click Start Streaming in OBS.',
             ].map((text, i) => (
               <div key={i} style={{
-                display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
-                padding: '0.45rem 0.5rem',
-                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB',
-                borderRadius: '0.4rem',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6'}`,
-              }}>
+                display: 'flex', alignItems: 'flex-start', gap: 9,
+                padding: '0.55rem 0.7rem',
+                background: colors.bgCard,
+                borderRadius: 10,
+                border: `1px solid ${colors.borderPrimary}`,
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.25)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(8,58,133,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+              >
                 <div style={{
-                  width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
-                  background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
-                  color: 'white', fontSize: '0.68rem', fontWeight: 700,
+                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                  color: 'white', fontSize: '0.68rem', fontWeight: 800,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 3px 6px rgba(8,58,133,0.24)',
+                  letterSpacing: '-0.005em',
                 }}>{i + 1}</div>
                 <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }}>{text}</span>
               </div>
@@ -667,59 +768,152 @@ export default function StreamPreview({
           </div>
 
           {/* WHIP URL */}
-          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textTertiary, display: 'block', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>WHIP URL</label>
-          <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.3rem' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+            marginBottom: '0.4rem',
+          }}>WHIP URL</label>
+          <div style={{ display: 'flex', gap: 6, marginBottom: '0.4rem' }}>
             <input readOnly value={showKey ? whipUrl : `${whipUrl!.substring(0, 40)}...`} style={inputField} />
-            <button onClick={() => setShowKey(!showKey)} style={smallBtn}>{showKey ? <EyeOffIcon /> : <EyeOnIcon />}</button>
-            <button onClick={() => handleCopy(whipUrl!, 'whipUrl')} style={smallBtn}>
-              {copiedField === 'whipUrl' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
+            <button onClick={() => setShowKey(!showKey)} style={smallBtn} title={showKey ? 'Hide' : 'Show'}>
+              <i className={`bi ${showKey ? 'bi-eye-slash' : 'bi-eye'}`} style={{ fontSize: 12 }} />
+            </button>
+            <button
+              onClick={() => handleCopy(whipUrl!, 'whipUrl')}
+              style={{
+                ...smallBtn,
+                ...(copiedField === 'whipUrl' ? {
+                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                  color: 'white',
+                  border: 'none',
+                  boxShadow: '0 4px 10px rgba(16,185,129,0.30)',
+                } : {}),
+              }}
+            >
+              {copiedField === 'whipUrl' ? <><i className="bi bi-check2" style={{ fontSize: 12 }} /> Copied</> : <><i className="bi bi-clipboard-fill" style={{ fontSize: 11 }} /> Copy</>}
             </button>
           </div>
-          <div style={{ fontSize: '0.68rem', color: colors.textTertiary, marginBottom: '0.75rem' }}>No stream key or bearer token needed — the URL is self-authenticating.</div>
+          <div style={{
+            fontSize: '0.74rem',
+            color: colors.textSecondary,
+            marginBottom: '0.85rem',
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontStyle: 'italic',
+            opacity: 0.85,
+          }}>
+            <i className="bi bi-info-circle" style={{ fontSize: 10, color: '#F20C8F' }} />
+            No stream key or bearer token needed. The URL is self-authenticating.
+          </div>
 
           {/* Recommended OBS Encoder Settings */}
           <div style={{
-            backgroundColor: isDark ? 'rgba(14,165,233,0.06)' : '#F0F9FF',
-            border: `1px solid ${isDark ? 'rgba(14,165,233,0.15)' : '#BAE6FD'}`,
-            borderRadius: '0.4rem',
-            padding: '0.65rem 0.75rem',
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(14,165,233,0.10) 0%, rgba(8,58,133,0.08) 100%)'
+              : 'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(240,249,255,0.55) 100%)',
+            border: `1px solid ${isDark ? 'rgba(14,165,233,0.22)' : 'rgba(14,165,233,0.18)'}`,
+            borderRadius: 12,
+            padding: '0.85rem 0.95rem',
+            position: 'relative',
+            overflow: 'hidden',
           }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? '#7DD3FC' : '#0369A1', marginBottom: '0.5rem' }}>
-              Recommended OBS Output Settings
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+              background: 'linear-gradient(180deg, #0EA5E9 0%, #0284C7 100%)',
+            }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.55rem', paddingLeft: 4 }}>
+              <i className="bi bi-sliders" style={{ fontSize: 13, color: isDark ? '#7DD3FC' : '#0369A1' }} />
+              <div style={{
+                fontSize: '0.78rem', fontWeight: 800,
+                color: isDark ? '#7DD3FC' : '#0369A1',
+                letterSpacing: '-0.005em',
+              }}>Recommended OBS Output Settings</div>
             </div>
-            <div style={{ fontSize: '0.68rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
-              Go to OBS &rarr; File &rarr; Settings &rarr; Output (Simple mode)
+            <div style={{
+              fontSize: '0.72rem',
+              color: colors.textSecondary,
+              marginBottom: '0.6rem',
+              paddingLeft: 4,
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              flexWrap: 'wrap',
+            }}>
+              <i className="bi bi-arrow-right-short" style={{ fontSize: 14, color: '#F20C8F' }} />
+              <span>Go to OBS &rarr; File &rarr; Settings &rarr; Output (Simple mode).</span>
             </div>
-            <table style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E0F2FE'}` }}>
-                  <th style={{ textAlign: 'left', padding: '0.3rem 0.4rem', color: colors.textTertiary, fontWeight: 600 }}>Internet Speed</th>
-                  <th style={{ textAlign: 'left', padding: '0.3rem 0.4rem', color: colors.textTertiary, fontWeight: 600 }}>Bitrate</th>
-                  <th style={{ textAlign: 'left', padding: '0.3rem 0.4rem', color: colors.textTertiary, fontWeight: 600 }}>Resolution</th>
-                  <th style={{ textAlign: 'left', padding: '0.3rem 0.4rem', color: colors.textTertiary, fontWeight: 600 }}>FPS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { speed: '5-10 Mbps', bitrate: '1500 Kbps', resolution: '854x480', fps: '30' },
-                  { speed: '10-25 Mbps', bitrate: '2500 Kbps', resolution: '1280x720', fps: '30' },
-                  { speed: '25-50 Mbps', bitrate: '4000 Kbps', resolution: '1280x720', fps: '30' },
-                  { speed: '50+ Mbps', bitrate: '6000 Kbps', resolution: '1920x1080', fps: '30' },
-                ].map((row, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : '#F0F9FF'}` }}>
-                    <td style={{ padding: '0.3rem 0.4rem', color: colors.textPrimary, fontWeight: 600 }}>{row.speed}</td>
-                    <td style={{ padding: '0.3rem 0.4rem', color: colors.textSecondary }}>{row.bitrate}</td>
-                    <td style={{ padding: '0.3rem 0.4rem', color: colors.textSecondary }}>{row.resolution}</td>
-                    <td style={{ padding: '0.3rem 0.4rem', color: colors.textSecondary }}>{row.fps}</td>
+            <div style={{
+              background: colors.bgCard,
+              border: `1px solid ${isDark ? 'rgba(14,165,233,0.18)' : 'rgba(14,165,233,0.15)'}`,
+              borderRadius: 10,
+              overflow: 'hidden',
+              marginBottom: '0.55rem',
+            }}>
+              <table style={{ width: '100%', fontSize: '0.74rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{
+                    background: isDark ? 'rgba(14,165,233,0.10)' : 'rgba(240,249,255,0.85)',
+                    borderBottom: `1px solid ${isDark ? 'rgba(14,165,233,0.18)' : 'rgba(14,165,233,0.15)'}`,
+                  }}>
+                    <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Internet Speed</th>
+                    <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Bitrate</th>
+                    <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Resolution</th>
+                    <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>FPS</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.4rem', lineHeight: 1.4 }}>
-              <strong>Encoder:</strong> Software (x264) &bull; <strong>Preset:</strong> veryfast &bull; <strong>Audio:</strong> Opus 160 Kbps
+                </thead>
+                <tbody>
+                  {[
+                    { speed: '5–10 Mbps', bitrate: '1500 Kbps', resolution: '854 × 480', fps: '30', tier: 'Basic', tierColor: '#9CA3AF' },
+                    { speed: '10–25 Mbps', bitrate: '2500 Kbps', resolution: '1280 × 720', fps: '30', tier: 'Standard', tierColor: '#0EA5E9' },
+                    { speed: '25–50 Mbps', bitrate: '4000 Kbps', resolution: '1280 × 720', fps: '30', tier: 'High', tierColor: '#10B981' },
+                    { speed: '50+ Mbps', bitrate: '6000 Kbps', resolution: '1920 × 1080', fps: '30', tier: 'Premium', tierColor: '#F20C8F' },
+                  ].map((row, i) => (
+                    <tr key={i} style={{
+                      borderBottom: i < 3 ? `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(14,165,233,0.08)'}` : 'none',
+                    }}>
+                      <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 700, letterSpacing: '-0.005em' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: row.tierColor, boxShadow: `0 0 6px ${row.tierColor}66` }} />
+                          {row.speed}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 600 }}>{row.bitrate}</td>
+                      <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 600, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72rem' }}>{row.resolution}</td>
+                      <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 600, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72rem' }}>{row.fps}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.3rem', fontStyle: 'italic' }}>
-              No stream key or bearer token needed &mdash; the URL is self-authenticating.
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, paddingLeft: 4, marginBottom: '0.5rem' }}>
+              {[
+                { label: 'Encoder', value: 'Software (x264)', icon: 'bi-cpu-fill' },
+                { label: 'Preset', value: 'veryfast', icon: 'bi-speedometer2' },
+                { label: 'Audio', value: 'Opus 160 Kbps', icon: 'bi-music-note-beamed' },
+              ].map((chip, i) => (
+                <span key={i} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '0.22rem 0.55rem',
+                  background: colors.bgCard,
+                  border: `1px solid ${isDark ? 'rgba(14,165,233,0.20)' : 'rgba(14,165,233,0.18)'}`,
+                  borderRadius: 9999,
+                  fontSize: '0.66rem',
+                  color: colors.textPrimary,
+                  fontWeight: 600,
+                }}>
+                  <i className={`bi ${chip.icon}`} style={{ fontSize: 10, color: '#0EA5E9' }} />
+                  <span style={{ color: colors.textSecondary }}>{chip.label}:</span> <strong style={{ fontWeight: 700, letterSpacing: '-0.005em' }}>{chip.value}</strong>
+                </span>
+              ))}
+            </div>
+            <div style={{
+              fontSize: '0.7rem',
+              color: colors.textSecondary,
+              paddingLeft: 4,
+              fontStyle: 'italic',
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              opacity: 0.85,
+            }}>
+              <i className="bi bi-shield-lock-fill" style={{ fontSize: 10, color: '#10B981' }} />
+              No stream key or bearer token needed. The URL is self-authenticating.
             </div>
           </div>
 
@@ -728,54 +922,75 @@ export default function StreamPreview({
 
       {/* No credentials yet — setup prompt */}
       {!isEnded && !hasCredentials && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', maxWidth: '480px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.4rem', maxWidth: 520, margin: '0 auto' }}>
           {/* Icon */}
           <div style={{
-            width: '72px', height: '72px', borderRadius: '50%',
-            background: isDark
-              ? 'linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(2,132,199,0.1) 100%)'
-              : 'linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%)',
+            width: 76, height: 76, borderRadius: 20,
+            background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#0EA5E9',
+            boxShadow: '0 14px 32px rgba(8,58,133,0.32)',
           }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="2" /><path d="M16.24 7.76a6 6 0 010 8.49" /><path d="M7.76 16.24a6 6 0 010-8.49" /><path d="M19.07 4.93a10 10 0 010 14.14" /><path d="M4.93 19.07a10 10 0 010-14.14" />
-            </svg>
+            <i className="bi bi-broadcast-pin" style={{ fontSize: 32, color: '#fff' }} />
           </div>
 
           {/* Title + description */}
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.4rem' }}>
+            <div style={{
+              fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              marginBottom: 5,
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}>
+              <i className="bi bi-camera-reels-fill" style={{ fontSize: 11 }} />
+              Streaming setup
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>
               Set Up Your Live Stream
             </div>
-            <div style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5' }}>
+            <div style={{ fontSize: '0.92rem', color: colors.textSecondary, lineHeight: 1.55, maxWidth: 400, margin: '0 auto' }}>
               Get your WHIP URL, configure OBS, and test your stream before going live.
             </div>
           </div>
 
           {/* Steps */}
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
-              { step: '1', text: 'Click below to generate your WHIP streaming URL' },
-              { step: '2', text: 'Open OBS → File → Settings → Stream → set Service to WHIP' },
-              { step: '3', text: 'Paste the WHIP URL into the Server field, leave Bearer Token empty' },
-              { step: '4', text: 'Start streaming in OBS to preview and test your feed' },
-              { step: '5', text: 'When ready, click Go Live to broadcast to your audience' },
-            ].map(item => (
+              { step: '1', text: 'Click below to generate your WHIP streaming URL.', icon: 'bi-link-45deg' },
+              { step: '2', text: 'In OBS, go to File then Settings, then the Stream tab, and set Service to WHIP.', icon: 'bi-gear-fill' },
+              { step: '3', text: 'Paste the WHIP URL into the Server field. Leave Bearer Token empty.', icon: 'bi-clipboard-fill' },
+              { step: '4', text: 'Start streaming in OBS to preview and test your feed.', icon: 'bi-play-circle-fill' },
+              { step: '5', text: 'When ready, click Go Live to broadcast to your audience.', icon: 'bi-broadcast-pin' },
+            ].map((item, idx) => (
               <div key={item.step} style={{
-                display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
-                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB',
-                borderRadius: '0.5rem',
-                padding: '0.65rem 0.75rem',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6'}`,
-              }}>
+                display: 'flex', alignItems: 'flex-start', gap: 10,
+                background: colors.bgCard,
+                borderRadius: 12,
+                padding: '0.75rem 0.85rem',
+                border: `1px solid ${colors.borderPrimary}`,
+                transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(8,58,133,0.10)'; e.currentTarget.style.transform = 'translateX(2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateX(0)'; }}
+              >
                 <div style={{
-                  width: '26px', height: '26px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
-                  color: 'white', fontSize: '0.75rem', fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  width: 30, height: 30, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                  color: 'white', fontSize: '0.82rem', fontWeight: 800,
+                  letterSpacing: '-0.005em',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
                 }}>{item.step}</div>
-                <span style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: 1.5 }}>{item.text}</span>
+                <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <i className={`bi ${item.icon}`} style={{ fontSize: 11, color: '#F20C8F' }} />
+                    <span style={{
+                      fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                    }}>Step {idx + 1}</span>
+                  </div>
+                  <span style={{ display: 'block', fontSize: '0.86rem', color: colors.textPrimary, lineHeight: 1.5 }}>{item.text}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -783,21 +998,21 @@ export default function StreamPreview({
           {/* CTA Button */}
           <button onClick={onStartStream} style={{
             width: '100%',
-            background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+            background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
             border: 'none',
-            borderRadius: '0.625rem',
-            padding: '0.85rem 1.25rem',
+            borderRadius: 12,
+            padding: '0.9rem 1.25rem',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: '0.5rem',
+            gap: 8,
             cursor: 'pointer',
             transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-            boxShadow: '0 4px 14px -3px rgba(14,165,233,0.45)',
+            boxShadow: '0 12px 28px rgba(8,58,133,0.32)',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px -3px rgba(14,165,233,0.55)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px -3px rgba(14,165,233,0.45)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 16px 34px rgba(242,12,143,0.38)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(8,58,133,0.32)'; }}
           >
-            <BroadcastIcon />
-            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>Get Stream Credentials &amp; Test Stream</span>
+            <i className="bi bi-broadcast-pin" style={{ fontSize: 16, color: '#fff' }} />
+            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'white', letterSpacing: '-0.005em' }}>Get Stream Credentials &amp; Test Stream</span>
           </button>
         </div>
       )}
@@ -805,19 +1020,64 @@ export default function StreamPreview({
       {/* Invite Token — hide when ended */}
       {!isEnded && inviteToken && (
         <div style={{
-          backgroundColor: isDark ? 'rgba(139,92,246,0.06)' : '#FAF5FF',
-          border: `1px solid ${isDark ? 'rgba(139,92,246,0.2)' : '#DDD6FE'}`,
-          borderRadius: '0.5rem',
-          padding: '0.75rem',
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(139,92,246,0.14) 0%, rgba(242,12,143,0.08) 100%)'
+            : 'linear-gradient(135deg, rgba(139,92,246,0.06) 0%, rgba(242,12,143,0.04) 100%)',
+          border: `1px solid ${isDark ? 'rgba(139,92,246,0.30)' : 'rgba(139,92,246,0.20)'}`,
+          borderRadius: 12,
+          padding: '0.85rem 0.95rem',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
-          <label style={{ fontSize: '0.65rem', fontWeight: 600, color: colors.textTertiary, display: 'block', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Viewer Invite Token</label>
-          <div style={{ display: 'flex', gap: '0.35rem' }}>
-            <input readOnly value={inviteToken} style={{ ...inputField, textAlign: 'center', fontSize: '0.95rem', fontWeight: 800, letterSpacing: '0.12em', fontFamily: 'inherit' }} />
-            <button onClick={() => handleCopy(inviteToken, 'inviteToken')} style={smallBtn}>
-              {copiedField === 'inviteToken' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
+          <span aria-hidden style={{
+            position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+            background: 'linear-gradient(180deg, #8B5CF6 0%, #F20C8F 100%)',
+          }} />
+          <label style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+            marginBottom: '0.45rem',
+            paddingLeft: 4,
+          }}>
+            <i className="bi bi-key-fill" style={{ fontSize: 10 }} /> Viewer Invite Token
+          </label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input readOnly value={inviteToken} style={{
+              ...inputField,
+              textAlign: 'center',
+              fontSize: '1.05rem', fontWeight: 800, letterSpacing: '0.18em',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              background: isDark
+                ? 'linear-gradient(135deg, rgba(8,58,133,0.16) 0%, rgba(242,12,143,0.08) 100%)'
+                : colors.bgCard,
+              color: '#083A85',
+              padding: '0.65rem 0.85rem',
+              border: `1px solid ${isDark ? 'rgba(139,92,246,0.30)' : 'rgba(139,92,246,0.20)'}`,
+              borderRadius: 10,
+            }} />
+            <button
+              onClick={() => handleCopy(inviteToken, 'inviteToken')}
+              style={{
+                ...smallBtn,
+                padding: '0.6rem 0.85rem',
+                fontSize: '0.78rem',
+                borderRadius: 10,
+                ...(copiedField === 'inviteToken' ? {
+                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                  color: 'white',
+                  border: 'none',
+                  boxShadow: '0 4px 10px rgba(16,185,129,0.30)',
+                } : {}),
+              }}
+            >
+              {copiedField === 'inviteToken' ? <><i className="bi bi-check2" style={{ fontSize: 12 }} /> Copied</> : <><i className="bi bi-clipboard-fill" style={{ fontSize: 11 }} /> Copy</>}
             </button>
           </div>
-          <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.25rem' }}>Share with viewers to grant stream access.</div>
+          <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.45rem', paddingLeft: 4, display: 'inline-flex', alignItems: 'center', gap: 5, fontStyle: 'italic', opacity: 0.85 }}>
+            <i className="bi bi-info-circle" style={{ fontSize: 10, color: '#8B5CF6' }} />
+            Share this with viewers to grant stream access.
+          </div>
         </div>
       )}
 
@@ -826,75 +1086,208 @@ export default function StreamPreview({
       {/* Error */}
       {error && (
         <div style={{
-          backgroundColor: isDark ? 'rgba(220,38,38,0.08)' : '#FEF2F2',
-          border: `1px solid ${isDark ? 'rgba(248,113,113,0.3)' : '#FECACA'}`,
-          borderRadius: '0.5rem',
-          padding: '0.6rem 0.75rem',
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          background: isDark ? 'rgba(220,38,38,0.16)' : 'rgba(254,242,242,0.85)',
+          border: `1px solid ${isDark ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+          borderRadius: 11,
+          padding: '0.65rem 0.85rem',
+          display: 'flex', alignItems: 'center', gap: 7,
+          position: 'relative', overflow: 'hidden',
         }}>
-          <span style={{ fontSize: '0.9rem', flexShrink: 0 }}>&#x26A0;&#xFE0F;</span>
-          <span style={{ fontSize: '0.78rem', color: isDark ? '#FCA5A5' : '#DC2626' }}>{error}</span>
+          <span aria-hidden style={{
+            position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+            background: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)',
+          }} />
+          <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 14, color: '#DC2626', flexShrink: 0, marginLeft: 4 }} />
+          <span style={{ fontSize: '0.82rem', color: isDark ? '#FCA5A5' : '#B91C1C', lineHeight: 1.4 }}>{error}</span>
         </div>
       )}
 
       {/* Test Preview info */}
       {isTestPreview && (
         <div style={{
-          backgroundColor: isDark ? 'rgba(59,130,246,0.08)' : '#EFF6FF',
-          border: `1px solid ${isDark ? 'rgba(59,130,246,0.2)' : '#BFDBFE'}`,
-          borderRadius: '0.5rem',
-          padding: '0.65rem 0.75rem',
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          background: isDark ? 'rgba(59,130,246,0.14)' : 'rgba(239,246,255,0.85)',
+          border: `1px solid ${isDark ? 'rgba(59,130,246,0.32)' : 'rgba(59,130,246,0.22)'}`,
+          borderRadius: 11,
+          padding: '0.7rem 0.9rem',
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+          position: 'relative', overflow: 'hidden',
         }}>
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6', animation: 'pulse 2s infinite', flexShrink: 0 }} />
+          <span aria-hidden style={{
+            position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+            background: 'linear-gradient(180deg, #3B82F6 0%, #2563EB 100%)',
+          }} />
+          <div style={{
+            width: 24, height: 24, borderRadius: 7,
+            background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, marginLeft: 4,
+            boxShadow: '0 3px 8px rgba(59,130,246,0.32)',
+          }}>
+            <i className="bi bi-check-circle-fill" style={{ fontSize: 11, color: '#fff' }} />
+          </div>
           <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: isDark ? '#93C5FD' : '#1D4ED8' }}>Encoder Connected</div>
-            <div style={{ fontSize: '0.68rem', color: colors.textSecondary, marginTop: '0.1rem' }}>Preview your stream above. When ready, click Go Live to broadcast to viewers.</div>
+            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isDark ? '#93C5FD' : '#1D4ED8', letterSpacing: '-0.005em' }}>Encoder Connected</div>
+            <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 2, lineHeight: 1.45 }}>Preview your stream above. When ready, click Go Live to broadcast to viewers.</div>
           </div>
         </div>
       )}
 
       {/* Action Buttons */}
       {!isEnded && (
-        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
 
           {/* Go Live — encoder detected, ready to broadcast */}
           {isTestPreview && (
-            <button onClick={onResumeStream} style={actionBtn('#10B981')}>
-              <BroadcastIcon /> Go Live
+            <button
+              onClick={onResumeStream}
+              style={{
+                width: '100%',
+                padding: '0.8rem 1.25rem',
+                borderRadius: 12,
+                border: 'none',
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                color: 'white',
+                fontSize: '0.92rem',
+                fontWeight: 800,
+                letterSpacing: '-0.005em',
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: '0 10px 24px rgba(220,38,38,0.36)',
+                transition: 'transform 0.15s, box-shadow 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(220,38,38,0.45)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(220,38,38,0.36)'; }}
+            >
+              <i className="bi bi-broadcast-pin" style={{ fontSize: 15 }} />
+              Go Live
             </button>
           )}
 
           {/* Go Live — has credentials, still waiting for encoder (fallback) */}
           {isDisconnected && hasCredentials && !encoderDetected && (
-            <button onClick={onResumeStream} style={{ ...actionBtn('#6B7280'), opacity: 0.7 }}>
-              <BroadcastIcon /> Go Live
+            <button
+              onClick={onResumeStream}
+              style={{
+                width: '100%',
+                padding: '0.8rem 1.25rem',
+                borderRadius: 12,
+                border: `1px solid ${colors.borderPrimary}`,
+                background: isDark ? 'rgba(107,114,128,0.20)' : 'rgba(243,244,246,0.85)',
+                color: colors.textSecondary,
+                fontSize: '0.92rem',
+                fontWeight: 700,
+                letterSpacing: '-0.005em',
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                opacity: 0.85,
+              }}
+            >
+              <i className="bi bi-broadcast-pin" style={{ fontSize: 14, opacity: 0.7 }} />
+              Go Live
             </button>
           )}
 
           {/* Paused — show Resume */}
           {isPaused && (
-            <button onClick={onResumeStream} style={actionBtn('#10B981')}>
-              <PlayIcon /> Resume Stream
+            <button
+              onClick={onResumeStream}
+              style={{
+                width: '100%',
+                padding: '0.8rem 1.25rem',
+                borderRadius: 12,
+                border: 'none',
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                color: 'white',
+                fontSize: '0.92rem',
+                fontWeight: 800,
+                letterSpacing: '-0.005em',
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: '0 10px 24px rgba(16,185,129,0.36)',
+                transition: 'transform 0.15s, box-shadow 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(16,185,129,0.45)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(16,185,129,0.36)'; }}
+            >
+              <i className="bi bi-play-fill" style={{ fontSize: 16 }} />
+              Resume Stream
             </button>
           )}
 
           {/* Live — show Pause + End Stream */}
           {isLive && (
             <>
-              <button onClick={onPauseStream} style={actionBtn('#F59E0B')}>
-                <PauseIcon /> Pause Stream
+              <button
+                onClick={onPauseStream}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem 1.25rem',
+                  borderRadius: 12,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                  color: 'white',
+                  fontSize: '0.92rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.005em',
+                  cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  boxShadow: '0 10px 24px rgba(245,158,11,0.36)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(245,158,11,0.45)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(245,158,11,0.36)'; }}
+              >
+                <i className="bi bi-pause-fill" style={{ fontSize: 15 }} />
+                Pause Stream
               </button>
-              <button onClick={() => setShowEndConfirm(true)} style={{ ...actionBtn('#DC2626'), backgroundColor: 'transparent', border: '2px solid #DC2626', color: '#DC2626' }}>
-                <StopIcon /> End Stream
+              <button
+                onClick={() => setShowEndConfirm(true)}
+                style={{
+                  width: '100%',
+                  padding: '0.7rem 1.25rem',
+                  borderRadius: 12,
+                  border: `1px solid ${isDark ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.30)'}`,
+                  background: isDark ? 'rgba(220,38,38,0.12)' : 'rgba(254,242,242,0.55)',
+                  color: isDark ? '#FCA5A5' : '#DC2626',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
+                  cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? 'rgba(220,38,38,0.12)' : 'rgba(254,242,242,0.55)'; e.currentTarget.style.color = isDark ? '#FCA5A5' : '#DC2626'; e.currentTarget.style.borderColor = isDark ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.30)'; }}
+              >
+                <i className="bi bi-stop-fill" style={{ fontSize: 14 }} />
+                End Stream
               </button>
             </>
           )}
 
           {/* Paused — also allow End Stream */}
           {isPaused && (
-            <button onClick={() => setShowEndConfirm(true)} style={{ ...actionBtn('#DC2626'), backgroundColor: 'transparent', border: '2px solid #DC2626', color: '#DC2626' }}>
-              <StopIcon /> End Stream
+            <button
+              onClick={() => setShowEndConfirm(true)}
+              style={{
+                width: '100%',
+                padding: '0.7rem 1.25rem',
+                borderRadius: 12,
+                border: `1px solid ${isDark ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.30)'}`,
+                background: isDark ? 'rgba(220,38,38,0.12)' : 'rgba(254,242,242,0.55)',
+                color: isDark ? '#FCA5A5' : '#DC2626',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                letterSpacing: '-0.005em',
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? 'rgba(220,38,38,0.12)' : 'rgba(254,242,242,0.55)'; e.currentTarget.style.color = isDark ? '#FCA5A5' : '#DC2626'; e.currentTarget.style.borderColor = isDark ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.30)'; }}
+            >
+              <i className="bi bi-stop-fill" style={{ fontSize: 14 }} />
+              End Stream
             </button>
           )}
         </div>
@@ -903,23 +1296,52 @@ export default function StreamPreview({
       {/* Ended state message + Reset option */}
       {isEnded && (
         <div style={{
-          backgroundColor: isDark ? 'rgba(107,114,128,0.1)' : '#F9FAFB',
+          background: isDark ? 'rgba(107,114,128,0.14)' : 'rgba(249,250,251,0.85)',
           border: `1px solid ${colors.borderPrimary}`,
-          borderRadius: '0.5rem',
-          padding: '1rem',
+          borderRadius: 12,
+          padding: '1.1rem 1rem',
           textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary, marginBottom: '0.25rem' }}>Stream Ended</div>
-          <div style={{ fontSize: '0.73rem', color: colors.textSecondary, marginBottom: onResetStream ? '0.75rem' : 0 }}>
+          <span aria-hidden style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+            background: 'linear-gradient(90deg, #6B7280 0%, #9CA3AF 100%)',
+          }} />
+          <div style={{
+            width: 44, height: 44, margin: '0 auto 0.5rem', borderRadius: 12,
+            background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 6px 14px rgba(107,114,128,0.30)',
+          }}>
+            <i className="bi bi-stop-circle-fill" style={{ fontSize: 20, color: '#fff' }} />
+          </div>
+          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, marginBottom: 4, letterSpacing: '-0.005em' }}>Stream Ended</div>
+          <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginBottom: onResetStream ? '0.85rem' : 0, lineHeight: 1.45 }}>
             This stream has ended. {onResetStream ? 'You can restart with a fresh connection.' : 'You can close this window.'}
           </div>
           {onResetStream && (
-            <button onClick={onResetStream} style={{
-              ...actionBtn('#0EA5E9'),
-              fontSize: '0.8rem',
-              padding: '0.55rem 1rem',
-            }}>
-              <BroadcastIcon /> Reset &amp; Restart Stream
+            <button
+              onClick={onResetStream}
+              style={{
+                padding: '0.6rem 1.2rem',
+                borderRadius: 11,
+                border: 'none',
+                background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                color: 'white',
+                fontSize: '0.85rem',
+                fontWeight: 800,
+                letterSpacing: '-0.005em',
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                boxShadow: '0 8px 18px rgba(8,58,133,0.30)',
+                transition: 'transform 0.15s, box-shadow 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(8,58,133,0.30)'; }}
+            >
+              <i className="bi bi-arrow-clockwise" style={{ fontSize: 13 }} />
+              Reset &amp; Restart Stream
             </button>
           )}
         </div>
@@ -954,92 +1376,141 @@ export default function StreamPreview({
       `}</style>
       <div style={overlay} onClick={onClose}>
         <div className="stream-modal" style={modal} onClick={e => e.stopPropagation()}>
+          {/* Brand top stripe */}
+          <span aria-hidden style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+            background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+            zIndex: 5,
+          }} />
           {/* Header */}
           <div style={{
             background: isEnded
-              ? `linear-gradient(135deg, ${isDark ? '#1f1f1f' : '#374151'} 0%, ${isDark ? '#2d2d2d' : '#4B5563'} 100%)`
-              : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+              ? (isDark
+                ? 'linear-gradient(135deg, rgba(75,85,99,0.20) 0%, rgba(107,114,128,0.10) 100%)'
+                : 'linear-gradient(135deg, rgba(243,244,246,0.95) 0%, rgba(229,231,235,0.95) 100%)')
+              : (isDark
+                ? 'linear-gradient(135deg, rgba(8,58,133,0.30) 0%, rgba(242,12,143,0.18) 100%)'
+                : 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.06) 100%)'),
             padding: '1.15rem 1.5rem',
-            borderRadius: '1rem 1rem 0 0',
+            borderRadius: '18px 18px 0 0',
             position: 'relative',
             overflow: 'hidden',
+            borderBottom: `1px solid ${colors.borderPrimary}`,
           }}>
-            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(139,92,246,0.1)' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div aria-hidden style={{ position: 'absolute', top: '-40px', right: '-40px', width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(closest-side, rgba(242,12,143,0.18), rgba(242,12,143,0))', pointerEvents: 'none' }} />
+            <div aria-hidden style={{ position: 'absolute', bottom: '-50px', left: '-30px', width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(closest-side, rgba(8,58,133,0.18), rgba(8,58,133,0))', pointerEvents: 'none' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1, gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                 <div style={{
-                  width: '36px', height: '36px', borderRadius: '0.5rem',
+                  width: 42, height: 42, borderRadius: 11,
                   background: isLive
-                    ? 'linear-gradient(135deg, #10B981, #059669)'
+                    ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
                     : isTestPreview
-                      ? 'linear-gradient(135deg, #3B82F6, #2563EB)'
+                      ? 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)'
                       : isEnded
-                        ? 'linear-gradient(135deg, #6B7280, #4B5563)'
-                        : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                        ? 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)'
+                        : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: isLive ? '0 0 20px rgba(16,185,129,0.3)' : isTestPreview ? '0 0 20px rgba(59,130,246,0.3)' : 'none',
+                  flexShrink: 0,
+                  boxShadow: isLive
+                    ? '0 8px 20px rgba(16,185,129,0.36)'
+                    : isTestPreview
+                      ? '0 8px 20px rgba(59,130,246,0.32)'
+                      : isEnded
+                        ? '0 6px 14px rgba(107,114,128,0.24)'
+                        : '0 8px 20px rgba(8,58,133,0.30)',
                 }}>
-                  <BroadcastIcon />
+                  <i className={`bi ${isEnded ? 'bi-stop-circle-fill' : 'bi-broadcast-pin'}`} style={{ fontSize: 18, color: '#fff' }} />
                 </div>
-                <div>
-                  <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', margin: 0 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                    marginBottom: 1,
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <i className="bi bi-camera-reels-fill" style={{ fontSize: 10 }} />
+                    Live broadcast
+                  </div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
                     {isEnded ? 'Stream Ended' : !hasCredentials ? 'OBS Stream Setup' : isTestPreview ? 'Test Preview' : 'Live Stream Control'}
                   </h2>
-                  <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>{eventTitle}</p>
+                  <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 480 }}>{eventTitle}</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 {isTestPreview && (
                   <div style={{
-                    backgroundColor: '#3B82F6',
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
                     color: 'white',
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.65rem',
+                    padding: '0.28rem 0.65rem',
+                    borderRadius: 9999,
+                    fontSize: '0.6rem',
                     fontWeight: 800,
                     letterSpacing: '0.08em',
-                    display: 'flex', alignItems: 'center', gap: '0.3rem',
+                    textTransform: 'uppercase',
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    border: '1px solid rgba(255,255,255,0.25)',
+                    boxShadow: '0 4px 10px rgba(59,130,246,0.36)',
                   }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white', animation: 'pulse 2s infinite' }} />
-                    TEST
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'white', boxShadow: '0 0 6px #fff', animation: 'pulse 2s infinite' }} />
+                    Test
                   </div>
                 )}
                 {isLive && (
                   <div style={{
-                    backgroundColor: '#DC2626',
+                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
                     color: 'white',
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.65rem',
+                    padding: '0.28rem 0.65rem',
+                    borderRadius: 9999,
+                    fontSize: '0.6rem',
                     fontWeight: 800,
                     letterSpacing: '0.08em',
-                    display: 'flex', alignItems: 'center', gap: '0.3rem',
+                    textTransform: 'uppercase',
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    border: '1px solid rgba(255,255,255,0.25)',
+                    boxShadow: '0 4px 12px rgba(220,38,38,0.40)',
                     animation: 'pulse 2s infinite',
                   }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white' }} />
-                    LIVE
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'white', boxShadow: '0 0 6px #fff' }} />
+                    Live
                   </div>
                 )}
                 {isPaused && (
                   <div style={{
-                    backgroundColor: '#F59E0B',
+                    background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
                     color: 'white',
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.65rem',
+                    padding: '0.28rem 0.65rem',
+                    borderRadius: 9999,
+                    fontSize: '0.6rem',
                     fontWeight: 800,
                     letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    border: '1px solid rgba(255,255,255,0.25)',
+                    boxShadow: '0 4px 10px rgba(245,158,11,0.32)',
                   }}>
-                    PAUSED
+                    <i className="bi bi-pause-fill" style={{ fontSize: 10 }} />
+                    Paused
                   </div>
                 )}
-                <button onClick={onClose} style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  border: 'none', borderRadius: '0.375rem',
-                  padding: '0.35rem', cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.7)',
-                }}>
-                  <CloseIcon />
+                <button
+                  onClick={onClose}
+                  aria-label="Close"
+                  style={{
+                    background: colors.bgCard,
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 9,
+                    width: 32, height: 32,
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: colors.textSecondary,
+                    transition: 'border-color 0.15s, color 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.color = colors.textPrimary; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textSecondary; }}
+                >
+                  <i className="bi bi-x-lg" style={{ fontSize: 13 }} />
                 </button>
               </div>
             </div>
@@ -1070,62 +1541,96 @@ export default function StreamPreview({
       {showEndConfirm && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.7)',
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1200,
-          backdropFilter: 'blur(4px)',
+          padding: '1rem',
         }} onClick={() => setShowEndConfirm(false)}>
           <div style={{
+            position: 'relative',
             backgroundColor: colors.bgCard,
-            borderRadius: '0.75rem',
-            padding: '1.5rem',
-            maxWidth: '420px',
-            width: '90%',
-            textAlign: 'center',
-            boxShadow: isDark
-              ? '0 25px 60px rgba(0,0,0,0.6)'
-              : '0 25px 60px rgba(0,0,0,0.2)',
+            borderRadius: 18,
+            padding: '1.5rem 1.5rem 1.4rem',
+            paddingTop: 'calc(1.5rem + 3px)',
+            maxWidth: 440,
+            width: '95%',
+            boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+            border: `1px solid ${colors.borderPrimary}`,
           }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <WarningIcon />
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)',
+            }} />
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.9rem' }}>
+              <div style={{
+                width: 60, height: 60, borderRadius: 18,
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 12px 28px rgba(220,38,38,0.40)',
+              }}>
+                <i className="bi bi-stop-circle-fill" style={{ fontSize: 26, color: '#fff' }} />
+              </div>
             </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-              End Stream?
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
-              This will <strong style={{ color: '#DC2626' }}>end</strong> the live stream for <strong style={{ color: colors.textPrimary }}>{eventTitle}</strong>. All viewers will be disconnected. You can restart the stream later using Reset &amp; Restart.
+            <div style={{ textAlign: 'center', marginBottom: '0.85rem' }}>
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 700, color: '#DC2626',
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: 4,
+              }}>End broadcast</div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                End Stream?
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, margin: '0 auto 0.65rem', textAlign: 'center', maxWidth: 380 }}>
+              This will end the live stream for <strong style={{ color: colors.textPrimary }}>{eventTitle}</strong>. All viewers will be disconnected.
             </p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <p style={{ fontSize: '0.82rem', color: isDark ? '#FCA5A5' : '#B91C1C', lineHeight: 1.5, margin: '0 0 1.3rem', textAlign: 'center', fontWeight: 600 }}>
+              You can restart the stream later using Reset &amp; Restart.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => setShowEndConfirm(false)}
                 style={{
                   flex: 1,
-                  padding: '0.65rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: `1.5px solid ${colors.borderPrimary}`,
-                  backgroundColor: colors.bgCard,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 11,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  background: colors.bgTertiary || colors.bgCard,
                   color: colors.textPrimary,
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
                   cursor: 'pointer',
+                  transition: 'border-color 0.15s',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleEndConfirm}
                 style={{
-                  flex: 1,
-                  padding: '0.65rem 1rem',
-                  borderRadius: '0.5rem',
+                  flex: 1.4,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 11,
                   border: 'none',
-                  backgroundColor: '#DC2626',
+                  background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
                   color: 'white',
-                  fontSize: '0.85rem',
+                  fontSize: '0.92rem',
                   fontWeight: 700,
+                  letterSpacing: '-0.005em',
                   cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  boxShadow: '0 8px 18px rgba(220,38,38,0.32)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(220,38,38,0.38)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(220,38,38,0.32)'; }}
               >
+                <i className="bi bi-stop-circle-fill" style={{ fontSize: 13 }} />
                 End Stream
               </button>
             </div>

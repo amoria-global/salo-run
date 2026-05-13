@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from '../../components/sidebar';
+import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import CountrySelect, { eastAfricanCountries } from '../../components/CountrySelect';
 import { useTheme } from '../../context/ThemeContext';
@@ -148,7 +149,7 @@ const ProfilePage = () => {
     if (!user) return;
     const address = [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', ');
     if (!address.trim()) {
-      alert('Location / Address is required. Please fill in at least your district and country.');
+      platformAlert('Location / Address is required. Please fill in at least your district and country.');
       return;
     }
     setIsSaving(true);
@@ -181,10 +182,10 @@ const ProfilePage = () => {
         throw new Error(result.message || `Failed to save: ${response.status}`);
       }
 
-      alert('Profile updated successfully!');
+      platformAlert('Profile updated successfully!');
     } catch (err) {
       console.error('Save profile error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to save profile');
+      platformAlert(err instanceof Error ? err.message : 'Failed to save profile');
     } finally {
       setIsSaving(false);
     }
@@ -241,12 +242,12 @@ const ProfilePage = () => {
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        platformAlert('Please select an image file');
         return;
       }
       // Validate file size (max 5MB)
       if (file.size > getPlatformConfig().uploads.maxImageSizeMb * 1024 * 1024) {
-        alert('Image size should be less than 5MB');
+        platformAlert('Image size should be less than 5MB');
         return;
       }
       // Show preview immediately
@@ -281,36 +282,43 @@ const ProfilePage = () => {
 
   const inputStyle = {
     width: '100%',
-    padding: '0.75rem 1rem',
-    borderWidth: '2px',
+    padding: '0.7rem 0.9rem',
+    borderWidth: '1px',
     borderStyle: 'solid' as const,
     borderColor: colors.borderPrimary,
-    borderRadius: '0.5rem',
-    fontSize: '0.95rem',
+    borderRadius: 11,
+    fontSize: '0.92rem',
     color: colors.textPrimary,
     backgroundColor: isEditEnabled ? colors.bgCard : colors.bgTertiary,
     outline: 'none',
-    transition: 'border-color 0.2s, background-color 0.2s'
+    boxSizing: 'border-box' as const,
+    transition: 'border-color 0.18s, background-color 0.18s, box-shadow 0.18s'
   };
 
   const inputErrorStyle = {
     ...inputStyle,
-    borderColor: '#EF4444'
+    borderColor: 'rgba(220,38,38,0.50)',
+    boxShadow: '0 0 0 3px rgba(220,38,38,0.10)'
   };
 
   const errorMessageStyle = {
-    color: '#EF4444',
-    fontSize: '0.75rem',
-    marginTop: '0.25rem',
-    display: 'block'
+    color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
+    fontSize: '0.74rem',
+    marginTop: '0.35rem',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    fontWeight: 600,
   };
 
   const labelStyle = {
     display: 'block',
-    fontSize: '0.9rem',
-    fontWeight: '500' as const,
-    color: colors.textPrimary,
-    marginBottom: '0.5rem'
+    fontSize: '0.78rem',
+    fontWeight: '700' as const,
+    color: '#F20C8F',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.06em',
+    marginBottom: '0.5rem',
   };
 
   return (
@@ -505,11 +513,17 @@ const ProfilePage = () => {
               {/* Profile Card */}
               <div style={{
                 backgroundColor: colors.bgCard,
-                borderRadius: '0.75rem',
+                borderRadius: 14,
                 overflow: 'hidden',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                border: `2px solid ${colors.borderPrimary}`
+                boxShadow: '0 4px 16px -6px rgba(8, 58, 133, 0.12)',
+                border: `1px solid ${colors.borderPrimary}`,
+                position: 'relative',
               }}>
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                  background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+                  zIndex: 2,
+                }} />
                 {/* Hidden file inputs */}
                 <input
                   type="file"
@@ -522,73 +536,104 @@ const ProfilePage = () => {
                 <div style={{
                   display: 'flex',
                   justifyContent: 'center',
-                  marginTop: '1.5rem',
+                  marginTop: '1.6rem',
                   position: 'relative'
                 }}>
                   <div style={{ position: 'relative' }}>
                     <div style={{
-                      width: '100px',
-                      height: '100px',
+                      width: 108,
+                      height: 108,
                       borderRadius: '50%',
-                      overflow: 'hidden',
-                      border: '4px solid white',
-                      backgroundColor: colors.bgTertiary,
+                      padding: 3,
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       position: 'relative',
+                      boxShadow: '0 8px 20px rgba(8,58,133,0.22)',
                     }}>
-                      {profileImage ? (
-                        <img
-                          src={profileImage}
-                          alt="Profile"
-                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                        />
-                      ) : (
-                        <span style={{ fontSize: '2rem', color: colors.textSecondary, fontWeight: '600' }}>
-                          {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : '?'}
-                        </span>
-                      )}
-                      {isUploadingImage && (
-                        <div style={{
-                          position: 'absolute',
-                          inset: 0,
-                          backgroundColor: 'rgba(0,0,0,0.4)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '50%',
-                        }}>
+                      <div style={{
+                        width: '100%', height: '100%', borderRadius: '50%',
+                        overflow: 'hidden',
+                        background: colors.bgCard,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        position: 'relative',
+                      }}>
+                        {profileImage ? (
+                          <img
+                            src={profileImage}
+                            alt="Profile"
+                            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                          />
+                        ) : (
                           <div style={{
-                            width: '20px',
-                            height: '20px',
-                            border: '2px solid #fff',
-                            borderTopColor: 'transparent',
+                            width: '100%', height: '100%',
+                            background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <span style={{
+                              fontSize: '2.2rem',
+                              fontWeight: 800,
+                              letterSpacing: '-0.02em',
+                              background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text',
+                            }}>
+                              {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : '?'}
+                            </span>
+                          </div>
+                        )}
+                        {isUploadingImage && (
+                          <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundColor: 'rgba(0,0,0,0.45)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             borderRadius: '50%',
-                            animation: 'spin 0.8s linear infinite',
-                          }} />
-                        </div>
-                      )}
+                          }}>
+                            <div style={{
+                              width: 22,
+                              height: 22,
+                              border: '2px solid #fff',
+                              borderTopColor: 'transparent',
+                              borderRadius: '50%',
+                              animation: 'spin 0.8s linear infinite',
+                            }} />
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => isEditEnabled && profileInputRef.current?.click()}
                       disabled={!isEditEnabled}
+                      aria-label="Upload profile picture"
+                      title={isEditEnabled ? 'Upload profile picture' : 'Enable editing to upload'}
                       style={{
                         position: 'absolute',
-                        bottom: '0',
-                        right: '0',
-                        backgroundColor: isEditEnabled ? '#083A85' : '#9CA3AF',
-                        border: isEditEnabled ? '2px solid #062a63' : '2px solid #6B7280',
+                        bottom: 0,
+                        right: 0,
+                        background: isEditEnabled
+                          ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
+                          : (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF'),
+                        border: `2px solid ${colors.bgCard}`,
                         borderRadius: '50%',
-                        width: '32px',
-                        height: '32px',
+                        width: 34,
+                        height: 34,
                         cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        opacity: isEditEnabled ? 1 : 0.5,
-                      }}>
-                      <CameraIcon />
+                        opacity: isEditEnabled ? 1 : 0.7,
+                        boxShadow: isEditEnabled ? '0 6px 14px rgba(242,12,143,0.32)' : '0 3px 8px rgba(0,0,0,0.15)',
+                        transition: 'transform 0.15s',
+                      }}
+                      onMouseEnter={(e) => { if (isEditEnabled) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                    >
+                      <i className="bi bi-camera-fill" style={{ color: '#fff', fontSize: 13 }} />
                     </button>
                   </div>
                 </div>
@@ -596,97 +641,165 @@ const ProfilePage = () => {
                 {/* Name and Role */}
                 <div className="mobile-profile-card-name" style={{
                   textAlign: 'center',
-                  padding: '1rem 1.5rem'
+                  padding: '0.85rem 1.5rem 1rem'
                 }}>
                   <h2 style={{
                     fontSize: '1.25rem',
-                    fontWeight: '700',
-                    color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                    marginBottom: '0.25rem'
+                    fontWeight: 800,
+                    color: colors.textPrimary,
+                    margin: 0, marginBottom: '0.2rem',
+                    letterSpacing: '-0.01em',
                   }}>{formData.fullName || 'User'}</h2>
                   {user?.kycStatus === 'APPROVED' && (
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
                       <KycBadge kycStatus={user.kycStatus} size="sm" />
                     </div>
                   )}
-                  <p style={{
-                    fontSize: '0.95rem',
-                    color: colors.textSecondary
-                  }}>Event Coordinator</p>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '0.25rem 0.65rem',
+                    background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)',
+                    border: '1px solid rgba(8,58,133,0.18)',
+                    borderRadius: 9999,
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    color: actualTheme === 'dark' ? '#BFDBFE' : '#083A85',
+                    letterSpacing: '-0.005em',
+                  }}>
+                    <i className="bi bi-person-badge-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
+                    Event Coordinator
+                  </div>
                 </div>
 
                 {/* KYC Verification Banner */}
-                {user?.kycStatus && user.kycStatus !== 'APPROVED' && user.customerType !== 'Viewer' && (
-                  <div style={{
-                    padding: '1rem 1.25rem', margin: '0 1.25rem',
-                    borderRadius: '0.75rem', marginBottom: '0.75rem',
-                    backgroundColor: user.kycStatus === 'PENDING' ? '#FFFBEB' : user.kycStatus === 'REJECTED' ? '#FEF2F2' : '#F0F9FF',
-                    border: `1px solid ${user.kycStatus === 'PENDING' ? '#FDE68A' : user.kycStatus === 'REJECTED' ? '#FECACA' : '#BFDBFE'}`,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={user.kycStatus === 'PENDING' ? '#D97706' : user.kycStatus === 'REJECTED' ? '#DC2626' : '#2563EB'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/>
-                      </svg>
-                      <span style={{
-                        fontSize: '0.8rem', fontWeight: '600',
-                        color: user.kycStatus === 'PENDING' ? '#92400E' : user.kycStatus === 'REJECTED' ? '#991B1B' : '#1E40AF',
-                      }}>
-                        {user.kycStatus === 'PENDING' ? 'KYC Under Review' : user.kycStatus === 'REJECTED' ? 'KYC Rejected' : 'KYC Required'}
-                      </span>
-                    </div>
-                    <p style={{
-                      fontSize: '0.75rem', margin: 0, lineHeight: '1.4',
-                      color: user.kycStatus === 'PENDING' ? '#92400E' : user.kycStatus === 'REJECTED' ? '#991B1B' : '#1E40AF',
+                {user?.kycStatus && user.kycStatus !== 'APPROVED' && user.customerType !== 'Viewer' && (() => {
+                  const isPending = user.kycStatus === 'PENDING';
+                  const isRejected = user.kycStatus === 'REJECTED';
+                  const tone = isPending ? 'warning' : isRejected ? 'danger' : 'info';
+                  const t = {
+                    warning: { stripe: 'linear-gradient(180deg, #F59E0B 0%, #D97706 100%)', icon: 'bi-shield-exclamation', heading: '#B45309', iconColor: '#D97706' },
+                    danger:  { stripe: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)', icon: 'bi-shield-x', heading: '#B91C1C', iconColor: '#DC2626' },
+                    info:    { stripe: 'linear-gradient(180deg, #083A85 0%, #F20C8F 100%)', icon: 'bi-shield-fill-check', heading: '#1E40AF', iconColor: '#083A85' },
+                  }[tone];
+                  const bg = isPending
+                    ? (actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(254,243,199,0.55)')
+                    : isRejected
+                    ? (actualTheme === 'dark' ? 'rgba(220,38,38,0.16)' : 'rgba(254,242,242,0.85)')
+                    : (actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : 'rgba(239,246,255,0.85)');
+                  const border = isPending
+                    ? (actualTheme === 'dark' ? 'rgba(245,158,11,0.40)' : 'rgba(245,158,11,0.30)')
+                    : isRejected
+                    ? (actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)')
+                    : (actualTheme === 'dark' ? 'rgba(8,58,133,0.40)' : 'rgba(8,58,133,0.22)');
+                  return (
+                    <div style={{
+                      padding: '0.85rem 0.95rem 0.95rem',
+                      margin: '0 1.25rem 1rem',
+                      borderRadius: 12,
+                      background: bg,
+                      border: `1px solid ${border}`,
+                      position: 'relative',
+                      overflow: 'hidden',
                     }}>
-                      {user.kycStatus === 'PENDING'
-                        ? 'Your identity verification is being reviewed.'
-                        : user.kycStatus === 'REJECTED'
-                        ? 'Your KYC was rejected. Please resubmit.'
-                        : 'Complete identity verification to enable withdrawals.'}
-                    </p>
-                    {user.kycStatus !== 'PENDING' && (
-                      <button onClick={() => setShowKycModal(true)} style={{
-                        marginTop: '0.5rem', padding: '0.4rem 0.75rem', fontSize: '0.75rem', fontWeight: '600',
-                        border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
-                        backgroundColor: '#083A85', color: 'white',
+                      <span aria-hidden style={{
+                        position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                        background: t.stripe,
+                      }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.35rem', paddingLeft: 6 }}>
+                        <i className={`bi ${t.icon}`} style={{ fontSize: 14, color: t.iconColor }} />
+                        <span style={{
+                          fontSize: '0.78rem', fontWeight: 800,
+                          color: actualTheme === 'dark' ? '#fff' : t.heading,
+                          letterSpacing: '-0.005em',
+                        }}>
+                          {isPending ? 'KYC Under Review' : isRejected ? 'KYC Rejected' : 'KYC Required'}
+                        </span>
+                      </div>
+                      <p style={{
+                        fontSize: '0.78rem', margin: 0, lineHeight: 1.5,
+                        paddingLeft: 6,
+                        color: actualTheme === 'dark' ? '#E5E7EB' : t.heading,
+                        opacity: actualTheme === 'dark' ? 0.92 : 1,
                       }}>
-                        {user.kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Complete KYC'}
-                      </button>
-                    )}
-                  </div>
-                )}
+                        {isPending
+                          ? 'Your identity verification is being reviewed.'
+                          : isRejected
+                          ? 'Your KYC was rejected. Please resubmit.'
+                          : 'Complete identity verification to enable withdrawals.'}
+                      </p>
+                      {!isPending && (
+                        <button onClick={() => setShowKycModal(true)} style={{
+                          marginTop: '0.65rem',
+                          marginLeft: 6,
+                          padding: '0.5rem 0.9rem',
+                          fontSize: '0.78rem', fontWeight: 700,
+                          letterSpacing: '-0.005em',
+                          border: 'none', borderRadius: 9, cursor: 'pointer',
+                          background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                          color: 'white',
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          boxShadow: '0 6px 14px rgba(8,58,133,0.28)',
+                          transition: 'transform 0.15s, box-shadow 0.15s',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 10px 20px rgba(242,12,143,0.32)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(8,58,133,0.28)'; }}
+                        >
+                          <i className="bi bi-shield-check" style={{ fontSize: 12 }} />
+                          {isRejected ? 'Resubmit KYC' : 'Complete KYC'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Account Activity */}
                 <div className="mobile-profile-card-activity" style={{
-                  borderTop: `2px solid ${colors.borderPrimary}`,
-                  padding: '1.25rem'
+                  borderTop: `1px solid ${colors.borderPrimary}`,
+                  padding: '1.1rem 1.25rem 1.25rem'
                 }}>
-                  <h3 style={{
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    color: colors.textPrimary,
-                    marginBottom: '0.75rem'
-                  }}>Account Activity</h3>
+                  <div style={{
+                    fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    marginBottom: '0.75rem',
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                  }}>
+                    <i className="bi bi-activity" style={{ fontSize: 11 }} />
+                    Account Activity
+                  </div>
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '0.75rem'
+                    gap: '0.55rem'
                   }}>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      padding: '0.5rem 0.7rem',
+                      background: colors.bgTertiary,
+                      borderRadius: 9,
+                      border: `1px solid ${colors.borderPrimary}`,
                     }}>
-                      <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Last Login</span>
-                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Today</span>
+                      <span style={{ fontSize: '0.82rem', color: colors.textSecondary, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <i className="bi bi-clock-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
+                        Last Login
+                      </span>
+                      <span style={{ fontSize: '0.85rem', color: colors.textPrimary, fontWeight: 700, letterSpacing: '-0.005em' }}>Today</span>
                     </div>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      padding: '0.5rem 0.7rem',
+                      background: colors.bgTertiary,
+                      borderRadius: 9,
+                      border: `1px solid ${colors.borderPrimary}`,
                     }}>
-                      <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Joined Since</span>
-                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>
+                      <span style={{ fontSize: '0.82rem', color: colors.textSecondary, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <i className="bi bi-calendar-heart-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
+                        Joined Since
+                      </span>
+                      <span style={{ fontSize: '0.85rem', color: colors.textPrimary, fontWeight: 700, letterSpacing: '-0.005em' }}>
                         {user?.joinedFrom ? new Date(user.joinedFrom).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '-'}
                       </span>
                     </div>
@@ -698,63 +811,106 @@ const ProfilePage = () => {
             {/* Right Section - Personal Information Form */}
             <div className="mobile-profile-right mobile-card" style={{
               backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
+              borderRadius: 14,
               padding: '1.5rem',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              border: `2px solid ${colors.borderPrimary}`
+              boxShadow: '0 4px 16px -6px rgba(8, 58, 133, 0.12)',
+              border: `1px solid ${colors.borderPrimary}`,
+              position: 'relative',
+              overflow: 'hidden',
             }}>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              }} />
               {/* Header with Edit Toggle */}
               <div className="mobile-section-actions" style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '1.5rem'
+                marginBottom: '1.5rem',
+                gap: 12,
               }}>
-                <h2 style={{
-                  fontSize: '1.25rem',
-                  fontWeight: '600',
-                  color: colors.textPrimary
-                }}>Personal Information</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 9,
+                    background: 'linear-gradient(135deg, rgba(8,58,133,0.12) 0%, rgba(242,12,143,0.10) 100%)',
+                    border: '1px solid rgba(8,58,133,0.20)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className="bi bi-person-vcard-fill" style={{ fontSize: 14, color: '#083A85' }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                      marginBottom: 1,
+                    }}>Your details</div>
+                    <h2 style={{
+                      fontSize: '1.2rem',
+                      fontWeight: 800,
+                      color: colors.textPrimary,
+                      margin: 0,
+                      letterSpacing: '-0.01em',
+                    }}>Personal Information</h2>
+                  </div>
+                </div>
 
                 {/* Edit Toggle */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.75rem'
+                  gap: '0.6rem',
+                  flexShrink: 0,
                 }}>
                   <span style={{
-                    fontSize: '0.9rem',
-                    color: colors.textSecondary
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    color: colors.textSecondary,
+                    letterSpacing: '-0.005em',
                   }}>Edit</span>
                   <button
                     onClick={() => setIsEditEnabled(!isEditEnabled)}
+                    aria-pressed={isEditEnabled}
+                    aria-label={isEditEnabled ? 'Disable editing' : 'Enable editing'}
                     style={{
-                      width: '48px',
-                      height: '26px',
-                      borderRadius: '13px',
+                      width: 50,
+                      height: 28,
+                      borderRadius: 14,
                       border: 'none',
                       cursor: 'pointer',
                       position: 'relative',
-                      backgroundColor: isEditEnabled ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                      transition: 'background-color 0.2s'
+                      background: isEditEnabled
+                        ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
+                        : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                      boxShadow: isEditEnabled ? '0 6px 14px rgba(242,12,143,0.30), inset 0 0 0 1px rgba(255,255,255,0.20)' : 'inset 0 1px 3px rgba(0,0,0,0.10)',
+                      transition: 'background 0.2s, box-shadow 0.2s',
                     }}
                   >
                     <div style={{
-                      width: '22px',
-                      height: '22px',
+                      width: 22,
+                      height: 22,
                       borderRadius: '50%',
-                      backgroundColor: colors.bgCard,
+                      backgroundColor: '#fff',
                       position: 'absolute',
-                      top: '2px',
-                      left: isEditEnabled ? '24px' : '2px',
+                      top: 3,
+                      left: isEditEnabled ? 25 : 3,
                       transition: 'left 0.2s',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
-                    }} />
+                      boxShadow: '0 2px 5px rgba(0, 0, 0, 0.20)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <i className={`bi ${isEditEnabled ? 'bi-pencil-fill' : 'bi-lock-fill'}`} style={{
+                        fontSize: 9,
+                        color: isEditEnabled ? '#F20C8F' : '#9CA3AF',
+                      }} />
+                    </div>
                   </button>
                   <span style={{
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : '#6B7280'
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    color: isEditEnabled ? '#F20C8F' : (actualTheme === 'dark' ? '#9CA3AF' : '#6B7280'),
+                    letterSpacing: '-0.005em',
+                    minWidth: 60,
                   }}>
                     {isEditEnabled ? 'Enabled' : 'Disabled'}
                   </span>

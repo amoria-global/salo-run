@@ -1382,74 +1382,85 @@ Amount: ${formatPrice(transaction.amountNum)}
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header with Withdraw Button */}
-          <header className="mobile-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Transactions</h1>
-              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                Manage your earnings and view transaction history
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>MONEY</div>
+              <h1 className="mobile-title" style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>Transactions</h1>
+              <p style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
+                Manage your earnings and view your complete transaction history.
               </p>
             </div>
             <button
+              className="ck-btn ck-btn-primary"
               onClick={() => hasPaymentAccount === false ? setShowSetupModal(true) : setShowWithdrawModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: '#083A85',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                padding: '0.75rem 1.5rem',
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
             >
               <WithdrawIcon />
-              Withdraw Funds
+              Withdraw funds
             </button>
           </header>
 
           {/* Tips and Bonus Cards */}
           <div className="mobile-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             {/* Tips Section - From Clients */}
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <div style={{ width: '32px', height: '32px', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '1rem' }}>💝</span>
-                    </div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Tips from Clients</h3>
+            <div className="ck-card" style={{ position: 'relative', overflow: 'hidden', padding: '1.25rem' }}>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #F20C8F 0%, #16A34A 100%)',
+              }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 11,
+                    background: 'rgba(242,12,143,0.10)',
+                    border: '1px solid rgba(242,12,143,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className="bi bi-heart-fill" style={{ fontSize: 17, color: '#F20C8F' }} />
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>Appreciation from your clients</p>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Tips from clients</h3>
+                    <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '2px 0 0' }}>Appreciation from your clients</p>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalTips)}</div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{tipsData.length} tips received</div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#16A34A', letterSpacing: '-0.02em', lineHeight: 1.05 }}>{formatPrice(totalTips)}</div>
+                  <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 2, fontWeight: 500 }}>{tipsData.length} tip{tipsData.length === 1 ? '' : 's'} received</div>
                 </div>
               </div>
 
               {/* Recent Tips List */}
-              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Recent Tips</span>
+              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                  <span style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Recent tips</span>
                   <button
                     onClick={() => setShowTipsModal(true)}
-                    style={{ fontSize: '0.8rem', color: '#16A34A', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}
+                    style={{ fontSize: '0.78rem', color: '#16A34A', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
-                    View All
+                    View all <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
                   </button>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '120px', overflowY: 'auto' }}>
+                  {tipsData.length === 0 && (
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, padding: '8px 0', fontStyle: 'italic' }}>
+                      No tips yet. They’ll appear here once clients send appreciation.
+                    </div>
+                  )}
                   {tipsData.map((tip) => (
-                    <div key={tip.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` }}>
-                      <div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{tip.clientName}</div>
+                    <div key={tip.id} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '0.55rem 0.7rem',
+                      background: actualTheme === 'dark' ? 'rgba(22,163,74,0.12)' : '#F0FDF4',
+                      borderRadius: 9,
+                      border: `1px solid ${actualTheme === 'dark' ? 'rgba(22,163,74,0.30)' : '#BBF7D0'}`,
+                    }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{tip.clientName}</div>
                         <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{tip.eventName} • {tip.date}</div>
-                        {tip.message && <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', fontStyle: 'italic', marginTop: '0.125rem' }}>&ldquo;{tip.message}&rdquo;</div>}
+                        {tip.message && <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', fontStyle: 'italic', marginTop: '0.15rem' }}>&ldquo;{tip.message}&rdquo;</div>}
                       </div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#16A34A' }}>+${tip.amount}</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16A34A', flexShrink: 0, marginLeft: 8 }}>+${tip.amount}</div>
                     </div>
                   ))}
                 </div>
@@ -1457,64 +1468,132 @@ Amount: ${formatPrice(transaction.amountNum)}
             </div>
 
             {/* Platform Bonus Section */}
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <div style={{ width: '32px', height: '32px', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '1rem' }}>🎁</span>
-                    </div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Platform Bonus</h3>
+            <div className="ck-card" style={{ position: 'relative', overflow: 'hidden', padding: '1.25rem' }}>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 11,
+                    background: 'rgba(8,58,133,0.10)',
+                    border: '1px solid rgba(8,58,133,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className="bi bi-award-fill" style={{ fontSize: 17, color: '#083A85' }} />
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>
-                    {bonusApproved ? 'Bonus earned for completing your first ' + BONUS_THRESHOLD + ' events!'
-                      : bonusPending ? 'Bonus pending admin approval'
-                      : bonusRejected ? 'Bonus request was not approved'
-                      : `Complete your first ${BONUS_THRESHOLD} events to earn ${formatPrice(platformConfig.photographer.bonusAmount)}`}
-                  </p>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Platform bonus</h3>
+                    <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '2px 0 0', lineHeight: 1.4 }}>
+                      {bonusApproved ? `Bonus earned for completing your first ${BONUS_THRESHOLD} events!`
+                        : bonusPending ? 'Bonus pending admin approval'
+                        : bonusRejected ? 'Bonus request was not approved'
+                        : `Complete your first ${BONUS_THRESHOLD} events to earn ${formatPrice(platformConfig.photographer.bonusAmount, platformConfig.photographer.bonusCurrencyId)}`}
+                    </p>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : colors.textSecondary }}>{bonusApproved ? formatPrice(platformBonus) : formatPrice(platformConfig.photographer.bonusAmount)}</div>
-                  <div style={{ fontSize: '0.75rem', color: bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : colors.textSecondary }}>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{
+                    fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.05,
+                    color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : colors.textPrimary,
+                  }}>{bonusApproved
+                    ? (wallet?.balanceBonuses != null
+                        ? formatPrice(wallet.balanceBonuses)
+                        : formatPrice(bonusStatus.amount ?? 0, bonusStatus.currencyAbbreviation))
+                    : formatPrice(platformConfig.photographer.bonusAmount, platformConfig.photographer.bonusCurrencyId)}</div>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: '0.7rem', fontWeight: 600, marginTop: 4,
+                    padding: '2px 8px', borderRadius: 999,
+                    color: bonusApproved ? '#16A34A' : bonusPending ? '#B45309' : bonusRejected ? '#B91C1C' : colors.textSecondary,
+                    background: bonusApproved
+                      ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.18)' : '#ECFDF5')
+                      : bonusPending
+                      ? (actualTheme === 'dark' ? 'rgba(245,158,11,0.18)' : '#FEF3C7')
+                      : bonusRejected
+                      ? (actualTheme === 'dark' ? 'rgba(220,38,38,0.18)' : '#FEF2F2')
+                      : 'var(--ck-surface-soft)',
+                    border: `1px solid ${bonusApproved
+                      ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.40)' : '#BBF7D0')
+                      : bonusPending
+                      ? (actualTheme === 'dark' ? 'rgba(245,158,11,0.40)' : '#FCD34D')
+                      : bonusRejected
+                      ? (actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : '#FECACA')
+                      : 'var(--ck-stroke)'}`,
+                  }}>
+                    <span style={{
+                      width: 6, height: 6, borderRadius: 9999,
+                      background: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : '#9CA3AF',
+                    }} />
                     {bonusApproved ? 'Bonus earned' : bonusPending ? 'Pending approval' : bonusRejected ? 'Not approved' : 'Not yet earned'}
                   </div>
                 </div>
               </div>
 
               {/* Progress to Bonus */}
-              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
                 {bonusRejected && bonusStatus.adminComment && (
-                  <div style={{ padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#7F1D1D20' : '#FEF2F2', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`, marginBottom: '0.75rem' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', marginBottom: '0.2rem' }}>Admin Comment</div>
+                  <div style={{ padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.12)' : '#FEF2F2', borderRadius: 9, border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : '#FECACA'}`, marginBottom: '0.75rem' }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', marginBottom: '0.2rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Admin comment</div>
                     <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{bonusStatus.adminComment}</div>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>
-                    {bonusApproved ? 'Bonus Achieved' : bonusPending ? 'Pending Approval' : 'Progress to Bonus'}
+                  <span style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    {bonusApproved ? 'Bonus achieved' : bonusPending ? 'Pending approval' : 'Progress to bonus'}
                   </span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#2563EB' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#083A85' }}>
                     {Math.min(completedEventsCount, BONUS_THRESHOLD)}/{BONUS_THRESHOLD} events
                   </span>
                 </div>
-                <div style={{ width: '100%', height: '8px', backgroundColor: colors.borderPrimary, borderRadius: '9999px', overflow: 'hidden', marginBottom: '0.75rem' }}>
-                  <div style={{ width: `${Math.min(100, (completedEventsCount / BONUS_THRESHOLD) * 100)}%`, height: '100%', backgroundColor: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#2563EB', borderRadius: '9999px', transition: 'width 0.3s ease' }} />
+                <div style={{ width: '100%', height: 8, backgroundColor: 'var(--ck-surface-soft)', borderRadius: 9999, overflow: 'hidden', marginBottom: '0.85rem', border: '1px solid var(--ck-stroke)' }}>
+                  <div style={{
+                    width: `${Math.min(100, (completedEventsCount / BONUS_THRESHOLD) * 100)}%`,
+                    height: '100%',
+                    background: bonusApproved
+                      ? 'linear-gradient(90deg, #16A34A 0%, #10B981 100%)'
+                      : bonusPending
+                      ? 'linear-gradient(90deg, #F59E0B 0%, #FBBF24 100%)'
+                      : 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+                    borderRadius: 9999,
+                    transition: 'width 0.3s ease',
+                  }} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` }}>
-                    <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', marginBottom: '0.125rem' }}>Completed Events</div>
-                    <div style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>{completedEventsCount}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(22,163,74,0.12)' : '#F0FDF4', borderRadius: 9, border: `1px solid ${actualTheme === 'dark' ? 'rgba(22,163,74,0.30)' : '#BBF7D0'}` }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: actualTheme === 'dark' ? '#4ADE80' : '#166534', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>Completed events</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#16A34A', letterSpacing: '-0.01em' }}>{completedEventsCount}</div>
                   </div>
                   {!bonusReached && (
-                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#1E40AF' : '#BFDBFE'}` }}>
-                      <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#60A5FA' : '#1E40AF', marginBottom: '0.125rem' }}>Events Remaining</div>
-                      <div style={{ fontSize: '1rem', fontWeight: '700', color: '#2563EB' }}>{eventsToBonus}</div>
+                    <div style={{ padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : '#EFF6FF', borderRadius: 9, border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.45)' : '#BFDBFE'}` }}>
+                      <div style={{ fontSize: '0.66rem', fontWeight: 700, color: actualTheme === 'dark' ? '#93C5FD' : '#083A85', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>Events remaining</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#083A85', letterSpacing: '-0.01em' }}>{eventsToBonus}</div>
                     </div>
                   )}
                   {bonusReached && (
-                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: bonusApproved ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : bonusPending ? (actualTheme === 'dark' ? '#78350F' : '#FEF3C7') : (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2'), borderRadius: '0.375rem', border: `1px solid ${bonusApproved ? (actualTheme === 'dark' ? '#166534' : '#BBF7D0') : bonusPending ? (actualTheme === 'dark' ? '#92400E' : '#FCD34D') : (actualTheme === 'dark' ? '#991B1B' : '#FECACA')}` }}>
-                      <div style={{ fontSize: '0.7rem', color: bonusApproved ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : bonusPending ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'), marginBottom: '0.125rem' }}>Status</div>
-                      <div style={{ fontSize: '1rem', fontWeight: '700', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#DC2626' }}>{bonusApproved ? 'Approved' : bonusPending ? 'Pending' : 'Rejected'}</div>
+                    <div style={{
+                      padding: '0.55rem 0.75rem',
+                      borderRadius: 9,
+                      background: bonusApproved
+                        ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.12)' : '#F0FDF4')
+                        : bonusPending
+                        ? (actualTheme === 'dark' ? 'rgba(245,158,11,0.12)' : '#FEF3C7')
+                        : (actualTheme === 'dark' ? 'rgba(220,38,38,0.12)' : '#FEF2F2'),
+                      border: `1px solid ${bonusApproved
+                        ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.30)' : '#BBF7D0')
+                        : bonusPending
+                        ? (actualTheme === 'dark' ? 'rgba(245,158,11,0.40)' : '#FCD34D')
+                        : (actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : '#FECACA')}`,
+                    }}>
+                      <div style={{
+                        fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2,
+                        color: bonusApproved ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : bonusPending ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
+                      }}>Status</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, letterSpacing: '-0.01em', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#DC2626' }}>
+                        {bonusApproved ? 'Approved' : bonusPending ? 'Pending' : 'Rejected'}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1526,13 +1605,17 @@ Amount: ${formatPrice(transaction.amountNum)}
           <div className="mobile-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
             {/* Earnings Chart */}
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+            <div className="ck-card" style={{ position: 'relative', overflow: 'hidden', padding: '1.25rem' }}>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', gap: 12, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earnings</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalCompleted + totalPending + totalWithdrawn)}</span>
-                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary, fontWeight: '500' }}>This period</span>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Total earnings</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.85rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>{formatPrice(totalCompleted + totalPending + totalWithdrawn)}</span>
+                    <span style={{ fontSize: '0.82rem', color: colors.textSecondary, fontWeight: 500 }}>This period</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1621,13 +1704,19 @@ Amount: ${formatPrice(transaction.amountNum)}
             </div>
 
             {/* Earnings Summary */}
-            <div className="mobile-earnings-summary" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <div className="mobile-earnings-summary ck-card" style={{ position: 'relative', overflow: 'hidden', padding: '1.25rem' }}>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #10B981 0%, #083A85 100%)',
+              }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', gap: 8 }}>
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Earnings Summary</div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Current Period</div>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Earnings summary</div>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Current period</div>
                 </div>
-                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}>View report</button>
+                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.78rem', color: '#083A85', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  View report <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
+                </button>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <div style={{ textAlign: 'center' }}>

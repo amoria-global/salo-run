@@ -6,6 +6,8 @@ import Link from 'next/link';
 import localforage from 'localforage';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
+import { platformAlert } from '../../components/PlatformAlert';
+import EventConfirmModal from '../../components/EventConfirmModal';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -864,7 +866,7 @@ const MyEventsPage = () => {
       if (activeTab === 'upcoming') setActiveTab('all');
     } catch (err) {
       console.error('Publish event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to publish event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to publish event');
     } finally {
       setPublishingEventId(null);
     }
@@ -889,7 +891,7 @@ const MyEventsPage = () => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         // Backend returns 409 + { error: "EVENT_ONGOING", photographerName } when
-        // the event is live. Show the dedicated block modal instead of alert().
+        // the event is live. Show the dedicated block modal instead of platformAlert().
         if (response.status === 409 && errorData?.error === 'EVENT_ONGOING') {
           setOngoingUnpublishBlock({
             title: targetTitle,
@@ -906,7 +908,7 @@ const MyEventsPage = () => {
       if (activeTab === 'published') setActiveTab('all');
     } catch (err) {
       console.error('Unpublish event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to unpublish event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to unpublish event');
     } finally {
       setUnpublishingEventId(null);
     }
@@ -993,7 +995,7 @@ const MyEventsPage = () => {
       setEvents(prev => prev.filter(e => e.id !== eventId));
     } catch (err) {
       console.error('Delete event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to delete event');
       // Refetch to sync state with backend
       fetchMyEvents();
     }
@@ -1037,7 +1039,7 @@ const MyEventsPage = () => {
       setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'PAUSED' as EventStatus, isPublished: false } : e));
     } catch (err) {
       console.error('Pause event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to pause event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to pause event');
       fetchMyEvents();
     } finally {
       setPausingEventId(null);
@@ -1061,7 +1063,7 @@ const MyEventsPage = () => {
       setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: newStatus as EventStatus } : e));
     } catch (err) {
       console.error('Resume event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to resume event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to resume event');
       fetchMyEvents();
     } finally {
       setResumingEventId(null);
@@ -1192,7 +1194,7 @@ const MyEventsPage = () => {
       }
     } catch (err) {
       console.error('Edit event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to update event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to update event');
       return;
     }
 
@@ -1363,12 +1365,16 @@ const MyEventsPage = () => {
 
   // Handle create event
   const handleCreateEvent = async () => {
+    // Hard gate: a cover image is required before anything else can be validated.
+    if (!createBannerImageFile && !createBannerImagePreview) {
+      setSubmitError('A cover image is required before an event can be created. Please upload one above.');
+      return;
+    }
     const missingFields: string[] = [];
     if (!createTitle) missingFields.push('Event Title');
     if (!createCategory) missingFields.push('Category');
     if (!createDate) missingFields.push('Date');
     if (!createTime) missingFields.push('Start Time');
-    if (!createBannerImageFile && !createBannerImagePreview) missingFields.push('Banner Image');
     if (missingFields.length > 0) {
       setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
       return;
@@ -1550,19 +1556,19 @@ const MyEventsPage = () => {
   const getStatusBadgeStyle = (status: string) => {
     switch (status.toLowerCase()) {
       case 'upcoming':
-        return { backgroundColor: '#d19d0d', color: '#FFFFFF' };
-      case 'published':
-        return { backgroundColor: '#05a129', color: '#FFFFFF' };
-      case 'ongoing':
-        return { backgroundColor: '#D1FAE5', color: '#059669' };
-      case 'completed':
-        return { backgroundColor: '#DC2626', color: '#FFFFFF' };
       case 'awaiting_review':
-        return { backgroundColor: '#D97706', color: '#FFFFFF' };
+        return { background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(245,158,11,0.30)' };
+      case 'published':
+        return { background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(16,185,129,0.30)' };
+      case 'ongoing':
+      case 'live':
+        return { background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(220,38,38,0.30)' };
+      case 'completed':
+        return { background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(8,58,133,0.30)' };
       case 'paused':
-        return { backgroundColor: '#F59E0B', color: '#FFFFFF' };
+        return { background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(75,85,99,0.25)' };
       default:
-        return { backgroundColor: colors.bgTertiary, color: colors.textSecondary };
+        return { background: colors.bgTertiary, color: colors.textSecondary };
     }
   };
 
@@ -1732,32 +1738,27 @@ const MyEventsPage = () => {
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
-          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div>
-              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>My Events</h1>
-              <p className="mobile-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                Create and manage your events
+          <header className="mobile-header" style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+            gap: 16, flexWrap: 'wrap', margin: '8px 0 22px',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F',
+                letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6,
+              }}>Events</div>
+              <h1 className="mobile-title" style={{
+                margin: 0, fontSize: '1.85rem', fontWeight: 800,
+                letterSpacing: '-0.02em', color: colors.textPrimary,
+              }}>My events</h1>
+              <p className="mobile-subtitle" style={{
+                margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary,
+              }}>
+                Create and manage your events.
               </p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="mobile-create-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: '#083A85',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                padding: '0.75rem 1.25rem',
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              <PlusIcon />
-              Create Event
+            <button onClick={() => setShowCreateModal(true)} className="ck-btn ck-btn-primary mobile-create-btn">
+              <i className="bi bi-plus-lg" /> Create event
             </button>
           </header>
 
@@ -1905,10 +1906,11 @@ const MyEventsPage = () => {
 
                     {/* TOP: status badge + event type badge */}
                     <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
-                      <div style={{ ...getStatusBadgeStyle(event.status), backdropFilter: 'blur(8px)', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'capitalize' }}>
-                        {event.status}
+                      <div style={{ ...getStatusBadgeStyle(event.status), padding: '4px 10px', borderRadius: 9999, fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid rgba(255,255,255,0.18)' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#fff', boxShadow: '0 0 0 2px rgba(255,255,255,0.30)' }} />
+                        {event.status.toString().replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
                       </div>
-                      <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                      <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '4px 10px', borderRadius: 9999, fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.18)' }}>
                         {event.eventType}
                       </div>
                     </div>
@@ -1955,26 +1957,26 @@ const MyEventsPage = () => {
                         )}
                       </div>
                       {/* Action buttons — always 4 buttons: Share, Edit, Delete, Publish/Unpublish */}
-                      <div className="mobile-event-actions" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                      <div className="mobile-event-actions" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                           <ShareIcon />
                         </button>
-                        <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                        <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                           <EditIcon />
                         </button>
                         {isEventDeletable(event) && (
-                          <button onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }} title="Delete" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                          <button onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }} title="Delete" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', boxShadow: '0 4px 10px rgba(220,38,38,0.30)', transition: 'transform 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
                             <TrashIcon />
                           </button>
                         )}
                         {isEventPausable(event) && (
-                          <button onClick={() => { setPauseEvent(event); setShowPauseModal(true); }} title="Pause" disabled={pausingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: '#F59E0B', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: pausingEventId === event.id ? 'not-allowed' : 'pointer', opacity: pausingEventId === event.id ? 0.7 : 1 }}>
-                            {pausingEventId === event.id ? '...' : <i className="bi bi-pause-fill" style={{ fontSize: '1rem' }}></i>}
+                          <button onClick={() => { setPauseEvent(event); setShowPauseModal(true); }} title="Pause" disabled={pausingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: pausingEventId === event.id ? 'not-allowed' : 'pointer', opacity: pausingEventId === event.id ? 0.7 : 1, boxShadow: '0 4px 10px rgba(245,158,11,0.30)', transition: 'transform 0.15s' }} onMouseEnter={(e) => { if (pausingEventId !== event.id) e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+                            {pausingEventId === event.id ? <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#fff' }} /> : <i className="bi bi-pause-fill" style={{ fontSize: '1rem' }}></i>}
                           </button>
                         )}
                         {isEventResumable(event) && (
-                          <button onClick={() => handleResumeEvent(event.id)} title="Resume" disabled={resumingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: '#10B981', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: resumingEventId === event.id ? 'not-allowed' : 'pointer', opacity: resumingEventId === event.id ? 0.7 : 1 }}>
-                            {resumingEventId === event.id ? '...' : <i className="bi bi-play-fill" style={{ fontSize: '1rem' }}></i>}
+                          <button onClick={() => handleResumeEvent(event.id)} title="Resume" disabled={resumingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: resumingEventId === event.id ? 'not-allowed' : 'pointer', opacity: resumingEventId === event.id ? 0.7 : 1, boxShadow: '0 4px 10px rgba(16,185,129,0.30)', transition: 'transform 0.15s' }} onMouseEnter={(e) => { if (resumingEventId !== event.id) e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+                            {resumingEventId === event.id ? <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#fff' }} /> : <i className="bi bi-play-fill" style={{ fontSize: '1rem' }}></i>}
                           </button>
                         )}
                         {event.status.toUpperCase() !== 'COMPLETED' && (
@@ -1991,12 +1993,20 @@ const MyEventsPage = () => {
                               } else {
                                 setUnpublishConfirmEvent(event);
                               }
-                            }} disabled={unpublishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#d19d0d', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: unpublishingEventId === event.id ? 0.7 : 1 }}>
-                              {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
+                            }} disabled={unpublishingEventId === event.id} style={{ flex: 1.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 700, opacity: unpublishingEventId === event.id ? 0.7 : 1, boxShadow: '0 4px 10px rgba(245,158,11,0.30)', letterSpacing: '-0.005em', transition: 'transform 0.15s' }} onMouseEnter={(e) => { if (unpublishingEventId !== event.id) e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+                              {unpublishingEventId === event.id ? (
+                                <><span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#fff' }} /> Unpublishing…</>
+                              ) : (
+                                <><i className="bi bi-eye-slash-fill" style={{ fontSize: 12 }} /> Unpublish</>
+                              )}
                             </button>
                           ) : (
-                            <button onClick={() => handlePublishClick(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
-                              {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
+                            <button onClick={() => handlePublishClick(event)} disabled={publishingEventId === event.id} style={{ flex: 1.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 700, opacity: publishingEventId === event.id ? 0.7 : 1, boxShadow: '0 4px 10px rgba(16,185,129,0.30)', letterSpacing: '-0.005em', transition: 'transform 0.15s' }} onMouseEnter={(e) => { if (publishingEventId !== event.id) e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+                              {publishingEventId === event.id ? (
+                                <><span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#fff' }} /> Publishing…</>
+                              ) : (
+                                <><i className="bi bi-broadcast" style={{ fontSize: 12 }} /> Publish</>
+                              )}
                             </button>
                           )
                         )}
@@ -2090,10 +2100,10 @@ const MyEventsPage = () => {
                       setCompletionModalEvent(null);
                     } else {
                       const err = await res.json().catch(() => null);
-                      alert(err?.message || 'Failed to submit feedback');
+                      platformAlert(err?.message || 'Failed to submit feedback');
                     }
                   } catch {
-                    alert('Network error. Please try again.');
+                    platformAlert('Network error. Please try again.');
                   } finally {
                     setCompletionSubmitting(false);
                   }
@@ -2138,45 +2148,114 @@ const MyEventsPage = () => {
           )}
           {/* Section: Event Image */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <CameraIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Event Image</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: 9,
+                background: 'rgba(8,58,133,0.10)',
+                border: '1px solid rgba(8,58,133,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <i className="bi bi-camera-fill" style={{ fontSize: 13, color: '#083A85' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Visuals</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Event image</span>
+              </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.375rem' }}>Banner Image (1200x800) <span style={{ color: '#DC2626' }}>*</span></label>
-              <div style={{
-                border: `2px dashed ${submitError && !createBannerImagePreview ? '#DC2626' : colors.borderPrimary}`,
-                borderRadius: '0.5rem',
-                height: '140px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: colors.bgTertiary,
-                cursor: 'pointer',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Banner image (1200×800) <span style={{ color: '#DC2626' }}>*</span></label>
+              <div
+                onClick={(e) => { if (!createBannerImagePreview) { (e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement | null)?.click(); } }}
+                style={{
+                  border: `1.5px dashed ${(!createBannerImagePreview) ? (submitError ? '#DC2626' : 'rgba(242,12,143,0.55)') : (actualTheme === 'dark' ? 'rgba(99,162,255,0.45)' : 'rgba(8,58,133,0.32)')}`,
+                  borderRadius: 12,
+                  height: 170,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: createBannerImagePreview
+                    ? 'transparent'
+                    : (actualTheme === 'dark'
+                        ? 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.06) 100%)'
+                        : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.03) 100%)'),
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'border-color 0.18s, background 0.18s',
+                }}
+              >
                 {createBannerImagePreview ? (
                   <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                     <Image src={createBannerImagePreview} alt="Banner" fill style={{ objectFit: 'cover' }} />
-                    <button onClick={() => { setCreateBannerImage(null); setCreateBannerImagePreview(null); setCreateBannerImageFile(null); }} style={{ position: 'absolute', top: '8px', right: '8px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>×</button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setCreateBannerImage(null); setCreateBannerImagePreview(null); setCreateBannerImageFile(null); }}
+                      title="Remove image"
+                      style={{
+                        position: 'absolute', top: 10, right: 10,
+                        background: 'rgba(0,0,0,0.65)', color: '#fff',
+                        border: '1px solid rgba(255,255,255,0.35)',
+                        borderRadius: 9, width: 30, height: 30,
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backdropFilter: 'blur(6px)',
+                      }}
+                    >
+                      <i className="bi bi-trash3" style={{ fontSize: 13 }} />
+                    </button>
                   </div>
                 ) : (
-                  <label style={{ cursor: 'pointer', textAlign: 'center', padding: '1rem' }}>
+                  <label style={{ cursor: 'pointer', textAlign: 'center', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
                     <input type="file" accept="image/*" onChange={handleBannerImageChange} style={{ display: 'none' }} />
-                    <ImageIcon />
-                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#9CA3AF' }}>Click to upload banner image</p>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 12,
+                      background: '#fff',
+                      border: '1px solid rgba(8,58,133,0.20)',
+                      boxShadow: '0 4px 10px rgba(8,58,133,0.10)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <i className="bi bi-cloud-arrow-up-fill" style={{ fontSize: 20, color: '#083A85' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>
+                        Upload banner image
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 2 }}>
+                        Click to choose · 1200×800 · PNG or JPG
+                      </div>
+                    </div>
                   </label>
                 )}
               </div>
+              {!createBannerImagePreview && (
+                <div style={{
+                  marginTop: 8,
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  fontSize: '0.74rem', fontWeight: 600,
+                  color: '#F20C8F',
+                  letterSpacing: '-0.005em',
+                }}>
+                  <i className="bi bi-info-circle-fill" style={{ fontSize: 11 }} />
+                  A cover image is required before this event can be created.
+                </div>
+              )}
             </div>
           </div>
 
           {/* Section: Basic Information */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <EditIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Basic Information</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: 9,
+                background: 'rgba(242,12,143,0.10)',
+                border: '1px solid rgba(242,12,143,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <i className="bi bi-pencil-fill" style={{ fontSize: 13, color: '#F20C8F' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Overview</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Basic information</span>
+              </div>
             </div>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
@@ -2209,9 +2288,14 @@ const MyEventsPage = () => {
 
           {/* Section: Date & Time */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <CalendarIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Date & Time</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: '#F59E0B' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Schedule</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Date &amp; time</span>
+              </div>
             </div>
             <div className="mobile-modal-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
               <div>
@@ -2233,9 +2317,14 @@ const MyEventsPage = () => {
 
           {/* Section: Location */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <LocationIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Location</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="bi bi-geo-alt-fill" style={{ fontSize: 13, color: '#10B981' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Venue</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Location</span>
+              </div>
             </div>
             <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
@@ -2251,9 +2340,14 @@ const MyEventsPage = () => {
 
           {/* Section: Capacity */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <DollarIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Capacity</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="bi bi-people-fill" style={{ fontSize: 13, color: '#3B82F6' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Attendance</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Capacity</span>
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
@@ -2263,9 +2357,14 @@ const MyEventsPage = () => {
 
           {/* Section: Organizer */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <OrganizerIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Organizer</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="bi bi-building" style={{ fontSize: 13, color: '#7C3AED' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Host</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Organizer</span>
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name *</label>
@@ -2275,18 +2374,28 @@ const MyEventsPage = () => {
 
           {/* Section: Description */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <EditIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Description</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="bi bi-file-text-fill" style={{ fontSize: 13, color: '#083A85' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>About</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Description</span>
+              </div>
             </div>
-            <textarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Describe your event in detail..." style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', minHeight: '100px', resize: 'vertical', color: colors.textPrimary }} />
+            <textarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Describe your event in detail…" style={{ width: '100%', padding: '0.7rem 0.95rem', border: `1.5px solid ${colors.borderPrimary}`, borderRadius: 11, fontSize: '0.9rem', minHeight: 110, resize: 'vertical', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none' }} />
           </div>
 
           {/* Section: Tags */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <TagIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Hash Tags</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(242,12,143,0.10)', border: '1px solid rgba(242,12,143,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="bi bi-hash" style={{ fontSize: 14, color: '#F20C8F' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Discovery</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Hash tags</span>
+              </div>
             </div>
             <div>
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -2308,10 +2417,20 @@ const MyEventsPage = () => {
 
           {/* Section: Photographer Assignment */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <CameraIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Photographer Assignment</span>
-              <span style={{ fontSize: '0.8rem', color: colors.textSecondary, marginLeft: 'auto' }}>(Optional)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="bi bi-camera2" style={{ fontSize: 14, color: '#083A85' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Coverage</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Photographer assignment</span>
+              </div>
+              <span style={{
+                fontSize: '0.66rem', fontWeight: 700,
+                color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase',
+                padding: '3px 8px', borderRadius: 999,
+                background: colors.bgTertiary, border: `1px solid ${colors.borderPrimary}`,
+              }}>Optional</span>
             </div>
 
             {/* Three assignment option buttons */}
@@ -2547,16 +2666,68 @@ const MyEventsPage = () => {
 
           {/* Submit Error */}
           {submitError && (
-            <div style={{ padding: '0.75rem', backgroundColor: '#FEE2E2', color: '#DC2626', borderRadius: '0.5rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ flexShrink: 0 }}>⚠</span>
-              {submitError}
+            <div style={{
+              padding: '0.7rem 0.95rem',
+              background: actualTheme === 'dark' ? 'rgba(220,38,38,0.10)' : '#FEF2F2',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.32)' : '#FECACA'}`,
+              color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+              borderRadius: 10, fontSize: '0.85rem', marginBottom: '0.75rem',
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+            }}>
+              <i className="bi bi-exclamation-circle-fill" style={{ fontSize: 14, marginTop: 1, flexShrink: 0 }} />
+              <span>{submitError}</span>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
-            <button onClick={() => { resetCreateForm(); setShowCreateModal(false); }} style={{ padding: '0.75rem 1.25rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
-            <button onClick={handleCreateEvent} disabled={isSubmitting} style={{ padding: '0.75rem 1.25rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: isSubmitting ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isSubmitting ? 'Creating...' : 'Create Event'}</button>
+          <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
+            <button
+              onClick={() => { resetCreateForm(); setShowCreateModal(false); }}
+              className="ck-btn ck-btn-soft"
+              style={{ padding: '0.6rem 1.2rem', fontSize: '0.88rem' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateEvent}
+              disabled={isSubmitting || (!createBannerImageFile && !createBannerImagePreview)}
+              title={(!createBannerImageFile && !createBannerImagePreview) ? 'Upload a cover image to continue' : undefined}
+              style={{
+                padding: '0.65rem 1.3rem',
+                borderRadius: 11,
+                border: 'none',
+                background: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview))
+                  ? colors.bgTertiary
+                  : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                color: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? colors.textSecondary : '#fff',
+                fontSize: '0.9rem', fontWeight: 700,
+                cursor: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? 'not-allowed' : 'pointer',
+                opacity: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? 0.7 : 1,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                boxShadow: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? 'none' : '0 6px 18px rgba(242,12,143,0.28)',
+                letterSpacing: '-0.005em',
+                transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s',
+              }}
+              onMouseEnter={(e) => { if (!isSubmitting && (createBannerImageFile || createBannerImagePreview)) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                  Creating…
+                </>
+              ) : (!createBannerImageFile && !createBannerImagePreview) ? (
+                <>
+                  <i className="bi bi-image-fill" style={{ fontSize: 13 }} />
+                  Cover image required
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-calendar-plus-fill" style={{ fontSize: 13 }} />
+                  Create event
+                </>
+              )}
+            </button>
           </div>
         </div>
       </Modal>
@@ -2817,7 +2988,7 @@ const MyEventsPage = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#F8FAFC', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem', border: `2px dashed ${colors.borderPrimary}` }}>
                 <div>
                   <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.2rem' }}>No photographer assigned</div>
-                  <div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>Your event is published — you can now hire a photographer.</div>
+                  <div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>Your event is published. You can now hire a photographer.</div>
                 </div>
                 <Link
                   href="/user/client/photographers"
@@ -3036,167 +3207,180 @@ const MyEventsPage = () => {
       )}
 
       {/* Share Modal */}
-      <Modal isOpen={showShareModal} onClose={() => setShowShareModal(false)} title="Share Event Stream">
+      <Modal isOpen={showShareModal} onClose={() => setShowShareModal(false)} title="Share event stream">
         {shareEvent && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
-              <div style={{ position: 'relative', width: '60px', height: '40px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, backgroundColor: shareEvent.coverImage ? 'transparent' : '#0D1B2A' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              marginBottom: '1.25rem',
+              padding: '0.7rem 0.9rem',
+              background: actualTheme === 'dark'
+                ? 'linear-gradient(135deg, rgba(8,58,133,0.20) 0%, rgba(242,12,143,0.10) 100%)'
+                : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.03) 100%)',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(99,162,255,0.30)' : 'rgba(8,58,133,0.18)'}`,
+              borderRadius: 12,
+            }}>
+              <div style={{ position: 'relative', width: 56, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0, backgroundColor: shareEvent.coverImage ? 'transparent' : '#0D1B2A' }}>
                 <img src={shareEvent.coverImage || '/coverr.jpg'} alt={shareEvent.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: shareEvent.coverImage ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.9rem' }}>{shareEvent.title}</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{formatDate(shareEvent.date)}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, color: colors.textPrimary, fontSize: '0.95rem', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shareEvent.title}</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: colors.textSecondary, marginTop: 2 }}>
+                  <i className="bi bi-calendar-event" style={{ fontSize: 11 }} />
+                  {formatDate(shareEvent.date)}
+                </div>
               </div>
             </div>
             {/* Stream Invite Token */}
             {shareEvent.streamInviteToken && (
-              <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(139,92,246,0.1)' : '#F5F3FF', borderRadius: '0.5rem', border: `1px solid ${actualTheme === 'dark' ? 'rgba(139,92,246,0.3)' : '#DDD6FE'}` }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Viewer Invite Token</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input readOnly value={shareEvent.streamInviteToken} style={{ flex: 1, padding: '0.5rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', fontSize: '1rem', fontWeight: 700, letterSpacing: '0.1em', textAlign: 'center' as const, color: colors.textPrimary, backgroundColor: colors.bgCard }} />
-                  <button onClick={() => handleCopyLink(shareEvent.streamInviteToken!)} style={{ padding: '0.5rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>{copiedLink ? 'Copied!' : 'Copy'}</button>
+              <div style={{
+                position: 'relative', overflow: 'hidden',
+                marginBottom: '1.1rem',
+                padding: '0.8rem 0.95rem 0.8rem 1.05rem',
+                background: actualTheme === 'dark' ? 'rgba(124,58,237,0.12)' : '#F5F3FF',
+                borderRadius: 11,
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(124,58,237,0.32)' : '#DDD6FE'}`,
+              }}>
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                  background: 'linear-gradient(180deg, #7C3AED 0%, #F20C8F 130%)',
+                }} />
+                <label style={{ fontSize: '0.66rem', fontWeight: 700, color: actualTheme === 'dark' ? '#A78BFA' : '#6D28D9', display: 'block', marginBottom: '0.4rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Viewer invite token</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input readOnly value={shareEvent.streamInviteToken} style={{ flex: 1, padding: '0.55rem 0.75rem', border: `1.5px solid ${colors.borderPrimary}`, borderRadius: 10, fontSize: '1rem', fontWeight: 800, letterSpacing: '0.12em', textAlign: 'center' as const, color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' }} />
+                  <button onClick={() => handleCopyLink(shareEvent.streamInviteToken!)} style={{ padding: '0.55rem 0.85rem', border: 'none', borderRadius: 10, background: copiedLink ? 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: '#fff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', boxShadow: copiedLink ? '0 4px 12px rgba(16,185,129,0.30)' : '0 4px 12px rgba(124,58,237,0.30)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <i className={`bi ${copiedLink ? 'bi-check2' : 'bi-clipboard'}`} style={{ fontSize: 12 }} />
+                    {copiedLink ? 'Copied' : 'Copy'}
+                  </button>
                 </div>
-                <p style={{ fontSize: '0.72rem', color: colors.textTertiary, margin: '0.35rem 0 0 0' }}>Share this token with viewers so they can access the live stream on the event page.</p>
+                <p style={{ fontSize: '0.74rem', color: colors.textSecondary, margin: '0.45rem 0 0 0', lineHeight: 1.45 }}>Share this token with viewers so they can access the live stream on the event page.</p>
               </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.55rem' }}>Share via</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem', marginBottom: '1.25rem' }}>
               {[
                 { name: 'WhatsApp', icon: <WhatsAppIcon />, color: '#25D366', getUrl: (link: string, title: string) => `https://wa.me/?text=${encodeURIComponent(`Join ${title} event stream: ${link}`)}` },
                 { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
                 { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Join ${title} event stream`)}` },
                 { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(`Join ${title} Event Stream`)}&body=${encodeURIComponent(`You're invited to join the ${title} event stream: ${link}`)}` },
-                { name: 'Copy Link', icon: <LinkIcon />, color: colors.textSecondary, getUrl: () => '' },
-                { name: 'QR Code', icon: <QRCodeIcon />, color: colors.textPrimary, getUrl: () => '' }
-              ].map((option) => (
+                { name: 'Copy Link', icon: <LinkIcon />, color: '#083A85', getUrl: () => '' },
+                { name: 'QR Code', icon: <QRCodeIcon />, color: '#F20C8F', getUrl: () => '' }
+              ].map((option) => {
+                const isCopyActive = option.name === 'Copy Link' && copiedLink;
+                return (
                 <button
                   key={option.name}
                   onClick={() => {
                     if (option.name === 'Copy Link') {
                       handleCopyLink(shareEvent.shareLink);
                     } else if (option.name === 'QR Code') {
-                      alert('QR Code feature coming soon!');
+                      platformAlert('QR Code feature coming soon!');
                     } else {
                       const url = option.getUrl(shareEvent.shareLink, shareEvent.title);
                       window.open(url, '_blank', 'noopener,noreferrer');
                     }
                   }}
                   style={{
-                    padding: '1rem',
-                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    background: option.name === 'Copy Link' && copiedLink ? (actualTheme === 'dark' ? '#14532D' : '#ECFDF5') : colors.bgCard,
+                    padding: '0.85rem 0.6rem',
+                    border: isCopyActive ? '1.5px solid #10B981' : `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 12,
+                    background: isCopyActive
+                      ? (actualTheme === 'dark' ? 'rgba(16,185,129,0.14)' : '#ECFDF5')
+                      : colors.bgCard,
                     cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    fontWeight: '500',
-                    color: option.name === 'Copy Link' && copiedLink ? '#10B981' : colors.textPrimary,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.2s'
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    color: isCopyActive ? '#10B981' : colors.textPrimary,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                    transition: 'transform 0.15s, border-color 0.18s, background 0.18s, box-shadow 0.18s',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                   }}
                   onMouseEnter={(e) => {
-                    if (!(option.name === 'Copy Link' && copiedLink)) {
-                      e.currentTarget.style.borderColor = option.color;
-                      e.currentTarget.style.color = option.color;
-                    }
+                    if (isCopyActive) return;
+                    e.currentTarget.style.borderColor = option.color;
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = `0 6px 14px ${option.color}25`;
                   }}
                   onMouseLeave={(e) => {
-                    if (!(option.name === 'Copy Link' && copiedLink)) {
-                      e.currentTarget.style.borderColor = colors.borderPrimary;
-                      e.currentTarget.style.color = colors.textPrimary;
-                    }
+                    if (isCopyActive) return;
+                    e.currentTarget.style.borderColor = colors.borderPrimary;
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
                   }}
                 >
-                  <span>{option.icon}</span>
-                  <span>{option.name === 'Copy Link' && copiedLink ? 'Copied!' : option.name}</span>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    background: isCopyActive ? '#10B981' : `${option.color}18`,
+                    border: `1px solid ${isCopyActive ? '#10B981' : `${option.color}38`}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: isCopyActive ? '#fff' : option.color,
+                  }}>{option.icon}</div>
+                  <span>{isCopyActive ? 'Copied!' : option.name}</span>
                 </button>
-              ))}
+              );})}
             </div>
-            <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+            <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
               {shareEvent.inviteCode && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                <div style={{ marginBottom: '0.85rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
                     Host ID
                   </label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'stretch',
+                    border: `1.5px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    background: colors.bgTertiary,
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '0 0.7rem', color: colors.textSecondary, borderRight: `1px solid ${colors.borderPrimary}` }}>
+                      <i className="bi bi-person-badge" style={{ fontSize: 14 }} />
+                    </div>
                     <input
                       type="text"
                       value={shareEvent.inviteCode}
                       readOnly
-                      style={{
-                        flex: 1,
-                        padding: '0.625rem 0.875rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.375rem',
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        letterSpacing: '0.1em',
-                        color: colors.textPrimary,
-                        backgroundColor: colors.bgTertiary
-                      }}
+                      onClick={(e) => (e.currentTarget as HTMLInputElement).select()}
+                      style={{ flex: 1, padding: '0.6rem 0.85rem', border: 'none', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.12em', color: colors.textPrimary, backgroundColor: 'transparent', outline: 'none', minWidth: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' }}
                     />
                     <button
                       onClick={() => handleCopyLink(shareEvent.inviteCode || '')}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.375rem',
-                        padding: '0.625rem 1rem',
-                        border: copiedLink ? '2px solid #059669' : '2px solid #062a63',
-                        borderRadius: '0.375rem',
-                        background: copiedLink ? '#10B981' : '#083A85',
-                        color: 'white',
-                        fontSize: '0.9rem',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s'
-                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 1rem', border: 'none', borderLeft: `1px solid ${colors.borderPrimary}`, background: copiedLink ? 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)' : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)', color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '-0.005em' }}
                     >
-                      <CopyIcon />
-                      {copiedLink ? 'Copied!' : 'Copy'}
+                      <i className={`bi ${copiedLink ? 'bi-check2' : 'bi-clipboard'}`} style={{ fontSize: 13 }} />
+                      {copiedLink ? 'Copied' : 'Copy'}
                     </button>
                   </div>
                 </div>
               )}
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Event Stream Link
+              <label style={{ display: 'block', fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
+                Event stream link
               </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'stretch',
+                border: `1.5px solid ${colors.borderPrimary}`,
+                borderRadius: 11,
+                background: colors.bgTertiary,
+                overflow: 'hidden',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0 0.7rem', color: colors.textSecondary, borderRight: `1px solid ${colors.borderPrimary}` }}>
+                  <i className="bi bi-link-45deg" style={{ fontSize: 16 }} />
+                </div>
                 <input
                   type="text"
                   value={shareEvent.shareLink}
                   readOnly
-                  style={{
-                    flex: 1,
-                    padding: '0.625rem 0.875rem',
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.375rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    color: colors.textPrimary,
-                    backgroundColor: colors.bgTertiary
-                  }}
+                  onClick={(e) => (e.currentTarget as HTMLInputElement).select()}
+                  style={{ flex: 1, padding: '0.65rem 0.85rem', border: 'none', fontSize: '0.84rem', backgroundColor: 'transparent', color: colors.textPrimary, outline: 'none', minWidth: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' }}
                 />
                 <button
                   onClick={() => handleCopyLink(shareEvent.shareLink)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.375rem',
-                    padding: '0.625rem 1rem',
-                    border: copiedLink ? '2px solid #059669' : '2px solid #062a63',
-                    borderRadius: '0.375rem',
-                    background: copiedLink ? '#10B981' : '#083A85',
-                    color: 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 1rem', border: 'none', borderLeft: `1px solid ${colors.borderPrimary}`, background: copiedLink ? 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)' : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)', color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', transition: 'filter 0.15s', whiteSpace: 'nowrap', letterSpacing: '-0.005em' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.05)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
                 >
-                  <CopyIcon />
-                  {copiedLink ? 'Copied!' : 'Copy'}
+                  <i className={`bi ${copiedLink ? 'bi-check2' : 'bi-clipboard'}`} style={{ fontSize: 13 }} />
+                  {copiedLink ? 'Copied' : 'Copy'}
                 </button>
               </div>
               <div style={{ marginBottom: '4rem' }}></div>
@@ -3208,307 +3392,108 @@ const MyEventsPage = () => {
       {/* Delete Confirmation Modal */}
       {/* Publish Confirmation Modal */}
       {publishConfirmEvent && (
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1100, padding: '1rem'
+        <EventConfirmModal
+          tone="success"
+          icon="bi-broadcast"
+          eyebrow="Go live"
+          title="Publish event"
+          highlight={publishConfirmEvent.title}
+          intro={<>Are you sure you want to publish <strong style={{ color: colors.textPrimary }}>&ldquo;{publishConfirmEvent.title}&rdquo;</strong>?</>}
+          detail="This event will become visible to all users on the public platform. Photographers will be able to see and accept bookings for it."
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setPublishConfirmEvent(null)}
+          primary={{
+            label: 'Publish event',
+            icon: 'bi-broadcast',
+            onClick: () => handlePublishEvent(publishConfirmEvent.id),
           }}
-          onClick={() => setPublishConfirmEvent(null)}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard, borderRadius: '1rem',
-              padding: '1.5rem', width: '400px', maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                backgroundColor: '#e6f9eb',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <i className="bi bi-globe" style={{ fontSize: '2rem', color: '#05a129' }}></i>
-              </div>
-            </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
-              Publish Event
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
-              Are you sure you want to publish <strong style={{ color: colors.textPrimary }}>&quot;{publishConfirmEvent.title}&quot;</strong>?
-            </p>
-            <p style={{ fontSize: '0.85rem', color: '#05a129', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
-              This event will become visible to all users on the public platform. Photographers will be able to see and accept bookings for it.
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
-              <button
-                onClick={() => setPublishConfirmEvent(null)}
-                style={{
-                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
-                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
-                }}
-              >Cancel</button>
-              <button
-                onClick={() => handlePublishEvent(publishConfirmEvent.id)}
-                style={{
-                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                  border: '2px solid #05a129', backgroundColor: '#05a129',
-                  color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-                }}
-              >
-                <i className="bi bi-globe" style={{ fontSize: '1rem' }}></i>
-                Publish Event
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* No Photographer Warning Modal */}
       {noPhotographerEvent && (
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1100, padding: '1rem'
+        <EventConfirmModal
+          tone="warning"
+          icon="bi-camera"
+          eyebrow="Action needed"
+          title="Photographer required"
+          highlight={noPhotographerEvent.title}
+          intro={<>You cannot publish <strong style={{ color: colors.textPrimary }}>&ldquo;{noPhotographerEvent.title}&rdquo;</strong> because no photographer has been assigned to it.</>}
+          detail="Please edit the event and assign a photographer before publishing."
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setNoPhotographerEvent(null)}
+          closeLabel="Close"
+          primary={{
+            label: 'Assign photographer',
+            icon: 'bi-camera-fill',
+            onClick: () => { const evt = noPhotographerEvent; setNoPhotographerEvent(null); openEditModal(evt); },
           }}
-          onClick={() => setNoPhotographerEvent(null)}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard, borderRadius: '1rem',
-              padding: '1.5rem', width: '420px', maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                backgroundColor: '#fef3c7',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <i className="bi bi-exclamation-triangle" style={{ fontSize: '2rem', color: '#d97706' }}></i>
-              </div>
-            </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
-              Photographer Required
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
-              You cannot publish <strong style={{ color: colors.textPrimary }}>&quot;{noPhotographerEvent.title}&quot;</strong> because no photographer has been assigned to it.
-            </p>
-            <p style={{ fontSize: '0.85rem', color: '#d97706', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
-              Please edit the event and assign a photographer before publishing.
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => setNoPhotographerEvent(null)}
-                style={{
-                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
-                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
-                }}
-              >Close</button>
-              <button
-                onClick={() => { const evt = noPhotographerEvent; setNoPhotographerEvent(null); openEditModal(evt); }}
-                style={{
-                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                  border: '2px solid #d97706', backgroundColor: '#d97706',
-                  color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-                }}
-              >
-                <i className="bi bi-camera" style={{ fontSize: '1rem' }}></i>
-                Assign Photographer
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* No Event Photo Warning Modal */}
       {noPhotoEvent && (
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1100, padding: '1rem'
+        <EventConfirmModal
+          tone="warning"
+          icon="bi-camera-fill"
+          eyebrow="Action needed"
+          title="Event photo required"
+          highlight={noPhotoEvent.title}
+          intro={<>You cannot publish <strong style={{ color: colors.textPrimary }}>&ldquo;{noPhotoEvent.title}&rdquo;</strong> without a banner image.</>}
+          detail="Please edit the event and upload a banner photo before publishing. This image will be the first thing guests see on the public platform."
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setNoPhotoEvent(null)}
+          closeLabel="Close"
+          primary={{
+            label: 'Edit event',
+            icon: 'bi-pencil-square',
+            onClick: () => { const evt = noPhotoEvent; setNoPhotoEvent(null); openEditModal(evt); },
           }}
-          onClick={() => setNoPhotoEvent(null)}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard, borderRadius: '1rem',
-              padding: '1.5rem', width: '400px', maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                backgroundColor: '#fef3c7',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#d97706" strokeWidth="2"/></svg>
-              </div>
-            </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
-              Event Photo Required
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
-              You cannot publish <strong style={{ color: colors.textPrimary }}>&quot;{noPhotoEvent.title}&quot;</strong> without a banner image.
-            </p>
-            <p style={{ fontSize: '0.85rem', color: '#d97706', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
-              Please edit the event and upload a banner photo before publishing. This image will be the first thing guests see on the public platform.
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => setNoPhotoEvent(null)}
-                style={{
-                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
-                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
-                }}
-              >Close</button>
-              <button
-                onClick={() => { const evt = noPhotoEvent; setNoPhotoEvent(null); openEditModal(evt); }}
-                style={{
-                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                  border: '2px solid #d97706', backgroundColor: '#d97706',
-                  color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                Edit Event
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* Pending Booking Warning Modal */}
       {pendingBookingEvent && (
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1100, padding: '1rem'
-          }}
-          onClick={() => setPendingBookingEvent(null)}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard, borderRadius: '1rem',
-              padding: '1.5rem', width: '400px', maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                backgroundColor: '#fef3c7',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
-              Awaiting Photographer Confirmation
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
-              You cannot publish <strong style={{ color: colors.textPrimary }}>&quot;{pendingBookingEvent.title}&quot;</strong> because the assigned photographer has not yet accepted the booking.
-            </p>
-            <p style={{ fontSize: '0.85rem', color: '#d97706', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
-              {pendingBookingEvent.bookingStatus?.toUpperCase() === 'REJECTED'
-                ? 'The photographer has rejected this booking. Please assign a different photographer before publishing.'
-                : 'Please wait for the photographer to accept, or assign a different photographer.'}
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => setPendingBookingEvent(null)}
-                style={{
-                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
-                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
-                }}
-              >Close</button>
-            </div>
-          </div>
-        </div>
+        <EventConfirmModal
+          tone="warning"
+          icon="bi-hourglass-split"
+          eyebrow="Action needed"
+          title="Awaiting photographer confirmation"
+          intro={<>You cannot publish <strong style={{ color: colors.textPrimary }}>&ldquo;{pendingBookingEvent.title}&rdquo;</strong> because the assigned photographer has not yet accepted the booking.</>}
+          detail={pendingBookingEvent.bookingStatus?.toUpperCase() === 'REJECTED'
+            ? 'The photographer has rejected this booking. Please assign a different photographer before publishing.'
+            : 'Please wait for the photographer to accept, or assign a different photographer.'}
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setPendingBookingEvent(null)}
+          closeLabel="Close"
+        />
       )}
 
       {/* Unpublish Confirmation Modal */}
       {unpublishConfirmEvent && (
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1100, padding: '1rem'
+        <EventConfirmModal
+          tone="warning"
+          icon="bi-eye-slash-fill"
+          eyebrow="Visibility"
+          title="Unpublish event"
+          highlight={unpublishConfirmEvent.title}
+          intro={<>Are you sure you want to unpublish <strong style={{ color: colors.textPrimary }}>&ldquo;{unpublishConfirmEvent.title}&rdquo;</strong>?</>}
+          detail="This event will be removed from the public platform and will no longer be visible to users or photographers."
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setUnpublishConfirmEvent(null)}
+          closeLabel="Keep published"
+          primary={{
+            label: 'Unpublish',
+            icon: 'bi-eye-slash-fill',
+            tone: 'warning',
+            onClick: () => handleUnpublishEvent(unpublishConfirmEvent.id),
           }}
-          onClick={() => setUnpublishConfirmEvent(null)}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard, borderRadius: '1rem',
-              padding: '1.5rem', width: '400px', maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                backgroundColor: '#fdf3d7',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <i className="bi bi-eye-slash-fill" style={{ fontSize: '2rem', color: '#d19d0d' }}></i>
-              </div>
-            </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
-              Unpublish Event
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
-              Are you sure you want to unpublish <strong style={{ color: colors.textPrimary }}>&quot;{unpublishConfirmEvent.title}&quot;</strong>?
-            </p>
-            <p style={{ fontSize: '0.85rem', color: '#d19d0d', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
-              This event will be removed from the public platform and will no longer be visible to users or photographers.
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
-              <button
-                onClick={() => setUnpublishConfirmEvent(null)}
-                style={{
-                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
-                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
-                }}
-              >Keep Published</button>
-              <button
-                onClick={() => handleUnpublishEvent(unpublishConfirmEvent.id)}
-                style={{
-                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                  border: '2px solid #d19d0d', backgroundColor: '#d19d0d',
-                  color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-                }}
-              >
-                <i className="bi bi-eye-slash" style={{ fontSize: '1rem' }}></i>
-                Unpublish
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/*
@@ -3517,242 +3502,65 @@ const MyEventsPage = () => {
         unpublish from here — the photographer has to end the stream first.
       */}
       {ongoingUnpublishBlock && (
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1100, padding: '1rem'
-          }}
-          onClick={() => setOngoingUnpublishBlock(null)}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard, borderRadius: '1rem',
-              padding: '1.5rem', width: '440px', maxWidth: '92%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                backgroundColor: '#fee2e2',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <i className="bi bi-broadcast" style={{ fontSize: '2rem', color: '#dc2626' }}></i>
-              </div>
-            </div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
-              Event is currently live
-            </h2>
-            <p style={{ fontSize: '0.92rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.55' }}>
-              <strong style={{ color: colors.textPrimary }}>&quot;{ongoingUnpublishBlock.title}&quot;</strong> can&apos;t be unpublished while the stream is still running. Viewers are watching right now.
-            </p>
-            <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: 0, marginBottom: '1.5rem', textAlign: 'center', lineHeight: '1.55' }}>
-              {ongoingUnpublishBlock.photographerName
-                ? <>Please contact the assigned photographer, <strong style={{ color: colors.textPrimary }}>{ongoingUnpublishBlock.photographerName}</strong>, to end the event stream. Once the stream ends you&apos;ll be able to unpublish.</>
-                : <>Please contact the assigned photographer to end the event stream. Once the stream ends you&apos;ll be able to unpublish.</>}
-            </p>
-            <button
-              onClick={() => setOngoingUnpublishBlock(null)}
-              style={{
-                width: '100%', padding: '0.75rem 1rem', borderRadius: '0.5rem',
-                border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
-                color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
-              }}
-            >Got it</button>
-          </div>
-        </div>
+        <EventConfirmModal
+          tone="danger"
+          icon="bi-broadcast"
+          eyebrow="Stream in progress"
+          title="Event is currently live"
+          intro={<><strong style={{ color: colors.textPrimary }}>&ldquo;{ongoingUnpublishBlock.title}&rdquo;</strong> can&apos;t be unpublished while the stream is still running. Viewers are watching right now.</>}
+          detail={ongoingUnpublishBlock.photographerName
+            ? `Please contact the assigned photographer, ${ongoingUnpublishBlock.photographerName}, to end the event stream. Once the stream ends you'll be able to unpublish.`
+            : "Please contact the assigned photographer to end the event stream. Once the stream ends you'll be able to unpublish."}
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setOngoingUnpublishBlock(null)}
+          closeLabel="Got it"
+          fullWidthClose
+        />
       )}
 
       {showDeleteModal && deleteEvent && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1100,
-            padding: '1rem'
+        <EventConfirmModal
+          tone="danger"
+          icon="bi-trash3-fill"
+          eyebrow="Permanent action"
+          title="Delete event"
+          highlight={deleteEvent.title}
+          intro={<>Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&ldquo;{deleteEvent.title}&rdquo;</strong>?</>}
+          detail="This action cannot be undone. All guests will be notified and any booked photographer will be released."
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setShowDeleteModal(false)}
+          closeLabel="Keep event"
+          primary={{
+            label: 'Delete event',
+            icon: 'bi-trash3-fill',
+            tone: 'danger',
+            onClick: handleDeleteEvent,
           }}
-          onClick={() => setShowDeleteModal(false)}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '1rem',
-              padding: '1.5rem',
-              width: '400px',
-              maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Warning Icon */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              marginBottom: '1rem'
-            }}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                backgroundColor: '#FEE2E2',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '2rem', color: '#DC2626' }}></i>
-              </div>
-            </div>
-
-            {/* Modal Header */}
-            <h2 style={{
-              fontSize: '1.25rem',
-              fontWeight: '700',
-              color: colors.textPrimary,
-              margin: 0,
-              marginBottom: '0.75rem',
-              textAlign: 'center'
-            }}>Delete Event</h2>
-
-            {/* Modal Content */}
-            <p style={{
-              fontSize: '0.95rem',
-              color: colors.textSecondary,
-              margin: 0,
-              marginBottom: '0.5rem',
-              textAlign: 'center',
-              lineHeight: '1.5'
-            }}>
-              Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&quot;{deleteEvent.title}&quot;</strong>?
-            </p>
-            <p style={{
-              fontSize: '0.85rem',
-              color: '#DC2626',
-              margin: 0,
-              marginBottom: '1.5rem',
-              textAlign: 'center',
-              fontWeight: '500'
-            }}>
-              This action cannot be undone. All guests will be notified and any booked photographer will be released.
-            </p>
-
-            {/* Action Buttons */}
-            <div style={{
-              display: 'flex',
-              gap: '0.75rem',
-              marginBottom: '4rem'
-            }}>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary,
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Keep Event
-              </button>
-              <button
-                onClick={handleDeleteEvent}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid #DC2626',
-                  backgroundColor: '#DC2626',
-                  color: 'white',
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <i className="bi bi-trash" style={{ fontSize: '1rem' }}></i>
-                Delete Event
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* Pause Event Modal */}
       {showPauseModal && pauseEvent && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1100,
-            padding: '1rem'
+        <EventConfirmModal
+          tone="warning"
+          icon="bi-pause-circle-fill"
+          eyebrow="Pause event"
+          title="Pause Event"
+          intro={<>Are you sure you want to pause <strong style={{ color: colors.textPrimary }}>&quot;{pauseEvent.title}&quot;</strong>?</>}
+          detail="The event will be put on hold. The photographer will be notified. You can resume it at any time."
+          colors={{ bgCard: colors.bgCard, borderPrimary: colors.borderPrimary, textPrimary: colors.textPrimary, textSecondary: colors.textSecondary }}
+          actualTheme={actualTheme}
+          onClose={() => setShowPauseModal(false)}
+          closeLabel="Cancel"
+          primary={{
+            label: 'Pause Event',
+            icon: 'bi-pause-fill',
+            onClick: handlePauseEvent,
+            tone: 'warning',
           }}
-          onClick={() => setShowPauseModal(false)}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '1rem',
-              padding: '1.5rem',
-              width: '400px',
-              maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="bi bi-pause-circle-fill" style={{ fontSize: '2rem', color: '#F59E0B' }}></i>
-              </div>
-            </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>Pause Event</h2>
-            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
-              Are you sure you want to pause <strong style={{ color: colors.textPrimary }}>&quot;{pauseEvent.title}&quot;</strong>?
-            </p>
-            <p style={{ fontSize: '0.85rem', color: '#F59E0B', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
-              The event will be put on hold. The photographer will be notified. You can resume it at any time.
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
-              <button
-                onClick={() => setShowPauseModal(false)}
-                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePauseEvent}
-                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '2px solid #F59E0B', backgroundColor: '#F59E0B', color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-              >
-                <i className="bi bi-pause-fill" style={{ fontSize: '1rem' }}></i>
-                Pause Event
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* Edit Event Modal */}
@@ -3761,34 +3569,71 @@ const MyEventsPage = () => {
           <div>
             {/* Section: Event Image */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <CameraIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Event Image</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <i className="bi bi-camera-fill" style={{ fontSize: 13, color: '#083A85' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Visuals</div>
+                  <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Event image</span>
+                </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.375rem' }}>Banner Image (1200x800)</label>
-                <div style={{
-                  border: `2px dashed ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  height: '140px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: colors.bgTertiary,
-                  cursor: 'pointer',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Banner image (1200×800)</label>
+                <div
+                  onClick={(e) => { if (!editBannerImagePreview) { (e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement | null)?.click(); } }}
+                  style={{
+                    border: `1.5px dashed ${actualTheme === 'dark' ? 'rgba(99,162,255,0.45)' : 'rgba(8,58,133,0.32)'}`,
+                    borderRadius: 12,
+                    height: 170,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: editBannerImagePreview
+                      ? 'transparent'
+                      : (actualTheme === 'dark'
+                          ? 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.06) 100%)'
+                          : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.03) 100%)'),
+                    cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                    transition: 'border-color 0.18s, background 0.18s',
+                  }}
+                >
                   {editBannerImagePreview ? (
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                       <Image src={editBannerImagePreview} alt="Banner" fill style={{ objectFit: 'cover' }} />
-                      <button onClick={() => { setEditBannerImage(null); setEditBannerImagePreview(null); }} style={{ position: 'absolute', top: '8px', right: '8px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>×</button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditBannerImage(null); setEditBannerImagePreview(null); }}
+                        title="Remove image"
+                        style={{
+                          position: 'absolute', top: 10, right: 10,
+                          background: 'rgba(0,0,0,0.65)', color: '#fff',
+                          border: '1px solid rgba(255,255,255,0.35)',
+                          borderRadius: 9, width: 30, height: 30, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          backdropFilter: 'blur(6px)',
+                        }}
+                      >
+                        <i className="bi bi-trash3" style={{ fontSize: 13 }} />
+                      </button>
                     </div>
                   ) : (
-                    <label style={{ cursor: 'pointer', textAlign: 'center', padding: '1rem' }}>
+                    <label style={{ cursor: 'pointer', textAlign: 'center', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
                       <input type="file" accept="image/*" onChange={handleEditBannerImageChange} style={{ display: 'none' }} />
-                      <ImageIcon />
-                      <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#9CA3AF' }}>Click to upload banner image</p>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 12,
+                        background: '#fff',
+                        border: '1px solid rgba(8,58,133,0.20)',
+                        boxShadow: '0 4px 10px rgba(8,58,133,0.10)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <i className="bi bi-cloud-arrow-up-fill" style={{ fontSize: 20, color: '#083A85' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>
+                          Upload banner image
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 2 }}>
+                          Click to choose · 1200×800 · PNG or JPG
+                        </div>
+                      </div>
                     </label>
                   )}
                 </div>
@@ -3797,9 +3642,14 @@ const MyEventsPage = () => {
 
             {/* Section: Basic Information */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <EditIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Basic Information</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(242,12,143,0.10)', border: '1px solid rgba(242,12,143,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <i className="bi bi-pencil-fill" style={{ fontSize: 13, color: '#F20C8F' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Overview</div>
+                  <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Basic information</span>
+                </div>
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
@@ -3818,9 +3668,14 @@ const MyEventsPage = () => {
 
             {/* Section: Date & Time */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <CalendarIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Date & Time</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: '#F59E0B' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Schedule</div>
+                  <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Date &amp; time</span>
+                </div>
               </div>
               <div className="mobile-modal-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <div>

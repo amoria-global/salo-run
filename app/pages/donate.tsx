@@ -216,21 +216,77 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', backgroundColor: colors.bgPrimary }}>
     <div style={{ padding: 'clamp(16px, 3vw, 32px)', maxWidth: '720px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-        <div style={{
-          width: '56px', height: '56px', borderRadius: '50%',
-          background: `linear-gradient(135deg, ${accent} 0%, #f472b6 100%)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 14px', boxShadow: `0 4px 14px ${accent}40`,
-        }}>
-          <i className="bi bi-heart-fill" style={{ fontSize: '24px', color: '#fff' }} />
+      <div
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: 20,
+          padding: 'clamp(22px, 3vw, 32px)',
+          marginBottom: 24,
+          background: 'linear-gradient(135deg, #083A85 0%, #0D52BD 55%, #F20C8F 130%)',
+          color: '#fff',
+          boxShadow: '0 18px 44px rgba(8, 58, 133, 0.28)',
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            right: -60,
+            top: -40,
+            width: 220,
+            height: 220,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(242,12,143,0.45) 0%, rgba(242,12,143,0) 65%)',
+            filter: 'blur(2px)',
+          }}
+        />
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              background: 'rgba(255,255,255,0.16)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.28)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <i className="bi bi-heart-fill" style={{ fontSize: 22, color: '#fff' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: 'rgba(255,255,255,0.16)',
+                border: '1px solid rgba(255,255,255,0.24)',
+                backdropFilter: 'blur(6px)',
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: '#fff',
+                marginBottom: 8,
+              }}
+            >
+              GIVE BACK
+            </div>
+            <h1 style={{ margin: 0, fontSize: 'clamp(1.6rem, 2.5vw, 2rem)', fontWeight: 800, letterSpacing: '-0.02em', color: '#fff' }}>
+              Support a cause
+            </h1>
+            <p style={{ margin: '6px 0 0', fontSize: '0.95rem', color: 'rgba(255,255,255,0.88)', maxWidth: 520, lineHeight: 1.5 }}>
+              Your donation helps support vulnerable families, educate children, and empower those in need.
+            </p>
+          </div>
         </div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: colors.textPrimary, marginBottom: '6px' }}>
-          Support a Cause
-        </h1>
-        <p style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: 1.5, maxWidth: '480px', margin: '0 auto' }}>
-          Your donation helps support vulnerable families, educate children, and empower those in need.
-        </p>
       </div>
 
       {/* ═══════ FORM STEP ═══════ */}

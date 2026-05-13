@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
+import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -323,11 +324,11 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       const res = await dashboardAuthFetch(endpoint, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to delete notification.');
+        platformAlert(data.message || 'Failed to delete notification.');
         if (backup) setNotifications(prev => [...prev, backup]);
       }
     } catch {
-      alert('Failed to delete notification.');
+      platformAlert('Failed to delete notification.');
       if (backup) setNotifications(prev => [...prev, backup]);
     }
   };
@@ -343,11 +344,11 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       const res = await dashboardAuthFetch(endpoint, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to clear read notifications.');
+        platformAlert(data.message || 'Failed to clear read notifications.');
         setNotifications(prev => [...prev, ...backup]);
       }
     } catch {
-      alert('Failed to clear read notifications.');
+      platformAlert('Failed to clear read notifications.');
       setNotifications(prev => [...prev, ...backup]);
     }
   };
@@ -362,11 +363,11 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/all`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to delete all notifications.');
+        platformAlert(data.message || 'Failed to delete all notifications.');
         setNotifications(backup);
       }
     } catch {
-      alert('Failed to delete all notifications.');
+      platformAlert('Failed to delete all notifications.');
       setNotifications(backup);
     }
   };

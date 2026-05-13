@@ -960,77 +960,101 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
           display: 'flex',
           alignItems: isMobile ? 'flex-end' : 'center',
           justifyContent: 'center',
-          zIndex: 1100,
+          zIndex: 9999,
+          padding: 16,
+          animation: 'ck-fade-in 180ms ease both',
         }}
       >
         <div
           className="profile-modal-content"
           onClick={e => e.stopPropagation()}
           style={{
-            backgroundColor: colors.bgCard,
-            borderRadius: isMobile ? '1rem 1rem 0 0' : '1rem',
-            width: '580px',
-            maxWidth: '95%',
-            maxHeight: isMobile ? '95vh' : '85vh',
+            backgroundColor: 'var(--ck-surface)',
+            color: 'var(--ck-text)',
+            borderRadius: isMobile ? '20px 20px 0 0' : 20,
+            width: 580,
+            maxWidth: '100%',
+            maxHeight: isMobile ? '95vh' : 'calc(100vh - 32px)',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.18)',
+            animation: 'ck-modal-pop 320ms cubic-bezier(0.32, 0.72, 0, 1) both',
           }}
         >
           {/* Header */}
           <div style={{
-            padding: isMobile ? '1rem 1rem 0.75rem' : '1.25rem 1.5rem 1rem',
-            borderBottom: `2px solid ${colors.borderPrimary}`,
+            padding: '18px 22px 16px',
+            borderBottom: '1px solid var(--ck-stroke)',
             flexShrink: 0,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #083A85 0%, #0d5ab8 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: 36, height: 36, borderRadius: 10,
+                background: 'rgba(8,58,133,0.10)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
               }}>
-                <i className="bi bi-person-badge" style={{ fontSize: '16px', color: '#fff' }}></i>
+                <i className="bi bi-person-badge" style={{ fontSize: 16, color: 'var(--ck-blue)' }}></i>
               </div>
-              <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 700, color: colors.textPrimary, margin: 0 }}>
-                Complete Your Profile
-              </h3>
+              <div style={{ minWidth: 0 }}>
+                <div style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#F20C8F',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}>Onboarding</div>
+                <h3 style={{
+                  fontSize: '1.15rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.01em',
+                  color: 'var(--ck-text)',
+                  margin: 0,
+                }}>Complete your profile</h3>
+              </div>
             </div>
-            <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.375rem 0 0 0' }}>
-              {currentStepData?.label} — Fill in the missing sections to get discovered by clients
+            <p style={{
+              fontSize: '0.85rem',
+              color: 'var(--ck-text-soft)',
+              margin: '4px 0 0',
+              lineHeight: 1.4,
+            }}>
+              {currentStepData?.label}. Fill in the missing sections to get discovered by clients.
             </p>
 
             {/* Progress Bar */}
-            <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: 4, marginTop: 14 }}>
               {activeSteps.map((_, i) => (
                 <div
                   key={i}
                   style={{
-                    flex: 1,
-                    height: '4px',
-                    borderRadius: '2px',
-                    backgroundColor: i <= currentStepIndex
-                      ? '#083A85'
-                      : (actualTheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#e5e7eb'),
-                    transition: 'background-color 0.3s',
+                    flex: 1, height: 4, borderRadius: 9999,
+                    background: i <= currentStepIndex
+                      ? 'linear-gradient(90deg, #083A85, #F20C8F)'
+                      : 'var(--ck-stroke)',
+                    transition: 'background 320ms var(--ck-ease)',
                   }}
                 />
               ))}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.375rem' }}>
-              <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 600,
+                color: 'var(--ck-text-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>
                 Step {currentStepIndex + 1} of {totalSteps}
               </span>
-              <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 700,
+                color: 'var(--ck-blue)',
+              }}>
                 {Math.round(((currentStepIndex + 1) / totalSteps) * 100)}%
               </span>
             </div>
