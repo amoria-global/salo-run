@@ -523,7 +523,30 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       // carries auth. If it succeeds, we're authenticated. If it 401s, we're
       // not, and we'll show the logged-out UI (middleware will redirect to
       // the landing login on any /user/* navigation).
-      const { user: userProfile, reason } = await fetchUserProfile(null);
+      //
+      // Hard 15s ceiling. fetchUserProfile already catches errors and times
+      // out the upstream fetch in the proxy at 30s, but in local dev the
+      // proxy itself can stall (e.g. DNS hiccup to backend.connekyt.com from
+      // the Next.js Node process, or a fresh Turbopack worker still warming
+      // up) and that bubbles up as a Promise that never settles. Without a
+      // ceiling the Suspense fallback sits at "Loading..." forever; with
+      // one, we fall back to the cached user (if any) and let the page
+      // render so the user can at least retry.
+      const PROFILE_INIT_TIMEOUT_MS = 15_000;
+      let timedOut = false;
+      const timeoutPromise = new Promise<{ user: null; reason: 'network_error' }>((resolve) => {
+        setTimeout(() => {
+          timedOut = true;
+          resolve({ user: null, reason: 'network_error' });
+        }, PROFILE_INIT_TIMEOUT_MS);
+      });
+      const { user: userProfile, reason } = await Promise.race([
+        fetchUserProfile(null),
+        timeoutPromise,
+      ]);
+      if (timedOut) {
+        console.warn(`[Dashboard Auth] Profile fetch did not settle within ${PROFILE_INIT_TIMEOUT_MS}ms — falling back to cached state. Check the network tab for the in-flight request to ${getApiUrl()}/api/remote/<role>/profile-summary.`);
+      }
 
       if (userProfile) {
         setUser(userProfile);
@@ -534,9 +557,10 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           }
         }
       } else if (reason === 'server_error' || reason === 'network_error') {
-        // Backend is down — fall back to cached profile so the UI renders.
-        // The user is still "authenticated" per the cookie; we just can't
-        // talk to the backend right now. Real 401s clear state below.
+        // Backend is down (or the fetch hit the local-dev timeout above) —
+        // fall back to cached profile so the UI renders. The user is still
+        // "authenticated" per the cookie; we just can't talk to the backend
+        // right now. Real 401s clear state below.
         if (storedUserStr) {
           try { setUser(JSON.parse(storedUserStr)); } catch { /* ignore */ }
         }
