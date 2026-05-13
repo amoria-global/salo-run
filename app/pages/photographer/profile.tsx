@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
+import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import CountrySelect, { eastAfricanCountries } from '../../components/CountrySelect';
 import ApprovalPendingModal from '../../components/ApprovalPendingModal';
@@ -178,7 +180,12 @@ interface PhotographerProfilePageProps {
 const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProfilePageProps) => {
   const { colors, actualTheme } = useTheme();
   const { token, user, refreshUserProfile } = useDashboardAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience' | 'packages'>('overview');
+  // Guards the bounce-arrival toast so it only fires once per redirect, even
+  // if React re-renders or the user navigates away and back.
+  const bounceHandledRef = useRef(false);
   const [savingSkill, setSavingSkill] = useState<string | null>(null);
   const [savingEquipment, setSavingEquipment] = useState<string | null>(null);
   const [savingAvailability, setSavingAvailability] = useState<string | null>(null);
@@ -1064,6 +1071,84 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
     return Math.round(totalPercentage);
   }, [basicInfo, overviewData, portfolioData, experienceData, profileImage]);
+
+  /**
+   * The first section that still has a gap, in the order the banner lists
+   * them. Drives both the bounce-arrival auto-jump and the per-row "Jump
+   * there" buttons on the missing-fields banner. Returns null when nothing
+   * is missing.
+   */
+  const firstMissingTarget = useMemo<
+    null | { section: 'basic' | 'overview' | 'portfolio' | 'experience'; label: string }
+  >(() => {
+    if (!basicInfo.fullName || !basicInfo.phoneNumber || !basicInfo.address || !profileImage) {
+      return { section: 'basic', label: 'basic info' };
+    }
+    if (overviewData.specialties.length < 2) {
+      return { section: 'overview', label: 'specialties' };
+    }
+    if (portfolioData.projects.length < 1) {
+      return { section: 'portfolio', label: 'portfolio' };
+    }
+    const hasExp = experienceData.experiences.length >= 1;
+    const hasLongDesc = experienceData.experiences.some(e => e.description.length > 50);
+    if (!hasExp || !hasLongDesc) {
+      return { section: 'experience', label: 'work experience' };
+    }
+    return null;
+  }, [basicInfo, overviewData, portfolioData, experienceData, profileImage]);
+
+  /**
+   * Maps a banner section to the user action that surfaces it. Basic info is
+   * always-visible at the top of the page (not in a tab), so jumping there
+   * means scrolling to the top; the others are tabs.
+   */
+  const jumpToSection = useCallback((section: 'basic' | 'overview' | 'portfolio' | 'experience') => {
+    if (section !== 'basic') {
+      setActiveTab(section);
+    }
+    if (typeof window !== 'undefined') {
+      const target = document.getElementById(
+        section === 'basic' ? 'profile-basic-info-section' : 'profile-tabs-section'
+      );
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }, []);
+
+  /**
+   * Bounce-arrival handler. When PhotographerLayout redirects an incomplete
+   * photographer here, it appends ?completionRequired=1. We surface a
+   * one-shot toast that explains why they landed here, auto-switch to the
+   * first incomplete tab so they don't have to hunt for it, and strip the
+   * query param so a refresh doesn't re-fire the toast.
+   */
+  useEffect(() => {
+    if (bounceHandledRef.current) return;
+    if (!searchParams) return;
+    if (searchParams.get('completionRequired') !== '1') return;
+    // Don't fire until the form data has actually loaded from the API/cache;
+    // firstMissingTarget would return 'basic' for an empty initial state.
+    if (!user) return;
+
+    bounceHandledRef.current = true;
+
+    const target = firstMissingTarget;
+    if (target) {
+      platformAlert(
+        `You need to reach 100% profile completion before you can use the rest of the dashboard. ` +
+        `Start with your ${target.label} — the section is open below.`,
+        { tone: 'warning', title: 'Finish your profile to continue' }
+      );
+      jumpToSection(target.section);
+    }
+
+    // Clear the param so a refresh / back-nav doesn't re-fire the toast.
+    router.replace('/user/photographer/profile');
+  }, [searchParams, user, firstMissingTarget, jumpToSection, router]);
 
   // Get completion color
   const getCompletionColor = (percentage: number) => {
@@ -2195,21 +2280,27 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             const hasLongDesc = experienceData.experiences.some(e => e.description.length > 50);
             const experienceOk = hasExp && hasLongDesc;
 
-            const items = [
-              { label: 'Basic info (name, phone, working city, profile photo)', ok: basicMissing.length === 0, detail: basicMissing.length ? 'Missing: ' + basicMissing.join(', ') : null },
-              { label: 'At least 2 specialties selected', ok: specialtiesOk, detail: specialtiesOk ? null : `Currently ${overviewData.specialties.length}` },
-              { label: 'At least 1 portfolio project', ok: portfolioOk, detail: portfolioOk ? null : `Currently ${portfolioData.projects.length}` },
-              { label: 'At least 1 work experience with a description (50+ chars)', ok: experienceOk, detail: !hasExp ? 'No entries yet' : (!hasLongDesc ? 'Add a description over 50 characters to one of your entries' : null) },
+            type BannerSection = 'basic' | 'overview' | 'portfolio' | 'experience';
+            const items: { label: string; ok: boolean; detail: string | null; section: BannerSection }[] = [
+              { label: 'Basic info (name, phone, working city, profile photo)', ok: basicMissing.length === 0, detail: basicMissing.length ? 'Missing: ' + basicMissing.join(', ') : null, section: 'basic' },
+              { label: 'At least 2 specialties selected', ok: specialtiesOk, detail: specialtiesOk ? null : `Currently ${overviewData.specialties.length}`, section: 'overview' },
+              { label: 'At least 1 portfolio project', ok: portfolioOk, detail: portfolioOk ? null : `Currently ${portfolioData.projects.length}`, section: 'portfolio' },
+              { label: 'At least 1 work experience with a description (50+ chars)', ok: experienceOk, detail: !hasExp ? 'No entries yet' : (!hasLongDesc ? 'Add a description over 50 characters to one of your entries' : null), section: 'experience' },
             ];
 
             return (
               <div style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 20,
                 marginBottom: '1.25rem',
                 padding: '1.25rem 1.5rem',
                 borderRadius: '1rem',
-                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02))',
-                border: '1px solid rgba(245, 158, 11, 0.35)',
-                boxShadow: '0 4px 16px rgba(245, 158, 11, 0.08)',
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(217, 119, 6, 0.92))',
+                border: '1px solid rgba(217, 119, 6, 0.6)',
+                boxShadow: '0 8px 24px rgba(245, 158, 11, 0.18)',
+                color: '#fff',
+                backdropFilter: 'blur(6px)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
                   <div style={{
@@ -2217,52 +2308,97 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     width: 44,
                     height: 44,
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                    background: 'rgba(255, 255, 255, 0.22)',
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.1rem',
+                    fontSize: '1.2rem',
                     fontWeight: 700,
+                    border: '1px solid rgba(255, 255, 255, 0.35)',
                   }}>
                     <i className="bi bi-pencil-square" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, marginBottom: 4 }}>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: 4 }}>
                       Finish your profile to unlock the dashboard
                     </div>
-                    <div style={{ fontSize: '0.88rem', color: colors.textSecondary, lineHeight: 1.5 }}>
-                      You're at <strong style={{ color: '#D97706' }}>{profileCompletion}%</strong>.
-                      Clients only see photographers with a 100% profile, and the rest of the dashboard stays
-                      locked until each of the items below is checked off.
+                    <div style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.92)', lineHeight: 1.5 }}>
+                      You're at <strong style={{ color: '#fff' }}>{profileCompletion}%</strong>.
+                      Clients only see photographers with a 100% profile, and the rest of the dashboard
+                      stays locked until each item below is checked off. Click any unchecked row to
+                      jump straight to that section.
                     </div>
                   </div>
                 </div>
 
                 <ul style={{ listStyle: 'none', margin: '1rem 0 0', padding: 0, display: 'grid', gap: 8 }}>
-                  {items.map((it, idx) => (
-                    <li key={idx} style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 10,
-                      padding: '0.6rem 0.75rem',
-                      borderRadius: '0.5rem',
-                      background: it.ok ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.6)',
-                      border: it.ok ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(0, 0, 0, 0.06)',
-                    }}>
-                      <i className={it.ok ? 'bi bi-check-circle-fill' : 'bi bi-circle'} style={{
-                        color: it.ok ? '#10B981' : '#9CA3AF',
-                        fontSize: '1.05rem',
-                        marginTop: 2,
-                      }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textPrimary }}>{it.label}</div>
-                        {it.detail && (
-                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: 2 }}>{it.detail}</div>
+                  {items.map((it, idx) => {
+                    const interactive = !it.ok;
+                    return (
+                      <li
+                        key={idx}
+                        onClick={interactive ? () => jumpToSection(it.section) : undefined}
+                        role={interactive ? 'button' : undefined}
+                        tabIndex={interactive ? 0 : undefined}
+                        onKeyDown={interactive ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            jumpToSection(it.section);
+                          }
+                        } : undefined}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 10,
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: '0.6rem',
+                          background: it.ok
+                            ? 'rgba(16, 185, 129, 0.22)'
+                            : 'rgba(255, 255, 255, 0.95)',
+                          border: it.ok
+                            ? '1px solid rgba(16, 185, 129, 0.5)'
+                            : '1px solid rgba(255, 255, 255, 0.7)',
+                          cursor: interactive ? 'pointer' : 'default',
+                          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                        }}
+                        onMouseEnter={interactive ? (e) => {
+                          (e.currentTarget as HTMLLIElement).style.transform = 'translateY(-1px)';
+                          (e.currentTarget as HTMLLIElement).style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.12)';
+                        } : undefined}
+                        onMouseLeave={interactive ? (e) => {
+                          (e.currentTarget as HTMLLIElement).style.transform = '';
+                          (e.currentTarget as HTMLLIElement).style.boxShadow = '';
+                        } : undefined}
+                      >
+                        <i className={it.ok ? 'bi bi-check-circle-fill' : 'bi bi-circle'} style={{
+                          color: it.ok ? '#10B981' : '#92400e',
+                          fontSize: '1.1rem',
+                          marginTop: 2,
+                        }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 600, color: it.ok ? '#fff' : '#1f2937' }}>{it.label}</div>
+                          {it.detail && (
+                            <div style={{ fontSize: '0.8rem', color: it.ok ? 'rgba(255,255,255,0.85)' : '#7f1d1d', marginTop: 2 }}>{it.detail}</div>
+                          )}
+                        </div>
+                        {interactive && (
+                          <span style={{
+                            flex: '0 0 auto',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            color: '#92400e',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            whiteSpace: 'nowrap',
+                          }}>
+                            Jump there <i className="bi bi-arrow-right-short" style={{ fontSize: '1rem' }} />
+                          </span>
                         )}
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             );
@@ -2611,7 +2747,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             gap: '1.5rem'
           }}>
             {/* Left Sidebar - Profile Card */}
-            <div className="mobile-profile-left">
+            <div className="mobile-profile-left" id="profile-basic-info-section">
               {/* Profile Card */}
               <div className="profile-card-enhanced" style={{
                 backgroundColor: colors.bgCard,
@@ -2960,7 +3096,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             </div>
 
             {/* Right Section - Tabbed Form */}
-            <div className="mobile-profile-right">
+            <div className="mobile-profile-right" id="profile-tabs-section">
               {/* Tabs + Edit / Submit controls */}
               <div className="mobile-tabs-bar" style={{
                 display: 'flex',

@@ -38,7 +38,10 @@ export default function PhotographerLayout({ children }: { children: React.React
     // Already on the profile page — let it render its banner.
     if (pathname && pathname.startsWith(PROFILE_PATH)) return;
 
-    router.replace(PROFILE_PATH);
+    // The query flag tells the profile page this is a forced redirect (vs the
+    // user navigating to /profile on their own). It uses it to surface a
+    // one-shot toast and auto-jump to the first incomplete section.
+    router.replace(`${PROFILE_PATH}?completionRequired=1`);
   }, [user, isAuthenticated, isLoading, pathname, router]);
 
   return <>{children}</>;
