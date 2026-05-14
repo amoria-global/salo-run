@@ -199,6 +199,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // KYC state
   const [showKycModal, setShowKycModal] = useState(false);
 
+  // Missing-fields banner overlay state.
+  // When profile < 100% and the user hasn't yet clicked "Jump there",
+  // the banner sits as a centered overlay above the profile content so
+  // the user must engage with it. Once they pick a section to fix, it
+  // collapses to the normal top-of-page banner so they can actually
+  // see and edit the form fields they're jumping to.
+  const [missingFieldsOverlayDismissed, setMissingFieldsOverlayDismissed] = useState(false);
+
   // Toast notifications state
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -1128,6 +1136,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
    * means scrolling to the top; the others are tabs.
    */
   const jumpToSection = useCallback((section: 'basic' | 'overview' | 'portfolio' | 'experience') => {
+    // NOTE: we deliberately do NOT dismiss the missing-fields overlay here.
+    // jumpToSection is also called programmatically from the redirect
+    // handler (after the platformAlert "Got it" modal closes), and
+    // auto-dismissing there would collapse the overlay before the user
+    // ever interacts with it. The actual dismissal happens on the user's
+    // click on a "Jump there" pill inside the banner.
     if (section !== 'basic') {
       setActiveTab(section);
     }
@@ -2326,88 +2340,173 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               { label: 'At least 1 work experience with a description (50+ chars)', ok: experienceOk, detail: !hasExp ? 'No entries yet' : (!hasLongDesc ? 'Add a description over 50 characters to one of your entries' : null), section: 'experience' },
             ];
 
-            return (
+            const completedCount = items.filter(i => i.ok).length;
+            // On first load (before the user has clicked "Jump there"), the
+            // banner sits as a centered overlay above the profile fields —
+            // backdrop-blurred so the form is still visible behind it but
+            // not interactive. The moment the user picks a section to fix,
+            // `setMissingFieldsOverlayDismissed(true)` collapses it down
+            // into the normal top-of-page banner so they can actually edit.
+            const showAsOverlay = !missingFieldsOverlayDismissed;
+            const cardBody = (
               <div style={{
-                // Was position: sticky — that kept the banner pinned to the
-                // top of the scroll container, but the banner is tall enough
-                // (header + 4 checklist rows) to overlay most of the profile
-                // fields underneath, so once the user clicked "Jump there"
-                // the section they landed on was hidden behind the banner.
-                // Render it as a normal block at the top of the page instead:
-                // still loud and unmissable, but scrolls away as soon as the
-                // photographer scrolls down to actually fill anything in.
                 position: 'relative',
-                marginBottom: '1.25rem',
-                padding: '1.25rem 1.5rem',
-                borderRadius: '1rem',
-                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(217, 119, 6, 0.92))',
-                border: '1px solid rgba(217, 119, 6, 0.6)',
-                boxShadow: '0 8px 24px rgba(245, 158, 11, 0.18)',
-                color: '#fff',
+                marginBottom: showAsOverlay ? 0 : '1.5rem',
+                padding: '1.1rem 1.25rem 1.25rem',
+                borderRadius: 16,
+                background: colors.bgCard,
+                border: `1px solid ${colors.borderPrimary}`,
+                boxShadow: showAsOverlay
+                  ? '0 30px 60px -20px rgba(8,58,133,0.45), 0 12px 28px -8px rgba(242,12,143,0.22)'
+                  : '0 14px 32px -14px rgba(8,58,133,0.22), 0 4px 12px -4px rgba(0,0,0,0.06)',
+                color: colors.textPrimary,
+                overflow: 'hidden',
+                width: showAsOverlay ? 'min(620px, calc(100vw - 2rem))' : 'auto',
               }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+                {/* Brand top stripe */}
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                  background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+                }} />
+                {/* Soft brand wash */}
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, right: 0,
+                  width: 220, height: 160,
+                  background: actualTheme === 'dark'
+                    ? 'radial-gradient(circle at top right, rgba(245,158,11,0.18) 0%, rgba(242,12,143,0.08) 50%, transparent 75%)'
+                    : 'radial-gradient(circle at top right, rgba(245,158,11,0.16) 0%, rgba(242,12,143,0.06) 50%, transparent 75%)',
+                  pointerEvents: 'none',
+                }} />
+
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+                  {/* Brand gradient ring icon tile */}
                   <div style={{
                     flex: '0 0 auto',
-                    width: 44,
-                    height: 44,
-                    borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.22)',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.2rem',
-                    fontWeight: 700,
-                    border: '1px solid rgba(255, 255, 255, 0.35)',
+                    width: 46, height: 46,
+                    borderRadius: 12,
+                    padding: 2,
+                    background: 'linear-gradient(135deg, #F59E0B 0%, #F20C8F 130%)',
+                    boxShadow: '0 8px 18px -4px rgba(245,158,11,0.35)',
                   }}>
-                    <i className="bi bi-pencil-square" />
+                    <div style={{
+                      width: '100%', height: '100%',
+                      borderRadius: 10,
+                      background: colors.bgCard,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <i className="bi bi-stars" style={{ fontSize: 18, color: '#F20C8F' }} />
+                    </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: 4 }}>
+                    <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
+                      Action needed · {completedCount}/{items.length} complete
+                    </div>
+                    <div id="missing-fields-overlay-title" style={{ fontSize: '1.08rem', fontWeight: 800, color: colors.textPrimary, marginBottom: 4, letterSpacing: '-0.01em' }}>
                       Finish your profile to unlock the dashboard
                     </div>
-                    <div style={{ fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.92)', lineHeight: 1.5 }}>
-                      You're at <strong style={{ color: '#fff' }}>{profileCompletion}%</strong>.
+                    <div style={{ fontSize: '0.86rem', color: colors.textSecondary, lineHeight: 1.5 }}>
+                      You&rsquo;re at <strong style={{
+                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        fontWeight: 800,
+                      }}>{profileCompletion}%</strong>.
                       Clients only see photographers with a 100% profile, and the rest of the dashboard
-                      stays locked until each item below is checked off. Click any unchecked row to
-                      jump straight to that section.
+                      stays locked until each item below is checked off.
                     </div>
                   </div>
                 </div>
 
-                <div style={{ margin: '1rem 0 0', display: 'grid', gap: 8 }}>
+                {/* Progress bar */}
+                <div style={{
+                  position: 'relative',
+                  marginTop: '0.9rem',
+                  height: 8,
+                  borderRadius: 999,
+                  background: actualTheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(8,58,133,0.08)',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${Math.max(profileCompletion, 4)}%`,
+                    borderRadius: 999,
+                    background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+                    boxShadow: '0 0 12px rgba(242,12,143,0.45)',
+                    transition: 'width 0.4s ease',
+                  }} />
+                </div>
+
+                <div style={{ position: 'relative', margin: '1rem 0 0', display: 'grid', gap: 8 }}>
                   {items.map((it, idx) => {
                     const interactive = !it.ok;
-                    // Use a real <button> for the interactive row — <li role="button">
-                    // hydration is flaky under Next 16 + Turbopack, and buttons can't
-                    // be intercepted by the parent's z-index / pointer-events shenanigans
-                    // the way list items can.
                     const sharedInner = (
                       <>
-                        <i className={it.ok ? 'bi bi-check-circle-fill' : 'bi bi-circle'} style={{
-                          color: it.ok ? '#10B981' : '#92400e',
-                          fontSize: '1.1rem',
-                          marginTop: 2,
+                        {/* Status indicator */}
+                        <div style={{
                           flex: '0 0 auto',
-                        }} />
+                          width: 22, height: 22,
+                          borderRadius: '50%',
+                          marginTop: 1,
+                          padding: it.ok ? 0 : 1.5,
+                          background: it.ok ? 'transparent' : 'linear-gradient(135deg, #F59E0B 0%, #F20C8F 130%)',
+                          border: it.ok ? 'none' : 'none',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          {it.ok ? (
+                            <i className="bi bi-check-circle-fill" style={{ fontSize: 20, color: '#10B981' }} />
+                          ) : (
+                            <div style={{
+                              width: '100%', height: '100%',
+                              borderRadius: '50%',
+                              background: colors.bgCard,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <i className="bi bi-circle" style={{ fontSize: 12, color: '#F20C8F' }} />
+                            </div>
+                          )}
+                        </div>
                         <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                          <div style={{ fontSize: '0.92rem', fontWeight: 600, color: it.ok ? '#fff' : '#1f2937' }}>{it.label}</div>
+                          <div style={{
+                            fontSize: '0.92rem',
+                            fontWeight: 700,
+                            color: it.ok ? colors.textSecondary : colors.textPrimary,
+                            letterSpacing: '-0.005em',
+                            textDecoration: it.ok ? 'line-through' : 'none',
+                            textDecorationColor: 'rgba(16,185,129,0.55)',
+                            textDecorationThickness: 2,
+                          }}>{it.label}</div>
                           {it.detail && (
-                            <div style={{ fontSize: '0.8rem', color: it.ok ? 'rgba(255,255,255,0.85)' : '#7f1d1d', marginTop: 2 }}>{it.detail}</div>
+                            <div style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              fontSize: '0.78rem',
+                              color: it.ok ? '#10B981' : '#D97706',
+                              fontWeight: 600,
+                              marginTop: 3,
+                            }}>
+                              <i className={`bi ${it.ok ? 'bi-check2' : 'bi-exclamation-circle-fill'}`} style={{ fontSize: 10 }} />
+                              {it.detail}
+                            </div>
                           )}
                         </div>
                         {interactive && (
                           <span style={{
                             flex: '0 0 auto',
-                            fontSize: '0.78rem',
+                            fontSize: '0.76rem',
                             fontWeight: 700,
-                            color: '#92400e',
+                            letterSpacing: '-0.005em',
+                            color: '#fff',
+                            padding: '5px 10px 5px 12px',
+                            borderRadius: 999,
+                            background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                            boxShadow: '0 4px 10px -3px rgba(242,12,143,0.40)',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 4,
                             whiteSpace: 'nowrap',
                           }}>
-                            Jump there <i className="bi bi-arrow-right-short" style={{ fontSize: '1rem' }} />
+                            Jump there
+                            <i className="bi bi-arrow-right-short" style={{ fontSize: '0.95rem' }} />
                           </span>
                         )}
                       </>
@@ -2416,11 +2515,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       display: 'flex',
                       alignItems: 'flex-start',
                       gap: 10,
-                      padding: '0.65rem 0.85rem',
-                      borderRadius: '0.6rem',
-                      background: it.ok ? 'rgba(16, 185, 129, 0.22)' : 'rgba(255, 255, 255, 0.95)',
-                      border: it.ok ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.7)',
-                      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                      padding: '0.7rem 0.85rem',
+                      borderRadius: 11,
+                      background: it.ok
+                        ? (actualTheme === 'dark' ? 'rgba(16,185,129,0.10)' : 'rgba(16,185,129,0.06)')
+                        : (actualTheme === 'dark' ? 'rgba(8,58,133,0.16)' : 'rgba(8,58,133,0.03)'),
+                      border: it.ok
+                        ? `1px solid ${actualTheme === 'dark' ? 'rgba(16,185,129,0.32)' : 'rgba(16,185,129,0.28)'}`
+                        : `1px solid ${actualTheme === 'dark' ? 'rgba(99,162,255,0.22)' : 'rgba(8,58,133,0.12)'}`,
+                      transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s',
                       width: '100%',
                       font: 'inherit',
                     };
@@ -2429,15 +2532,22 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <button
                           key={idx}
                           type="button"
-                          onClick={() => jumpToSection(it.section)}
+                          onClick={() => {
+                            // User actively picked a section — collapse the
+                            // overlay so the form fields become editable.
+                            setMissingFieldsOverlayDismissed(true);
+                            jumpToSection(it.section);
+                          }}
                           style={{ ...sharedStyle, cursor: 'pointer' }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.transform = 'translateY(-1px)';
-                            e.currentTarget.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.12)';
+                            e.currentTarget.style.boxShadow = '0 8px 18px -8px rgba(242,12,143,0.30)';
+                            e.currentTarget.style.borderColor = 'rgba(242,12,143,0.40)';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.transform = '';
                             e.currentTarget.style.boxShadow = '';
+                            e.currentTarget.style.borderColor = actualTheme === 'dark' ? 'rgba(99,162,255,0.22)' : 'rgba(8,58,133,0.12)';
                           }}
                         >
                           {sharedInner}
@@ -2450,6 +2560,62 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            );
+
+            // Inline mode — user has already engaged with at least one row.
+            if (!showAsOverlay) {
+              return cardBody;
+            }
+
+            // Overlay mode — first visit, sit on top of the profile fields
+            // as a true centered modal (same recipe as the PlatformAlert
+            // "Got it" dialog but with a higher-impact tinted backdrop).
+            // The user MUST pick a "Jump there" row before the form
+            // underneath becomes interactive. z-index sits just below the
+            // PlatformAlert layer (10000) so the redirect-triggered
+            // "Got it" alert renders on top until dismissed, then this
+            // overlay takes focus.
+            return (
+              <div style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 9000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1.25rem',
+                background: 'rgba(0, 0, 0, 0.45)',
+                backdropFilter: 'blur(2px)',
+                WebkitBackdropFilter: 'blur(2px)',
+                animation: 'ck-mf-overlay-fade-in 0.25s ease-out',
+              }}>
+                <style>{`
+                  @keyframes ck-mf-overlay-fade-in {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                  }
+                  @keyframes ck-mf-overlay-card-in {
+                    from { opacity: 0; transform: translateY(8px) scale(0.985); }
+                    to   { opacity: 1; transform: translateY(0)   scale(1); }
+                  }
+                `}</style>
+                <div
+                  role="alertdialog"
+                  aria-modal="true"
+                  aria-labelledby="missing-fields-overlay-title"
+                  style={{
+                    animation: 'ck-mf-overlay-card-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                    width: '100%',
+                    maxWidth: 'min(620px, calc(100vw - 2rem))',
+                    maxHeight: '90vh',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {cardBody}
                 </div>
               </div>
             );
@@ -2954,45 +3120,82 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 </div>
 
                 {/* KYC Verification Banner */}
-                {user?.kycStatus && user.kycStatus !== 'APPROVED' && user.customerType !== 'Viewer' && (
-                  <div style={{
-                    padding: '1rem 1.25rem', margin: '0 1.25rem',
-                    borderRadius: '0.75rem', marginBottom: '0.75rem',
-                    backgroundColor: user.kycStatus === 'PENDING' ? '#FFFBEB' : user.kycStatus === 'REJECTED' ? '#FEF2F2' : '#F0F9FF',
-                    border: `1px solid ${user.kycStatus === 'PENDING' ? '#FDE68A' : user.kycStatus === 'REJECTED' ? '#FECACA' : '#BFDBFE'}`,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={user.kycStatus === 'PENDING' ? '#D97706' : user.kycStatus === 'REJECTED' ? '#DC2626' : '#2563EB'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/>
-                      </svg>
-                      <span style={{
-                        fontSize: '0.8rem', fontWeight: '600',
-                        color: user.kycStatus === 'PENDING' ? '#92400E' : user.kycStatus === 'REJECTED' ? '#991B1B' : '#1E40AF',
-                      }}>
-                        {user.kycStatus === 'PENDING' ? 'KYC Under Review' : user.kycStatus === 'REJECTED' ? 'KYC Rejected' : 'KYC Required'}
-                      </span>
-                    </div>
-                    <p style={{
-                      fontSize: '0.75rem', margin: 0, lineHeight: '1.4',
-                      color: user.kycStatus === 'PENDING' ? '#92400E' : user.kycStatus === 'REJECTED' ? '#991B1B' : '#1E40AF',
+                {user?.kycStatus && user.kycStatus !== 'APPROVED' && user.customerType !== 'Viewer' && (() => {
+                  const tone = user.kycStatus === 'PENDING'
+                    ? { accent: '#D97706', textColor: actualTheme === 'dark' ? '#FCD34D' : '#92400E',
+                        bg: actualTheme === 'dark' ? 'rgba(120,53,15,0.32)' : 'rgba(245,158,11,0.07)',
+                        border: actualTheme === 'dark' ? 'rgba(251,191,36,0.36)' : 'rgba(245,158,11,0.32)',
+                        icon: 'bi-hourglass-split' }
+                    : user.kycStatus === 'REJECTED'
+                    ? { accent: '#DC2626', textColor: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B',
+                        bg: actualTheme === 'dark' ? 'rgba(127,29,29,0.32)' : 'rgba(220,38,38,0.06)',
+                        border: actualTheme === 'dark' ? 'rgba(252,165,165,0.36)' : 'rgba(220,38,38,0.30)',
+                        icon: 'bi-exclamation-octagon-fill' }
+                    : { accent: '#083A85', textColor: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF',
+                        bg: actualTheme === 'dark' ? 'rgba(30,58,95,0.42)' : 'rgba(8,58,133,0.05)',
+                        border: actualTheme === 'dark' ? 'rgba(147,197,253,0.30)' : 'rgba(8,58,133,0.22)',
+                        icon: 'bi-shield-fill-exclamation' };
+                  const label = user.kycStatus === 'PENDING' ? 'KYC Under Review' : user.kycStatus === 'REJECTED' ? 'KYC Rejected' : 'KYC Required';
+                  const description = user.kycStatus === 'PENDING'
+                    ? 'Your identity verification is being reviewed.'
+                    : user.kycStatus === 'REJECTED'
+                    ? 'Your KYC was rejected. Please resubmit.'
+                    : 'Complete identity verification to enable withdrawals.';
+                  return (
+                    <div style={{
+                      position: 'relative',
+                      padding: '0.9rem 1rem',
+                      margin: '1rem 1.25rem 0.75rem',
+                      borderRadius: 12,
+                      background: tone.bg,
+                      border: `1px solid ${tone.border}`,
+                      overflow: 'hidden',
                     }}>
-                      {user.kycStatus === 'PENDING'
-                        ? 'Your identity verification is being reviewed.'
-                        : user.kycStatus === 'REJECTED'
-                        ? 'Your KYC was rejected. Please resubmit.'
-                        : 'Complete identity verification to enable withdrawals.'}
-                    </p>
-                    {user.kycStatus !== 'PENDING' && (
-                      <button onClick={() => setShowKycModal(true)} style={{
-                        marginTop: '0.5rem', padding: '0.4rem 0.75rem', fontSize: '0.75rem', fontWeight: '600',
-                        border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
-                        backgroundColor: '#083A85', color: 'white',
+                      <span aria-hidden style={{
+                        position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                        background: `linear-gradient(180deg, #083A85 0%, ${tone.accent} 100%)`,
+                      }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                        <i className={`bi ${tone.icon}`} style={{ fontSize: 14, color: tone.accent }} />
+                        <span style={{
+                          fontSize: '0.62rem', fontWeight: 700,
+                          color: tone.accent,
+                          letterSpacing: '0.08em', textTransform: 'uppercase',
+                        }}>
+                          {label}
+                        </span>
+                      </div>
+                      <p style={{
+                        fontSize: '0.82rem', margin: 0, lineHeight: 1.45,
+                        color: tone.textColor, fontWeight: 500,
                       }}>
-                        {user.kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Complete KYC'}
-                      </button>
-                    )}
-                  </div>
-                )}
+                        {description}
+                      </p>
+                      {user.kycStatus !== 'PENDING' && (
+                        <button
+                          onClick={() => setShowKycModal(true)}
+                          style={{
+                            marginTop: '0.65rem',
+                            padding: '0.5rem 0.95rem',
+                            fontSize: '0.8rem', fontWeight: 700, letterSpacing: '-0.005em',
+                            border: 'none', borderRadius: 10,
+                            cursor: 'pointer',
+                            background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                            color: '#fff',
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            boxShadow: '0 6px 14px -4px rgba(242,12,143,0.36)',
+                            transition: 'transform 0.15s, box-shadow 0.15s',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 10px 22px -6px rgba(242,12,143,0.50)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 14px -4px rgba(242,12,143,0.36)'; }}
+                        >
+                          <i className={`bi ${user.kycStatus === 'REJECTED' ? 'bi-arrow-repeat' : 'bi-shield-check'}`} style={{ fontSize: 12 }} />
+                          {user.kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Complete KYC'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Account Activity */}
                 <div className="mobile-profile-card-activity" style={{
