@@ -73,9 +73,22 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [topbarPayment, setTopbarPayment] = useState<Payment | null>(null);
 
+  // Photographer self-mark availability calendar (topbar). A date the
+  // photographer toggles here HARD-blocks it on their public booking
+  // calendar (clients can't book it) regardless of capacity.
+  const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
+  const [availMonth, setAvailMonth] = useState(() => {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() };
+  });
+  const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
+  const [availLoading, setAvailLoading] = useState(false);
+  const [availSavingDate, setAvailSavingDate] = useState<string | null>(null);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
+  const availabilityRef = useRef<HTMLDivElement>(null);
 
   const getUserDisplayName = () => {
     if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
@@ -262,10 +275,72 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsDropdownOpen(false);
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) setIsNotificationsOpen(false);
       if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) setIsCurrencyOpen(false);
+      if (availabilityRef.current && !availabilityRef.current.contains(event.target as Node)) setIsAvailabilityOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => { document.removeEventListener('mousedown', handleClickOutside); };
   }, []);
+
+  // ─── Photographer availability self-mark ───
+  const fetchBlockedDates = useCallback(async () => {
+    if (userRole !== 'photographer' || !user) return;
+    setAvailLoading(true);
+    try {
+      const apiUrl = getApiUrl();
+      const today = new Date();
+      const from = today.toISOString().slice(0, 10);
+      const toD = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate());
+      const to = toD.toISOString().slice(0, 10);
+      const res = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/photographer/blocked-dates?from=${from}&to=${to}`,
+        { method: 'GET' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.action === 1 && Array.isArray(json.data)) {
+          setBlockedDates(new Set(json.data as string[]));
+        }
+      }
+    } catch { /* non-fatal — calendar just shows nothing blocked */ }
+    finally { setAvailLoading(false); }
+  }, [userRole, user]);
+
+  useEffect(() => {
+    if (isAvailabilityOpen) fetchBlockedDates();
+  }, [isAvailabilityOpen, fetchBlockedDates]);
+
+  const toggleBlockedDate = async (dateStr: string) => {
+    if (availSavingDate) return; // one in-flight write at a time
+    const apiUrl = getApiUrl();
+    const wasBlocked = blockedDates.has(dateStr);
+    setAvailSavingDate(dateStr);
+    // Optimistic flip so the calendar feels instant.
+    setBlockedDates(prev => {
+      const n = new Set(prev);
+      if (wasBlocked) n.delete(dateStr); else n.add(dateStr);
+      return n;
+    });
+    try {
+      const res = wasBlocked
+        ? await dashboardAuthFetch(
+            `${apiUrl}/api/remote/photographer/blocked-dates?date=${dateStr}`,
+            { method: 'DELETE' })
+        : await dashboardAuthFetch(
+            `${apiUrl}/api/remote/photographer/blocked-dates`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ date: dateStr }) });
+      const json = res.ok ? await res.json() : null;
+      if (!res.ok || !json || json.action !== 1) throw new Error();
+    } catch {
+      // Revert the optimistic flip on any failure.
+      setBlockedDates(prev => {
+        const n = new Set(prev);
+        if (wasBlocked) n.add(dateStr); else n.delete(dateStr);
+        return n;
+      });
+    } finally {
+      setAvailSavingDate(null);
+    }
+  };
 
   useEffect(() => {
     if (!isNotificationsOpen && expandedNotifId) {
@@ -386,6 +461,107 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
               </div>
             )}
           </div>
+
+          {userRole === 'photographer' && (
+            <div ref={availabilityRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setIsAvailabilityOpen(o => !o)}
+                aria-label="Manage availability"
+                title="Mark days you're booked / unavailable"
+                style={{
+                  position: 'relative', width: 36, height: 36, borderRadius: 9999,
+                  background: 'var(--ck-surface)', border: '1px solid var(--ck-stroke)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: 'var(--ck-text-soft)',
+                }}
+              >
+                <i className="bi bi-calendar2-check" style={{ fontSize: 15 }} />
+                {blockedDates.size > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16,
+                    padding: '0 4px', borderRadius: 9999, background: '#ef4444', color: '#fff',
+                    fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', lineHeight: 1,
+                  }}>{blockedDates.size}</span>
+                )}
+              </button>
+              {isAvailabilityOpen && (() => {
+                const { year, month } = availMonth;
+                const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+                const firstDow = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                const cells: React.ReactNode[] = [];
+                for (let i = 0; i < firstDow; i++) cells.push(<div key={`e${i}`} />);
+                for (let d = 1; d <= daysInMonth; d++) {
+                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                  const cellDate = new Date(year, month, d);
+                  const isPast = cellDate < todayMid;
+                  const isBlocked = blockedDates.has(dateStr);
+                  const saving = availSavingDate === dateStr;
+                  cells.push(
+                    <button
+                      key={d}
+                      type="button"
+                      disabled={isPast || saving}
+                      onClick={() => { if (!isPast) toggleBlockedDate(dateStr); }}
+                      title={isPast ? 'Past date' : isBlocked ? 'Booked — click to free up' : 'Available — click to mark booked'}
+                      style={{
+                        aspectRatio: '1', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                        fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: isPast ? 'not-allowed' : 'pointer',
+                        opacity: isPast ? 0.4 : (saving ? 0.6 : 1),
+                        border: isBlocked ? '1px solid #dc2626' : '1px solid var(--ck-stroke)',
+                        background: isPast ? 'transparent' : isBlocked ? '#ef4444' : 'var(--ck-surface-muted)',
+                        color: isPast ? 'var(--ck-text-soft)' : isBlocked ? '#fff' : 'var(--ck-text)',
+                        transition: 'background 150ms, color 150ms',
+                      }}
+                    >{d}</button>
+                  );
+                }
+                return (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                    background: 'var(--ck-surface)', borderRadius: 14, boxShadow: 'var(--ck-shadow-lg)',
+                    border: '1px solid var(--ck-stroke)', padding: 14, width: 320, zIndex: 50,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--ck-text)' }}>My availability</div>
+                    </div>
+                    <p style={{ margin: '0 0 12px', fontSize: 11.5, color: 'var(--ck-text-soft)', lineHeight: 1.5 }}>
+                      Tap a day to mark yourself <strong style={{ color: '#ef4444' }}>booked</strong>. Booked days show red on your public profile and clients can&apos;t book them. Tap again to free the day.
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <button type="button" aria-label="Previous month"
+                        onClick={() => setAvailMonth(m => m.month === 0 ? { year: m.year - 1, month: 11 } : { year: m.year, month: m.month - 1 })}
+                        style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)', color: 'var(--ck-text)', cursor: 'pointer' }}>
+                        <i className="bi bi-chevron-left" style={{ fontSize: 11 }} />
+                      </button>
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ck-text)' }}>{monthLabel}</span>
+                      <button type="button" aria-label="Next month"
+                        onClick={() => setAvailMonth(m => m.month === 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: m.month + 1 })}
+                        style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)', color: 'var(--ck-text)', cursor: 'pointer' }}>
+                        <i className="bi bi-chevron-right" style={{ fontSize: 11 }} />
+                      </button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
+                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((w, i) => (
+                        <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--ck-text-soft)' }}>{w}</div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, opacity: availLoading ? 0.6 : 1 }}>
+                      {cells}
+                    </div>
+                    <div style={{ display: 'flex', gap: 14, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--ck-stroke)', fontSize: 11, color: 'var(--ck-text-soft)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--ck-surface-muted)', border: '1px solid var(--ck-stroke)' }} />Available</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: '#ef4444' }} />Booked</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           <div ref={notificationsRef} style={{ position: 'relative' }}>
             <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
