@@ -487,6 +487,9 @@ const PhotographerEventsPage = () => {
   const paidAlbumCurrencyCode = currencies.find(c => c.code === paidAlbumCurrencyId || (c.id || c.code) === paidAlbumCurrencyId)?.code || '';
   const paidAlbumPriceInvalid = isPaidAlbumPriceInvalid(paidAlbumPrice, paidAlbumCurrencyCode);
   const [freeAlbumEmail, setFreeAlbumEmail] = useState('');
+  // Optional free-album download cap + price per extra image (blank = all free).
+  const [freeMaxDownloads, setFreeMaxDownloads] = useState('');
+  const [freeExtraPrice, setFreeExtraPrice] = useState('');
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
   const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number } | null>(null);
@@ -1405,6 +1408,14 @@ const PhotographerEventsPage = () => {
         } else {
           endpoint = `${apiUrl}/api/remote/photographer/albums/free`;
           formData.append('recipientEmail', freeAlbumEmail);
+          // Optional download cap + price for extras. Blank = whole album
+          // free to download (unchanged behaviour).
+          if (freeMaxDownloads && String(freeMaxDownloads).trim() !== '') {
+            formData.append('maxFreeDownloads', String(freeMaxDownloads).trim());
+          }
+          if (freeExtraPrice && String(freeExtraPrice).trim() !== '') {
+            formData.append('pricePerExtraImage', String(freeExtraPrice).trim());
+          }
         }
         if (standaloneLocation) formData.append('location', standaloneLocation);
         if (standaloneDate) formData.append('date', standaloneDate);
@@ -3544,6 +3555,10 @@ const PhotographerEventsPage = () => {
                       <FreeAlbumForm
                         recipientEmail={freeAlbumEmail}
                         onEmailChange={setFreeAlbumEmail}
+                        maxFreeDownloads={freeMaxDownloads}
+                        onMaxFreeDownloadsChange={setFreeMaxDownloads}
+                        pricePerExtraImage={freeExtraPrice}
+                        onPricePerExtraImageChange={setFreeExtraPrice}
                         colors={{ textPrimary: colors.textPrimary, textSecondary: colors.textSecondary, border: colors.borderPrimary, background: colors.bgTertiary }}
                       />
                     )}
