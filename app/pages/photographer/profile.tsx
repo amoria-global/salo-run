@@ -474,27 +474,28 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       return;
     }
 
-    // Validate delivery days order: Diamond < Gold < Silver
+    // Delivery days: no min/max numeric limit anymore. The only rule is a
+    // single-direction tier ordering — a higher tier must deliver strictly
+    // faster (fewer days) than the tier directly below it:
+    //   Diamond < Gold   and   Gold < Silver
+    // Each tier checks ONLY its immediate cheaper neighbour; Silver is the
+    // base tier and has no constraint. (Diamond < Silver is implied
+    // transitively, so it isn't checked separately.) Non-tier/custom
+    // package names are unconstrained.
     const days = parseInt(pkg.deliveryDays) || 0;
     if (days > 0) {
-      const premiumPkg = packages.find(p => p.packageName === 'Diamond' && p.id !== pkg.id);
-      const customPkg = packages.find(p => p.packageName === 'Gold' && p.id !== pkg.id);
-      const essentialPkg = packages.find(p => p.packageName === 'Silver' && p.id !== pkg.id);
-      const premiumDays = parseInt(premiumPkg?.deliveryDays || '0') || 0;
-      const customDays = parseInt(customPkg?.deliveryDays || '0') || 0;
-      const essentialDays = parseInt(essentialPkg?.deliveryDays || '0') || 0;
+      const goldDays = parseInt(
+        packages.find(p => p.packageName === 'Gold' && p.id !== pkg.id)?.deliveryDays || '0') || 0;
+      const silverDays = parseInt(
+        packages.find(p => p.packageName === 'Silver' && p.id !== pkg.id)?.deliveryDays || '0') || 0;
 
-      if (pkg.packageName === 'Diamond') {
-        if (customDays > 0 && days >= customDays) { showToast('error', `Diamond delivery (${days}d) must be faster than Gold (${customDays}d)`); return; }
-        if (essentialDays > 0 && days >= essentialDays) { showToast('error', `Diamond delivery (${days}d) must be faster than Silver (${essentialDays}d)`); return; }
+      if (pkg.packageName === 'Diamond' && goldDays > 0 && days >= goldDays) {
+        showToast('error', `Diamond delivery (${days}d) must be faster than Gold (${goldDays}d)`);
+        return;
       }
-      if (pkg.packageName === 'Gold') {
-        if (premiumDays > 0 && days <= premiumDays) { showToast('error', `Gold delivery (${days}d) must be slower than Diamond (${premiumDays}d)`); return; }
-        if (essentialDays > 0 && days >= essentialDays) { showToast('error', `Gold delivery (${days}d) must be faster than Silver (${essentialDays}d)`); return; }
-      }
-      if (pkg.packageName === 'Silver') {
-        if (customDays > 0 && days <= customDays) { showToast('error', `Silver delivery (${days}d) must be slower than Gold (${customDays}d)`); return; }
-        if (premiumDays > 0 && days <= premiumDays) { showToast('error', `Silver delivery (${days}d) must be slower than Diamond (${premiumDays}d)`); return; }
+      if (pkg.packageName === 'Gold' && silverDays > 0 && days >= silverDays) {
+        showToast('error', `Gold delivery (${days}d) must be faster than Silver (${silverDays}d)`);
+        return;
       }
     }
 
@@ -4660,37 +4661,34 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               <div style={{ marginBottom: '1.25rem' }}>
                                 <label style={labelStyle}>Time Delivery (days) *</label>
                                 <p style={{ fontSize: '0.75rem', color: colors.textTertiary, margin: '0 0 0.5rem 0' }}>
-                                  {pkg.packageName === 'Diamond' ? 'Diamond should have the fastest delivery time.' : pkg.packageName === 'Gold' ? 'Must be faster than Silver but slower than Diamond.' : pkg.packageName === 'Silver' ? 'Silver has the longest delivery time.' : 'Set the number of days for photo delivery.'}
+                                  {pkg.packageName === 'Diamond' ? 'Set any number of days — just keep it faster (fewer days) than your Gold package.' : pkg.packageName === 'Gold' ? 'Set any number of days — just keep it faster (fewer days) than your Silver package.' : pkg.packageName === 'Silver' ? 'Set any number of days you need — no limit.' : 'Set the number of days for photo delivery.'}
                                 </p>
-                                <input type="number" min="1" value={pkg.deliveryDays}
+                                <input type="number" value={pkg.deliveryDays}
                                   onChange={(e) => {
                                     const newVal = e.target.value;
                                     updatePackage(pkg.id, 'deliveryDays', newVal);
                                   }}
                                   placeholder={pkg.packageName === 'Diamond' ? 'e.g., 3' : pkg.packageName === 'Gold' ? 'e.g., 7' : pkg.packageName === 'Silver' ? 'e.g., 14' : 'e.g., 7'}
                                   disabled={!isPackageEditEnabled} style={pkgInputStyle} />
-                                {/* Validation warning */}
+                                {/* Validation warning — single-direction tier
+                                    rule only (no min/max limit): a tier must be
+                                    faster than the one directly cheaper than it.
+                                    Diamond vs Gold, Gold vs Silver; Silver is the
+                                    base tier and is unconstrained. */}
                                 {(() => {
                                   const days = parseInt(pkg.deliveryDays) || 0;
                                   if (days <= 0) return null;
-                                  const premiumPkg = packages.find(p => p.packageName === 'Diamond');
-                                  const customPkg = packages.find(p => p.packageName === 'Gold');
-                                  const essentialPkg = packages.find(p => p.packageName === 'Silver');
-                                  const premiumDays = parseInt(premiumPkg?.deliveryDays || '0') || 0;
-                                  const customDays = parseInt(customPkg?.deliveryDays || '0') || 0;
-                                  const essentialDays = parseInt(essentialPkg?.deliveryDays || '0') || 0;
+                                  const goldDays = parseInt(
+                                    packages.find(p => p.packageName === 'Gold')?.deliveryDays || '0') || 0;
+                                  const silverDays = parseInt(
+                                    packages.find(p => p.packageName === 'Silver')?.deliveryDays || '0') || 0;
+                                  const errStyle = { fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' } as const;
 
-                                  if (pkg.packageName === 'Diamond') {
-                                    if (customDays > 0 && days >= customDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Diamond delivery must be faster (fewer days) than Gold ({customDays} days)</p>;
-                                    if (essentialDays > 0 && days >= essentialDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Diamond delivery must be faster (fewer days) than Silver ({essentialDays} days)</p>;
+                                  if (pkg.packageName === 'Diamond' && goldDays > 0 && days >= goldDays) {
+                                    return <p style={errStyle}>Diamond delivery must be faster (fewer days) than Gold ({goldDays} days)</p>;
                                   }
-                                  if (pkg.packageName === 'Gold') {
-                                    if (premiumDays > 0 && days <= premiumDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Gold delivery must be slower (more days) than Diamond ({premiumDays} days)</p>;
-                                    if (essentialDays > 0 && days >= essentialDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Gold delivery must be faster (fewer days) than Silver ({essentialDays} days)</p>;
-                                  }
-                                  if (pkg.packageName === 'Silver') {
-                                    if (customDays > 0 && days <= customDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Silver delivery must be slower (more days) than Gold ({customDays} days)</p>;
-                                    if (premiumDays > 0 && days <= premiumDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Silver delivery must be slower (more days) than Diamond ({premiumDays} days)</p>;
+                                  if (pkg.packageName === 'Gold' && silverDays > 0 && days >= silverDays) {
+                                    return <p style={errStyle}>Gold delivery must be faster (fewer days) than Silver ({silverDays} days)</p>;
                                   }
                                   return null;
                                 })()}
