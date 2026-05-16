@@ -5,6 +5,10 @@ import React from 'react';
 interface FreeAlbumFormProps {
   recipientEmail: string;
   onEmailChange: (email: string) => void;
+  maxFreeDownloads?: string;
+  onMaxFreeDownloadsChange?: (v: string) => void;
+  pricePerExtraImage?: string;
+  onPricePerExtraImageChange?: (v: string) => void;
   disabled?: boolean;
   colors?: {
     textPrimary: string;
@@ -17,6 +21,10 @@ interface FreeAlbumFormProps {
 const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
   recipientEmail,
   onEmailChange,
+  maxFreeDownloads = '',
+  onMaxFreeDownloadsChange,
+  pricePerExtraImage = '',
+  onPricePerExtraImageChange,
   disabled = false,
   colors = {
     textPrimary: '#1f2937',
@@ -47,7 +55,7 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
         <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4 }}>
           • Photos are NOT searchable via facial recognition<br />
           • Recipient gets email with access code<br />
-          • Free downloads, no payment required<br />
+          • Free downloads (or set a cap + price for extras below)<br />
           • Album expires in 60 days with 7-day warning
         </div>
       </div>
@@ -96,6 +104,46 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
         <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.35rem' }}>
           An invitation email with access code will be sent to this address automatically
         </div>
+      </div>
+
+      {/* Optional: download cap + price per extra image */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+        <div style={{ flex: 1 }}>
+          <label htmlFor="freeMaxDownloads" style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>
+            Max free downloads
+          </label>
+          <input
+            id="freeMaxDownloads"
+            type="number"
+            min={0}
+            step={1}
+            value={maxFreeDownloads}
+            onChange={(e) => onMaxFreeDownloadsChange && onMaxFreeDownloadsChange(e.target.value)}
+            placeholder="Blank = all free"
+            disabled={disabled}
+            style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem', border: `1px solid ${colors.border}`, borderRadius: '0.4rem', background: colors.background, color: colors.textPrimary, outline: 'none' }}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label htmlFor="freeExtraPrice" style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>
+            Price per extra image
+          </label>
+          <input
+            id="freeExtraPrice"
+            type="number"
+            min={0}
+            step="0.01"
+            value={pricePerExtraImage}
+            onChange={(e) => onPricePerExtraImageChange && onPricePerExtraImageChange(e.target.value)}
+            placeholder="Blank = no extras"
+            disabled={disabled}
+            style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem', border: `1px solid ${colors.border}`, borderRadius: '0.4rem', background: colors.background, color: colors.textPrimary, outline: 'none' }}
+          />
+        </div>
+      </div>
+      <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.35rem' }}>
+        Leave both blank for a fully free album. Set a cap and the recipient gets that many
+        free; selecting more charges the price per extra image (paid like a paid album).
       </div>
 
       {/* Access Code Info */}
