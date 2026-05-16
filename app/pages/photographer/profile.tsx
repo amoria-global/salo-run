@@ -2002,6 +2002,54 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed',
   };
 
+  // Reusable currency dropdown for a package, identical in look/behaviour to
+  // the main Price→Currency selector. Bound to the SAME pkg.currencyId (a
+  // package has one currency — the extra photo/video prices are charged in
+  // it too), so picking a currency on any of them keeps them in sync.
+  // `ddKey` is a unique open-state key so multiple dropdowns on the same
+  // package card don't all open at once.
+  const renderPkgCurrencyDropdown = (pkg: DeliveryPackage, ddKey: string) => {
+    const allOpts = currencies.length > 0
+      ? currencies.map(c => ({ val: c.id, code: c.code, name: c.name }))
+      : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }];
+    const selectedCode = allOpts.find(o => o.val === pkg.currencyId || o.code === pkg.currencyId)?.code || '';
+    const isDropdownOpen = openCurrencyPkgId === ddKey;
+    return (
+      <div ref={(el) => { currencyDropdownRefs.current[ddKey] = el; }} style={{ position: 'relative' }}>
+        <button type="button" disabled={!isPackageEditEnabled} onClick={() => isPackageEditEnabled && setOpenCurrencyPkgId(isDropdownOpen ? null : ddKey)}
+          style={{ ...pkgSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed', opacity: isPackageEditEnabled ? 1 : 0.6, width: '100%', textAlign: 'left' }}>
+          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selectedCode]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+          <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+            <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        {isDropdownOpen && (
+          <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
+            {allOpts.map(opt => {
+              const flag = CURRENCY_FLAG_MAP[opt.code] || '';
+              const isSelected = pkg.currencyId === opt.val || pkg.currencyId === opt.code;
+              return (
+                <button key={opt.val} type="button" onClick={() => { updatePackage(pkg.id, 'currencyId', opt.val); setOpenCurrencyPkgId(null); }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
+                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
+                  onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                    <span style={{ fontWeight: '600' }}>{opt.code}</span>
+                    {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
+                  </div>
+                  {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const errorMessageStyle = {
     color: '#EF4444',
     fontSize: '0.75rem',
@@ -4772,19 +4820,36 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     </span>
                                   </div>
 
-                                  {/* Extra photo/video pricing */}
+                                  {/* Extra photo/video pricing — each price now
+                                      pairs with the package currency selector,
+                                      same as the main Price field. All three
+                                      dropdowns edit the one pkg.currencyId. */}
                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
                                       <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Price per extra photo</label>
-                                      <input type="number" min="0" value={pkg.extraPhotoPrice}
-                                        onChange={(e) => updatePackage(pkg.id, 'extraPhotoPrice', e.target.value)}
-                                        placeholder="e.g. 500" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <input type="number" min="0" value={pkg.extraPhotoPrice}
+                                            onChange={(e) => updatePackage(pkg.id, 'extraPhotoPrice', e.target.value)}
+                                            placeholder="e.g. 500" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                        </div>
+                                        <div style={{ flex: '0 0 116px' }}>
+                                          {renderPkgCurrencyDropdown(pkg, `${pkg.id}:xphoto`)}
+                                        </div>
+                                      </div>
                                     </div>
                                     <div>
                                       <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Price per extra video</label>
-                                      <input type="number" min="0" value={pkg.extraVideoPrice}
-                                        onChange={(e) => updatePackage(pkg.id, 'extraVideoPrice', e.target.value)}
-                                        placeholder="e.g. 1000" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <input type="number" min="0" value={pkg.extraVideoPrice}
+                                            onChange={(e) => updatePackage(pkg.id, 'extraVideoPrice', e.target.value)}
+                                            placeholder="e.g. 1000" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                        </div>
+                                        <div style={{ flex: '0 0 116px' }}>
+                                          {renderPkgCurrencyDropdown(pkg, `${pkg.id}:xvideo`)}
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                   <span style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.4rem', display: 'block' }}>
