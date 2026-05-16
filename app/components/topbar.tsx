@@ -360,6 +360,112 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
           }} className="topbar-title">
             {roleLabel(userRole)} Dashboard
           </h1>
+
+          {userRole === 'photographer' && (
+            <div ref={availabilityRef} style={{ position: 'relative', marginLeft: 20 }}>
+              <button
+                onClick={() => setIsAvailabilityOpen(o => !o)}
+                aria-label="Manage availability"
+                title="Mark days you're booked / unavailable"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '7px 14px', borderRadius: 9999,
+                  background: isAvailabilityOpen ? 'rgba(8,77,168,0.10)' : 'var(--ck-surface)',
+                  border: `1px solid ${isAvailabilityOpen ? 'var(--ck-blue)' : 'var(--ck-stroke)'}`,
+                  color: 'var(--ck-text)', fontSize: '0.85rem', fontWeight: 700,
+                  cursor: 'pointer', whiteSpace: 'nowrap',
+                  transition: 'background 150ms, border-color 150ms',
+                }}
+              >
+                <i className="bi bi-calendar2-check" style={{ fontSize: 15, color: 'var(--ck-blue)' }} />
+                <span>Availability</span>
+                {blockedDates.size > 0 && (
+                  <span style={{
+                    minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9999,
+                    background: '#ef4444', color: '#fff', fontSize: 10.5, fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    lineHeight: 1,
+                  }}>{blockedDates.size}</span>
+                )}
+                <i className="bi bi-chevron-down" style={{ fontSize: 10, color: 'var(--ck-text-soft)', transform: isAvailabilityOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms' }} />
+              </button>
+              {isAvailabilityOpen && (() => {
+                const { year, month } = availMonth;
+                const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+                const firstDow = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                const cells: React.ReactNode[] = [];
+                for (let i = 0; i < firstDow; i++) cells.push(<div key={`e${i}`} />);
+                for (let d = 1; d <= daysInMonth; d++) {
+                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                  const cellDate = new Date(year, month, d);
+                  const isPast = cellDate < todayMid;
+                  const isBlocked = blockedDates.has(dateStr);
+                  const saving = availSavingDate === dateStr;
+                  cells.push(
+                    <button
+                      key={d}
+                      type="button"
+                      disabled={isPast || saving}
+                      onClick={() => { if (!isPast) toggleBlockedDate(dateStr); }}
+                      title={isPast ? 'Past date' : isBlocked ? 'Booked — click to free up' : 'Available — click to mark booked'}
+                      style={{
+                        aspectRatio: '1', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                        fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: isPast ? 'not-allowed' : 'pointer',
+                        opacity: isPast ? 0.4 : (saving ? 0.6 : 1),
+                        border: isBlocked ? '1px solid #dc2626' : '1px solid var(--ck-stroke)',
+                        background: isPast ? 'transparent' : isBlocked ? '#ef4444' : 'var(--ck-surface-muted)',
+                        color: isPast ? 'var(--ck-text-soft)' : isBlocked ? '#fff' : 'var(--ck-text)',
+                        transition: 'background 150ms, color 150ms',
+                      }}
+                    >{d}</button>
+                  );
+                }
+                return (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 8px)', left: 0,
+                    background: 'var(--ck-surface)', borderRadius: 14, boxShadow: 'var(--ck-shadow-lg)',
+                    border: '1px solid var(--ck-stroke)', padding: 14, width: 320, zIndex: 50,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--ck-text)' }}>My availability</div>
+                    </div>
+                    <p style={{ margin: '0 0 12px', fontSize: 11.5, color: 'var(--ck-text-soft)', lineHeight: 1.5 }}>
+                      Tap a day to mark yourself <strong style={{ color: '#ef4444' }}>booked</strong>. Booked days show red on your public profile and clients can&apos;t book them. Tap again to free the day.
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <button type="button" aria-label="Previous month"
+                        onClick={() => setAvailMonth(m => m.month === 0 ? { year: m.year - 1, month: 11 } : { year: m.year, month: m.month - 1 })}
+                        style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)', color: 'var(--ck-text)', cursor: 'pointer' }}>
+                        <i className="bi bi-chevron-left" style={{ fontSize: 11 }} />
+                      </button>
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ck-text)' }}>{monthLabel}</span>
+                      <button type="button" aria-label="Next month"
+                        onClick={() => setAvailMonth(m => m.month === 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: m.month + 1 })}
+                        style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)', color: 'var(--ck-text)', cursor: 'pointer' }}>
+                        <i className="bi bi-chevron-right" style={{ fontSize: 11 }} />
+                      </button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
+                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((w, i) => (
+                        <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--ck-text-soft)' }}>{w}</div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, opacity: availLoading ? 0.6 : 1 }}>
+                      {cells}
+                    </div>
+                    <div style={{ display: 'flex', gap: 14, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--ck-stroke)', fontSize: 11, color: 'var(--ck-text-soft)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--ck-surface-muted)', border: '1px solid var(--ck-stroke)' }} />Available</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: '#ef4444' }} />Booked</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
 
         <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
@@ -461,107 +567,6 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
               </div>
             )}
           </div>
-
-          {userRole === 'photographer' && (
-            <div ref={availabilityRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setIsAvailabilityOpen(o => !o)}
-                aria-label="Manage availability"
-                title="Mark days you're booked / unavailable"
-                style={{
-                  position: 'relative', width: 36, height: 36, borderRadius: 9999,
-                  background: 'var(--ck-surface)', border: '1px solid var(--ck-stroke)',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', color: 'var(--ck-text-soft)',
-                }}
-              >
-                <i className="bi bi-calendar2-check" style={{ fontSize: 15 }} />
-                {blockedDates.size > 0 && (
-                  <span style={{
-                    position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16,
-                    padding: '0 4px', borderRadius: 9999, background: '#ef4444', color: '#fff',
-                    fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', lineHeight: 1,
-                  }}>{blockedDates.size}</span>
-                )}
-              </button>
-              {isAvailabilityOpen && (() => {
-                const { year, month } = availMonth;
-                const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
-                const firstDow = new Date(year, month, 1).getDay();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                const cells: React.ReactNode[] = [];
-                for (let i = 0; i < firstDow; i++) cells.push(<div key={`e${i}`} />);
-                for (let d = 1; d <= daysInMonth; d++) {
-                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                  const cellDate = new Date(year, month, d);
-                  const isPast = cellDate < todayMid;
-                  const isBlocked = blockedDates.has(dateStr);
-                  const saving = availSavingDate === dateStr;
-                  cells.push(
-                    <button
-                      key={d}
-                      type="button"
-                      disabled={isPast || saving}
-                      onClick={() => { if (!isPast) toggleBlockedDate(dateStr); }}
-                      title={isPast ? 'Past date' : isBlocked ? 'Booked — click to free up' : 'Available — click to mark booked'}
-                      style={{
-                        aspectRatio: '1', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                        fontFamily: 'inherit',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: isPast ? 'not-allowed' : 'pointer',
-                        opacity: isPast ? 0.4 : (saving ? 0.6 : 1),
-                        border: isBlocked ? '1px solid #dc2626' : '1px solid var(--ck-stroke)',
-                        background: isPast ? 'transparent' : isBlocked ? '#ef4444' : 'var(--ck-surface-muted)',
-                        color: isPast ? 'var(--ck-text-soft)' : isBlocked ? '#fff' : 'var(--ck-text)',
-                        transition: 'background 150ms, color 150ms',
-                      }}
-                    >{d}</button>
-                  );
-                }
-                return (
-                  <div style={{
-                    position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                    background: 'var(--ck-surface)', borderRadius: 14, boxShadow: 'var(--ck-shadow-lg)',
-                    border: '1px solid var(--ck-stroke)', padding: 14, width: 320, zIndex: 50,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--ck-text)' }}>My availability</div>
-                    </div>
-                    <p style={{ margin: '0 0 12px', fontSize: 11.5, color: 'var(--ck-text-soft)', lineHeight: 1.5 }}>
-                      Tap a day to mark yourself <strong style={{ color: '#ef4444' }}>booked</strong>. Booked days show red on your public profile and clients can&apos;t book them. Tap again to free the day.
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <button type="button" aria-label="Previous month"
-                        onClick={() => setAvailMonth(m => m.month === 0 ? { year: m.year - 1, month: 11 } : { year: m.year, month: m.month - 1 })}
-                        style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)', color: 'var(--ck-text)', cursor: 'pointer' }}>
-                        <i className="bi bi-chevron-left" style={{ fontSize: 11 }} />
-                      </button>
-                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--ck-text)' }}>{monthLabel}</span>
-                      <button type="button" aria-label="Next month"
-                        onClick={() => setAvailMonth(m => m.month === 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: m.month + 1 })}
-                        style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)', color: 'var(--ck-text)', cursor: 'pointer' }}>
-                        <i className="bi bi-chevron-right" style={{ fontSize: 11 }} />
-                      </button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
-                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((w, i) => (
-                        <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--ck-text-soft)' }}>{w}</div>
-                      ))}
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, opacity: availLoading ? 0.6 : 1 }}>
-                      {cells}
-                    </div>
-                    <div style={{ display: 'flex', gap: 14, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--ck-stroke)', fontSize: 11, color: 'var(--ck-text-soft)' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--ck-surface-muted)', border: '1px solid var(--ck-stroke)' }} />Available</span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: '#ef4444' }} />Booked</span>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
 
           <div ref={notificationsRef} style={{ position: 'relative' }}>
             <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
