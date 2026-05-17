@@ -378,6 +378,76 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [openCurrencyPkgId, setOpenCurrencyPkgId] = useState<string | null>(null);
   const currencyDropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // Indoor studio-session rate. OPTIONAL opt-in — completely independent of
+  // packages and of profile completion. A photographer who never sets this
+  // is unaffected (their outdoor/package flow and completion % are unchanged).
+  const [studioRate, setStudioRate] = useState({
+    pricePerPhoto: '', pricePerVideo: '', baseSessionFee: '', currencyId: '', studioAddress: '',
+  });
+  const [studioRateExists, setStudioRateExists] = useState(false);
+  const [isStudioEditEnabled, setIsStudioEditEnabled] = useState(false);
+  const [savingStudio, setSavingStudio] = useState(false);
+  // Default dismissed=true so the adoption banner never flashes before the
+  // localStorage check / studio-rate fetch resolves.
+  const [studioBannerDismissed, setStudioBannerDismissed] = useState(true);
+
+  const saveStudioRate = async () => {
+    const pp = parseFloat(studioRate.pricePerPhoto);
+    const pv = parseFloat(studioRate.pricePerVideo);
+    if (isNaN(pp) || pp < 0) { showToast('error', 'Enter a valid price per photo'); return; }
+    if (isNaN(pv) || pv < 0) { showToast('error', 'Enter a valid price per video'); return; }
+    const isUUID = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+    const resolvedCurrencyId = isUUID(studioRate.currencyId)
+      ? studioRate.currencyId
+      : currencies.find(c => c.code === studioRate.currencyId || c.name === studioRate.currencyId)?.id || null;
+    if (!resolvedCurrencyId) { showToast('error', 'Please select a currency'); return; }
+    const bfRaw = studioRate.baseSessionFee.trim();
+    const bf = bfRaw === '' ? null : parseFloat(bfRaw);
+    if (bf != null && (isNaN(bf) || bf < 0)) { showToast('error', 'Enter a valid base session fee'); return; }
+    setSavingStudio(true);
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/studio-rate`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pricePerPhoto: pp,
+          pricePerVideo: pv,
+          baseSessionFee: bf,
+          currencyId: resolvedCurrencyId,
+          studioAddress: studioRate.studioAddress.trim() || null,
+        }),
+      });
+      if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(`Failed to save studio rate: ${res.status} ${t}`); }
+      setStudioRate(s => ({ ...s, currencyId: resolvedCurrencyId }));
+      setStudioRateExists(true);
+      setIsStudioEditEnabled(false);
+      showToast('success', 'Studio session rate saved');
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : 'Failed to save studio rate');
+    } finally { setSavingStudio(false); }
+  };
+
+  const removeStudioRate = async () => {
+    setSavingStudio(true);
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/studio-rate`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to remove studio rate');
+      setStudioRateExists(false);
+      setIsStudioEditEnabled(false);
+      setStudioRate({ pricePerPhoto: '', pricePerVideo: '', baseSessionFee: '', currencyId: '', studioAddress: '' });
+      showToast('success', 'Studio rate removed — you will no longer be offered for indoor bookings');
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : 'Failed to remove studio rate');
+    } finally { setSavingStudio(false); }
+  };
+
+  const dismissStudioBanner = () => {
+    try { localStorage.setItem('studioRateBannerDismissed', '1'); } catch { /* ignore */ }
+    setStudioBannerDismissed(true);
+  };
+
   // Package handler functions
   const addPackage = () => {
     const newId = Date.now().toString();
@@ -839,6 +909,38 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
     };
     fetchCurrencies();
+  }, []);
+
+  // Fetch the photographer's studio rate (if they've opted in) on mount.
+  // A 200 with data.data === null simply means they haven't set one.
+  useEffect(() => {
+    const fetchStudioRate = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/studio-rate`);
+        if (res.ok) {
+          const result = await res.json();
+          if (result.data) {
+            setStudioRate({
+              pricePerPhoto: result.data.pricePerPhoto != null ? String(result.data.pricePerPhoto) : '',
+              pricePerVideo: result.data.pricePerVideo != null ? String(result.data.pricePerVideo) : '',
+              baseSessionFee: result.data.baseSessionFee != null ? String(result.data.baseSessionFee) : '',
+              currencyId: result.data.currencyId ?? '',
+              studioAddress: result.data.studioAddress ?? '',
+            });
+            setStudioRateExists(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch studio rate:', error);
+      }
+    };
+    fetchStudioRate();
+    try {
+      setStudioBannerDismissed(localStorage.getItem('studioRateBannerDismissed') === '1');
+    } catch {
+      setStudioBannerDismissed(false);
+    }
   }, []);
 
   // Close currency dropdown on click outside
@@ -2000,6 +2102,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const pkgSelectStyle = {
     ...pkgInputStyle,
     cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed',
+  };
+
+  // Studio-rate styles — independent of the package edit gate.
+  const studioInputStyle = {
+    ...inputStyle,
+    backgroundColor: isStudioEditEnabled ? colors.bgCard : colors.bgTertiary,
+    cursor: isStudioEditEnabled ? 'text' : 'not-allowed',
+    opacity: isStudioEditEnabled ? 1 : 0.7,
+  };
+  const studioSelectStyle = {
+    ...studioInputStyle,
+    cursor: isStudioEditEnabled ? 'pointer' : 'not-allowed',
   };
 
   // Reusable currency dropdown for a package, identical in look/behaviour to
@@ -5171,6 +5285,142 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       </div>
                     )}
                     </div>{/* end pointer-events wrapper */}
+
+                    {/* ───────── Indoor Studio Sessions (OPTIONAL opt-in) ───────── */}
+                    <div style={{ marginTop: '2.5rem', borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1.75rem' }}>
+                      {(!studioRateExists && !studioBannerDismissed) && (
+                        <div style={{
+                          position: 'relative',
+                          background: 'linear-gradient(135deg, #6D28D9 0%, #4F46E5 100%)',
+                          color: '#fff', borderRadius: 14, padding: '1rem 1.15rem',
+                          marginBottom: '1.5rem', boxShadow: '0 8px 22px rgba(79,70,229,0.30)',
+                        }}>
+                          <button onClick={dismissStudioBanner} aria-label="Dismiss"
+                            style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', fontSize: '1.15rem', lineHeight: 1, cursor: 'pointer' }}>
+                            ×
+                          </button>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, paddingRight: 18 }}>
+                            <i className="bi bi-camera2" style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }} />
+                            <div>
+                              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem' }}>New: earn from indoor studio shoots</p>
+                              <p style={{ margin: '0.3rem 0 0', fontSize: '0.85rem', opacity: 0.95, lineHeight: 1.5 }}>
+                                Set a one-time studio rate and clients can book you for indoor photo/video sessions —
+                                they pick how many photos and videos they want and pay the auto-calculated total.
+                                This is completely optional and separate from your packages; it won&apos;t change your profile completion.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={sectionTitleStyle}>
+                        <span>Indoor Studio Sessions <span style={{ fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary }}>(optional)</span></span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div
+                            onClick={() => setIsStudioEditEnabled(!isStudioEditEnabled)}
+                            style={{
+                              width: '48px', height: '26px', borderRadius: '13px',
+                              backgroundColor: isStudioEditEnabled ? '#6D28D9' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                              cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s',
+                            }}
+                          >
+                            <div style={{
+                              width: '22px', height: '22px', borderRadius: '50%',
+                              backgroundColor: 'white', position: 'absolute', top: '2px',
+                              left: isStudioEditEnabled ? '24px' : '2px', transition: 'left 0.2s',
+                            }} />
+                          </div>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: isStudioEditEnabled ? (actualTheme === 'dark' ? '#A78BFA' : '#6D28D9') : '#6B7280' }}>
+                            {isStudioEditEnabled ? 'Editing' : 'Edit'}
+                          </span>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                        Offer indoor shoots at your own studio. Clients choose how many photos and videos they want;
+                        the price is <strong>base fee + photos × price/photo + videos × price/video</strong>.
+                        Leaving this empty simply means you aren&apos;t listed for indoor bookings — your outdoor and package flow stays exactly the same.
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem', opacity: isStudioEditEnabled ? 1 : 0.7 }}>
+                        <div>
+                          <label style={labelStyle}>Price per photo *</label>
+                          <input type="number" min="0" step="0.01" value={studioRate.pricePerPhoto}
+                            onChange={(e) => setStudioRate(s => ({ ...s, pricePerPhoto: e.target.value }))}
+                            disabled={!isStudioEditEnabled} placeholder="e.g. 5" style={studioInputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Price per video *</label>
+                          <input type="number" min="0" step="0.01" value={studioRate.pricePerVideo}
+                            onChange={(e) => setStudioRate(s => ({ ...s, pricePerVideo: e.target.value }))}
+                            disabled={!isStudioEditEnabled} placeholder="e.g. 20" style={studioInputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Base session fee <span style={{ color: colors.textSecondary, fontWeight: 400 }}>(optional)</span></label>
+                          <input type="number" min="0" step="0.01" value={studioRate.baseSessionFee}
+                            onChange={(e) => setStudioRate(s => ({ ...s, baseSessionFee: e.target.value }))}
+                            disabled={!isStudioEditEnabled} placeholder="e.g. 10" style={studioInputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Currency *</label>
+                          <select value={studioRate.currencyId}
+                            onChange={(e) => setStudioRate(s => ({ ...s, currencyId: e.target.value }))}
+                            disabled={!isStudioEditEnabled} style={studioSelectStyle}>
+                            <option value="">Select currency</option>
+                            {currencies.map(c => (
+                              <option key={c.id} value={c.id}>{c.code}{c.name ? ` — ${c.name}` : ''}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label style={labelStyle}>Studio address <span style={{ color: colors.textSecondary, fontWeight: 400 }}>(optional)</span></label>
+                          <input type="text" value={studioRate.studioAddress}
+                            onChange={(e) => setStudioRate(s => ({ ...s, studioAddress: e.target.value }))}
+                            disabled={!isStudioEditEnabled} placeholder="Where indoor sessions take place" style={studioInputStyle} />
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const pp = parseFloat(studioRate.pricePerPhoto) || 0;
+                        const pv = parseFloat(studioRate.pricePerVideo) || 0;
+                        const bf = parseFloat(studioRate.baseSessionFee) || 0;
+                        if (pp <= 0 && pv <= 0) return null;
+                        const code = currencies.find(c => c.id === studioRate.currencyId)?.code || '';
+                        const example = bf + pp * 20 + pv * 2;
+                        return (
+                          <p style={{ marginTop: '1rem', fontSize: '0.82rem', color: colors.textSecondary }}>
+                            <i className="bi bi-calculator" style={{ marginRight: 6, color: '#6D28D9' }} />
+                            Example — a client wanting 20 photos + 2 videos pays{' '}
+                            <strong style={{ color: colors.textPrimary }}>{example.toLocaleString()} {code}</strong>.
+                          </p>
+                        );
+                      })()}
+
+                      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                        <button onClick={saveStudioRate} disabled={!isStudioEditEnabled || savingStudio}
+                          style={{
+                            backgroundColor: (isStudioEditEnabled && !savingStudio) ? '#6D28D9' : colors.bgTertiary,
+                            color: (isStudioEditEnabled && !savingStudio) ? '#fff' : colors.textSecondary,
+                            border: 'none', borderRadius: '0.5rem', padding: '0.6rem 1.4rem',
+                            fontSize: '0.875rem', fontWeight: 600,
+                            cursor: (isStudioEditEnabled && !savingStudio) ? 'pointer' : 'not-allowed',
+                          }}>
+                          {savingStudio ? 'Saving…' : (studioRateExists ? 'Update studio rate' : 'Save studio rate')}
+                        </button>
+                        {studioRateExists && (
+                          <button onClick={removeStudioRate} disabled={!isStudioEditEnabled || savingStudio}
+                            style={{
+                              backgroundColor: 'transparent',
+                              color: (isStudioEditEnabled && !savingStudio) ? '#EF4444' : colors.textSecondary,
+                              border: `1px solid ${(isStudioEditEnabled && !savingStudio) ? '#EF4444' : colors.borderPrimary}`,
+                              borderRadius: '0.5rem', padding: '0.6rem 1.4rem',
+                              fontSize: '0.875rem', fontWeight: 600,
+                              cursor: (isStudioEditEnabled && !savingStudio) ? 'pointer' : 'not-allowed',
+                            }}>
+                            Remove (stop indoor bookings)
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
