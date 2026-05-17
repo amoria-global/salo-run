@@ -343,13 +343,11 @@ export function selectWalletStats(
   const status = w.status || 'ACTIVE';
 
   if (role === 'photographer') {
-    const totalEarnings =
-      w.balanceAvailable +
-      w.balanceTips +
-      w.balanceBonuses +
-      w.balanceGifts +
-      w.balanceStreamFees +
-      w.balanceDonations;
+    // balanceAvailable already = sum of every withdrawable bucket
+    // (booking+tips+bonuses+gifts+streamFees+donations+adRevenue+photoPurchase).
+    // The old code re-added five of those buckets on top of it, ~doubling
+    // the figure. "Total earnings" = the true combined balance.
+    const totalEarnings = w.balanceAvailable;
 
     return {
       hero: { label: 'Available to withdraw', value: w.balanceAvailable },
@@ -358,7 +356,8 @@ export function selectWalletStats(
         { label: 'Tips', value: w.balanceTips, color: 'purple', hidden: w.balanceTips === 0 },
         { label: 'Bonuses', value: w.balanceBonuses, color: 'amber', hidden: w.balanceBonuses === 0 },
         { label: 'Stream bonus', value: w.balanceStreamFees, color: 'blue', hidden: w.balanceStreamFees === 0 },
-        { label: 'Photo sales', value: w.balanceGifts, color: 'blue', hidden: w.balanceGifts === 0 },
+        { label: 'Photo sales', value: w.balancePhotoPurchase, color: 'blue', hidden: w.balancePhotoPurchase === 0 },
+        { label: 'Gifts', value: w.balanceGifts, color: 'purple', hidden: w.balanceGifts === 0 },
         { label: 'Donations', value: w.balanceDonations, color: 'purple', hidden: w.balanceDonations === 0 },
         { label: 'Held for delivery', value: w.deliveryHeldAmount || 0, color: 'amber', hidden: !w.deliveryHeldAmount || w.deliveryHeldAmount === 0 },
         { label: 'Held for survey', value: w.surveyHeldAmount || 0, color: 'red', hidden: !w.surveyHeldAmount || w.surveyHeldAmount === 0 },
