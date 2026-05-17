@@ -893,26 +893,37 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                     onBlur={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.boxShadow = 'none'; }}
                   />
                 </div>
-                {/* Quick amount buttons. Presets are RWF-canonical (5K, 10K,
-                    25K, 50K — meaningful "small / medium / large / cap"
-                    withdrawals from the perspective of the wallet's RWF
-                    balance). Each render-pass converts to the user's chosen
-                    display currency for both the label and the value the
-                    button writes into the input. */}
+                {/* Quick amount buttons. Presets are a fraction of the
+                    *selected source* balance (withdrawal is validated
+                    per-source, not against the combined total — see
+                    `amountError` / `sourceBalanceRwf`), so "Max" withdraws
+                    exactly the chosen bucket. The display value is floored
+                    to the display currency's precision so the round-trip
+                    back to RWF never exceeds sourceBalanceRwf (which would
+                    otherwise trip the insufficient-balance guard on Max). */}
                 <div className="mobile-quick-amounts" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginTop: '0.75rem' }}>
-                  {[5000, 10000, 25000, 50000].map(rwfPreset => {
-                    const dispVal = rwfToDisplay(rwfPreset);
+                  {[
+                    { label: '25%', frac: 0.25 },
+                    { label: '50%', frac: 0.5 },
+                    { label: '75%', frac: 0.75 },
+                    { label: 'Max', frac: 1 },
+                  ].map(({ label, frac }) => {
+                    const pow = Math.pow(10, displayInfo.decimals);
+                    const rawDisp = rwfToDisplay(sourceBalanceRwf * frac);
+                    const dispVal = Math.floor(rawDisp * pow) / pow;
                     const dispStr = dispVal.toFixed(displayInfo.decimals);
-                    const selected = withdrawAmount === dispStr;
+                    const selected = withdrawAmount === dispStr && dispVal > 0;
+                    const disabled = sourceBalanceRwf <= 0;
                     return (
-                      <button key={rwfPreset} onClick={() => setWithdrawAmount(dispStr)}
+                      <button key={label} disabled={disabled} onClick={() => setWithdrawAmount(dispStr)}
+                        title={dispVal > 0 ? `${displayInfo.symbol}${dispStr}` : undefined}
                         style={{
                           padding: '0.5rem', border: selected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                           borderRadius: '0.5rem', background: selected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
                           color: selected ? '#083A85' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600',
-                          cursor: 'pointer', transition: 'all 0.2s',
+                          cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, transition: 'all 0.2s',
                         }}>
-                        {fmtFromRwf(rwfPreset)}
+                        {label}
                       </button>
                     );
                   })}
