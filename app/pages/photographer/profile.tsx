@@ -3142,7 +3142,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                 {/* Banner — Connekyt brand gradient */}
                 <div style={{
-                  height: 96,
+                  height: 170,
                   background: bannerImage
                     ? `url(${bannerImage}) center/cover no-repeat`
                     : 'linear-gradient(135deg, #083A85 0%, #0a4da8 55%, #F20C8F 130%)',
