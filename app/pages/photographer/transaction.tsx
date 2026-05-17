@@ -1031,7 +1031,10 @@ Amount: ${formatPrice(transaction.amountNum)}
           const mapped: Transaction[] = content.map((t: any, i: number) => ({
             id: t.id || i + 1,
             date: formatTxDate(t.createdAt || t.date || ''),
-            clientName: t.clientName || t.customerName || t.photographerName || 'N/A',
+            // Ledger rows have no counterparty (a photographer's row is their
+            // own earning leg). Never fall back to photographerName — that
+            // wrongly showed the photographer as their own client.
+            clientName: t.viewerName || t.service || t.eventTitle || t.paymentType || '—',
             clientImage: t.clientImage || t.customerImage || undefined,
             service: t.service || t.description || t.eventTitle || t.paymentType || 'Payment',
             serviceType: t.serviceType || t.eventType || t.paymentType || 'Service',
@@ -1087,10 +1090,15 @@ Amount: ${formatPrice(transaction.amountNum)}
     }
   }, [user]);
 
-  // Calculate totals from fetched transactions
-  const totalCompleted = transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amountNum, 0);
-  const totalPending = transactions.filter(t => t.status === 'pending' || t.status === 'in_progress' || t.status === 'initiated').reduce((sum, t) => sum + t.amountNum, 0);
-  const totalWithdrawn = transactions.filter(t => t.status === 'withdrawn').reduce((sum, t) => sum + t.amountNum, 0);
+  // Totals come from the reconciled wallet (the same source as the top-bar
+  // balance) — NOT a sum of the gross transaction rows. Summing the rows
+  // double-counted gross client payments and surfaced never-paid phantom
+  // declarations, so Total Earnings / Earnings Summary disagreed with the
+  // $11.95 wallet. Completed = currently withdrawable net, Pending = real
+  // ledger-backed holds, Withdrawn = lifetime paid out.
+  const totalCompleted = wallet?.balanceAvailable ?? 0;
+  const totalPending = wallet?.pendingAmount ?? 0;
+  const totalWithdrawn = wallet?.totalWithdrawn ?? 0;
 
   // Wallet-based values (source of truth)
   const totalTips = wallet?.balanceTips ?? tipsData.reduce((sum, t) => sum + t.amount, 0);
