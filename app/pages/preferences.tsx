@@ -351,9 +351,14 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     setVerificationMethodMessage('');
     try {
       const apiUrl = getApiUrl();
+      // The photographer/customer handler lives on CustomerProfileController
+      // (@RequestMapping "/api/remote/customer/profile"), so the path needs
+      // the "/profile" segment — without it Spring matched no handler and
+      // returned "No static resource ...". The coordinator handler is on
+      // CoordinatorController ("/api/remote/coordinator"), no /profile there.
       const basePath = userType === 'event-coordinator'
         ? '/api/remote/coordinator/withdrawal-verification-method'
-        : '/api/remote/customer/withdrawal-verification-method';
+        : '/api/remote/customer/profile/withdrawal-verification-method';
       const response = await dashboardAuthFetch(`${apiUrl}${basePath}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
