@@ -2465,7 +2465,7 @@ const PhotographerEventsPage = () => {
                           </div>
                           {/* Action buttons + photo count pill */}
                           <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
-                            {!album.isStandalone && (album.sharedWithClient ? (
+                            {!album.isStandalone ? (album.sharedWithClient ? (
                               <span style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 5,
                                 padding: '0.42rem 0.65rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '-0.005em',
@@ -2489,7 +2489,25 @@ const PhotographerEventsPage = () => {
                               >
                                 <i className="bi bi-send-fill" style={{ fontSize: 11 }} /> Send
                               </button>
-                            ))}
+                            )) : album.isFreeAlbum ? (
+                              // Free standalone albums were emailed at creation;
+                              // the card-level action here is always a Resend
+                              // (no terminal "Sent" chip — opens the send modal
+                              // which then resends to the captured recipient).
+                              <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} title="Resend invitation" style={{
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                                padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
+                                background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                                color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
+                                boxShadow: '0 4px 10px rgba(8,58,133,0.32)',
+                                transition: 'transform 0.15s',
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                              >
+                                <i className="bi bi-arrow-clockwise" style={{ fontSize: 11 }} /> Resend
+                              </button>
+                            ) : null}
                             {!(album.isStandalone && album.albumType === 'standalone' && !album.faceRecognitionEnabled && !album.inviteCode) && (
                               album.faceRecognitionEnabled ? (
                                 <span onClick={() => handleOpenFaceAI(album)} title="Album is live on Find-My-Photos" style={{
@@ -2662,7 +2680,7 @@ const PhotographerEventsPage = () => {
                             onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                             ><i className="bi bi-eye-fill" style={{ fontSize: 11 }} /> Browse</button>
-                            {!album.isStandalone && (album.sharedWithClient ? (
+                            {!album.isStandalone ? (album.sharedWithClient ? (
                               <span style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 5,
                                 padding: '0.4rem 0.7rem', fontSize: '0.76rem', fontWeight: 700, letterSpacing: '-0.005em',
@@ -2682,7 +2700,21 @@ const PhotographerEventsPage = () => {
                               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
                               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                               ><i className="bi bi-send-fill" style={{ fontSize: 11 }} /> Send</button>
-                            ))}
+                            )) : album.isFreeAlbum ? (
+                              // Free standalone albums: always offer Resend
+                              // (emailed at creation; no terminal Sent state).
+                              <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                padding: '0.4rem 0.7rem', fontSize: '0.76rem', fontWeight: 700, letterSpacing: '-0.005em',
+                                background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                                color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
+                                boxShadow: '0 4px 10px rgba(8,58,133,0.30)',
+                                transition: 'transform 0.15s',
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                              ><i className="bi bi-arrow-clockwise" style={{ fontSize: 11 }} /> Resend</button>
+                            ) : null}
                             {!(album.isStandalone && !album.faceRecognitionEnabled && !album.inviteCode) && (
                               album.faceRecognitionEnabled ? (
                                 <span onClick={() => handleOpenFaceAI(album)} style={{
