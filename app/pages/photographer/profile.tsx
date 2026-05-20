@@ -4428,10 +4428,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 {/* Delivery Packages Tab */}
                 {activeTab === 'packages' && (
                   <div>
-                    {/* Edit Toggle for Packages */}
+                    {/* Edit Toggle for Outdoor Packages */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                       <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, flex: 1, lineHeight: '1.5' }}>
-                        Create and manage your delivery packages. Toggle edit mode to make changes.
+                        Create and manage your outdoor (event) delivery packages. Toggle edit mode to make changes.
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, marginLeft: '1rem' }}>
                         <div
@@ -4460,9 +4460,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ position: 'relative', opacity: isPackageEditEnabled ? 1 : 0.6, transition: 'opacity 0.2s' }}>
                     {!isPackageEditEnabled && <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'not-allowed' }} />}
 
-                    {/* Your Packages Section (OUTDOOR / event packages) */}
+                    {/* Outdoor Packages Section — required event packages (Silver/Gold/Diamond) */}
                     <div style={sectionTitleStyle}>
-                      <span>Your Packages</span>
+                      <span>Your Outdoor Packages</span>
                       <button
                         onClick={() => addPackage('OUTDOOR')}
                         disabled={!isPackageEditEnabled || outdoorPackages.length >= 3}
@@ -4481,11 +4481,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           opacity: (isPackageEditEnabled && outdoorPackages.length < 3) ? 1 : 0.6
                         }}
                       >
-                        <PlusIcon /> Add Package {outdoorPackages.length > 0 ? `(${3 - outdoorPackages.length} left)` : ''}
+                        <PlusIcon /> Add Outdoor Package {outdoorPackages.length > 0 ? `(${3 - outdoorPackages.length} left)` : ''}
                       </button>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
-                      Create and customize your delivery packages with pricing, duration, and features
+                      Packages clients book for outdoor events. Set pricing, duration and features.
                     </p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -5011,7 +5011,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           border: '2px dashed #E5E7EB'
                         }}>
                           <p style={{ color: colors.textSecondary, marginBottom: '1rem' }}>
-                            No delivery packages created yet
+                            No outdoor packages created yet
                           </p>
                           <button onClick={() => addPackage('OUTDOOR')} disabled={!isPackageEditEnabled}
                             style={{
@@ -5025,7 +5025,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               opacity: isPackageEditEnabled ? 1 : 0.6
                             }}
                           >
-                            <PlusIcon /> Create Your First Package
+                            <PlusIcon /> Create Your First Outdoor Package
                           </button>
                         </div>
                       )}
@@ -5034,7 +5034,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     {outdoorPackages.filter(p => p.packageName).length > 0 && (
                       <div style={{ marginBottom: '2rem' }}>
                         <div style={sectionTitleStyle}>
-                          <span>Your Listed Packages</span>
+                          <span>Your Listed Outdoor Packages</span>
                         </div>
                         <div style={{
                           display: 'grid',
