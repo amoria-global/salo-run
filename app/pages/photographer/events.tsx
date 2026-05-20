@@ -488,8 +488,13 @@ const PhotographerEventsPage = () => {
   const paidAlbumPriceInvalid = isPaidAlbumPriceInvalid(paidAlbumPrice, paidAlbumCurrencyCode);
   const [freeAlbumEmail, setFreeAlbumEmail] = useState('');
   // Optional free-album download cap + price per extra image (blank = all free).
+  // freeExtraCurrencyId required by the backend when freeExtraPrice > 0 so
+  // the client cap+pay flow on knockout knows what to charge in. Defaults to
+  // whatever was last picked for the paid-album form so the photographer
+  // doesn't have to re-select on every album.
   const [freeMaxDownloads, setFreeMaxDownloads] = useState('');
   const [freeExtraPrice, setFreeExtraPrice] = useState('');
+  const [freeExtraCurrencyId, setFreeExtraCurrencyId] = useState('');
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
   const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number } | null>(null);
@@ -1415,6 +1420,11 @@ const PhotographerEventsPage = () => {
           }
           if (freeExtraPrice && String(freeExtraPrice).trim() !== '') {
             formData.append('pricePerExtraImage', String(freeExtraPrice).trim());
+            // Currency only relevant when there's actually a price to charge.
+            // Fall back to the paid-album currency the photographer just
+            // picked so we don't make them double-select.
+            const effectiveCurrency = freeExtraCurrencyId || paidAlbumCurrencyId;
+            if (effectiveCurrency) formData.append('currencyId', effectiveCurrency);
           }
         }
         if (standaloneLocation) formData.append('location', standaloneLocation);
@@ -3559,6 +3569,9 @@ const PhotographerEventsPage = () => {
                         onMaxFreeDownloadsChange={setFreeMaxDownloads}
                         pricePerExtraImage={freeExtraPrice}
                         onPricePerExtraImageChange={setFreeExtraPrice}
+                        currencyId={freeExtraCurrencyId || paidAlbumCurrencyId}
+                        onCurrencyChange={setFreeExtraCurrencyId}
+                        currencies={currencies}
                         colors={{ textPrimary: colors.textPrimary, textSecondary: colors.textSecondary, border: colors.borderPrimary, background: colors.bgTertiary }}
                       />
                     )}

@@ -9,6 +9,13 @@ interface FreeAlbumFormProps {
   onMaxFreeDownloadsChange?: (v: string) => void;
   pricePerExtraImage?: string;
   onPricePerExtraImageChange?: (v: string) => void;
+  // Currency selector for the extras price. Only shown when
+  // pricePerExtraImage is set; without one, the client cap+pay flow
+  // on knockout has nothing to charge in.
+  currencyId?: string;
+  onCurrencyChange?: (id: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currencies?: Array<{ id?: string; code: string; name?: string }>;
   disabled?: boolean;
   colors?: {
     textPrimary: string;
@@ -25,6 +32,9 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
   onMaxFreeDownloadsChange,
   pricePerExtraImage = '',
   onPricePerExtraImageChange,
+  currencyId = '',
+  onCurrencyChange,
+  currencies = [],
   disabled = false,
   colors = {
     textPrimary: '#1f2937',
@@ -141,6 +151,41 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
           />
         </div>
       </div>
+      {/* Currency selector — required when there's an extras price set,
+          otherwise the client cap+pay flow on knockout refuses to charge.
+          Pre-filled from props (typically the photographer's last-picked
+          paid-album currency) so they don't have to re-pick every time. */}
+      {pricePerExtraImage && pricePerExtraImage.trim() !== '' && (
+        <div style={{ marginTop: '0.75rem' }}>
+          <label htmlFor="freeExtraCurrency" style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>
+            Currency for extras
+          </label>
+          <select
+            id="freeExtraCurrency"
+            value={currencyId}
+            onChange={(e) => onCurrencyChange && onCurrencyChange(e.target.value)}
+            disabled={disabled}
+            style={{
+              width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem',
+              border: `1px solid ${!currencyId ? '#f59e0b' : colors.border}`,
+              borderRadius: '0.4rem', background: colors.background,
+              color: colors.textPrimary, outline: 'none',
+            }}
+          >
+            <option value="">Pick a currency…</option>
+            {currencies.map((c) => (
+              <option key={c.id || c.code} value={c.id || c.code}>
+                {c.code}{c.name ? ` — ${c.name}` : ''}
+              </option>
+            ))}
+          </select>
+          {!currencyId && (
+            <div style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '0.25rem' }}>
+              A currency is required when charging for extras.
+            </div>
+          )}
+        </div>
+      )}
       <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.35rem' }}>
         Leave both blank for a fully free album. Set a cap and the recipient gets that many
         free; selecting more charges the price per extra image (paid like a paid album).
