@@ -1628,17 +1628,18 @@ const PhotographerEventsPage = () => {
     }
     setEditImages(prev => { const updated = prev.filter((_, i) => i !== index); if (editCoverIndex >= updated.length) setEditCoverIndex(Math.max(0, updated.length - 1)); else if (editCoverIndex === index) setEditCoverIndex(0); else if (editCoverIndex > index) setEditCoverIndex(editCoverIndex - 1); return updated; });
   };
-  // Enabling face recognition = publishing the album to Find-My-Photos (the
-  // backend's POST /albums/{id}/publish creates the Rekognition collection
-  // AND returns the inviteCode). There is no separate /invite-code endpoint;
-  // hitting one before was 404'ing, hence the old "Failed to generate invite
-  // code" error.
+  // Enabling face recognition asks the backend for the album's invite code
+  // via POST /albums/{id}/invite-code. The backend's standalone-album path on
+  // that endpoint now returns gallery.inviteCode (PAID standalone) or
+  // gallery.accessCode (FREE standalone), generating one if neither is set —
+  // so the previous "Failed to generate invite code" error is gone for
+  // standalone albums.
   const handleToggleFaceRecognition = async (album: Album) => {
     let inviteCode = album.inviteCode;
     if (!album.faceRecognitionEnabled && !inviteCode) {
       try {
         const res = await dashboardAuthFetch(
-          `${apiUrl}/api/remote/photographer/albums/${album.id}/publish`,
+          `${apiUrl}/api/remote/photographer/albums/${album.id}/invite-code`,
           { method: 'POST' }
         );
         if (res.ok) {
@@ -1648,7 +1649,7 @@ const PhotographerEventsPage = () => {
             || (typeof result?.data === 'string' ? result.data : null);
         }
       } catch (err) {
-        console.error('Failed to publish album for face recognition:', err);
+        console.error('Failed to generate invite code:', err);
       }
     }
     const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode };
