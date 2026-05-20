@@ -655,6 +655,54 @@ const PhotographerEventsPage = () => {
     return normalizeImageUrl(u);
   };
 
+  // Single source of truth for turning a raw API album payload into the
+  // Album shape used in state. Used by both the initial list fetch AND the
+  // post-create refetch so freshly-created albums are byte-for-byte
+  // identical to reloaded ones (and edit/face-AI flows don't misbehave on
+  // a half-populated locally-built newAlbum).
+  const mapApiAlbum = (a: any): { album: Album; imageIds: Record<string, string> } => {
+    const imageIds: Record<string, string> = {};
+    (a?.images || []).forEach((img: any) => {
+      if (img && typeof img === 'object' && img.id) {
+        const u = normalizeImg(img.fileUrl || img.url || '');
+        if (u) imageIds[u] = img.id;
+      }
+    });
+    const album: Album = {
+      id: a.id,
+      title: a.title || '',
+      description: a.description || '',
+      category: a.category || '',
+      eventId: a.eventId || '',
+      eventTitle: a.eventTitle || '',
+      clientId: a.clientId || '',
+      clientName: a.clientName || '',
+      coverImage: normalizeImg(a.coverImage || a.thumbnail) || '',
+      images: (a.images || []).map((img: any) => normalizeImg(typeof img === 'string' ? img : img?.fileUrl || img?.url || '') || '').filter(Boolean),
+      photoCount: a.photoCount || a.imageCount || 0,
+      views: a.views || 0,
+      likes: a.likes || 0,
+      downloads: a.downloads || 0,
+      shared: a.shared || a.sent || false,
+      sharedWithClient: a.sharedWithClient || a.sent || false,
+      faceRecognitionEnabled: a.faceRecognitionEnabled || false,
+      inviteCode: a.inviteCode || null,
+      createdAt: a.createdAt || '',
+      eventDate: a.eventDate || a.date || '',
+      clientImage: normalizeImg(a.clientImage) || '',
+      sentAt: a.sentAt || a.deliveredAt || '',
+      expiresAt: a.expiresAt || '',
+      albumType: a.albumType || (a.isStandalone ? 'standalone' : 'event'),
+      isStandalone: a.isStandalone || a.albumType === 'standalone' || a.albumType === 'free' || a.albumType === 'paid' || false,
+      isFreeAlbum: a.freeAlbum || a.isFreeAlbum || a.albumType === 'free' || false,
+      recipientEmail: a.recipientEmail || '',
+      accessCode: a.accessCode || '',
+      location: a.location || '',
+      albumDate: a.albumDate || '',
+    };
+    return { album, imageIds };
+  };
+
   // Fetch events from API
   useEffect(() => {
     if (!user?.id) return;
@@ -750,50 +798,15 @@ const PhotographerEventsPage = () => {
         if (res.ok) {
           const data = Array.isArray(result?.data) ? result.data : result?.data?.content || [];
           if (data.length > 0) {
-            // Build URL → image ID map for deletion support
+            // Single mapping pass — collects the Album rows AND the
+            // url→imageId entries the edit/delete flow needs.
             const idMap: Record<string, string> = {};
-            data.forEach((a: any) => {
-              (a.images || []).forEach((img: any) => {
-                if (typeof img === 'object' && img?.id) {
-                  const url = normalizeImg(img.fileUrl || img.url || '');
-                  if (url) idMap[url] = img.id;
-                }
-              });
+            const mapped: Album[] = data.map((a: any) => {
+              const { album, imageIds } = mapApiAlbum(a);
+              Object.assign(idMap, imageIds);
+              return album;
             });
             setMediaIdMap(prev => ({ ...prev, ...idMap }));
-
-            const mapped: Album[] = data.map((a: any) => ({
-              id: a.id,
-              title: a.title || '',
-              description: a.description || '',
-              category: a.category || '',
-              eventId: a.eventId || '',
-              eventTitle: a.eventTitle || '',
-              clientId: a.clientId || '',
-              clientName: a.clientName || '',
-              coverImage: normalizeImg(a.coverImage || a.thumbnail) || '',
-              images: (a.images || []).map((img: any) => normalizeImg(typeof img === 'string' ? img : img?.fileUrl || img?.url || '') || '').filter(Boolean),
-              photoCount: a.photoCount || a.imageCount || 0,
-              views: a.views || 0,
-              likes: a.likes || 0,
-              downloads: a.downloads || 0,
-              shared: a.shared || a.sent || false,
-              sharedWithClient: a.sharedWithClient || a.sent || false,
-              faceRecognitionEnabled: a.faceRecognitionEnabled || false,
-              inviteCode: a.inviteCode || null,
-              createdAt: a.createdAt || '',
-              eventDate: a.eventDate || a.date || '',
-              clientImage: normalizeImg(a.clientImage) || '',
-              sentAt: a.sentAt || a.deliveredAt || '',
-              expiresAt: a.expiresAt || '',
-              albumType: a.albumType || (a.isStandalone ? 'standalone' : 'event'),
-              isStandalone: a.isStandalone || a.albumType === 'standalone' || a.albumType === 'free' || a.albumType === 'paid' || false,
-              isFreeAlbum: a.freeAlbum || a.isFreeAlbum || a.albumType === 'free' || false,
-              recipientEmail: a.recipientEmail || '',
-              accessCode: a.accessCode || '',
-              location: a.location || '',
-              albumDate: a.albumDate || '',
-            }));
             // Newest-created first. Ties break by ms inside the ISO timestamp.
             mapped.sort((a: Album, b: Album) => {
               const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -1573,6 +1586,31 @@ const PhotographerEventsPage = () => {
     setFreeAlbumEmail('');
     setUploadedImagePreviews([]);
     setSelectedFiles(null);
+
+    // Reconcile local state with the backend's canonical view of this new
+    // album. The locally-built newAlbum above is an approximation — for
+    // event albums where no new files were picked, `images`/`coverImage`
+    // here point at the event cover (which is NOT actually in the gallery
+    // server-side), and fields like recipientEmail / accessCode /
+    // isFreeAlbum are unset. Without this refetch, opening the edit modal
+    // immediately after create shows phantom images and PUT sends bad
+    // coverImageUrl values — the user has to reload to recover. Single
+    // GET, swap the entry in state, populate mediaIdMap with the real
+    // image ids. Best-effort: if it fails we keep the local version.
+    try {
+      const refetch = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${backendAlbumId}`);
+      if (refetch.ok) {
+        const refetchResult = await refetch.json();
+        const canonical = refetchResult?.data;
+        if (canonical && typeof canonical === 'object') {
+          const { album: canonicalAlbum, imageIds } = mapApiAlbum(canonical);
+          setAlbums(prev => prev.map(a => a.id === backendAlbumId ? canonicalAlbum : a));
+          if (Object.keys(imageIds).length > 0) {
+            setMediaIdMap(prev => ({ ...prev, ...imageIds }));
+          }
+        }
+      }
+    } catch { /* keep the locally-built newAlbum; user can reload if edit misbehaves */ }
   };
 
   const handleOpenEdit = (album: Album) => { setSelectedAlbum(album); setEditTitle(album.title); setEditDescription(album.description); setEditCategory(album.category); setEditImages([...album.images]); setEditCoverIndex(album.images.indexOf(album.coverImage) >= 0 ? album.images.indexOf(album.coverImage) : 0); setShowAlbumEditModal(true); };
