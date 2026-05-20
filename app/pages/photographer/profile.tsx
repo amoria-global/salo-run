@@ -150,6 +150,11 @@ interface DeliveryPackage {
   extraVideoPrice: string;
   photobookPhotos: string;
   deliveryDays: string;
+  // OUTDOOR (required event packages) vs STUDIO (optional indoor session
+  // packages). Same backend table; the dashboard renders them as two
+  // separate sections. Defaults to OUTDOOR for any package the backend
+  // returns without a serviceType (i.e. pre-migration rows).
+  serviceType?: 'OUTDOOR' | 'STUDIO';
 }
 
 interface ToastMessage {
@@ -378,78 +383,26 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [openCurrencyPkgId, setOpenCurrencyPkgId] = useState<string | null>(null);
   const currencyDropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Indoor studio-session rate. OPTIONAL opt-in — completely independent of
-  // packages and of profile completion. A photographer who never sets this
-  // is unaffected (their outdoor/package flow and completion % are unchanged).
-  const [studioRate, setStudioRate] = useState({
-    pricePerPhoto: '', pricePerVideo: '', baseSessionFee: '', currencyId: '', studioAddress: '',
-  });
-  const [studioRateExists, setStudioRateExists] = useState(false);
-  const [isStudioEditEnabled, setIsStudioEditEnabled] = useState(false);
-  const [savingStudio, setSavingStudio] = useState(false);
-  // Default dismissed=true so the adoption banner never flashes before the
-  // localStorage check / studio-rate fetch resolves.
-  const [studioBannerDismissed, setStudioBannerDismissed] = useState(true);
+  // Indoor studio packages get their own edit toggle so the photographer
+  // can edit one section at a time without unlocking the other.
+  const [isStudioPackageEditEnabled, setIsStudioPackageEditEnabled] = useState(false);
 
-  const saveStudioRate = async () => {
-    const pp = parseFloat(studioRate.pricePerPhoto);
-    const pv = parseFloat(studioRate.pricePerVideo);
-    if (isNaN(pp) || pp < 0) { showToast('error', 'Enter a valid price per photo'); return; }
-    if (isNaN(pv) || pv < 0) { showToast('error', 'Enter a valid price per video'); return; }
-    const isUUID = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
-    const resolvedCurrencyId = isUUID(studioRate.currencyId)
-      ? studioRate.currencyId
-      : currencies.find(c => c.code === studioRate.currencyId || c.name === studioRate.currencyId)?.id || null;
-    if (!resolvedCurrencyId) { showToast('error', 'Please select a currency'); return; }
-    const bfRaw = studioRate.baseSessionFee.trim();
-    const bf = bfRaw === '' ? null : parseFloat(bfRaw);
-    if (bf != null && (isNaN(bf) || bf < 0)) { showToast('error', 'Enter a valid base session fee'); return; }
-    setSavingStudio(true);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/studio-rate`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pricePerPhoto: pp,
-          pricePerVideo: pv,
-          baseSessionFee: bf,
-          currencyId: resolvedCurrencyId,
-          studioAddress: studioRate.studioAddress.trim() || null,
-        }),
-      });
-      if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(`Failed to save studio rate: ${res.status} ${t}`); }
-      setStudioRate(s => ({ ...s, currencyId: resolvedCurrencyId }));
-      setStudioRateExists(true);
-      setIsStudioEditEnabled(false);
-      showToast('success', 'Studio session rate saved');
-    } catch (e) {
-      showToast('error', e instanceof Error ? e.message : 'Failed to save studio rate');
-    } finally { setSavingStudio(false); }
-  };
+  // Split the unified packages array into the two presentation buckets.
+  // Anything without a serviceType (pre-migration rows) is treated as
+  // OUTDOOR so it stays in the existing event-packages section.
+  const outdoorPackages = packages.filter(p => p.serviceType !== 'STUDIO');
+  const studioPackages = packages.filter(p => p.serviceType === 'STUDIO');
 
-  const removeStudioRate = async () => {
-    setSavingStudio(true);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/studio-rate`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to remove studio rate');
-      setStudioRateExists(false);
-      setIsStudioEditEnabled(false);
-      setStudioRate({ pricePerPhoto: '', pricePerVideo: '', baseSessionFee: '', currencyId: '', studioAddress: '' });
-      showToast('success', 'Studio rate removed — you will no longer be offered for indoor bookings');
-    } catch (e) {
-      showToast('error', e instanceof Error ? e.message : 'Failed to remove studio rate');
-    } finally { setSavingStudio(false); }
-  };
+  // Indoor studio sessions are now package-based (handled via the same
+  // `packages` array, just with serviceType=STUDIO). The legacy rate-based
+  // saveStudioRate / removeStudioRate / dismissStudioBanner handlers were
+  // removed along with their UI section above.
 
-  const dismissStudioBanner = () => {
-    try { localStorage.setItem('studioRateBannerDismissed', '1'); } catch { /* ignore */ }
-    setStudioBannerDismissed(true);
-  };
-
-  // Package handler functions
-  const addPackage = () => {
+  // Package handler functions. serviceType selects whether the new row is
+  // an outdoor (event) package or an indoor (studio session) package —
+  // they share the same backend table and the same editor card, just
+  // rendered in two sections of the profile.
+  const addPackage = (serviceType: 'OUTDOOR' | 'STUDIO' = 'OUTDOOR') => {
     const newId = Date.now().toString();
     setNewlyAddedId(newId);
     const newPackage: DeliveryPackage = {
@@ -469,6 +422,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       extraVideoPrice: '',
       photobookPhotos: '',
       deliveryDays: '',
+      serviceType,
     };
     setPackages(prev => [newPackage, ...prev]);
     setExpandedPackageId(newId);
@@ -553,11 +507,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     // transitively, so it isn't checked separately.) Non-tier/custom
     // package names are unconstrained.
     const days = parseInt(pkg.deliveryDays) || 0;
+    // Tier comparisons are scoped to packages of the SAME serviceType so an
+    // outdoor Diamond doesn't get compared to a studio Silver (they share
+    // names but are independent product lines).
+    const sameService = (p: DeliveryPackage) =>
+      (p.serviceType ?? 'OUTDOOR') === (pkg.serviceType ?? 'OUTDOOR');
+
     if (days > 0) {
       const goldDays = parseInt(
-        packages.find(p => p.packageName === 'Gold' && p.id !== pkg.id)?.deliveryDays || '0') || 0;
+        packages.find(p => sameService(p) && p.packageName === 'Gold' && p.id !== pkg.id)?.deliveryDays || '0') || 0;
       const silverDays = parseInt(
-        packages.find(p => p.packageName === 'Silver' && p.id !== pkg.id)?.deliveryDays || '0') || 0;
+        packages.find(p => sameService(p) && p.packageName === 'Silver' && p.id !== pkg.id)?.deliveryDays || '0') || 0;
 
       if (pkg.packageName === 'Diamond' && goldDays > 0 && days >= goldDays) {
         showToast('error', `Diamond delivery (${days}d) must be faster than Gold (${goldDays}d)`);
@@ -569,13 +529,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
     }
 
-    // Validate photo/video counts: Diamond > Gold > Silver
+    // Validate photo/video counts: Diamond > Gold > Silver (scoped per
+    // serviceType — see sameService above).
     const photos = parseInt(pkg.includedPhotos) || 0;
     const videos = parseInt(pkg.includedVideos) || 0;
     if (photos > 0 || videos > 0) {
-      const premiumPkg = packages.find(p => p.packageName === 'Diamond' && p.id !== pkg.id);
-      const customPkg = packages.find(p => p.packageName === 'Gold' && p.id !== pkg.id);
-      const essentialPkg = packages.find(p => p.packageName === 'Silver' && p.id !== pkg.id);
+      const premiumPkg = packages.find(p => sameService(p) && p.packageName === 'Diamond' && p.id !== pkg.id);
+      const customPkg = packages.find(p => sameService(p) && p.packageName === 'Gold' && p.id !== pkg.id);
+      const essentialPkg = packages.find(p => sameService(p) && p.packageName === 'Silver' && p.id !== pkg.id);
       const pPhotos = parseInt(premiumPkg?.includedPhotos || '0') || 0;
       const cPhotos = parseInt(customPkg?.includedPhotos || '0') || 0;
       const ePhotos = parseInt(essentialPkg?.includedPhotos || '0') || 0;
@@ -637,6 +598,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           extraVideoPrice: parseFloat(pkg.extraVideoPrice) || 0,
           photobookPhotos: parseInt(pkg.photobookPhotos) || null,
           deliveryDays: parseInt(pkg.deliveryDays) || 0,
+          // Backend defaults to OUTDOOR when serviceType is missing, so
+          // sending it explicitly is only strictly required for STUDIO —
+          // but always sending it keeps the dedup-by-(name,serviceType)
+          // upsert key honest for both kinds.
+          serviceType: pkg.serviceType === 'STUDIO' ? 'STUDIO' : 'OUTDOOR',
           features: pkg.features
             .filter(f => f.featureName && f.featureName !== 'Same-day preview' && (SELECTABLE_FEATURES[pkg.packageName] || []).includes(f.featureName))
             .map((f, idx) => ({ featureName: f.featureName, isIncluded: f.isIncluded, displayOrder: idx })),
@@ -911,38 +877,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     fetchCurrencies();
   }, []);
 
-  // Fetch the photographer's studio rate (if they've opted in) on mount.
-  // A 200 with data.data === null simply means they haven't set one.
-  useEffect(() => {
-    const fetchStudioRate = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/studio-rate`);
-        if (res.ok) {
-          const result = await res.json();
-          if (result.data) {
-            setStudioRate({
-              pricePerPhoto: result.data.pricePerPhoto != null ? String(result.data.pricePerPhoto) : '',
-              pricePerVideo: result.data.pricePerVideo != null ? String(result.data.pricePerVideo) : '',
-              baseSessionFee: result.data.baseSessionFee != null ? String(result.data.baseSessionFee) : '',
-              currencyId: result.data.currencyId ?? '',
-              studioAddress: result.data.studioAddress ?? '',
-            });
-            setStudioRateExists(true);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch studio rate:', error);
-      }
-    };
-    fetchStudioRate();
-    try {
-      setStudioBannerDismissed(localStorage.getItem('studioRateBannerDismissed') === '1');
-    } catch {
-      setStudioBannerDismissed(false);
-    }
-  }, []);
-
   // Close currency dropdown on click outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -1140,6 +1074,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           extraVideoPrice: String(p.extraVideoPrice ?? ''),
           photobookPhotos: p.photobookPhotos != null ? String(p.photobookPhotos) : '',
           deliveryDays: String(p.deliveryDays ?? ''),
+          // Pre-migration backend rows have no serviceType — default to
+          // OUTDOOR so they render in the existing event-packages section
+          // instead of leaking into the new indoor section by mistake.
+          serviceType: (p.serviceType === 'STUDIO' ? 'STUDIO' : 'OUTDOOR') as 'OUTDOOR' | 'STUDIO',
         })));
       }
 
@@ -2102,18 +2040,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const pkgSelectStyle = {
     ...pkgInputStyle,
     cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed',
-  };
-
-  // Studio-rate styles — independent of the package edit gate.
-  const studioInputStyle = {
-    ...inputStyle,
-    backgroundColor: isStudioEditEnabled ? colors.bgCard : colors.bgTertiary,
-    cursor: isStudioEditEnabled ? 'text' : 'not-allowed',
-    opacity: isStudioEditEnabled ? 1 : 0.7,
-  };
-  const studioSelectStyle = {
-    ...studioInputStyle,
-    cursor: isStudioEditEnabled ? 'pointer' : 'not-allowed',
   };
 
   // Reusable currency dropdown for a package, identical in look/behaviour to
@@ -4534,28 +4460,28 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ position: 'relative', opacity: isPackageEditEnabled ? 1 : 0.6, transition: 'opacity 0.2s' }}>
                     {!isPackageEditEnabled && <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'not-allowed' }} />}
 
-                    {/* Your Packages Section */}
+                    {/* Your Packages Section (OUTDOOR / event packages) */}
                     <div style={sectionTitleStyle}>
                       <span>Your Packages</span>
                       <button
-                        onClick={addPackage}
-                        disabled={!isPackageEditEnabled || packages.length >= 3}
+                        onClick={() => addPackage('OUTDOOR')}
+                        disabled={!isPackageEditEnabled || outdoorPackages.length >= 3}
                         style={{
-                          backgroundColor: (isPackageEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
-                          color: (isPackageEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
-                          border: `1px solid ${(isPackageEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
+                          backgroundColor: (isPackageEditEnabled && outdoorPackages.length < 3) ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                          color: (isPackageEditEnabled && outdoorPackages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                          border: `1px solid ${(isPackageEditEnabled && outdoorPackages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
                           fontWeight: '500',
-                          cursor: (isPackageEditEnabled && packages.length < 3) ? 'pointer' : 'not-allowed',
+                          cursor: (isPackageEditEnabled && outdoorPackages.length < 3) ? 'pointer' : 'not-allowed',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.25rem',
-                          opacity: (isPackageEditEnabled && packages.length < 3) ? 1 : 0.6
+                          opacity: (isPackageEditEnabled && outdoorPackages.length < 3) ? 1 : 0.6
                         }}
                       >
-                        <PlusIcon /> Add Package {packages.length > 0 ? `(${3 - packages.length} left)` : ''}
+                        <PlusIcon /> Add Package {outdoorPackages.length > 0 ? `(${3 - outdoorPackages.length} left)` : ''}
                       </button>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
@@ -4563,7 +4489,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     </p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                      {packages.map((pkg) => {
+                      {outdoorPackages.map((pkg) => {
                         const rowTier = pkg.packageName && TIER_COLORS[pkg.packageName];
                         return (
                         <div key={pkg.id} style={{
@@ -4841,9 +4767,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   const days = parseInt(pkg.deliveryDays) || 0;
                                   if (days <= 0) return null;
                                   const goldDays = parseInt(
-                                    packages.find(p => p.packageName === 'Gold')?.deliveryDays || '0') || 0;
+                                    packages.find(p => (p.serviceType ?? 'OUTDOOR') === (pkg.serviceType ?? 'OUTDOOR') && p.packageName === 'Gold')?.deliveryDays || '0') || 0;
                                   const silverDays = parseInt(
-                                    packages.find(p => p.packageName === 'Silver')?.deliveryDays || '0') || 0;
+                                    packages.find(p => (p.serviceType ?? 'OUTDOOR') === (pkg.serviceType ?? 'OUTDOOR') && p.packageName === 'Silver')?.deliveryDays || '0') || 0;
                                   const errStyle = { fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' } as const;
 
                                   if (pkg.packageName === 'Diamond' && goldDays > 0 && days >= goldDays) {
@@ -4893,8 +4819,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   {pkg.packageName === 'Diamond' && (() => {
                                     const premPhotos = parseInt(pkg.includedPhotos) || 0;
                                     const premVideos = parseInt(pkg.includedVideos) || 0;
-                                    const customPkg = packages.find(p => p.packageName === 'Gold');
-                                    const essentialPkg = packages.find(p => p.packageName === 'Silver');
+                                    const customPkg = packages.find(p => (p.serviceType ?? 'OUTDOOR') === (pkg.serviceType ?? 'OUTDOOR') && p.packageName === 'Gold');
+                                    const essentialPkg = packages.find(p => (p.serviceType ?? 'OUTDOOR') === (pkg.serviceType ?? 'OUTDOOR') && p.packageName === 'Silver');
                                     const customPhotos = parseInt(customPkg?.includedPhotos || '0') || 0;
                                     const essentialPhotos = parseInt(essentialPkg?.includedPhotos || '0') || 0;
                                     const customVideos = parseInt(customPkg?.includedVideos || '0') || 0;
@@ -4909,8 +4835,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   {pkg.packageName === 'Gold' && (() => {
                                     const photos = parseInt(pkg.includedPhotos) || 0;
                                     const videos = parseInt(pkg.includedVideos) || 0;
-                                    const premiumPkg = packages.find(p => p.packageName === 'Diamond');
-                                    const essentialPkg = packages.find(p => p.packageName === 'Silver');
+                                    const premiumPkg = packages.find(p => (p.serviceType ?? 'OUTDOOR') === (pkg.serviceType ?? 'OUTDOOR') && p.packageName === 'Diamond');
+                                    const essentialPkg = packages.find(p => (p.serviceType ?? 'OUTDOOR') === (pkg.serviceType ?? 'OUTDOOR') && p.packageName === 'Silver');
                                     const premPhotos = parseInt(premiumPkg?.includedPhotos || '0') || 0;
                                     const essentialPhotos = parseInt(essentialPkg?.includedPhotos || '0') || 0;
                                     const premVideos = parseInt(premiumPkg?.includedVideos || '0') || 0;
@@ -5078,7 +5004,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         );
                       })}
 
-                      {packages.length === 0 && (
+                      {outdoorPackages.length === 0 && (
                         <div style={{
                           textAlign: 'center', padding: '3rem',
                           backgroundColor: colors.bgTertiary, borderRadius: '0.75rem',
@@ -5087,7 +5013,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           <p style={{ color: colors.textSecondary, marginBottom: '1rem' }}>
                             No delivery packages created yet
                           </p>
-                          <button onClick={addPackage} disabled={!isPackageEditEnabled}
+                          <button onClick={() => addPackage('OUTDOOR')} disabled={!isPackageEditEnabled}
                             style={{
                               backgroundColor: isPackageEditEnabled ? '#083A85' : colors.bgTertiary,
                               color: isPackageEditEnabled ? 'white' : colors.textSecondary,
@@ -5105,7 +5031,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       )}
                     </div>
                     {/* Your Listed Packages Summary */}
-                    {packages.filter(p => p.packageName).length > 0 && (
+                    {outdoorPackages.filter(p => p.packageName).length > 0 && (
                       <div style={{ marginBottom: '2rem' }}>
                         <div style={sectionTitleStyle}>
                           <span>Your Listed Packages</span>
@@ -5115,7 +5041,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
                           gap: '1rem'
                         }}>
-                          {packages.filter(p => p.packageName).sort((a, b) => (PACKAGE_TIER[a.packageName] ?? 99) - (PACKAGE_TIER[b.packageName] ?? 99)).map((pkg) => {
+                          {outdoorPackages.filter(p => p.packageName).sort((a, b) => (PACKAGE_TIER[a.packageName] ?? 99) - (PACKAGE_TIER[b.packageName] ?? 99)).map((pkg) => {
                             const tierColor = TIER_COLORS[pkg.packageName] || { bg: colors.bgTertiary, text: colors.textPrimary, border: colors.borderPrimary };
                             const currencyCode = currencies.find(c => c.id === pkg.currencyId || c.code === pkg.currencyId)?.code || 'RWF';
                             const includedFeatures = pkg.features.filter(f => f.featureName && f.isIncluded && f.featureName !== 'Same-day preview');
@@ -5286,201 +5212,254 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     )}
                     </div>{/* end pointer-events wrapper */}
 
-                    {/* ───────── Indoor Studio Sessions (OPTIONAL opt-in) ─────────
-                        UI/UX retouch only — same state, handlers, validation and
-                        /api/remote/photographer/studio-rate payload as before. */}
+                    {/* ───────── Indoor Studio Packages (OPTIONAL) ─────────
+                        Same package shape as the outdoor section above — up
+                        to 3 (Silver / Gold / Diamond), photographer-set,
+                        independent edit toggle, sent to the SAME backend
+                        endpoint with serviceType=STUDIO. The old rate-based
+                        per-photo/per-video calculator is gone; indoor is
+                        now package-based just like outdoor. This section
+                        does NOT count toward profile completion — it is the
+                        single optional field of the photographer profile. */}
                     {(() => {
                     const accent = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
                     const accentBg = actualTheme === 'dark' ? 'rgba(99,162,255,0.12)' : 'rgba(8,58,133,0.06)';
                     const accentBorder = actualTheme === 'dark' ? 'rgba(99,162,255,0.32)' : 'rgba(8,58,133,0.18)';
+                    const studioPkgInputStyle = {
+                      ...inputStyle,
+                      backgroundColor: isStudioPackageEditEnabled ? colors.bgCard : colors.bgTertiary,
+                      cursor: isStudioPackageEditEnabled ? 'text' : 'not-allowed',
+                      opacity: isStudioPackageEditEnabled ? 1 : 0.7,
+                    };
+                    const studioPkgSelectStyle = {
+                      ...studioPkgInputStyle,
+                      cursor: isStudioPackageEditEnabled ? 'pointer' : 'not-allowed',
+                    };
                     return (
                     <div style={{ marginTop: '2.5rem' }}>
-                      {(!studioRateExists && !studioBannerDismissed) && (
-                        <div style={{
-                          position: 'relative',
-                          background: `linear-gradient(135deg, ${accent} 0%, ${actualTheme === 'dark' ? '#3B82F6' : '#0A4DA8'} 100%)`,
-                          color: '#fff', borderRadius: 14, padding: '1rem 1.15rem',
-                          marginBottom: '1.25rem', boxShadow: '0 8px 22px rgba(8,58,133,0.28)',
-                        }}>
-                          <button onClick={dismissStudioBanner} aria-label="Dismiss"
-                            style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', fontSize: '1.15rem', lineHeight: 1, cursor: 'pointer' }}>
-                            ×
-                          </button>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingRight: 18 }}>
-                            <i className="bi bi-camera2" style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }} />
-                            <div>
-                              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem' }}>New — earn from indoor studio shoots</p>
-                              <p style={{ margin: '0.3rem 0 0', fontSize: '0.85rem', opacity: 0.95, lineHeight: 1.55 }}>
-                                Add a studio rate and clients can book indoor sessions with you. It&apos;s optional,
-                                separate from your packages, and never affects your profile completion.
-                              </p>
+                      {/* Section header */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0, flex: 1 }}>
+                          <div style={{ width: 44, height: 44, borderRadius: 12, background: accentBg, border: `1px solid ${accentBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <i className="bi bi-camera2" style={{ fontSize: 20, color: accent }} />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary }}>Indoor Studio Packages</span>
+                              <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: accent, background: accentBg, border: `1px solid ${accentBorder}`, padding: '2px 8px', borderRadius: 999 }}>Optional</span>
                             </div>
+                            <p style={{ margin: '0.25rem 0 0', fontSize: '0.83rem', color: colors.textSecondary, lineHeight: 1.5 }}>
+                              Add up to 3 Silver / Gold / Diamond packages clients can book for indoor studio sessions. Same fields as your outdoor packages — leaving this empty just means you aren&apos;t listed for indoor bookings.
+                            </p>
                           </div>
                         </div>
-                      )}
-
-                      {/* Self-contained card so this optional capability reads as one clear unit */}
-                      <div style={{ border: `1px solid ${colors.borderPrimary}`, borderRadius: 16, background: colors.bgCard, padding: '1.4rem 1.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0 }}>
-                            <div style={{ width: 44, height: 44, borderRadius: 12, background: accentBg, border: `1px solid ${accentBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <i className="bi bi-camera2" style={{ fontSize: 20, color: accent }} />
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary }}>Indoor Studio Sessions</span>
-                                <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: accent, background: accentBg, border: `1px solid ${accentBorder}`, padding: '2px 8px', borderRadius: 999 }}>Optional</span>
-                              </div>
-                              <p style={{ margin: '0.25rem 0 0', fontSize: '0.83rem', color: colors.textSecondary, lineHeight: 1.5 }}>
-                                Let clients book indoor shoots at your studio — they choose photos &amp; videos, the total is auto-calculated.
-                              </p>
-                            </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                          <div
+                            onClick={() => setIsStudioPackageEditEnabled(!isStudioPackageEditEnabled)}
+                            style={{
+                              width: '48px', height: '26px', borderRadius: '13px',
+                              backgroundColor: isStudioPackageEditEnabled ? accent : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                              cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s',
+                            }}
+                          >
+                            <div style={{
+                              width: '22px', height: '22px', borderRadius: '50%',
+                              backgroundColor: 'white', position: 'absolute', top: '2px',
+                              left: isStudioPackageEditEnabled ? '24px' : '2px', transition: 'left 0.2s',
+                            }} />
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                            <div
-                              onClick={() => setIsStudioEditEnabled(!isStudioEditEnabled)}
-                              style={{
-                                width: '48px', height: '26px', borderRadius: '13px',
-                                backgroundColor: isStudioEditEnabled ? accent : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                                cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s',
-                              }}
-                            >
-                              <div style={{
-                                width: '22px', height: '22px', borderRadius: '50%',
-                                backgroundColor: 'white', position: 'absolute', top: '2px',
-                                left: isStudioEditEnabled ? '24px' : '2px', transition: 'left 0.2s',
-                              }} />
-                            </div>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: isStudioEditEnabled ? accent : '#6B7280' }}>
-                              {isStudioEditEnabled ? 'Editing' : 'Edit'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div style={{ marginTop: '1.1rem', marginBottom: '1.25rem', padding: '0.65rem 0.9rem', background: colors.bgTertiary, borderRadius: 10, fontSize: '0.8rem', color: colors.textSecondary, display: 'flex', alignItems: 'flex-start', gap: 8, lineHeight: 1.5 }}>
-                          <i className="bi bi-info-circle" style={{ color: accent, marginTop: 2, flexShrink: 0 }} />
-                          <span>Client pays <strong style={{ color: colors.textPrimary }}>base fee + photos × price/photo + videos × price/video</strong>. Leave it empty and nothing changes — you simply aren&apos;t listed for indoor bookings; your outdoor &amp; package flow stays exactly the same.</span>
-                        </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem', opacity: isStudioEditEnabled ? 1 : 0.7 }}>
-                        <div>
-                          <label style={labelStyle}>Price per photo *</label>
-                          <input type="number" min="0" step="0.01" value={studioRate.pricePerPhoto}
-                            onChange={(e) => setStudioRate(s => ({ ...s, pricePerPhoto: e.target.value }))}
-                            disabled={!isStudioEditEnabled} placeholder="e.g. 5" style={studioInputStyle} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Price per video *</label>
-                          <input type="number" min="0" step="0.01" value={studioRate.pricePerVideo}
-                            onChange={(e) => setStudioRate(s => ({ ...s, pricePerVideo: e.target.value }))}
-                            disabled={!isStudioEditEnabled} placeholder="e.g. 20" style={studioInputStyle} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Base session fee <span style={{ color: colors.textSecondary, fontWeight: 400 }}>(optional)</span></label>
-                          <input type="number" min="0" step="0.01" value={studioRate.baseSessionFee}
-                            onChange={(e) => setStudioRate(s => ({ ...s, baseSessionFee: e.target.value }))}
-                            disabled={!isStudioEditEnabled} placeholder="e.g. 10" style={studioInputStyle} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Currency *</label>
-                          {(() => {
-                            // Same flag-based dropdown as the package currency
-                            // selectors. Reuses openCurrencyPkgId / refs (keyed
-                            // 'studio-rate') so the existing click-outside
-                            // effect closes it too — just gated on the studio
-                            // edit toggle instead of the package one.
-                            const allOpts = currencies.length > 0
-                              ? currencies.map(c => ({ val: c.id, code: c.code, name: c.name }))
-                              : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }];
-                            const selectedCode = allOpts.find(o => o.val === studioRate.currencyId || o.code === studioRate.currencyId)?.code || '';
-                            const isDropdownOpen = openCurrencyPkgId === 'studio-rate';
-                            return (
-                              <div ref={(el) => { currencyDropdownRefs.current['studio-rate'] = el; }} style={{ position: 'relative' }}>
-                                <button type="button" disabled={!isStudioEditEnabled} onClick={() => isStudioEditEnabled && setOpenCurrencyPkgId(isDropdownOpen ? null : 'studio-rate')}
-                                  style={{ ...studioSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isStudioEditEnabled ? 'pointer' : 'not-allowed', opacity: isStudioEditEnabled ? 1 : 0.6, width: '100%', textAlign: 'left' }}>
-                                  {CURRENCY_FLAG_MAP[selectedCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selectedCode]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                  <span style={{ flex: 1 }}>{selectedCode || 'Select currency'}</span>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                                    <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </button>
-                                {isDropdownOpen && (
-                                  <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
-                                    {allOpts.map(opt => {
-                                      const flag = CURRENCY_FLAG_MAP[opt.code] || '';
-                                      const isSelected = studioRate.currencyId === opt.val || studioRate.currencyId === opt.code;
-                                      return (
-                                        <button key={opt.val} type="button" onClick={() => { setStudioRate(s => ({ ...s, currencyId: opt.val })); setOpenCurrencyPkgId(null); }}
-                                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
-                                          onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
-                                          onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                        >
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                            <span style={{ fontWeight: '600' }}>{opt.code}</span>
-                                            {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
-                                          </div>
-                                          {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <label style={labelStyle}>Studio address <span style={{ color: colors.textSecondary, fontWeight: 400 }}>(optional)</span></label>
-                          <input type="text" value={studioRate.studioAddress}
-                            onChange={(e) => setStudioRate(s => ({ ...s, studioAddress: e.target.value }))}
-                            disabled={!isStudioEditEnabled} placeholder="Where indoor sessions take place" style={studioInputStyle} />
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: isStudioPackageEditEnabled ? accent : '#6B7280' }}>
+                            {isStudioPackageEditEnabled ? 'Editing' : 'Edit'}
+                          </span>
                         </div>
                       </div>
 
-                        {(() => {
-                          const pp = parseFloat(studioRate.pricePerPhoto) || 0;
-                          const pv = parseFloat(studioRate.pricePerVideo) || 0;
-                          const bf = parseFloat(studioRate.baseSessionFee) || 0;
-                          if (pp <= 0 && pv <= 0) return null;
-                          const code = currencies.find(c => c.id === studioRate.currencyId)?.code || '';
-                          const example = bf + pp * 20 + pv * 2;
+                      <div style={{ position: 'relative', opacity: isStudioPackageEditEnabled ? 1 : 0.6, transition: 'opacity 0.2s' }}>
+                      {!isStudioPackageEditEnabled && <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'not-allowed' }} />}
+
+                      <div style={sectionTitleStyle}>
+                        <span>Your Indoor Packages</span>
+                        <button
+                          onClick={() => addPackage('STUDIO')}
+                          disabled={!isStudioPackageEditEnabled || studioPackages.length >= 3}
+                          style={{
+                            backgroundColor: (isStudioPackageEditEnabled && studioPackages.length < 3) ? accentBg : colors.bgTertiary,
+                            color: (isStudioPackageEditEnabled && studioPackages.length < 3) ? accent : colors.textSecondary,
+                            border: `1px solid ${(isStudioPackageEditEnabled && studioPackages.length < 3) ? accent : colors.borderPrimary}`,
+                            borderRadius: '0.375rem',
+                            padding: '0.375rem 0.75rem',
+                            fontSize: '0.8rem',
+                            fontWeight: '500',
+                            cursor: (isStudioPackageEditEnabled && studioPackages.length < 3) ? 'pointer' : 'not-allowed',
+                            display: 'flex', alignItems: 'center', gap: '0.25rem',
+                            opacity: (isStudioPackageEditEnabled && studioPackages.length < 3) ? 1 : 0.6,
+                          }}
+                        >
+                          <PlusIcon /> Add Indoor Package {studioPackages.length > 0 ? `(${3 - studioPackages.length} left)` : ''}
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        {studioPackages.map((pkg) => {
+                          const tierColor = pkg.packageName && TIER_COLORS[pkg.packageName];
                           return (
-                            <div style={{ marginTop: '1.25rem', padding: '0.9rem 1.1rem', background: accentBg, border: `1px solid ${accentBorder}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '0.82rem', color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <i className="bi bi-calculator" style={{ color: accent }} />
-                                Example — a client wanting 20 photos + 2 videos pays
-                              </span>
-                              <span style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary }}>{example.toLocaleString()} {code}</span>
+                            <div key={pkg.id} style={{
+                              backgroundColor: colors.bgCard,
+                              border: `1px solid ${colors.borderPrimary}`,
+                              borderRadius: 12,
+                              padding: '1rem 1.1rem',
+                              display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                {tierColor ? (
+                                  <span style={{ padding: '0.25rem 0.75rem', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 700, color: '#fff', background: typeof tierColor === 'string' ? tierColor : (tierColor as any).bg || accent }}>
+                                    {pkg.packageName}
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '0.78rem', color: colors.textSecondary, fontStyle: 'italic' }}>
+                                    Choose a tier
+                                  </span>
+                                )}
+                                <button onClick={() => setPackageToRemove(pkg)} disabled={!isStudioPackageEditEnabled}
+                                  style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: isStudioPackageEditEnabled ? 'pointer' : 'not-allowed', fontSize: '0.78rem', fontWeight: 600, opacity: isStudioPackageEditEnabled ? 1 : 0.5 }}>
+                                  <i className="bi bi-trash" /> Remove
+                                </button>
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                                <div>
+                                  <label style={labelStyle}>Tier *</label>
+                                  <select value={pkg.packageName}
+                                    onChange={(e) => updatePackage(pkg.id, 'packageName', e.target.value)}
+                                    disabled={!isStudioPackageEditEnabled} style={studioPkgSelectStyle}>
+                                    <option value="">Select tier</option>
+                                    <option value="Silver">Silver</option>
+                                    <option value="Gold">Gold</option>
+                                    <option value="Diamond">Diamond</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Price *</label>
+                                  <input type="number" min="0" step="0.01" value={pkg.price}
+                                    onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)}
+                                    placeholder="e.g. 50000" disabled={!isStudioPackageEditEnabled} style={studioPkgInputStyle} />
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Currency *</label>
+                                  {(() => {
+                                    const ddKey = `studio-pkg-${pkg.id}`;
+                                    const allOpts = currencies.length > 0
+                                      ? currencies.map(c => ({ val: c.id, code: c.code, name: c.name }))
+                                      : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }];
+                                    const selectedCode = allOpts.find(o => o.val === pkg.currencyId || o.code === pkg.currencyId)?.code || '';
+                                    const isOpen = openCurrencyPkgId === ddKey;
+                                    return (
+                                      <div ref={(el) => { currencyDropdownRefs.current[ddKey] = el; }} style={{ position: 'relative' }}>
+                                        <button type="button" disabled={!isStudioPackageEditEnabled} onClick={() => isStudioPackageEditEnabled && setOpenCurrencyPkgId(isOpen ? null : ddKey)}
+                                          style={{ ...studioPkgSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isStudioPackageEditEnabled ? 'pointer' : 'not-allowed', width: '100%', textAlign: 'left' }}>
+                                          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selectedCode]}.png`} alt="" style={{ width: 18, height: 14, objectFit: 'cover', borderRadius: 2 }} />}
+                                          <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
+                                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                            <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                          </svg>
+                                        </button>
+                                        {isOpen && (
+                                          <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: 200, zIndex: 100 }}>
+                                            {allOpts.map(opt => {
+                                              const flag = CURRENCY_FLAG_MAP[opt.code] || '';
+                                              const isSelected = pkg.currencyId === opt.val || pkg.currencyId === opt.code;
+                                              return (
+                                                <button key={opt.val} type="button" onClick={() => { updatePackage(pkg.id, 'currencyId', opt.val); setOpenCurrencyPkgId(null); }}
+                                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? accentBg : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? 600 : 400, cursor: 'pointer', gap: '0.5rem' }}>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />}
+                                                    <span style={{ fontWeight: 600 }}>{opt.code}</span>
+                                                    {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
+                                                  </div>
+                                                  {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Photos included</label>
+                                  <input type="number" min="0" value={pkg.includedPhotos}
+                                    onChange={(e) => updatePackage(pkg.id, 'includedPhotos', e.target.value)}
+                                    placeholder="e.g. 50" disabled={!isStudioPackageEditEnabled} style={studioPkgInputStyle} />
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Videos included</label>
+                                  <input type="number" min="0" value={pkg.includedVideos}
+                                    onChange={(e) => updatePackage(pkg.id, 'includedVideos', e.target.value)}
+                                    placeholder="e.g. 2" disabled={!isStudioPackageEditEnabled} style={studioPkgInputStyle} />
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Delivery (days)</label>
+                                  <input type="number" min="1" value={pkg.deliveryDays}
+                                    onChange={(e) => updatePackage(pkg.id, 'deliveryDays', e.target.value)}
+                                    placeholder="e.g. 7" disabled={!isStudioPackageEditEnabled} style={studioPkgInputStyle} />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label style={labelStyle}>Description</label>
+                                <textarea value={pkg.description}
+                                  onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)}
+                                  placeholder="What does this studio package include?"
+                                  rows={2} disabled={!isStudioPackageEditEnabled}
+                                  style={{ ...studioPkgInputStyle, resize: 'vertical' as const }} />
+                              </div>
+
+                              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                <button onClick={() => savePackageToAPI(pkg)} disabled={!isStudioPackageEditEnabled || savingPackageId === pkg.id || !pkg.packageName}
+                                  style={{
+                                    backgroundColor: (isStudioPackageEditEnabled && pkg.packageName && savingPackageId !== pkg.id) ? accent : colors.bgTertiary,
+                                    color: (isStudioPackageEditEnabled && pkg.packageName && savingPackageId !== pkg.id) ? '#fff' : colors.textSecondary,
+                                    border: 'none', borderRadius: '0.5rem', padding: '0.55rem 1.25rem',
+                                    fontSize: '0.85rem', fontWeight: 600,
+                                    cursor: (isStudioPackageEditEnabled && pkg.packageName && savingPackageId !== pkg.id) ? 'pointer' : 'not-allowed',
+                                  }}>
+                                  {savingPackageId === pkg.id ? 'Saving…' : 'Save package'}
+                                </button>
+                              </div>
                             </div>
                           );
-                        })()}
+                        })}
+                      </div>
 
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-                          <button onClick={saveStudioRate} disabled={!isStudioEditEnabled || savingStudio}
+                      {studioPackages.length === 0 && (
+                        <div style={{
+                          textAlign: 'center', padding: '2rem 1.5rem', marginTop: '0.5rem',
+                          backgroundColor: colors.bgTertiary, borderRadius: '0.75rem',
+                          border: `2px dashed ${colors.borderPrimary}`,
+                        }}>
+                          <i className="bi bi-camera2" style={{ fontSize: 28, color: accent, marginBottom: '0.5rem', display: 'block' }} />
+                          <p style={{ color: colors.textPrimary, fontSize: '0.9rem', fontWeight: 600, margin: '0 0 0.35rem' }}>
+                            No indoor packages yet
+                          </p>
+                          <p style={{ color: colors.textSecondary, fontSize: '0.82rem', margin: '0 0 1rem', lineHeight: 1.5 }}>
+                            Add Silver/Gold/Diamond packages to be bookable for studio sessions. Skipping this leaves everything else exactly as it is.
+                          </p>
+                          <button onClick={() => addPackage('STUDIO')} disabled={!isStudioPackageEditEnabled}
                             style={{
-                              backgroundColor: (isStudioEditEnabled && !savingStudio) ? accent : colors.bgTertiary,
-                              color: (isStudioEditEnabled && !savingStudio) ? '#fff' : colors.textSecondary,
-                              border: 'none', borderRadius: '0.5rem', padding: '0.65rem 1.5rem',
+                              backgroundColor: isStudioPackageEditEnabled ? accent : colors.bgTertiary,
+                              color: isStudioPackageEditEnabled ? '#fff' : colors.textSecondary,
+                              border: isStudioPackageEditEnabled ? 'none' : `2px solid ${colors.borderPrimary}`,
+                              borderRadius: '0.5rem', padding: '0.65rem 1.4rem',
                               fontSize: '0.875rem', fontWeight: 600,
-                              cursor: (isStudioEditEnabled && !savingStudio) ? 'pointer' : 'not-allowed',
+                              cursor: isStudioPackageEditEnabled ? 'pointer' : 'not-allowed',
+                              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                              opacity: isStudioPackageEditEnabled ? 1 : 0.6,
                             }}>
-                            {savingStudio ? 'Saving…' : (studioRateExists ? 'Update studio rate' : 'Save studio rate')}
+                            <PlusIcon /> Add your first studio package
                           </button>
-                          {studioRateExists && (
-                            <button onClick={removeStudioRate} disabled={!isStudioEditEnabled || savingStudio}
-                              style={{
-                                backgroundColor: 'transparent',
-                                color: (isStudioEditEnabled && !savingStudio) ? '#EF4444' : colors.textSecondary,
-                                border: `1px solid ${(isStudioEditEnabled && !savingStudio) ? '#EF4444' : colors.borderPrimary}`,
-                                borderRadius: '0.5rem', padding: '0.65rem 1.5rem',
-                                fontSize: '0.875rem', fontWeight: 600,
-                                cursor: (isStudioEditEnabled && !savingStudio) ? 'pointer' : 'not-allowed',
-                              }}>
-                              Remove (stop indoor bookings)
-                            </button>
-                          )}
                         </div>
+                      )}
                       </div>
                     </div>
                     );
