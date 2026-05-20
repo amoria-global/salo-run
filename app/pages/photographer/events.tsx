@@ -360,6 +360,12 @@ interface Album {
   expiresAt: string;
   albumType?: 'event' | 'standalone';
   isStandalone?: boolean;
+  // Standalone free-album fields. recipientEmail is the email captured at
+  // album creation (already auto-sent then); "Send" on these is a Resend
+  // via POST /albums/{id}/send-free — no event/eventId needed.
+  isFreeAlbum?: boolean;
+  recipientEmail?: string;
+  accessCode?: string;
   location?: string;
   albumDate?: string;
 }
@@ -463,7 +469,14 @@ const PhotographerEventsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
   const [showAlbumSuccessModal, setShowAlbumSuccessModal] = useState(false);
-  const [albumSuccessMessage, setAlbumSuccessMessage] = useState({ title: '', description: '' });
+  // `status` drives the icon/tone/eyebrow of the result modal — without it
+  // failure messages get the green "Success" check (see the failed-send
+  // screenshot before this fix).
+  const [albumSuccessMessage, setAlbumSuccessMessage] = useState<{
+    title: string;
+    description: string;
+    status?: 'success' | 'error';
+  }>({ title: '', description: '', status: 'success' });
   // Soft delete (dismiss) state
   const [showDismissEventModal, setShowDismissEventModal] = useState(false);
   const [eventToDismiss, setEventToDismiss] = useState<AssignedEvent | null>(null);
@@ -774,7 +787,10 @@ const PhotographerEventsPage = () => {
               sentAt: a.sentAt || a.deliveredAt || '',
               expiresAt: a.expiresAt || '',
               albumType: a.albumType || (a.isStandalone ? 'standalone' : 'event'),
-              isStandalone: a.isStandalone || a.albumType === 'standalone' || false,
+              isStandalone: a.isStandalone || a.albumType === 'standalone' || a.albumType === 'free' || a.albumType === 'paid' || false,
+              isFreeAlbum: a.freeAlbum || a.isFreeAlbum || a.albumType === 'free' || false,
+              recipientEmail: a.recipientEmail || '',
+              accessCode: a.accessCode || '',
               location: a.location || '',
               albumDate: a.albumDate || '',
             }));
@@ -1612,28 +1628,75 @@ const PhotographerEventsPage = () => {
     }
     setEditImages(prev => { const updated = prev.filter((_, i) => i !== index); if (editCoverIndex >= updated.length) setEditCoverIndex(Math.max(0, updated.length - 1)); else if (editCoverIndex === index) setEditCoverIndex(0); else if (editCoverIndex > index) setEditCoverIndex(editCoverIndex - 1); return updated; });
   };
-  const handleToggleFaceRecognition = async (album: Album) => { let inviteCode = album.inviteCode; if (!album.faceRecognitionEnabled && !inviteCode) { try { const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/invite-code`, { method: 'POST' }); if (res.ok) { const result = await res.json(); inviteCode = result?.data?.inviteCode || result?.data?.code || (typeof result?.data === 'string' ? result.data : null); } } catch (err) { console.error('Failed to generate invite code:', err); } } const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode }; setAlbums(prev => prev.map(a => a.id === album.id ? updated : a)); setSelectedAlbum(updated); };
+  // Enabling face recognition = publishing the album to Find-My-Photos (the
+  // backend's POST /albums/{id}/publish creates the Rekognition collection
+  // AND returns the inviteCode). There is no separate /invite-code endpoint;
+  // hitting one before was 404'ing, hence the old "Failed to generate invite
+  // code" error.
+  const handleToggleFaceRecognition = async (album: Album) => {
+    let inviteCode = album.inviteCode;
+    if (!album.faceRecognitionEnabled && !inviteCode) {
+      try {
+        const res = await dashboardAuthFetch(
+          `${apiUrl}/api/remote/photographer/albums/${album.id}/publish`,
+          { method: 'POST' }
+        );
+        if (res.ok) {
+          const result = await res.json();
+          inviteCode = result?.data?.inviteCode
+            || result?.data?.code
+            || (typeof result?.data === 'string' ? result.data : null);
+        }
+      } catch (err) {
+        console.error('Failed to publish album for face recognition:', err);
+      }
+    }
+    const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode };
+    setAlbums(prev => prev.map(a => a.id === album.id ? updated : a));
+    setSelectedAlbum(updated);
+  };
   const handleSendToClient = async (album: Album) => {
     setShowSendModal(false);
+    // Standalone FREE albums were already emailed at creation time, so "Send"
+    // here means RESEND to the captured recipientEmail via /send-free — no
+    // event/eventId required. Event-linked albums use the original /send.
+    const isStandaloneFree = (album.isStandalone || album.albumType === 'standalone')
+      && album.isFreeAlbum;
+    const endpoint = isStandaloneFree
+      ? `${apiUrl}/api/remote/photographer/albums/${album.id}/send-free`
+      : `${apiUrl}/api/remote/photographer/albums/${album.id}/send`;
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/send`, { method: 'POST' });
+      const res = await dashboardAuthFetch(endpoint, { method: 'POST' });
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
         setAlbumSuccessMessage({
-          title: 'Failed to Send Album',
+          status: 'error',
+          title: isStandaloneFree ? 'Failed to Resend Invitation' : 'Failed to Send Album',
           description: errorBody?.message || 'Failed to send album. Please try again.',
         });
         setShowAlbumSuccessModal(true);
         return;
       }
       setAlbums(prev => prev.map(a => a.id === album.id ? { ...a, sharedWithClient: true, shared: true } : a));
+      const recipient = isStandaloneFree
+        ? (album.recipientEmail || 'the recipient')
+        : (album.clientName || 'the client');
       setAlbumSuccessMessage({
-        title: 'Album Sent Successfully',
-        description: `"${album.title}" has been delivered to ${album.clientName}. They can now view and download their photos.`,
+        status: 'success',
+        title: isStandaloneFree ? 'Invitation Resent' : 'Album Sent Successfully',
+        description: isStandaloneFree
+          ? `The invitation for "${album.title}" was resent to ${recipient}.`
+          : `"${album.title}" has been delivered to ${recipient}. They can now view and download their photos.`,
       });
       setShowAlbumSuccessModal(true);
     } catch (err) {
       console.error('Failed to send album:', err);
+      setAlbumSuccessMessage({
+        status: 'error',
+        title: isStandaloneFree ? 'Failed to Resend Invitation' : 'Failed to Send Album',
+        description: 'Network error. Please check your connection and try again.',
+      });
+      setShowAlbumSuccessModal(true);
     }
   };
   const handleDeleteAlbum = async () => { if (!albumToDelete) return; setAlbums(prev => prev.filter(a => a.id !== albumToDelete.id)); setShowDeleteConfirm(false); const id = albumToDelete.id; setAlbumToDelete(null); try { await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${id}`, { method: 'DELETE' }); } catch (err) { console.error('Failed to delete album:', err); } };
@@ -4094,53 +4157,82 @@ const PhotographerEventsPage = () => {
                       boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.18)',
                       overflow: 'hidden', position: 'relative',
                     }}>
-                      {selectedAlbum.clientName.charAt(0).toUpperCase()}
-                      {(() => { const img = selectedAlbum.clientImage || events.find(e => e.id === selectedAlbum.eventId)?.clientImage || ''; return img ? <img src={img} alt={selectedAlbum.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> : null; })()}
+                      {(() => {
+                        const sf = (selectedAlbum.isStandalone || selectedAlbum.albumType === 'standalone') && !!selectedAlbum.isFreeAlbum;
+                        const initial = sf
+                          ? (selectedAlbum.recipientEmail?.charAt(0).toUpperCase() || '@')
+                          : (selectedAlbum.clientName?.charAt(0).toUpperCase() || '?');
+                        return initial;
+                      })()}
+                      {(() => {
+                        const sf = (selectedAlbum.isStandalone || selectedAlbum.albumType === 'standalone') && !!selectedAlbum.isFreeAlbum;
+                        if (sf) return null; // no booked-client image for standalone-free
+                        const img = selectedAlbum.clientImage || events.find(e => e.id === selectedAlbum.eventId)?.clientImage || '';
+                        return img ? <img src={img} alt={selectedAlbum.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> : null;
+                      })()}
                     </div>
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedAlbum.clientName}</div>
-                    <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <i className="bi bi-bookmark-heart-fill" style={{ fontSize: 9, color: '#F20C8F' }} />
-                      Booked client
-                    </div>
-                  </div>
+                  {(() => {
+                    const sf = (selectedAlbum.isStandalone || selectedAlbum.albumType === 'standalone') && !!selectedAlbum.isFreeAlbum;
+                    return (
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sf ? (selectedAlbum.recipientEmail || 'No recipient set') : selectedAlbum.clientName}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <i className={`bi ${sf ? 'bi-envelope-paper-heart-fill' : 'bi-bookmark-heart-fill'}`} style={{ fontSize: 9, color: '#F20C8F' }} />
+                          {sf ? 'Free album recipient · already invited' : 'Booked client'}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
-                {selectedAlbum.sharedWithClient ? (
-                  <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                    color: 'white',
-                    padding: '0.4rem 0.85rem',
-                    borderRadius: 9999,
-                    fontSize: '0.76rem', fontWeight: 700, letterSpacing: '-0.005em',
-                    boxShadow: '0 4px 10px rgba(16,185,129,0.32)',
-                    flexShrink: 0,
-                  }}>
-                    <i className="bi bi-check2-circle" style={{ fontSize: 11 }} /> Delivered
-                  </div>
-                ) : (
-                  <button onClick={() => handleSendToClient(selectedAlbum)} style={{
-                    padding: '0.55rem 1.2rem',
-                    borderRadius: 9999,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                    color: 'white',
-                    fontSize: '0.82rem', fontWeight: 700,
-                    letterSpacing: '-0.005em',
-                    cursor: 'pointer',
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    boxShadow: '0 6px 14px rgba(8,58,133,0.30)',
-                    transition: 'transform 0.15s, box-shadow 0.15s',
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 10px 22px rgba(242,12,143,0.35)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(8,58,133,0.30)'; }}
-                  >
-                    <i className="bi bi-send-fill" style={{ fontSize: 12 }} />
-                    Send Now
-                  </button>
-                )}
+                {(() => {
+                  // Standalone-free albums: the invitation was emailed on
+                  // creation, so the action here is always a Resend (no
+                  // "Delivered" terminal state — they may need it resent
+                  // multiple times). Event-linked albums keep the original
+                  // "Send Now / Delivered" two-state UX.
+                  const sf = (selectedAlbum.isStandalone || selectedAlbum.albumType === 'standalone') && !!selectedAlbum.isFreeAlbum;
+                  if (!sf && selectedAlbum.sharedWithClient) {
+                    return (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                        color: 'white',
+                        padding: '0.4rem 0.85rem',
+                        borderRadius: 9999,
+                        fontSize: '0.76rem', fontWeight: 700, letterSpacing: '-0.005em',
+                        boxShadow: '0 4px 10px rgba(16,185,129,0.32)',
+                        flexShrink: 0,
+                      }}>
+                        <i className="bi bi-check2-circle" style={{ fontSize: 11 }} /> Delivered
+                      </div>
+                    );
+                  }
+                  return (
+                    <button onClick={() => handleSendToClient(selectedAlbum)} style={{
+                      padding: '0.55rem 1.2rem',
+                      borderRadius: 9999,
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      color: 'white',
+                      fontSize: '0.82rem', fontWeight: 700,
+                      letterSpacing: '-0.005em',
+                      cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      boxShadow: '0 6px 14px rgba(8,58,133,0.30)',
+                      transition: 'transform 0.15s, box-shadow 0.15s',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 10px 22px rgba(242,12,143,0.35)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(8,58,133,0.30)'; }}
+                    >
+                      <i className={`bi ${sf ? 'bi-arrow-clockwise' : 'bi-send-fill'}`} style={{ fontSize: 12 }} />
+                      {sf ? 'Resend invitation' : 'Send Now'}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 
@@ -4696,20 +4788,23 @@ const PhotographerEventsPage = () => {
       )}
 
       {/* Album Action Success Modal */}
-      {showAlbumSuccessModal && (
-        <EventConfirmModal
-          tone="success"
-          icon="bi-check2-circle"
-          eyebrow="Success"
-          title={albumSuccessMessage.title}
-          intro={albumSuccessMessage.description}
-          colors={{ bgCard: colors.bgCard, borderPrimary: colors.borderPrimary, textPrimary: colors.textPrimary, textSecondary: colors.textSecondary }}
-          actualTheme={actualTheme}
-          onClose={() => setShowAlbumSuccessModal(false)}
-          closeLabel="Done"
-          fullWidthClose
-        />
-      )}
+      {showAlbumSuccessModal && (() => {
+        const isError = albumSuccessMessage.status === 'error';
+        return (
+          <EventConfirmModal
+            tone={isError ? 'danger' : 'success'}
+            icon={isError ? 'bi-exclamation-octagon-fill' : 'bi-check2-circle'}
+            eyebrow={isError ? 'Failed' : 'Success'}
+            title={albumSuccessMessage.title}
+            intro={albumSuccessMessage.description}
+            colors={{ bgCard: colors.bgCard, borderPrimary: colors.borderPrimary, textPrimary: colors.textPrimary, textSecondary: colors.textSecondary }}
+            actualTheme={actualTheme}
+            onClose={() => setShowAlbumSuccessModal(false)}
+            closeLabel="Done"
+            fullWidthClose
+          />
+        );
+      })()}
 
       {/* Photobook Image Viewer */}
       {/* Resubmit Photobook Confirmation Modal */}
