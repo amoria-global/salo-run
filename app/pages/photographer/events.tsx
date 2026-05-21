@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import StreamPreview from '../../components/StreamPreview';
@@ -400,6 +401,11 @@ const PhotographerEventsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { user, token } = useDashboardAuth();
   const { formatPrice, currencies } = useCurrency();
+  const { hasPermission } = usePermissions();
+  // Owner = implicit all-perms; restricted team members (Editor / Support)
+  // see the events list but can't fire Create Album / send to client.
+  // Add more permission flags here when wrapping additional buttons.
+  const canCreateEvents = hasPermission('events.create');
   const apiUrl = getApiUrl();
 
   const [activeTab, setActiveTab] = useState<'events' | 'albums' | 'photobooks'>(() => {
@@ -2165,7 +2171,8 @@ const PhotographerEventsPage = () => {
                                       <i className="bi bi-broadcast-pin" style={{ fontSize: 11 }} /> {isLive ? 'LIVE' : 'Live Stream'}
                                     </button>
                                   )}
-                                  {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
+                                  {/* Create Album requires events.create — owner always passes; restricted team member without the perm sees the event but no create CTA. */}
+                                  {canCreateEvents && (event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
                                     <button onClick={() => {
                                       if (!event.isPublished) {
                                         setSelectedEvent(event);
@@ -3276,7 +3283,7 @@ const PhotographerEventsPage = () => {
                 </button>
               </div>
             )}
-            {(selectedEvent.status === 'completed' || selectedEvent.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(selectedEvent.id) && (
+            {canCreateEvents && (selectedEvent.status === 'completed' || selectedEvent.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(selectedEvent.id) && (
               <button onClick={() => { setShowEventDetailModal(false); handleOpenCreateAlbum(selectedEvent.id); }} style={{
                 ...primaryBtn,
                 width: '100%',

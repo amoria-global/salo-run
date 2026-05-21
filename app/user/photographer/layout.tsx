@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDashboardAuth } from '@/app/providers/AuthProvider';
+import RouteGuard from '@/app/components/RouteGuard';
 
 /**
  * Photographer-area layout. Wraps every /user/photographer/** route.
@@ -53,5 +54,9 @@ export default function PhotographerLayout({ children }: { children: React.React
     router.replace(`${PROFILE_PATH}?completionRequired=1`);
   }, [user, isAuthenticated, isLoading, pathname, router]);
 
-  return <>{children}</>;
+  // RouteGuard consults ROUTE_RULES in app/lib/routePermissions and
+  // bounces restricted team members to /user/not-authorized when the
+  // current pathname requires permissions they don't hold. Owners
+  // pass every gate; this is pure UX (server still enforces).
+  return <RouteGuard>{children}</RouteGuard>;
 }
