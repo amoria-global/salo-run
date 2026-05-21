@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDashboardAuth } from '@/app/providers/AuthProvider';
+import { usePermissions } from '@/app/lib/usePermissions';
 import RouteGuard from '@/app/components/RouteGuard';
 
 /**
@@ -28,6 +29,7 @@ const PROFILE_PATH = '/user/photographer/profile';
 
 export default function PhotographerLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useDashboardAuth();
+  const { isOwner, loading: permsLoading } = usePermissions();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -38,6 +40,16 @@ export default function PhotographerLayout({ children }: { children: React.React
     const type = (user.customerType || '').toUpperCase();
     const isPhotographerLike = type === 'PHOTOGRAPHER' || type === 'VIDEOGRAPHER';
     if (!isPhotographerLike) return;
+
+    // ── Team-member exemption (RBAC) ──
+    // The profile-completion gate only applies to the organization owner.
+    // An invited team member inherits the owner's customerType so the
+    // dashboard role-routing keeps working, but they don't have their own
+    // profile to complete — bouncing them to /profile would lock them out
+    // of the dashboard forever with no way to finish setup. Wait for the
+    // permissions fetch to resolve, then bypass the gate when isOwner=false.
+    if (permsLoading) return;
+    if (!isOwner) return;
 
     // Missing field means stale session — let it through. AuthProvider's
     // own fetch will populate it shortly.
@@ -52,7 +64,7 @@ export default function PhotographerLayout({ children }: { children: React.React
     // user navigating to /profile on their own). It uses it to surface a
     // one-shot toast and auto-jump to the first incomplete section.
     router.replace(`${PROFILE_PATH}?completionRequired=1`);
-  }, [user, isAuthenticated, isLoading, pathname, router]);
+  }, [user, isAuthenticated, isLoading, pathname, router, isOwner, permsLoading]);
 
   // RouteGuard consults ROUTE_RULES in app/lib/routePermissions and
   // bounces restricted team members to /user/not-authorized when the

@@ -25,13 +25,12 @@ interface NavigationItem {
   requires?: string[];
 }
 
-// Team items shown to every business role (not admin). Each item declares
-// its required permission(s); items where the caller doesn't satisfy the
-// gate are filtered out below. Owners pass every gate.
+// Single Team entry-point. The /user/team layout already renders an
+// internal tab strip for Users / Roles / Permissions, so duplicating
+// those as separate sidebar items would be redundant. Hidden entirely
+// for restricted team members who can't see any of those sub-tabs.
 const TEAM_ITEMS: NavigationItem[] = [
-  { name: "Team Users", href: "/user/team/users", icon: "bi-people-fill", group: 'Team', requires: ['users.view'] },
-  { name: "Roles", href: "/user/team/roles", icon: "bi-shield-lock", group: 'Team', requires: ['roles.view'] },
-  { name: "Permissions", href: "/user/team/permissions", icon: "bi-key", group: 'Team', requires: ['roles.view', 'users.view'] },
+  { name: "Team", href: "/user/team/users", icon: "bi-people-fill", group: 'Team', requires: ['users.view', 'roles.view'] },
 ];
 
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
