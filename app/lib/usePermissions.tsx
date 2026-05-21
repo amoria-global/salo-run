@@ -26,6 +26,11 @@ export interface PermissionContextValue {
   roleId: string | null;
   roleName: string | null;
   permissions: Set<string>;
+  /** True iff the backend says this user must change their password
+   *  before they can use the dashboard. Set by the invite flow on
+   *  team members (TeamService.inviteTeamMember sets
+   *  isPasswordChanged=false) and cleared by /set-new-password. */
+  mustChangePassword: boolean;
   hasPermission: (perm: string) => boolean;
   hasAny: (perms: string[]) => boolean;
   hasAll: (perms: string[]) => boolean;
@@ -40,6 +45,7 @@ const defaultCtx: PermissionContextValue = {
   roleId: null,
   roleName: null,
   permissions: new Set(),
+  mustChangePassword: false,
   hasPermission: () => false,
   hasAny: () => false,
   hasAll: () => false,
@@ -57,6 +63,7 @@ interface MePermsResponse {
     roleId?: string | null;
     roleName?: string | null;
     permissions?: string[];
+    mustChangePassword?: boolean;
   };
 }
 
@@ -76,6 +83,7 @@ interface CachedSnapshot {
   roleId: string | null;
   roleName: string | null;
   permissions: string[];
+  mustChangePassword?: boolean;
   ts: number;
 }
 
@@ -122,6 +130,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       roleId: cached.roleId,
       roleName: cached.roleName,
       permissions: perms,
+      mustChangePassword: !!cached.mustChangePassword,
       hasPermission: (p: string) => perms.has(p),
       hasAny: (ps: string[]) => ps.some(p => perms.has(p)),
       hasAll: (ps: string[]) => ps.every(p => perms.has(p)),
@@ -160,6 +169,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
         roleId: d.roleId ?? null,
         roleName: d.roleName ?? null,
         permissions: Array.from(perms),
+        mustChangePassword: !!d.mustChangePassword,
       };
       writeCache(user?.id ?? null, snap);
       setState({
