@@ -46,8 +46,14 @@ export default function PhotographerLayout({ children }: { children: React.React
     // An invited team member inherits the owner's customerType so the
     // dashboard role-routing keeps working, but they don't have their own
     // profile to complete — bouncing them to /profile would lock them out
-    // of the dashboard forever with no way to finish setup. Wait for the
-    // permissions fetch to resolve, then bypass the gate when isOwner=false.
+    // of the dashboard forever with no way to finish setup. The flag comes
+    // straight off the user object (PhotographerResponseDTO.isTeamMember)
+    // so no async /me/permissions fetch is needed for this gate to fire
+    // correctly on the very first render.
+    if (user.isTeamMember === true) return;
+    // Belt-and-braces: usePermissions().isOwner is still correct once
+    // perms have loaded; keep the check as a backup for any edge case
+    // where the profile endpoint hasn't yet shipped isTeamMember.
     if (permsLoading) return;
     if (!isOwner) return;
 

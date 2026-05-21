@@ -142,6 +142,17 @@ export interface DashboardUser {
    * shadow it with a client-side recomputation.
    */
   completionPercentage?: number;
+  /**
+   * RBAC team-member flags from the backend (PhotographerResponseDTO).
+   * isTeamMember=true means this signed-in customer is an invited member
+   * under another customer (the owner of `organizationOwnerId`). The
+   * dashboard reads isTeamMember to bypass owner-only gates such as the
+   * profile-completion redirect — team members don't own that profile.
+   * Synced on every profile refresh, so no async permission round-trip
+   * is needed for first-render decisions.
+   */
+  organizationOwnerId?: string;
+  isTeamMember?: boolean;
 }
 
 /**
@@ -368,6 +379,8 @@ function mapProfileData(data: any): DashboardUser {
     preferredWithdrawalVerification: data.preferredWithdrawalVerification || 'EMAIL_OTP',
     twoFactorEnabled: data.twoFactorEnabled === true,
     completionPercentage: typeof data.completionPercentage === 'number' ? data.completionPercentage : undefined,
+    organizationOwnerId: data.organizationOwnerId || undefined,
+    isTeamMember: data.isTeamMember === true,
   };
 }
 
