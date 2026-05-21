@@ -614,6 +614,27 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         throw new Error(`Failed to save ${pkg.packageName}: ${response.status} ${errorText}`);
       }
 
+      // Swap the local temporary id (Date.now-based) for the backend UUID
+      // so subsequent edits PUT to the right /packages/{uuid} URL and the
+      // editor-vs-summary toggle (which keys off isUUID(pkg.id)) treats this
+      // row as a saved one. Outdoor sees this too — harmless because the
+      // UUID just replaces an equivalent id.
+      try {
+        const body = await response.json();
+        const newId = body?.data?.id;
+        if (newId && typeof newId === 'string' && newId !== pkg.id) {
+          setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, id: newId } : p));
+        }
+      } catch { /* response body parse is best-effort */ }
+
+      // Studio packages: collapse the editor card after a successful save
+      // so the photographer is left with only the summary card preview.
+      // Outdoor keeps the existing inline-expanded behavior (its editor body
+      // is gated by expandedPackageId already).
+      if (pkg.serviceType === 'STUDIO') {
+        setExpandedPackageId(null);
+      }
+
       showToast('success', `Package "${pkg.packageName}" saved successfully`);
     } catch (error) {
       console.error('Error saving package:', error);
@@ -5300,7 +5321,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                        {studioPackages.map((pkg) => {
+                        {studioPackages.filter(pkg => {
+                          // Only show the editor card while the package is
+                          // unsaved (temp id) OR the photographer explicitly
+                          // re-opened it for editing from the summary below.
+                          // Persisted packages collapse to their summary
+                          // card after Save — clicking that card sets
+                          // expandedPackageId and brings the editor back.
+                          const isPersisted = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pkg.id);
+                          return !isPersisted || expandedPackageId === pkg.id;
+                        }).map((pkg) => {
                           const tierColor = pkg.packageName && TIER_COLORS[pkg.packageName];
                           return (
                             <div key={pkg.id} style={{
