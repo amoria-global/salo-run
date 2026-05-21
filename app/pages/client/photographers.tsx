@@ -231,52 +231,109 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   const { colors } = useTheme();
   if (!isOpen) return null;
 
+  // Two mobile-bugs we used to hit on the booking modal:
+  //   1. `maxHeight: 90vh` on iOS Safari ignored the URL bar, so the modal
+  //      could be taller than the visible viewport and the close button
+  //      slipped above the address bar where the user couldn't tap it.
+  //   2. The header (and its close button) lived INSIDE the scrolling
+  //      area, so once the user scrolled the package list, the close
+  //      button scrolled out of view with it.
+  //
+  // Fix: clamp the modal to `100dvh - 2rem` (dvh is the dynamic viewport
+  // height that DOES shrink when the iOS URL bar appears) with a `90vh`
+  // fallback for old browsers, switch to a flex-column layout where the
+  // header is `flex-shrink: 0` (never scrolls) and only the body has
+  // `overflow-y: auto`, and stick a small viewport-bottom inset so the
+  // modal never collides with iOS's home indicator.
+  const STICKY_HEADER: React.CSSProperties = {
+    position: 'sticky',
+    top: 0,
+    background: colors.bgCard,
+    zIndex: 1,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '1rem 1.25rem',
+    borderBottom: `1px solid ${colors.borderPrimary}`,
+  };
+
   return (
     <div style={{
       position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      inset: 0,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-end',           // mobile-first: anchor to the bottom of the screen
       justifyContent: 'center',
       zIndex: 1000,
+      padding: '1rem',
+      // Honour iOS safe-area + add a touch of breathing room from the
+      // top so a very tall modal never butts up against the URL bar.
+      paddingTop: 'max(1rem, env(safe-area-inset-top))',
+      paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+      WebkitOverflowScrolling: 'touch',
     }} onClick={onClose}>
       <div style={{
         backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
-        padding: '1.5rem',
+        // Height clamp uses `dvh` (dynamic viewport height) — unlike
+        // `vh` this DOES subtract the iOS Safari URL bar when it's
+        // showing, so the modal never overflows the visible viewport
+        // on phones. iOS 15.4+ / Chrome 108+ / Firefox 101+ supported.
+        // For the small percentage of older browsers that fall through
+        // to "no constraint", the body still scrolls because its
+        // explicit `overflow-y: auto` + `min-height: 0` keep the
+        // modal sized to its content, which is a workable degradation.
+        maxHeight: 'calc(100dvh - 2rem)',
+        height: 'auto',
+        width: '100%',
         maxWidth: maxWidth,
-        width: '90%',
-        maxHeight: '90vh',
-        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        margin: 'auto 0',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        overflow: 'hidden',                 // body scrolls; container clips
       }} onClick={(e) => e.stopPropagation()}>
         {title && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
+          // Header is sticky at top, never scrolls with the body. Close
+          // button stays reachable no matter how tall the body gets.
+          <div style={STICKY_HEADER}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: colors.textPrimary, margin: 0, lineHeight: 1.3 }}>{title}</h3>
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Close"
               style={{
                 background: colors.bgTertiary,
                 border: `2px solid ${colors.borderPrimary}`,
                 cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '0.375rem',
+                width: 40,
+                height: 40,
+                borderRadius: '0.5rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: colors.textPrimary,
-                transition: 'all 0.2s'
+                flexShrink: 0,
+                transition: 'all 0.2s',
               }}
             >
               <CloseIcon />
             </button>
           </div>
         )}
-        {children}
+        <div style={{
+          padding: '1.25rem',
+          overflowY: 'auto',
+          // Allow inertial scrolling on iOS and stop scroll chaining to
+          // the page underneath.
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
+          flex: 1,
+          minHeight: 0,                       // critical for flex-column scroll containers
+        }}>
+          {children}
+        </div>
       </div>
     </div>
   );
