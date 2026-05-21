@@ -8,6 +8,7 @@ import { DashboardAuthProvider } from "./providers/AuthProvider";
 import { ThemeProvider } from "./context/ThemeContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
+import { PermissionProvider } from "./lib/usePermissions";
 import PlatformAlert from "./components/PlatformAlert";
 
 const pragatiNarrow = Pragati_Narrow({
@@ -36,15 +37,17 @@ export default function RootLayout({
       </head>
       <body className={`${pragatiNarrow.variable} font-sans antialiased`}>
         <DashboardAuthProvider>
-          <ThemeProvider>
-            <CurrencyProvider>
-              <UserProfileProvider>
-                {children}
-                {/* Global platform alert — replaces native browser alert() with brand-styled modal. */}
-                <PlatformAlert />
-              </UserProfileProvider>
-            </CurrencyProvider>
-          </ThemeProvider>
+          <PermissionProvider>
+            <ThemeProvider>
+              <CurrencyProvider>
+                <UserProfileProvider>
+                  {children}
+                  {/* Global platform alert — replaces native browser alert() with brand-styled modal. */}
+                  <PlatformAlert />
+                </UserProfileProvider>
+              </CurrencyProvider>
+            </ThemeProvider>
+          </PermissionProvider>
         </DashboardAuthProvider>
       </body>
     </html>

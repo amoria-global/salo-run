@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
+import { usePermissions } from "../lib/usePermissions";
 import { getLandingUrl } from "@/lib/urls";
 import { getApiUrl } from '@/lib/api';
 import Modal from './ui/Modal';
@@ -17,42 +18,59 @@ interface NavigationItem {
   icon: string;
   badge?: number;
   group?: string;
+  // Optional permission gate. If set, the item is hidden when the
+  // caller's permission set doesn't include any of these names.
+  // Owners hold every permission so this only ever hides items for
+  // restricted team members.
+  requires?: string[];
 }
+
+// Team items shown to every business role (not admin). Each item declares
+// its required permission(s); items where the caller doesn't satisfy the
+// gate are filtered out below. Owners pass every gate.
+const TEAM_ITEMS: NavigationItem[] = [
+  { name: "Team Users", href: "/user/team/users", icon: "bi-people-fill", group: 'Team', requires: ['users.view'] },
+  { name: "Roles", href: "/user/team/roles", icon: "bi-shield-lock", group: 'Team', requires: ['roles.view'] },
+  { name: "Permissions", href: "/user/team/permissions", icon: "bi-key", group: 'Team', requires: ['roles.view', 'users.view'] },
+];
 
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   photographer: [
     { name: "Home", href: "/user/photographer/dashboard", icon: "bi-house-door", group: 'Overview' },
     { name: "Notifications", href: "/user/photographer/notifications", icon: "bi-bell", group: 'Overview' },
-    { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots", group: 'Overview' },
-    { name: "Events", href: "/user/photographer/events", icon: "bi-calendar-event", group: 'Work' },
-    { name: "Clients", href: "/user/photographer/clients", icon: "bi-people", group: 'Work' },
-    { name: "Wallet", href: "/user/photographer/wallet", icon: "bi-wallet2", group: 'Money' },
-    { name: "Transactions", href: "/user/photographer/transaction", icon: "bi-arrow-left-right", group: 'Money' },
+    { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots", group: 'Overview', requires: ['messages.view'] },
+    { name: "Events", href: "/user/photographer/events", icon: "bi-calendar-event", group: 'Work', requires: ['events.view'] },
+    { name: "Clients", href: "/user/photographer/clients", icon: "bi-people", group: 'Work', requires: ['bookings.view'] },
+    { name: "Wallet", href: "/user/photographer/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
+    { name: "Transactions", href: "/user/photographer/transaction", icon: "bi-arrow-left-right", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/photographer/donate", icon: "bi-heart", group: 'Money' },
+    ...TEAM_ITEMS,
   ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house-door", group: 'Overview' },
     { name: "Notifications", href: "/user/client/notifications", icon: "bi-bell", group: 'Overview' },
-    { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots", group: 'Overview' },
-    { name: "My Events", href: "/user/client/events", icon: "bi-calendar-event", group: 'Work' },
+    { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots", group: 'Overview', requires: ['messages.view'] },
+    { name: "My Events", href: "/user/client/events", icon: "bi-calendar-event", group: 'Work', requires: ['events.view'] },
     { name: "Streams", href: "/user/client/streams", icon: "bi-broadcast", group: 'Work' },
     { name: "Gallery", href: "/user/client/gallery", icon: "bi-image", group: 'Work' },
-    { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera", group: 'Work' },
-    { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card", group: 'Money' },
-    { name: "Wallet", href: "/user/client/wallet", icon: "bi-wallet2", group: 'Money' },
+    { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera", group: 'Work', requires: ['bookings.view'] },
+    { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card", group: 'Money', requires: ['payments.view'] },
+    { name: "Wallet", href: "/user/client/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/client/donate", icon: "bi-heart", group: 'Money' },
+    ...TEAM_ITEMS,
   ],
   "event-coordinator": [
     { name: "Home", href: "/user/event-coordinator/home", icon: "bi-house-door", group: 'Overview' },
     { name: "Notifications", href: "/user/event-coordinator/notifications", icon: "bi-bell", group: 'Overview' },
-    { name: "Inbox", href: "/user/event-coordinator/inbox", icon: "bi-chat-dots", group: 'Overview' },
-    { name: "My Events", href: "/user/event-coordinator/events", icon: "bi-calendar-event", group: 'Work' },
+    { name: "Inbox", href: "/user/event-coordinator/inbox", icon: "bi-chat-dots", group: 'Overview', requires: ['messages.view'] },
+    { name: "My Events", href: "/user/event-coordinator/events", icon: "bi-calendar-event", group: 'Work', requires: ['events.view'] },
     { name: "Streams", href: "/user/event-coordinator/streams", icon: "bi-broadcast", group: 'Work' },
     { name: "Gallery", href: "/user/event-coordinator/gallery", icon: "bi-image", group: 'Work' },
-    { name: "Photographers", href: "/user/event-coordinator/photographers", icon: "bi-camera", group: 'Work' },
-    { name: "Payments", href: "/user/event-coordinator/payments", icon: "bi-credit-card", group: 'Money' },
-    { name: "Wallet", href: "/user/event-coordinator/wallet", icon: "bi-wallet2", group: 'Money' },
+    { name: "Photographers", href: "/user/event-coordinator/photographers", icon: "bi-camera", group: 'Work', requires: ['bookings.view'] },
+    { name: "Payments", href: "/user/event-coordinator/payments", icon: "bi-credit-card", group: 'Money', requires: ['payments.view'] },
+    { name: "Wallet", href: "/user/event-coordinator/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/event-coordinator/donate", icon: "bi-heart", group: 'Money' },
+    ...TEAM_ITEMS,
   ],
   admin: [
     { name: "Wallets", href: "/user/admin/wallets", icon: "bi-wallet2", group: 'Admin' },
@@ -94,6 +112,9 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { logout, user } = useDashboardAuth();
+  // hasAny() reads from the permission set fetched by PermissionProvider.
+  // Until that resolves, the set is empty so gated items stay hidden.
+  const { hasAny } = usePermissions();
   const currentUserId = user?.id || '';
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -162,11 +183,20 @@ export default function Sidebar() {
     && !!user
     && (user.profileReviewStatus?.toUpperCase?.() ?? 'ACCEPTED') !== 'ACCEPTED';
 
-  const navigationItems = roleNavigationMap[currentRole].map(item => {
-    if (item.name === "Notifications") return { ...item, badge: notificationCount };
-    if (item.name === "Inbox") return { ...item, badge: messageCount };
-    return item;
-  });
+  const navigationItems = roleNavigationMap[currentRole]
+    // Strict permission gate: items with `requires` are hidden until the
+    // permission fetch confirms the caller holds at least one of them.
+    // No fail-open during loading — a team member without the perm must
+    // NEVER see the tab, not even for a frame (was causing a flash of
+    // restricted items on initial render). Owners see un-gated items
+    // immediately and the rest pop in once /api/remote/team/me/permissions
+    // resolves (usually <300ms).
+    .filter(item => !item.requires || hasAny(item.requires))
+    .map(item => {
+      if (item.name === "Notifications") return { ...item, badge: notificationCount };
+      if (item.name === "Inbox") return { ...item, badge: messageCount };
+      return item;
+    });
   const bottomNavigationItems = getBottomNavigationItems(currentRole);
 
   const groups = useMemo(() => {

@@ -8,6 +8,7 @@ import WalletMovementsTable from '../../components/WalletMovementsTable';
 import WithdrawModal from '../../components/WithdrawModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
+import { Can } from '@/app/lib/usePermissions';
 import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
 
 export default function EventCoordinatorWalletPage() {
@@ -59,10 +60,12 @@ export default function EventCoordinatorWalletPage() {
                 {user?.firstName ? `${user.firstName}, your` : 'Your'} event payments, stream revenue, and balance.
               </p>
             </div>
-            <button onClick={() => setShowWithdrawModal(true)} className="ck-btn ck-btn-primary"
-              style={{ padding: '11px 20px', fontSize: '0.92rem' }}>
-              <i className="bi bi-bank" /> Withdraw funds
-            </button>
+            <Can permission="payments.manage">
+              <button onClick={() => setShowWithdrawModal(true)} className="ck-btn ck-btn-primary"
+                style={{ padding: '11px 20px', fontSize: '0.92rem' }}>
+                <i className="bi bi-bank" /> Withdraw funds
+              </button>
+            </Can>
           </header>
 
           {loading && (
