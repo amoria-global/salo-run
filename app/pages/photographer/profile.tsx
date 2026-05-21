@@ -5461,6 +5461,141 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         </div>
                       )}
                       </div>
+
+                      {/* Listed Studio Packages Summary — mirrors the outdoor
+                          summary above so the saved indoor packages also
+                          appear as compact cards. Per spec these omit the
+                          features/offers list (studio sessions are priced
+                          on the included photos/videos + duration, not on
+                          a list of perks). */}
+                      {studioPackages.filter(p => p.packageName).length > 0 && (
+                        <div style={{ marginTop: '1.5rem' }}>
+                          <div style={sectionTitleStyle}>
+                            <span>Your Listed Indoor Studio Packages</span>
+                          </div>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                            gap: '1rem',
+                          }}>
+                            {studioPackages.filter(p => p.packageName).sort((a, b) => (PACKAGE_TIER[a.packageName] ?? 99) - (PACKAGE_TIER[b.packageName] ?? 99)).map((pkg) => {
+                              const tierColor = TIER_COLORS[pkg.packageName] || { bg: colors.bgTertiary, text: colors.textPrimary, border: colors.borderPrimary, gradient: accent, glow: accentBg };
+                              const currencyCode = currencies.find(c => c.id === pkg.currencyId || c.code === pkg.currencyId)?.code || 'RWF';
+                              return (
+                                <div key={pkg.id} style={{
+                                  backgroundColor: colors.bgCard,
+                                  borderRadius: '1rem',
+                                  padding: 0,
+                                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                                  display: 'flex', flexDirection: 'column',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  overflow: 'hidden',
+                                  boxShadow: '0 2px 8px -2px rgba(0,0,0,0.08)',
+                                }}
+                                onClick={() => setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id)}
+                                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 8px 24px -4px rgba(0,0,0,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px -2px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                >
+                                  {/* Top metallic gradient bar — same tier colors as the outdoor cards */}
+                                  <div style={{ height: 3, background: tierColor.gradient }} />
+
+                                  <div style={{ padding: '0.9rem 1rem 0.75rem' }}>
+                                    {/* Header: name + Indoor tag */}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem', gap: 8 }}>
+                                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                                        {pkg.packageName}
+                                      </h4>
+                                      <span style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                                        fontSize: '0.62rem', fontWeight: 800,
+                                        padding: '0.22rem 0.6rem',
+                                        borderRadius: 9999,
+                                        letterSpacing: '0.08em', textTransform: 'uppercase' as const,
+                                        background: accentBg,
+                                        color: accent,
+                                        border: `1px solid ${accentBorder}`,
+                                      }}>
+                                        <i className="bi bi-camera2" style={{ fontSize: 9 }} /> Indoor
+                                      </span>
+                                    </div>
+
+                                    {/* Price */}
+                                    {pkg.price && (
+                                      <div style={{ marginBottom: '0.55rem' }}>
+                                        <span style={{
+                                          fontSize: '1.6rem', fontWeight: 800,
+                                          letterSpacing: '-0.02em',
+                                          background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                                          WebkitBackgroundClip: 'text',
+                                          WebkitTextFillColor: 'transparent',
+                                          backgroundClip: 'text',
+                                        }}>
+                                          {parseFloat(pkg.price).toLocaleString()}
+                                        </span>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: colors.textSecondary, marginLeft: '0.35rem' }}>{currencyCode}</span>
+                                      </div>
+                                    )}
+
+                                    {/* Delivery chip (studio sessions don't have durationHours displayed here — the
+                                        compact form doesn't capture it) */}
+                                    {pkg.deliveryDays && parseInt(pkg.deliveryDays) > 0 && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                                        <span style={{
+                                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                                          fontSize: '0.74rem', color: colors.textPrimary, fontWeight: 600,
+                                          backgroundColor: colors.bgTertiary,
+                                          border: `1px solid ${colors.borderPrimary}`,
+                                          padding: '0.18rem 0.55rem',
+                                          borderRadius: 9999,
+                                        }}>
+                                          <i className="bi bi-calendar-event-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
+                                          {pkg.deliveryDays}-day delivery
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Media coverage */}
+                                    <p style={{
+                                      fontSize: '0.75rem', fontWeight: 700,
+                                      color: pkg.packageName === 'Diamond' ? '#3B82F6' : colors.textSecondary,
+                                      margin: 0,
+                                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                                    }}>
+                                      <i className="bi bi-images" style={{ fontSize: 10, color: '#F20C8F' }} />
+                                      {[pkg.includedPhotos ? `${pkg.includedPhotos} photos` : '', pkg.includedVideos ? `${pkg.includedVideos} videos` : ''].filter(Boolean).join(' · ') || 'Set photo/video count'}
+                                    </p>
+                                  </div>
+
+                                  {/* Footer: active status (no features list, no live-stream badge) */}
+                                  <div style={{
+                                    padding: '0.55rem 1rem',
+                                    borderTop: `1px solid ${colors.borderPrimary}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    gap: 6,
+                                  }}>
+                                    <span style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                                      fontSize: '0.62rem', fontWeight: 800,
+                                      padding: '0.18rem 0.55rem',
+                                      borderRadius: 9999,
+                                      letterSpacing: '0.06em', textTransform: 'uppercase' as const,
+                                      background: pkg.isActive
+                                        ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                                        : 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)',
+                                      color: '#fff',
+                                      boxShadow: pkg.isActive ? '0 3px 8px rgba(16,185,129,0.28)' : 'none',
+                                    }}>
+                                      {pkg.isActive && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 6px #fff' }} />}
+                                      {pkg.isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     );
                     })()}
