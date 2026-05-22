@@ -66,6 +66,10 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
   const [showCreate, setShowCreate] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<ContentAlbumDto | null>(null);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED'>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
 
   const apiUrl = useMemo(() => getApiUrl(), []);
 
@@ -102,6 +106,28 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
     }
   };
   useEffect(() => { void refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  const handleDelete = async (album: ContentAlbumDto) => {
+    if (!confirm(`Delete content album "${album.title}"? Photos and the cover image will be removed from storage. This cannot be undone.`)) return;
+    setDeletingId(album.id);
+    try {
+      const res = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/photographer/albums/${album.id}`,
+        { method: 'DELETE' }
+      );
+      const j = await res.json().catch(() => ({} as Record<string, unknown>));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = j;
+      if (!res.ok || data?.action === 0) {
+        throw new Error(data?.message || `HTTP ${res.status}`);
+      }
+      await refresh();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleSubmitForApproval = async (id: string) => {
     if (!confirm('Submit this content album for admin approval? You won\'t be able to edit it while it\'s pending.')) return;
@@ -171,20 +197,114 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
         />
       )}
 
-      {loading ? (
-        <div style={{ color: '#6b7280', padding: '16px 0' }}>Loading…</div>
-      ) : albums.length === 0 ? (
-        <div style={{
-          background: '#fff', border: '1px dashed #d1d5db', borderRadius: 12,
-          padding: 36, textAlign: 'center', color: '#6b7280',
-        }}>
-          {hasPermission('albums.create')
-            ? <>No content albums yet. Click <strong>+ New content album</strong> to create one.</>
-            : <>No content albums yet. Ask an owner to grant you <code>albums.create</code> to publish.</>}
+      {/* Filters + search — only show once we have at least one album so an
+          empty workspace doesn't look intimidating. */}
+      {!loading && albums.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+          {/* Status chips */}
+          <div style={{ display: 'inline-flex', gap: 4, background: '#f3f4f6', padding: 4, borderRadius: 999 }}>
+            {([
+              { key: 'ALL',              label: 'All',      count: albums.length },
+              { key: 'DRAFT',            label: 'Draft',    count: albums.filter(a => a.contentApprovalStatus === 'DRAFT').length },
+              { key: 'PENDING_APPROVAL', label: 'Pending',  count: albums.filter(a => a.contentApprovalStatus === 'PENDING_APPROVAL').length },
+              { key: 'APPROVED',         label: 'Approved', count: albums.filter(a => a.contentApprovalStatus === 'APPROVED').length },
+              { key: 'REJECTED',         label: 'Rejected', count: albums.filter(a => a.contentApprovalStatus === 'REJECTED').length },
+            ] as const).map(c => {
+              const active = statusFilter === c.key;
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onClick={() => setStatusFilter(c.key as any)}
+                  style={{
+                    padding: '6px 12px', fontSize: 12.5, fontWeight: 700,
+                    color: active ? '#fff' : '#374151',
+                    background: active ? '#111' : 'transparent',
+                    border: 'none', borderRadius: 999, cursor: 'pointer',
+                  }}
+                >
+                  {c.label} <span style={{ opacity: 0.7, fontWeight: 600 }}>· {c.count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Category dropdown (only categories that actually appear in the list) */}
+          <select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            style={{ ...inp, width: 180, marginTop: 0 }}
+          >
+            <option value="">All categories</option>
+            {Array.from(new Set(albums.map(a => a.contentCategory).filter(Boolean)))
+              .map(cat => {
+                const label = categories.find(c => c.name === cat)?.label || cat;
+                return <option key={cat} value={cat as string}>{label}</option>;
+              })}
+          </select>
+
+          {/* Search */}
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
+            <i className="bi bi-search" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 13 }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by title…"
+              style={{ ...inp, paddingLeft: 32, marginTop: 0 }}
+            />
+          </div>
         </div>
-      ) : (
+      )}
+
+      {(() => {
+        // Apply filters + search to the loaded list.
+        const filtered = albums.filter(a => {
+          if (statusFilter !== 'ALL' && a.contentApprovalStatus !== statusFilter) return false;
+          if (categoryFilter && a.contentCategory !== categoryFilter) return false;
+          if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            if (!(a.title || '').toLowerCase().includes(q)) return false;
+          }
+          return true;
+        });
+        const filtersActive = statusFilter !== 'ALL' || !!categoryFilter || !!search.trim();
+
+        if (loading) {
+          return <div style={{ color: '#6b7280', padding: '16px 0' }}>Loading…</div>;
+        }
+        if (albums.length === 0) {
+          return (
+            <div style={{
+              background: '#fff', border: '1px dashed #d1d5db', borderRadius: 12,
+              padding: 36, textAlign: 'center', color: '#6b7280',
+            }}>
+              {hasPermission('albums.create')
+                ? <>No content albums yet. Click <strong>+ New content album</strong> to create one.</>
+                : <>No content albums yet. Ask an owner to grant you <code>albums.create</code> to publish.</>}
+            </div>
+          );
+        }
+        if (filtered.length === 0) {
+          return (
+            <div style={{
+              background: '#fff', border: '1px dashed #d1d5db', borderRadius: 12,
+              padding: 30, textAlign: 'center', color: '#6b7280',
+            }}>
+              No content albums match your filters.
+              {filtersActive && (
+                <> <button type="button" onClick={() => { setStatusFilter('ALL'); setCategoryFilter(''); setSearch(''); }}
+                  style={{ background: 'transparent', border: 'none', color: '#F20C8F', cursor: 'pointer', fontWeight: 700 }}>
+                  Clear filters
+                </button></>
+              )}
+            </div>
+          );
+        }
+
+        return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
-          {albums.map(a => (
+          {filtered.map(a => (
             <article key={a.id} style={{
               background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden',
               display: 'flex', flexDirection: 'column',
@@ -251,12 +371,32 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
                       </Can>
                     </>
                   )}
+                  {/* Delete — available on DRAFT/REJECTED. Backend cascades
+                      to disk (FileUploadHelper.deleteFile on each image +
+                      cover) so this is the only step needed to free
+                      storage. PENDING/APPROVED stay non-deletable from
+                      this UI; pull them down via admin if necessary. */}
+                  {(a.contentApprovalStatus === 'DRAFT' || a.contentApprovalStatus === 'REJECTED') && (
+                    <Can permission="albums.delete">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(a)}
+                        disabled={deletingId === a.id}
+                        style={btnDangerSm}
+                        aria-label="Delete content album"
+                      >
+                        <i className="bi bi-trash" style={{ marginRight: 4 }} />
+                        {deletingId === a.id ? 'Deleting…' : 'Delete'}
+                      </button>
+                    </Can>
+                  )}
                 </div>
               </div>
             </article>
           ))}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -563,6 +703,11 @@ const iconRemoveBtn: React.CSSProperties = {
 const btnSecondarySm: React.CSSProperties = {
   padding: '6px 12px', fontSize: 12.5, fontWeight: 600, borderRadius: 8,
   background: '#fff', color: '#374151', border: '1px solid #d1d5db', cursor: 'pointer',
+  display: 'inline-flex', alignItems: 'center',
+};
+const btnDangerSm: React.CSSProperties = {
+  padding: '6px 12px', fontSize: 12.5, fontWeight: 600, borderRadius: 8,
+  background: '#fff', color: '#dc2626', border: '1px solid #fecaca', cursor: 'pointer',
   display: 'inline-flex', alignItems: 'center',
 };
 
