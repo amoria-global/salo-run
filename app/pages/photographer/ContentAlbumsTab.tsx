@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { Can, usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl } from '@/lib/api';
@@ -273,10 +273,42 @@ function CreateContentAlbumModal({
   const [pricePerImage, setPricePerImage] = useState('');
   const [currencyId, setCurrencyId] = useState(defaultCurrencyId || '');
   const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [images, setImages] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [photosDragOver, setPhotosDragOver] = useState(false);
+  const [coverDragOver, setCoverDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const photosInputRef = useRef<HTMLInputElement | null>(null);
   const apiUrl = useMemo(() => getApiUrl(), []);
+
+  // Generate object URLs for preview thumbnails. Revoke on cleanup to
+  // avoid the memory leak the browser silently accumulates otherwise.
+  useEffect(() => {
+    const urls = images.map(f => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => { urls.forEach(u => URL.revokeObjectURL(u)); };
+  }, [images]);
+  useEffect(() => {
+    if (!coverImage) { setCoverPreview(null); return; }
+    const u = URL.createObjectURL(coverImage);
+    setCoverPreview(u);
+    return () => { URL.revokeObjectURL(u); };
+  }, [coverImage]);
+
+  const onlyImages = (files: FileList | File[] | null) =>
+    Array.from(files || []).filter(f => f.type.startsWith('image/'));
+
+  const addPhotos = (files: FileList | File[] | null) => {
+    const next = onlyImages(files);
+    if (next.length === 0) return;
+    setImages(prev => [...prev, ...next]);
+  };
+  const removePhoto = (idx: number) => {
+    setImages(prev => prev.filter((_, i) => i !== idx));
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -321,7 +353,7 @@ function CreateContentAlbumModal({
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: '#fff', borderRadius: 12, width: '100%', maxWidth: 540,
+        background: '#fff', borderRadius: 12, width: '100%', maxWidth: 680,
         padding: 24, maxHeight: '90dvh', overflowY: 'auto',
         boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
       }}>
@@ -363,24 +395,97 @@ function CreateContentAlbumModal({
               </select>
             </label>
           </div>
-          <label style={lbl}>Cover image (optional)
-            <input type="file" accept="image/*" onChange={e => setCoverImage(e.target.files?.[0] || null)} style={inp} />
-          </label>
-          <label style={lbl}>Photos (required)
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={e => setImages(Array.from(e.target.files || []))}
-              style={inp}
-              required
-            />
-            {images.length > 0 && (
-              <span style={{ fontSize: 12, color: '#6b7280', marginTop: 4, display: 'inline-block' }}>
-                {images.length} photo{images.length === 1 ? '' : 's'} selected
-              </span>
+
+          {/* Cover image — drag-drop zone with preview */}
+          <div style={{ marginTop: 14 }}>
+            <div style={lblTitle}>Cover image (optional)</div>
+            <div
+              onClick={() => coverInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setCoverDragOver(true); }}
+              onDragLeave={() => setCoverDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault(); setCoverDragOver(false);
+                const f = onlyImages(e.dataTransfer.files)[0];
+                if (f) setCoverImage(f);
+              }}
+              style={{ ...dropZone(coverDragOver), padding: '0.9rem 1rem', minHeight: 70, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+            >
+              {coverPreview ? (
+                <>
+                  <img src={coverPreview} alt="cover" style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{coverImage?.name}</div>
+                    <div style={{ fontSize: 11.5, color: '#6b7280' }}>Click or drop a new image to replace.</div>
+                  </div>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setCoverImage(null); if (coverInputRef.current) coverInputRef.current.value = ''; }}
+                    style={iconRemoveBtn} aria-label="Remove cover">&times;</button>
+                </>
+              ) : (
+                <>
+                  <div style={cloudIcon}>
+                    <i className="bi bi-image" style={{ fontSize: 18, color: '#fff' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: '#111' }}>Click or drop a cover image</div>
+                    <div style={{ fontSize: 11.5, color: '#6b7280' }}>Falls back to your first photo if you skip this.</div>
+                  </div>
+                </>
+              )}
+              <input
+                ref={coverInputRef}
+                type="file" accept="image/*"
+                onChange={e => setCoverImage(e.target.files?.[0] || null)}
+                style={{ display: 'none' }}
+              />
+            </div>
+          </div>
+
+          {/* Photos — drag-drop zone + thumbnail grid */}
+          <div style={{ marginTop: 14 }}>
+            <div style={lblTitle}>Photos (required)</div>
+            <div
+              onClick={() => photosInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setPhotosDragOver(true); }}
+              onDragLeave={() => setPhotosDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault(); setPhotosDragOver(false);
+                addPhotos(e.dataTransfer.files);
+              }}
+              style={{ ...dropZone(photosDragOver), padding: '1.5rem 1rem', textAlign: 'center', cursor: 'pointer' }}
+            >
+              <div style={{ ...cloudIcon, margin: '0 auto 8px' }}>
+                <i className="bi bi-cloud-arrow-up-fill" style={{ fontSize: 20, color: '#fff' }} />
+              </div>
+              <p style={{ margin: '0', fontSize: 14, color: '#111', fontWeight: 700 }}>Click to upload photos</p>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: '#6b7280' }}>or drag &amp; drop your files here</p>
+              {images.length > 0 && (
+                <p style={{ margin: '6px 0 0', fontSize: 11.5, color: '#054d6f', fontWeight: 600 }}>
+                  {images.length} photo{images.length === 1 ? '' : 's'} ready
+                </p>
+              )}
+              <input
+                ref={photosInputRef}
+                type="file" accept="image/*" multiple
+                onChange={e => { addPhotos(e.target.files); if (photosInputRef.current) photosInputRef.current.value = ''; }}
+                style={{ display: 'none' }}
+              />
+            </div>
+
+            {previews.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(82px, 1fr))', gap: 8, marginTop: 10 }}>
+                {previews.map((p, i) => (
+                  <div key={i} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: '1px solid #e5e7eb', aspectRatio: '1' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <button type="button" onClick={() => removePhoto(i)} aria-label="Remove photo"
+                      style={{ position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: '50%', background: 'rgba(220,38,38,0.92)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
-          </label>
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
             <button type="button" onClick={onClose} style={btnSecondary} disabled={busy}>Cancel</button>
@@ -407,4 +512,28 @@ const btnPrimarySm: React.CSSProperties = { ...btnPrimary, padding: '6px 12px', 
 const btnSecondary: React.CSSProperties = {
   padding: '9px 16px', fontSize: 13.5, fontWeight: 700, borderRadius: 8,
   background: '#fff', color: '#374151', border: '1px solid #d1d5db', cursor: 'pointer',
+};
+const lblTitle: React.CSSProperties = {
+  fontSize: 11.5, fontWeight: 700, color: '#F20C8F',
+  textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+};
+const dropZone = (active: boolean): React.CSSProperties => ({
+  border: `2px dashed ${active ? '#F20C8F' : 'rgba(242,12,143,0.35)'}`,
+  borderRadius: 12,
+  background: active
+    ? 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.12) 100%)'
+    : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.04) 100%)',
+  transition: 'border-color 0.15s, background 0.15s',
+});
+const cloudIcon: React.CSSProperties = {
+  width: 44, height: 44, borderRadius: 12,
+  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  boxShadow: '0 8px 18px rgba(242,12,143,0.30)', flexShrink: 0,
+};
+const iconRemoveBtn: React.CSSProperties = {
+  width: 28, height: 28, borderRadius: '50%',
+  background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca',
+  cursor: 'pointer', fontSize: 16, fontWeight: 700, lineHeight: 1,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
