@@ -1830,6 +1830,15 @@ const PhotographerEventsPage = () => {
     return matchesFilter && matchesSearch;
   });
   const filteredAlbums = albums.filter(a => {
+    // Content albums live exclusively in the Content tab — exclude
+    // them from the Albums tab so they don't appear in both places.
+    // Two signals: explicit albumType==='content' from the typed
+    // enum, OR presence of contentApprovalStatus (only CONTENT rows
+    // ever have that field populated on the DTO).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const aa: any = a;
+    const isContent = aa.albumType === 'content' || !!aa.contentApprovalStatus;
+    if (isContent) return false;
     const matchesFilter = albumFilter === 'all' || (albumFilter === 'shared' ? a.shared : !a.shared);
     const matchesSearch = a.title.toLowerCase().includes(albumSearch.toLowerCase()) || a.clientName.toLowerCase().includes(albumSearch.toLowerCase()) || a.category.toLowerCase().includes(albumSearch.toLowerCase());
     return matchesFilter && matchesSearch;
