@@ -2186,7 +2186,7 @@ export default function Clients() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {[
                   { icon: 'bi-envelope-fill', label: 'Email', value: selectedClient.email },
-                  { icon: 'bi-telephone-fill', label: 'Phone', value: selectedClient.phone || '—' },
+                  { icon: 'bi-telephone-fill', label: 'Phone', value: selectedClient.phone || '-' },
                   { icon: 'bi-clock-fill', label: 'Last Active', value: selectedClient.lastActive },
                 ].map((row, i) => (
                   <div key={i} style={{

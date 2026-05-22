@@ -44,7 +44,7 @@ interface ContentAlbumDto {
   contentApprovalComment?: string;
   isPublished?: boolean;
   createdAt?: string;
-  // Populated by backend only when the album is APPROVED + published —
+  // Populated by backend only when the album is APPROVED + published -
   // backend hosts the slug-resolver at /api/public/content/album-by-slug.
   // Dashboard joins this with the knockout base URL to produce the
   // photographer's shareable deep link.
@@ -53,7 +53,7 @@ interface ContentAlbumDto {
 
 // Public knockout host that serves /user/browse-photos/{slug}. We don't
 // have the env var on the dashboard build (different app, different
-// .env) — hardcode the prod domain so the copy-link button never breaks
+// .env) - hardcode the prod domain so the copy-link button never breaks
 // on an env miss. Override in dev by editing this one line.
 const KNOCKOUT_PUBLIC_BASE = 'https://connekyt.com';
 
@@ -89,7 +89,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
     setLoading(true);
     setError(null);
     try {
-      // We don't have a dedicated /content GET endpoint yet — reuse the
+      // We don't have a dedicated /content GET endpoint yet - reuse the
       // existing album-list endpoint and filter client-side. Adding a
       // dedicated endpoint is a follow-up if list-size becomes an issue.
       const [albRes, catRes] = await Promise.all([
@@ -106,7 +106,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
           ? j.data
           : Array.isArray(j?.data?.albums) ? j.data.albums : [];
         // Filter to content albums only (contentApprovalStatus is the
-        // tell — only set for AlbumType.CONTENT rows).
+        // tell - only set for AlbumType.CONTENT rows).
         setAlbums(list.filter(a => !!a.contentApprovalStatus));
       } else {
         setError(`Failed to load: HTTP ${albRes.status}`);
@@ -229,7 +229,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
         />
       )}
 
-      {/* Filters + search — only show once we have at least one album so an
+      {/* Filters + search - only show once we have at least one album so an
           empty workspace doesn't look intimidating. */}
       {!loading && albums.length > 0 && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
@@ -341,7 +341,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
             const status = a.contentApprovalStatus;
             const canEdit = status === 'DRAFT' || status === 'REJECTED';
             const canSubmit = status === 'DRAFT' || status === 'REJECTED';
-            // Delete is always available — the photographer (or someone
+            // Delete is always available - the photographer (or someone
             // with the perm) needs to be able to pull a live or pending
             // album. Backend cascades the disk cleanup either way.
             return (
@@ -400,7 +400,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
                     )}
                   </div>
 
-                  {/* REJECTION reason — surfaced above the footer so the
+                  {/* REJECTION reason - surfaced above the footer so the
                       photographer sees it without leaving the card. */}
                   {status === 'REJECTED' && a.contentApprovalComment && (
                     <div style={{
@@ -479,7 +479,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
                         </span>
                       )}
 
-                      {/* Share link — only on live albums (shareSlug is
+                      {/* Share link - only on live albums (shareSlug is
                           backend-populated when the album is APPROVED +
                           published). Copies the slug deep-link to the
                           buyer-facing page so photographers can post
@@ -676,7 +676,7 @@ function CreateContentAlbumModal({
           </label>
           <label style={lbl}>Category
             <select value={category} onChange={e => setCategory(e.target.value)} style={inp} required>
-              <option value="">— Pick a category —</option>
+              <option value="">- Pick a category -</option>
               {categories.map(c => (
                 <option key={c.name} value={c.name}>{c.label}</option>
               ))}
@@ -688,17 +688,17 @@ function CreateContentAlbumModal({
             </label>
             <label style={lbl}>Currency
               <select value={currencyId} onChange={e => setCurrencyId(e.target.value)} style={inp} required>
-                <option value="">— Pick —</option>
+                <option value="">- Pick -</option>
                 {currencies.map(c => (
                   <option key={c.id || c.code} value={c.id || c.code}>
-                    {c.code}{c.name ? ` — ${c.name}` : ''}
+                    {c.code}{c.name ? ` - ${c.name}` : ''}
                   </option>
                 ))}
               </select>
             </label>
           </div>
 
-          {/* Cover image — drag-drop zone with preview */}
+          {/* Cover image - drag-drop zone with preview */}
           <div style={{ marginTop: 14 }}>
             <div style={lblTitle}>Cover image (optional)</div>
             <div
@@ -742,7 +742,7 @@ function CreateContentAlbumModal({
             </div>
           </div>
 
-          {/* Photos — drag-drop zone + thumbnail grid */}
+          {/* Photos - drag-drop zone + thumbnail grid */}
           <div style={{ marginTop: 14 }}>
             <div style={lblTitle}>Photos (required)</div>
             <div
@@ -849,7 +849,7 @@ const btnDangerSm: React.CSSProperties = {
   background: '#fff', color: '#dc2626', border: '1px solid #fecaca', cursor: 'pointer',
   display: 'inline-flex', alignItems: 'center',
 };
-// Pill button used on the polished card footer — matches the
+// Pill button used on the polished card footer - matches the
 // regular-album card actions in events.tsx (gradient bg, white text,
 // rounded 9px, small icon + label).
 const cardActionBtn: React.CSSProperties = {
@@ -872,7 +872,7 @@ const cardActionBtn: React.CSSProperties = {
  * × button). Adds are staged locally and uploaded on Save so the
  * photographer can drop a batch without N round-trips firing mid-pick.
  *
- * Edit is only surfaced for DRAFT/REJECTED rows (see button gate above) —
+ * Edit is only surfaced for DRAFT/REJECTED rows (see button gate above) -
  * PENDING and APPROVED states shouldn't be silently mutated.
  */
 function EditContentAlbumModal({
@@ -964,7 +964,7 @@ function EditContentAlbumModal({
 
     setBusy(true);
     try {
-      // 1) Metadata + cover (existing PUT shape — title is required even
+      // 1) Metadata + cover (existing PUT shape - title is required even
       //    on partial updates; everything else is optional and skipped
       //    server-side when null).
       const fd = new FormData();
@@ -1062,10 +1062,10 @@ function EditContentAlbumModal({
             </label>
             <label style={lbl}>Currency
               <select value={currencyId} onChange={e => setCurrencyId(e.target.value)} style={inp} required>
-                <option value="">— Pick —</option>
+                <option value="">- Pick -</option>
                 {currencies.map(c => (
                   <option key={c.id || c.code} value={c.id || c.code}>
-                    {c.code}{c.name ? ` — ${c.name}` : ''}
+                    {c.code}{c.name ? ` - ${c.name}` : ''}
                   </option>
                 ))}
               </select>

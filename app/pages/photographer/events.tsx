@@ -1830,7 +1830,7 @@ const PhotographerEventsPage = () => {
     return matchesFilter && matchesSearch;
   });
   const filteredAlbums = albums.filter(a => {
-    // Content albums live exclusively in the Content tab — exclude
+    // Content albums live exclusively in the Content tab - exclude
     // them from the Albums tab so they don't appear in both places.
     // Two signals: explicit albumType==='content' from the typed
     // enum, OR presence of contentApprovalStatus (only CONTENT rows
@@ -2212,7 +2212,7 @@ const PhotographerEventsPage = () => {
                                       <i className="bi bi-broadcast-pin" style={{ fontSize: 11 }} /> {isLive ? 'LIVE' : 'Live Stream'}
                                     </button>
                                   )}
-                                  {/* Create Album requires events.create — owner always passes; restricted team member without the perm sees the event but no create CTA. */}
+                                  {/* Create Album requires events.create - owner always passes; restricted team member without the perm sees the event but no create CTA. */}
                                   {canCreateEvents && (event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
                                     <button onClick={() => {
                                       if (!event.isPublished) {
@@ -3900,7 +3900,7 @@ const PhotographerEventsPage = () => {
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Find My Photos Link</div>
                   {/* Hardcoded host matches the URL MailService bakes into
-                      the invitation email — flip this single line if the
+                      the invitation email - flip this single line if the
                       public host ever moves. The NEXT_PUBLIC_LANDING_URL
                       env var was rendering "undefined" on production
                       builds where the env wasn't injected. */}
@@ -3921,7 +3921,7 @@ const PhotographerEventsPage = () => {
                   <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10B981', letterSpacing: '0.3em', fontFamily: 'monospace' }}>{albumSuccessModal.accessCode}</div>
                 </div>
               )}
-              {/* Direct album link — same URL the invitation email uses,
+              {/* Direct album link - same URL the invitation email uses,
                   surfaced here so the photographer can share it manually
                   (WhatsApp, SMS, etc.) without waiting for / re-sending
                   the email. Free albums need both code + email in the

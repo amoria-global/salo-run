@@ -1,5 +1,5 @@
 /**
- * Team / RBAC API client — wraps /api/remote/team/*.
+ * Team / RBAC API client - wraps /api/remote/team/*.
  *
  * All calls go through dashboardAuthFetch so the bearer + amoria_auth
  * cookie are attached. Backend returns {action, data, message}. These

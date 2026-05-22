@@ -276,7 +276,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       <div style={{
         backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
-        // Height clamp uses `dvh` (dynamic viewport height) — unlike
+        // Height clamp uses `dvh` (dynamic viewport height) - unlike
         // `vh` this DOES subtract the iOS Safari URL bar when it's
         // showing, so the modal never overflows the visible viewport
         // on phones. iOS 15.4+ / Chrome 108+ / Firefox 101+ supported.
@@ -1598,7 +1598,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                       border: `1px solid ${actualTheme === 'dark' ? 'rgba(99,162,255,0.20)' : 'rgba(8,58,133,0.10)'}`,
                     }}>
                       <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>Last booking</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{photographer.lastEventName || '—'}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{photographer.lastEventName || '-'}</div>
                       <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 2 }}>
                         {photographer.lastEventType}{photographer.lastBookingDate ? ` · ${formatDate(photographer.lastBookingDate)}` : ''}
                       </div>
@@ -2130,7 +2130,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               </div>
               <div style={{ marginTop: '0.8rem', padding: '0.7rem 0.8rem', backgroundColor: colors.bgCard, borderRadius: 10, border: `1px solid ${colors.borderPrimary}` }}>
                 <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>Last event</div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{selectedPhotographer.lastEventName || '—'}</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{selectedPhotographer.lastEventName || '-'}</div>
                 <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: 1 }}>{selectedPhotographer.lastEventType}</div>
               </div>
             </div>
@@ -2447,7 +2447,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               marginBottom: '1rem',
             }}>
               <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>Last booking</div>
-              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{rebookPhotographer.lastEventName || '—'}</div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{rebookPhotographer.lastEventName || '-'}</div>
               <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: 1 }}>{rebookPhotographer.lastEventType} · {formatDate(rebookPhotographer.lastBookingDate)}</div>
             </div>
 

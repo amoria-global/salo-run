@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { usePermissions } from '@/app/lib/usePermissions';
 
 /**
- * /user/team root — bounces to the first tab the caller can see.
+ * /user/team root - bounces to the first tab the caller can see.
  * Users gets priority over Roles gets priority over Permissions to
  * match the tab order in the layout.
  */

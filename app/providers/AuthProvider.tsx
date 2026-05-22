@@ -147,7 +147,7 @@ export interface DashboardUser {
    * isTeamMember=true means this signed-in customer is an invited member
    * under another customer (the owner of `organizationOwnerId`). The
    * dashboard reads isTeamMember to bypass owner-only gates such as the
-   * profile-completion redirect — team members don't own that profile.
+   * profile-completion redirect - team members don't own that profile.
    * Synced on every profile refresh, so no async permission round-trip
    * is needed for first-render decisions.
    */

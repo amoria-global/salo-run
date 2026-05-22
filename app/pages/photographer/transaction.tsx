@@ -1034,7 +1034,7 @@ Amount: ${formatPrice(transaction.amountNum)}
             // Ledger rows have no counterparty (a photographer's row is their
             // own earning leg). Never fall back to photographerName. that
             // wrongly showed the photographer as their own client.
-            clientName: t.viewerName || t.service || t.eventTitle || t.paymentType || '—',
+            clientName: t.viewerName || t.service || t.eventTitle || t.paymentType || '-',
             clientImage: t.clientImage || t.customerImage || undefined,
             service: t.service || t.description || t.eventTitle || t.paymentType || 'Payment',
             serviceType: t.serviceType || t.eventType || t.paymentType || 'Service',
