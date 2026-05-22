@@ -103,11 +103,26 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
   ];
 };
 
-const detectRoleFromPath = (pathname: string | null): UserRole => {
+const roleFromCustomerType = (customerType: string | null | undefined): UserRole | null => {
+  const t = (customerType || '').toUpperCase();
+  if (t === 'PHOTOGRAPHER' || t === 'VIDEOGRAPHER') return 'photographer';
+  if (t === 'EVENT_COORDINATOR') return 'event-coordinator';
+  if (t === 'CLIENT' || t === 'INDIVIDUAL') return 'client';
+  return null;
+};
+
+// Resolve which role's nav to render. URL path is the primary signal
+// for role-specific sections (/user/photographer, /user/admin, …) but
+// shared sections (/user/team, /user/not-authorized, /user/auth) live
+// outside any role bucket — for those we fall back to the authenticated
+// user's customerType so a photographer browsing /user/team doesn't see
+// the client sidebar wired with /user/client/* links.
+const detectRole = (pathname: string | null, customerType: string | null | undefined): UserRole => {
   if (pathname && pathname.includes("/user/admin")) return "admin";
   if (pathname && pathname.includes("/user/photographer")) return "photographer";
   if (pathname && pathname.includes("/user/event-coordinator")) return "event-coordinator";
-  return "client";
+  if (pathname && pathname.includes("/user/client")) return "client";
+  return roleFromCustomerType(customerType) ?? "client";
 };
 
 export default function Sidebar() {
@@ -121,7 +136,7 @@ export default function Sidebar() {
   const currentUserId = user?.id || '';
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const currentRole = useMemo(() => detectRoleFromPath(pathname), [pathname]);
+  const currentRole = useMemo(() => detectRole(pathname, user?.customerType), [pathname, user?.customerType]);
 
   const [notificationCount, setNotificationCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
