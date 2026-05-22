@@ -5297,11 +5297,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary }}>Indoor Studio Packages</span>
+                              <span style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary }}>Indoor Packages</span>
                               <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: accent, background: accentBg, border: `1px solid ${accentBorder}`, padding: '2px 8px', borderRadius: 999 }}>Optional</span>
                             </div>
                             <p style={{ margin: '0.25rem 0 0', fontSize: '0.83rem', color: colors.textSecondary, lineHeight: 1.5 }}>
-                              Add up to 3 Silver / Gold / Diamond packages clients can book for indoor studio sessions. Same fields as your outdoor packages. leaving this empty just means you aren&apos;t listed for indoor bookings.
+                              Add up to 3 Silver / Gold / Diamond packages clients can book for indoor sessions. Same fields as your outdoor packages — leaving this empty just means you aren&apos;t listed for indoor bookings.
                             </p>
                           </div>
                         </div>
@@ -5471,7 +5471,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 <label style={labelStyle}>Description</label>
                                 <textarea value={pkg.description}
                                   onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)}
-                                  placeholder="What does this studio package include?"
+                                  placeholder="What does this indoor package include?"
                                   rows={2} disabled={!isStudioPackageEditEnabled}
                                   style={{ ...studioPkgInputStyle, resize: 'vertical' as const }} />
                               </div>
@@ -5504,7 +5504,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             No indoor packages yet
                           </p>
                           <p style={{ color: colors.textSecondary, fontSize: '0.82rem', margin: '0 0 1rem', lineHeight: 1.5 }}>
-                            Add Silver/Gold/Diamond packages to be bookable for studio sessions. Skipping this leaves everything else exactly as it is.
+                            Add Silver/Gold/Diamond packages to be bookable for indoor sessions. Skipping this leaves everything else exactly as it is.
                           </p>
                           <button onClick={() => addPackage('STUDIO')} disabled={!isStudioPackageEditEnabled}
                             style={{
@@ -5517,7 +5517,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                               opacity: isStudioPackageEditEnabled ? 1 : 0.6,
                             }}>
-                            <PlusIcon /> Add your first studio package
+                            <PlusIcon /> Add your first indoor package
                           </button>
                         </div>
                       )}
@@ -5532,7 +5532,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       {studioPackages.filter(p => p.packageName).length > 0 && (
                         <div style={{ marginTop: '1.5rem' }}>
                           <div style={sectionTitleStyle}>
-                            <span>Your Listed Indoor Studio Packages</span>
+                            <span>Your Listed Indoor Packages</span>
                           </div>
                           <div style={{
                             display: 'grid',
