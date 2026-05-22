@@ -520,6 +520,10 @@ const PhotographerEventsPage = () => {
   const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number } | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  // Tracks which album card's Copy Link button just flashed "Copied" —
+  // null when no flash active. Per-card so two adjacent cards don't
+  // both light up green when only one was clicked.
+  const [cardLinkCopiedId, setCardLinkCopiedId] = useState<string | null>(null);
 
   // Clipboard helper used by the album-success modal's Copy code +
   // Copy link buttons. Tries the modern API, falls back to the legacy
@@ -547,6 +551,26 @@ const PhotographerEventsPage = () => {
       window.prompt('Copy this:', value);
     }
   };
+
+  // Build the buyer-facing share URL for an album card. Matches the
+  // exact URL the invitation email uses (MailService.java) and the
+  // album-create success modal's Copy Album Link button:
+  //   paid : /user/find-my-photos?code=<inviteCode>
+  //   free : /user/find-my-photos?code=<accessCode>&email=<recipient>
+  //   event-linked albums use ?code=<inviteCode> too once Face AI is on
+  // Returns null when the album doesn't have the required pieces yet —
+  // the card hides the Copy Link button entirely in that case so it
+  // never offers a broken link.
+  const buildAlbumLink = (album: Album): string | null => {
+    if (album.isFreeAlbum && album.accessCode && album.recipientEmail) {
+      return `https://connekyt.com/user/find-my-photos?code=${album.accessCode}&email=${encodeURIComponent(album.recipientEmail)}`;
+    }
+    if (album.inviteCode) {
+      return `https://connekyt.com/user/find-my-photos?code=${album.inviteCode}`;
+    }
+    return null;
+  };
+
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
 
@@ -2587,6 +2611,43 @@ const PhotographerEventsPage = () => {
                                 </button>
                               ) : null
                             )}
+                            {(() => {
+                              // Share-link affordance. Same buyer URL the
+                              // invitation email + create-success modal use.
+                              // Hidden when there's no inviteCode/accessCode
+                              // yet (e.g. a fresh event album without Face
+                              // AI enabled) so we never copy a broken link.
+                              const link = buildAlbumLink(album);
+                              if (!link) return null;
+                              const copied = cardLinkCopiedId === album.id;
+                              return (
+                                <button
+                                  onClick={() => copyToClipboard(link, () => {
+                                    setCardLinkCopiedId(album.id);
+                                    setTimeout(() => setCardLinkCopiedId(curr => curr === album.id ? null : curr), 1800);
+                                  })}
+                                  title="Copy share link"
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                                    padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
+                                    background: copied
+                                      ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                                      : 'rgba(255,255,255,0.14)',
+                                    backdropFilter: 'blur(6px)',
+                                    color: 'white',
+                                    border: copied ? '1px solid rgba(16,185,129,0.55)' : '1px solid rgba(255,255,255,0.22)',
+                                    borderRadius: 9,
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.15s, background 0.15s',
+                                  }}
+                                  onMouseEnter={(e) => { if (!copied) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.background = 'rgba(255,255,255,0.22)'; } }}
+                                  onMouseLeave={(e) => { if (!copied) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.14)'; } }}
+                                >
+                                  <i className={`bi ${copied ? 'bi-check2' : 'bi-link-45deg'}`} style={{ fontSize: 12 }} />
+                                  {copied ? 'Copied' : 'Link'}
+                                </button>
+                              );
+                            })()}
                             {canEditAlbum(album) && (
                               <button onClick={() => handleOpenEdit(album)} title={album.sharedWithClient ? `Edit (${getEditDaysRemaining(album)} days left)` : 'Edit Album'} style={{
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
