@@ -112,7 +112,7 @@ function writeCache(userId: string | null | undefined, snap: Omit<CachedSnapshot
  * Re-fetches when the authenticated user changes (login/logout/refresh).
  */
 export function PermissionProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user } = useDashboardAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useDashboardAuth();
   // Seed from localStorage cache so sidebar/RouteGuard render with the
   // correct permission set on the very first paint (no flash of either
   // restricted items or missing items). Stale-while-revalidate: the
@@ -176,6 +176,16 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
 
   const fetchPerms = useCallback(async () => {
     if (inFlight.current) return;
+    // Stay in loading state while AuthProvider is still resolving the
+    // signed-in user. Without this guard the first render after a hard
+    // reload sees isAuthenticated=false (because user is still null),
+    // flips loading→false with an empty perm set, and RouteGuard bounces
+    // a legitimate owner to /user/not-authorized before user.isTeamMember
+    // ever arrives to trigger the owner short-circuit.
+    if (authLoading) {
+      setState(s => s.loading ? s : { ...s, loading: true });
+      return;
+    }
     if (!isAuthenticated) {
       setState(s => ({ ...s, loading: false, permissions: new Set() }));
       return;
@@ -250,7 +260,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       inFlight.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, user?.id]);
+  }, [authLoading, isAuthenticated, user?.id]);
 
   useEffect(() => { void fetchPerms(); }, [fetchPerms]);
 
