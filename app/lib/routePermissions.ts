@@ -42,6 +42,11 @@ export const ROUTE_RULES: RouteRule[] = [
   { pattern: '/user/photographer/transaction',     any: ['payments.view'] },
   { pattern: '/user/photographer/all-transactions',any: ['payments.view'] },
   { pattern: '/user/photographer/payroll-report',  any: ['payments.manage'] },
+  // Preferences holds sensitive org-level settings (KYC, withdrawal
+  // verification preference, 2FA on the owner account). Locked behind
+  // settings.manage so a restricted team member can't open it even by
+  // typing the URL directly.
+  { pattern: '/user/photographer/preferences',     any: ['settings.manage'] },
 
   // ─── Client ─────────────────────────────────────────────────────
   { pattern: '/user/client/events',                any: ['events.view'] },
@@ -49,6 +54,7 @@ export const ROUTE_RULES: RouteRule[] = [
   { pattern: '/user/client/photographers',         any: ['bookings.view'] },
   { pattern: '/user/client/payments',              any: ['payments.view'] },
   { pattern: '/user/client/wallet',                any: ['payments.view'] },
+  { pattern: '/user/client/preferences',           any: ['settings.manage'] },
 
   // ─── Event coordinator ──────────────────────────────────────────
   { pattern: '/user/event-coordinator/events',         any: ['events.view'] },
@@ -56,6 +62,7 @@ export const ROUTE_RULES: RouteRule[] = [
   { pattern: '/user/event-coordinator/photographers',  any: ['bookings.view'] },
   { pattern: '/user/event-coordinator/payments',       any: ['payments.view'] },
   { pattern: '/user/event-coordinator/wallet',         any: ['payments.view'] },
+  { pattern: '/user/event-coordinator/preferences',    any: ['settings.manage'] },
 
   // ─── Team (self-gated by /user/team/layout.tsx, listed here for completeness) ─
   { pattern: '/user/team/users',       any: ['users.view'] },
