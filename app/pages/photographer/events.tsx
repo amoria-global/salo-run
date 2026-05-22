@@ -18,6 +18,7 @@ import PaidAlbumForm, { MIN_PAID_ALBUM_PRICE_RWF, isPaidAlbumPriceInvalid } from
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import FreeAlbumForm from '../../components/FreeAlbumForm';
 import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
+import ContentAlbumsTab from './ContentAlbumsTab';
 
 const CURRENCY_FLAG_MAP: Record<string, string> = {
   USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
@@ -408,18 +409,18 @@ const PhotographerEventsPage = () => {
   const canCreateEvents = hasPermission('events.create');
   const apiUrl = getApiUrl();
 
-  const [activeTab, setActiveTab] = useState<'events' | 'albums' | 'photobooks'>(() => {
+  const [activeTab, setActiveTab] = useState<'events' | 'albums' | 'photobooks' | 'content'>(() => {
     if (typeof window !== 'undefined') {
       // Query param takes priority (e.g. from notification click)
       const params = new URLSearchParams(window.location.search);
       const qTab = params.get('tab');
-      if (qTab === 'albums' || qTab === 'photobooks' || qTab === 'events') {
+      if (qTab === 'albums' || qTab === 'photobooks' || qTab === 'events' || qTab === 'content') {
         window.history.replaceState({}, '', window.location.pathname);
         return qTab;
       }
       // Otherwise restore from localStorage
       const saved = localStorage.getItem('connekt_events_tab');
-      if (saved === 'events' || saved === 'albums' || saved === 'photobooks') return saved;
+      if (saved === 'events' || saved === 'albums' || saved === 'photobooks' || saved === 'content') return saved;
     }
     return 'events';
   });
@@ -1902,6 +1903,9 @@ const PhotographerEventsPage = () => {
                   <button onClick={() => setActiveTab('photobooks')} role="tab" aria-selected={activeTab === 'photobooks'} style={viewToggleBtnStyle(activeTab === 'photobooks')}>
                     <i className="bi bi-book" style={{ fontSize: 15 }} /> Photobooks
                   </button>
+                  <button onClick={() => setActiveTab('content')} role="tab" aria-selected={activeTab === 'content'} style={viewToggleBtnStyle(activeTab === 'content')}>
+                    <i className="bi bi-newspaper" style={{ fontSize: 15 }} /> Content
+                  </button>
                 </div>
               </div>
             </header>
@@ -3145,6 +3149,14 @@ const PhotographerEventsPage = () => {
                   </div>
                 )}
               </>
+            )}
+
+            {/* ==================== CONTENT TAB ==================== */}
+            {activeTab === 'content' && (
+              <ContentAlbumsTab
+                currencies={currencies as any}
+                defaultCurrencyId={paidAlbumCurrencyId}
+              />
             )}
           </div>
         </div>
