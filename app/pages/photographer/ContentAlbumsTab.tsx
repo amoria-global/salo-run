@@ -303,97 +303,182 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
         }
 
         return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
-          {filtered.map(a => (
-            <article key={a.id} style={{
-              background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden',
-              display: 'flex', flexDirection: 'column',
-            }}>
-              {a.coverImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={a.coverImage} alt={a.title}
-                  style={{ width: '100%', height: 160, objectFit: 'cover' }} />
-              ) : (
-                <div style={{
-                  height: 160, background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 24, opacity: 0.8,
-                }}>
-                  <i className="bi bi-newspaper" />
-                </div>
-              )}
-              <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#111', lineHeight: 1.3 }}>
-                    {a.title}
-                  </h3>
-                  {a.contentCategoryLabel && (
-                    <span style={{
-                      fontSize: 10.5, fontWeight: 700, color: '#054d6f', background: '#eef6fb',
-                      padding: '3px 8px', borderRadius: 999, letterSpacing: 0.3,
-                    }}>{a.contentCategoryLabel}</span>
-                  )}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <StatusBadge status={a.contentApprovalStatus} published={!!a.isPublished} />
-                  <span style={{ fontSize: 12, color: '#6b7280' }}>
-                    {a.imageCount ?? 0} photo{(a.imageCount ?? 0) === 1 ? '' : 's'} · {a.currencyAbbreviation || ''} {a.pricePerImage} each
-                  </span>
-                </div>
-                {a.contentApprovalStatus === 'REJECTED' && a.contentApprovalComment && (
-                  <div style={{
-                    padding: 8, background: '#fef2f2', color: '#991b1b',
-                    borderRadius: 6, fontSize: 12, border: '1px solid #fecaca',
-                  }}>
-                    <strong>Admin feedback:</strong> {a.contentApprovalComment}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1rem' }}>
+          {filtered.map(a => {
+            const cover = a.coverImage || '/coverr.jpg';
+            const status = a.contentApprovalStatus;
+            const canEdit = status === 'DRAFT' || status === 'REJECTED';
+            const canSubmit = status === 'DRAFT' || status === 'REJECTED';
+            // Delete is always available — the photographer (or someone
+            // with the perm) needs to be able to pull a live or pending
+            // album. Backend cascades the disk cleanup either way.
+            return (
+              <div key={a.id} style={{ position: 'relative', height: 450, borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                {/* Blurred cover behind = image-based glow border */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={cover} alt=""
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }}
+                  style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }}
+                />
+
+                {/* Inner card */}
+                <div style={{ position: 'absolute', inset: 7, borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000' }}>
+                  {/* Full-bleed cover */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={cover} alt={a.title}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.25) 55%, rgba(0,0,0,0.65) 100%)', pointerEvents: 'none' }} />
+
+                  {/* TOP: category pill (left) + status pill (right) */}
+                  <div style={{ position: 'absolute', top: '0.7rem', left: '0.7rem', right: '0.7rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none', gap: 8 }}>
+                    {a.contentCategoryLabel ? (
+                      <div style={{
+                        background: 'rgba(0,0,0,0.55)',
+                        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                        color: '#fff', padding: '0.28rem 0.7rem',
+                        borderRadius: 9999, fontSize: '0.7rem', fontWeight: 700,
+                        letterSpacing: '0.02em',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        border: '1px solid rgba(255,255,255,0.18)',
+                      }}>
+                        <i className="bi bi-newspaper" style={{ fontSize: 10 }} />
+                        {a.contentCategoryLabel}
+                      </div>
+                    ) : <span />}
+                    <StatusBadge status={a.contentApprovalStatus} published={!!a.isPublished} />
                   </div>
-                )}
-                <div style={{ marginTop: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {(a.contentApprovalStatus === 'DRAFT' || a.contentApprovalStatus === 'REJECTED') && (
-                    <>
+
+                  {/* MIDDLE-BOTTOM: title block above the footer bar */}
+                  <div style={{ position: 'absolute', bottom: '6.4rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.78)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem', fontWeight: 600 }}>
+                      Content Album
+                    </div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                      {a.title}
+                    </div>
+                    {(a.pricePerImage != null || a.currencyAbbreviation) && (
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
+                        {a.currencyAbbreviation || ''} {a.pricePerImage} per photo
+                      </div>
+                    )}
+                  </div>
+
+                  {/* REJECTION reason — surfaced above the footer so the
+                      photographer sees it without leaving the card. */}
+                  {status === 'REJECTED' && a.contentApprovalComment && (
+                    <div style={{
+                      position: 'absolute', left: '0.7rem', right: '0.7rem', bottom: '5.5rem',
+                      padding: '6px 10px',
+                      background: 'rgba(220,38,38,0.20)', color: '#fff',
+                      borderRadius: 8, fontSize: 11.5, border: '1px solid rgba(254,202,202,0.55)',
+                      backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+                      maxHeight: 60, overflow: 'hidden',
+                    }}>
+                      <strong>Admin feedback:</strong> {a.contentApprovalComment}
+                    </div>
+                  )}
+
+                  {/* FOOTER BAR: frosted glass over blurred cover */}
+                  <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', padding: '0.55rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.10)', borderRadius: '0 0 1.05rem 1.05rem' }}>
+                    {/* Identity strip */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0, marginBottom: '0.5rem' }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #8B5CF6, #A78BFA)',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', fontSize: '0.62rem', fontWeight: 700, flexShrink: 0,
+                      }}>
+                        <i className="bi bi-collection" />
+                      </div>
+                      <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Content Album · {(a.imageCount ?? 0)} photo{(a.imageCount ?? 0) === 1 ? '' : 's'}
+                      </span>
+                    </div>
+
+                    {/* Action row: Edit · Submit/Live · Delete · photo-count chip */}
+                    <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
                       <Can permission="albums.create">
-                        <button
-                          type="button"
+                        <button type="button"
                           onClick={() => setEditingAlbum(a)}
-                          style={btnSecondarySm}
+                          disabled={!canEdit}
+                          title={canEdit ? 'Edit album' : 'Withdraw or wait until rejection to edit'}
+                          style={{
+                            ...cardActionBtn,
+                            background: canEdit
+                              ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
+                              : 'rgba(255,255,255,0.12)',
+                            cursor: canEdit ? 'pointer' : 'not-allowed',
+                            opacity: canEdit ? 1 : 0.6,
+                          }}
                         >
-                          <i className="bi bi-pencil" style={{ marginRight: 4 }} /> Edit
+                          <i className="bi bi-pencil" style={{ fontSize: 11 }} /> Edit
                         </button>
                       </Can>
-                      <Can permission="albums.publish">
-                        <button
-                          onClick={() => handleSubmitForApproval(a.id)}
-                          disabled={submittingId === a.id}
-                          style={btnPrimarySm}
+
+                      {canSubmit && (
+                        <Can permission="albums.publish">
+                          <button type="button"
+                            onClick={() => handleSubmitForApproval(a.id)}
+                            disabled={submittingId === a.id}
+                            style={{
+                              ...cardActionBtn,
+                              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                            }}
+                          >
+                            <i className="bi bi-cloud-arrow-up-fill" style={{ fontSize: 11 }} />
+                            {submittingId === a.id ? 'Submitting…' : 'Submit'}
+                          </button>
+                        </Can>
+                      )}
+
+                      {status === 'APPROVED' && a.isPublished && (
+                        <span style={{
+                          ...cardActionBtn,
+                          background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                          cursor: 'default',
+                        }}>
+                          <i className="bi bi-broadcast" style={{ fontSize: 11 }} /> Live
+                        </span>
+                      )}
+
+                      <Can permission="albums.delete">
+                        <button type="button"
+                          onClick={() => handleDelete(a)}
+                          disabled={deletingId === a.id}
+                          title="Delete album"
+                          aria-label="Delete content album"
+                          style={{
+                            ...cardActionBtn,
+                            background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                          }}
                         >
-                          {submittingId === a.id ? 'Submitting…' : 'Submit for approval'}
+                          <i className="bi bi-trash" style={{ fontSize: 11 }} />
+                          {deletingId === a.id ? '…' : 'Delete'}
                         </button>
                       </Can>
-                    </>
-                  )}
-                  {/* Delete — available on DRAFT/REJECTED. Backend cascades
-                      to disk (FileUploadHelper.deleteFile on each image +
-                      cover) so this is the only step needed to free
-                      storage. PENDING/APPROVED stay non-deletable from
-                      this UI; pull them down via admin if necessary. */}
-                  {(a.contentApprovalStatus === 'DRAFT' || a.contentApprovalStatus === 'REJECTED') && (
-                    <Can permission="albums.delete">
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(a)}
-                        disabled={deletingId === a.id}
-                        style={btnDangerSm}
-                        aria-label="Delete content album"
-                      >
-                        <i className="bi bi-trash" style={{ marginRight: 4 }} />
-                        {deletingId === a.id ? 'Deleting…' : 'Delete'}
-                      </button>
-                    </Can>
-                  )}
+
+                      <span style={{
+                        marginLeft: 'auto',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+                        color: '#fff', padding: '0.38rem 0.7rem', borderRadius: 9,
+                        fontSize: '0.72rem', fontWeight: 700,
+                        boxShadow: '0 4px 10px rgba(99,102,241,0.30)',
+                      }}>
+                        <i className="bi bi-images" style={{ fontSize: 11 }} /> {a.imageCount ?? 0}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </article>
-          ))}
+            );
+          })}
         </div>
         );
       })()}
@@ -709,6 +794,16 @@ const btnDangerSm: React.CSSProperties = {
   padding: '6px 12px', fontSize: 12.5, fontWeight: 600, borderRadius: 8,
   background: '#fff', color: '#dc2626', border: '1px solid #fecaca', cursor: 'pointer',
   display: 'inline-flex', alignItems: 'center',
+};
+// Pill button used on the polished card footer — matches the
+// regular-album card actions in events.tsx (gradient bg, white text,
+// rounded 9px, small icon + label).
+const cardActionBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+  padding: '0.42rem 0.7rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
+  color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer',
+  boxShadow: '0 4px 10px rgba(0,0,0,0.20)',
+  transition: 'transform 0.15s',
 };
 
 /**
