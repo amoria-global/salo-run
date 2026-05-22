@@ -77,16 +77,20 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
 };
 
 const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
+  // Preferences holds sensitive org settings (KYC, withdrawal verification,
+  // 2FA on the owner account, etc.) — gated by settings.manage so a
+  // restricted team member without that perm can't see or open it. Owners
+  // hold every permission so they always pass.
   if (role === "photographer") {
     return [
       { name: "Profile", href: "/user/photographer/profile", icon: "bi-person" },
-      { name: "Preferences", href: "/user/photographer/preferences", icon: "bi-sliders" },
+      { name: "Preferences", href: "/user/photographer/preferences", icon: "bi-sliders", requires: ['settings.manage'] },
       { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
     ];
   } else if (role === "event-coordinator") {
     return [
       { name: "Profile", href: "/user/event-coordinator/profile", icon: "bi-person" },
-      { name: "Preferences", href: "/user/event-coordinator/preferences", icon: "bi-sliders" },
+      { name: "Preferences", href: "/user/event-coordinator/preferences", icon: "bi-sliders", requires: ['settings.manage'] },
       { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
     ];
   } else if (role === "admin") {
@@ -94,7 +98,7 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
   }
   return [
     { name: "Profile", href: "/user/client/profile", icon: "bi-person" },
-    { name: "Preferences", href: "/user/client/preferences", icon: "bi-sliders" },
+    { name: "Preferences", href: "/user/client/preferences", icon: "bi-sliders", requires: ['settings.manage'] },
     { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
   ];
 };
@@ -196,7 +200,11 @@ export default function Sidebar() {
       if (item.name === "Inbox") return { ...item, badge: messageCount };
       return item;
     });
-  const bottomNavigationItems = getBottomNavigationItems(currentRole);
+  // Same strict permission filter as the main nav — bottom-nav items
+  // with a `requires` array (Preferences) are hidden when the caller
+  // lacks the permission.
+  const bottomNavigationItems = getBottomNavigationItems(currentRole)
+    .filter(item => !item.requires || hasAny(item.requires));
 
   const groups = useMemo(() => {
     const map = new Map<string, NavigationItem[]>();
