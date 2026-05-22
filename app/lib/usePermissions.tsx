@@ -117,10 +117,45 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
   // correct permission set on the very first paint (no flash of either
   // restricted items or missing items). Stale-while-revalidate: the
   // fetchPerms() below always re-runs and refreshes the state + cache.
+  // Synchronously build an owner-only context from the DashboardUser.
+  // AuthProvider populates user.isTeamMember + user.organizationOwnerId
+  // from the profile-summary response, so when the signed-in customer
+  // is an OWNER we can populate full state from frame 1 — no waiting
+  // on /api/remote/team/me/permissions, no risk of an empty perms set
+  // hiding sidebar items behind a still-pending fetch.
+  //
+  // For team members we still go to the network for the actual role
+  // permissions (we don't know what their role grants until we ask).
+  function ownerCtxFrom(u: { id?: string | null; organizationOwnerId?: string | null } | null | undefined): PermissionContextValue {
+    return {
+      loading: false,
+      isOwner: true,
+      organizationId: u?.organizationOwnerId || u?.id || null,
+      organizationName: null,
+      roleId: null,
+      roleName: 'Owner',
+      permissions: new Set(),
+      mustChangePassword: false,
+      // Owner short-circuit — never blocked by sidebar filter / Can / etc.
+      hasPermission: () => true,
+      hasAny: () => true,
+      hasAll: () => true,
+      refresh: async () => {},
+    };
+  }
+
   const [state, setState] = useState<PermissionContextValue>(() => {
     if (typeof window === 'undefined') return defaultCtx;
+    // 1. Owner detection by user.isTeamMember (synchronous, no fetch).
+    //    Treat missing flag as owner (pre-existing customers from before
+    //    isTeamMember shipped on the DTO) since the V261 backfill made
+    //    every existing customer their own org owner.
+    if (user && user.isTeamMember === false) return ownerCtxFrom(user);
+    // 2. Cached snapshot from a prior session — covers team members on
+    //    repeat visits with zero network latency.
     const cached = readCache(user?.id ?? null);
     if (!cached) return defaultCtx;
+    if (cached.isOwner) return ownerCtxFrom(user);
     const perms = new Set<string>(cached.permissions);
     return {
       loading: false,
@@ -145,6 +180,14 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       setState(s => ({ ...s, loading: false, permissions: new Set() }));
       return;
     }
+    // Owner short-circuit: we already know from the DashboardUser they
+    // hold every permission. Don't even ask the backend — avoids the
+    // window where a slow /me/permissions response leaves the sidebar
+    // empty for the org owner.
+    if (user && user.isTeamMember === false) {
+      setState({ ...ownerCtxFrom(user), refresh: fetchPerms });
+      return;
+    }
     inFlight.current = true;
     try {
       const apiUrl = getApiUrl();
@@ -161,6 +204,22 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       }
       const json: MePermsResponse = await res.json();
       const d = json.data || {};
+      // Backend says owner → still short-circuit (the data shape might
+      // ship an empty permissions array for owners since they're implicit
+      // all-perms; trust the flag, not the list).
+      if (d.isOwner === true) {
+        setState({ ...ownerCtxFrom(user), refresh: fetchPerms });
+        writeCache(user?.id ?? null, {
+          isOwner: true,
+          organizationId: d.organizationId ?? null,
+          organizationName: d.organizationName ?? null,
+          roleId: null,
+          roleName: 'Owner',
+          permissions: [],
+          mustChangePassword: !!d.mustChangePassword,
+        });
+        return;
+      }
       const perms = new Set<string>(Array.isArray(d.permissions) ? d.permissions : []);
       const snap = {
         isOwner: !!d.isOwner,
