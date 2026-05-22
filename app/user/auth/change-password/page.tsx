@@ -11,7 +11,7 @@ import { getApiUrl } from '@/lib/api';
  *
  * Reached when:
  *   • An invited team member signs in with the temp password from
- *     their invitation email — TeamService persists them with
+ *     their invitation email - TeamService persists them with
  *     isPasswordChanged=false so the backend tells the frontend
  *     mustChangePassword=true via /api/remote/team/me/permissions.
  *   • PasswordChangeGate (in the root layout) catches that flag and

@@ -188,7 +188,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const { colors, actualTheme } = useTheme();
   const { token, user, refreshUserProfile } = useDashboardAuth();
   const { hasPermission } = usePermissions();
-  // Team members without profile.edit see this page in read-only mode —
+  // Team members without profile.edit see this page in read-only mode -
   // they can view the owner's profile (the data is the owner's, swapped
   // in by PhotographerService.getPhotographerProfileSummary) but can't
   // mutate it. The backend belt-and-braces is @PreAuthorize on every
@@ -5301,7 +5301,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: accent, background: accentBg, border: `1px solid ${accentBorder}`, padding: '2px 8px', borderRadius: 999 }}>Optional</span>
                             </div>
                             <p style={{ margin: '0.25rem 0 0', fontSize: '0.83rem', color: colors.textSecondary, lineHeight: 1.5 }}>
-                              Add up to 3 Silver / Gold / Diamond packages clients can book for indoor sessions. Same fields as your outdoor packages — leaving this empty just means you aren&apos;t listed for indoor bookings.
+                              Add up to 3 Silver / Gold / Diamond packages clients can book for indoor sessions. Same fields as your outdoor packages - leaving this empty just means you aren&apos;t listed for indoor bookings.
                             </p>
                           </div>
                         </div>

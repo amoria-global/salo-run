@@ -78,7 +78,7 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
 
 const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
   // Preferences holds sensitive org settings (KYC, withdrawal verification,
-  // 2FA on the owner account, etc.) — gated by settings.manage so a
+  // 2FA on the owner account, etc.) - gated by settings.manage so a
   // restricted team member without that perm can't see or open it. Owners
   // hold every permission so they always pass.
   if (role === "photographer") {
@@ -114,7 +114,7 @@ const roleFromCustomerType = (customerType: string | null | undefined): UserRole
 // Resolve which role's nav to render. URL path is the primary signal
 // for role-specific sections (/user/photographer, /user/admin, …) but
 // shared sections (/user/team, /user/not-authorized, /user/auth) live
-// outside any role bucket — for those we fall back to the authenticated
+// outside any role bucket - for those we fall back to the authenticated
 // user's customerType so a photographer browsing /user/team doesn't see
 // the client sidebar wired with /user/client/* links.
 const detectRole = (pathname: string | null, customerType: string | null | undefined): UserRole => {
@@ -204,7 +204,7 @@ export default function Sidebar() {
   const navigationItems = roleNavigationMap[currentRole]
     // Strict permission gate: items with `requires` are hidden until the
     // permission fetch confirms the caller holds at least one of them.
-    // No fail-open during loading — a team member without the perm must
+    // No fail-open during loading - a team member without the perm must
     // NEVER see the tab, not even for a frame (was causing a flash of
     // restricted items on initial render). Owners see un-gated items
     // immediately and the rest pop in once /api/remote/team/me/permissions
@@ -215,7 +215,7 @@ export default function Sidebar() {
       if (item.name === "Inbox") return { ...item, badge: messageCount };
       return item;
     });
-  // Same strict permission filter as the main nav — bottom-nav items
+  // Same strict permission filter as the main nav - bottom-nav items
   // with a `requires` array (Preferences) are hidden when the caller
   // lacks the permission.
   const bottomNavigationItems = getBottomNavigationItems(currentRole)

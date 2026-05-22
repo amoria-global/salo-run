@@ -17,7 +17,7 @@
  * the rule set to lock down meaningful surfaces (work, money, team
  * management) while leaving safe utility pages (profile, preferences,
  * notifications, donate) open. Adding a new restricted route is a
- * single push to this file — no per-page wrapping required.
+ * single push to this file - no per-page wrapping required.
  *
  * Update protocol when adding a new restricted page:
  *   1. Add a route entry here pointing at the page's URL prefix.

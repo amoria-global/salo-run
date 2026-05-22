@@ -6,7 +6,7 @@ import { listPermissions, type PermissionCatalog } from '@/app/lib/APIs/team';
 /**
  * Read-only catalog of org-scoped permissions, grouped by category as
  * defined in PermissionRegistry on the backend. Photographers / clients /
- * event-coordinators don't edit this list — they just reference it
+ * event-coordinators don't edit this list - they just reference it
  * while building custom roles.
  */
 export default function PermissionsPage() {

@@ -19,7 +19,7 @@ import { matchRouteRule } from '../lib/routePermissions';
  *   • While the permission set is still being fetched, children are
  *     rendered as-is. We accept a tiny flash of restricted content
  *     rather than a flash of blank page for the 99% case of owners.
- *     Server-side @PreAuthorize is the actual authoritative check —
+ *     Server-side @PreAuthorize is the actual authoritative check -
  *     this guard is UX-only.
  *
  * Safe-by-omission:

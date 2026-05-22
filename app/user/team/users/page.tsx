@@ -8,7 +8,7 @@ import {
 import { Can, usePermissions } from '@/app/lib/usePermissions';
 
 /**
- * Users tab — list of team members in the caller's organization with
+ * Users tab - list of team members in the caller's organization with
  * invite + role/department/active inline edits.
  *
  * The owner row is intentionally NOT listed (backend's
@@ -157,20 +157,20 @@ function UserRow({ member, roles, onChanged, canEdit, canDelete }: {
       <Td>
         {canEdit ? (
           <select value={member.role?.id ?? ''} onChange={e => handleRoleChange(e.target.value)} disabled={busy} style={inlineSelect}>
-            <option value="">— No role —</option>
+            <option value="">- No role -</option>
             {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
-        ) : <span>{member.role?.name ?? '—'}</span>}
+        ) : <span>{member.role?.name ?? '-'}</span>}
       </Td>
       <Td>
         {canEdit ? (
           <input
             defaultValue={member.department ?? ''}
             onBlur={e => { if ((e.target.value || '') !== (member.department || '')) void handleDeptChange(e.target.value); }}
-            placeholder="—" disabled={busy}
+            placeholder="-" disabled={busy}
             style={{ ...inlineSelect, minWidth: 140 }}
           />
-        ) : <span>{member.department ?? '—'}</span>}
+        ) : <span>{member.department ?? '-'}</span>}
       </Td>
       <Td>
         <span style={{
@@ -249,7 +249,7 @@ function InviteModal({ roles, onClose, onInvited }: {
           </div>
           <label style={lbl}>Role
             <select value={roleId} onChange={e => setRoleId(e.target.value)} style={inputStyle}>
-              <option value="">— No role (no permissions) —</option>
+              <option value="">- No role (no permissions) -</option>
               {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </label>

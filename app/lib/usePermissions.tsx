@@ -7,7 +7,7 @@ import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider'
 import { getApiUrl } from '@/lib/api';
 
 /**
- * RBAC permission context — fetched once per login from
+ * RBAC permission context - fetched once per login from
  * GET /api/remote/team/me/permissions and cached for the session.
  *
  * Shape mirrors TeamController.mePermissions:
@@ -69,7 +69,7 @@ interface MePermsResponse {
 
 // Cache key namespace + TTL. Stored in localStorage scoped by user.id so a
 // browser shared across two team members never bleeds permissions between
-// sessions. TTL is short — long enough to kill the initial-paint flash for
+// sessions. TTL is short - long enough to kill the initial-paint flash for
 // returning users, short enough that a role-permission edit by the owner
 // propagates to the team member within minutes (without that team member
 // having to log out + back in).
@@ -103,7 +103,7 @@ function writeCache(userId: string | null | undefined, snap: Omit<CachedSnapshot
   if (typeof window === 'undefined' || !userId) return;
   try {
     window.localStorage.setItem(CACHE_KEY_PREFIX + userId, JSON.stringify({ ...snap, ts: Date.now() }));
-  } catch { /* quota or disabled — silent */ }
+  } catch { /* quota or disabled - silent */ }
 }
 
 /**
@@ -120,7 +120,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
   // Synchronously build an owner-only context from the DashboardUser.
   // AuthProvider populates user.isTeamMember + user.organizationOwnerId
   // from the profile-summary response, so when the signed-in customer
-  // is an OWNER we can populate full state from frame 1 — no waiting
+  // is an OWNER we can populate full state from frame 1 - no waiting
   // on /api/remote/team/me/permissions, no risk of an empty perms set
   // hiding sidebar items behind a still-pending fetch.
   //
@@ -136,7 +136,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       roleName: 'Owner',
       permissions: new Set(),
       mustChangePassword: false,
-      // Owner short-circuit — never blocked by sidebar filter / Can / etc.
+      // Owner short-circuit - never blocked by sidebar filter / Can / etc.
       hasPermission: () => true,
       hasAny: () => true,
       hasAll: () => true,
@@ -151,7 +151,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
     //    isTeamMember shipped on the DTO) since the V261 backfill made
     //    every existing customer their own org owner.
     if (user && user.isTeamMember === false) return ownerCtxFrom(user);
-    // 2. Cached snapshot from a prior session — covers team members on
+    // 2. Cached snapshot from a prior session - covers team members on
     //    repeat visits with zero network latency.
     const cached = readCache(user?.id ?? null);
     if (!cached) return defaultCtx;
@@ -191,7 +191,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       return;
     }
     // Owner short-circuit: we already know from the DashboardUser they
-    // hold every permission. Don't even ask the backend — avoids the
+    // hold every permission. Don't even ask the backend - avoids the
     // window where a slow /me/permissions response leaves the sidebar
     // empty for the org owner.
     if (user && user.isTeamMember === false) {
@@ -203,7 +203,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       const apiUrl = getApiUrl();
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/team/me/permissions`);
       if (!res.ok) {
-        // 401 or 403 — caller may not have a Customer session (e.g. SysUser).
+        // 401 or 403 - caller may not have a Customer session (e.g. SysUser).
         // Fail closed: empty permission set, hasPermission() always false.
         setState({
           ...defaultCtx, loading: false,
@@ -268,7 +268,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
   // state to empty perms (during !isAuthenticated, on a network blip,
   // or while reading a poisoned-from-an-earlier-session cache). This
   // effect watches user.isTeamMember and re-asserts owner state the
-  // moment user.isTeamMember resolves to false — without waiting on
+  // moment user.isTeamMember resolves to false - without waiting on
   // the network or trusting cache. Net effect: an owner ALWAYS ends
   // up in the owner ctx within one tick of their user object loading.
   useEffect(() => {
@@ -291,7 +291,7 @@ export function usePermissions(): PermissionContextValue {
  * required permission(s). Pass `any` to require ONE of N; pass
  * `permission` to require exactly one; pass `all` to require every
  * one of N. While permissions are loading the fallback is shown,
- * not the children — fail-closed by default.
+ * not the children - fail-closed by default.
  */
 interface CanProps {
   permission?: string;

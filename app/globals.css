@@ -18,7 +18,7 @@
   --ck-stroke: #D4D6DC;
   --ck-stroke-soft: #E6E7EC;
 
-  /* Type — darker for stronger contrast on white cards */
+  /* Type - darker for stronger contrast on white cards */
   --ck-text: #0F1217;
   --ck-text-soft: #3A3D44;
   --ck-text-muted: #6A6D76;
@@ -328,7 +328,7 @@ html, body {
 }
 .ck-side-section::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--ck-stroke) 0%, transparent 100%); }
 
-/* Brand text — light blue in light mode, gradient in dark mode */
+/* Brand text - light blue in light mode, gradient in dark mode */
 .ck-brand-text { color: var(--ck-blue); transition: color 220ms var(--ck-ease); }
 [data-theme="dark"] .ck-brand-text {
   background: linear-gradient(135deg, #93C5FD 0%, #F472B6 100%);

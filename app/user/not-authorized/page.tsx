@@ -10,7 +10,7 @@ import { usePermissions } from '@/app/lib/usePermissions';
  * Shows the specific permission(s) the original page required so the
  * user can ask the right owner / admin for them, plus the originating
  * URL and a back button. Owners only ever land here when a rule was
- * mis-configured (they hold every permission by design) — the page
+ * mis-configured (they hold every permission by design) - the page
  * still works for them and surfaces the misconfiguration.
  */
 export default function NotAuthorizedPage() {
@@ -42,8 +42,8 @@ export default function NotAuthorizedPage() {
         </h1>
         <p style={{ margin: '10px 0 0', fontSize: 14, color: '#6b7280', lineHeight: 1.55 }}>
           {isOwner
-            ? 'You are listed as an organization owner — this looks like a route configuration issue. Please contact support.'
-            : <>Your current role <strong>{roleName || '—'}</strong>{organizationName ? <> in <strong>{organizationName}</strong></> : null} doesn't grant the permission this page requires.</>}
+            ? 'You are listed as an organization owner - this looks like a route configuration issue. Please contact support.'
+            : <>Your current role <strong>{roleName || '-'}</strong>{organizationName ? <> in <strong>{organizationName}</strong></> : null} doesn't grant the permission this page requires.</>}
         </p>
 
         {required.length > 0 && (
