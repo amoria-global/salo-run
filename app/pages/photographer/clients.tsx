@@ -174,7 +174,7 @@ type ViewMode = 'grid' | 'list';
 type PageTab = 'clients' | 'bookings';
 type BookingsFilter = 'all' | 'pending' | 'accepted' | 'rejected';
 
-// API Booking interface — flexible to handle various response shapes
+// API Booking interface. flexible to handle various response shapes
 interface APIBooking {
   id: string;
   status?: string;

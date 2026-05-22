@@ -5,7 +5,7 @@ export const MIN_EVENT_PRICE_OTHER = 1;
 
 /**
  * Returns true when the price is invalid (below the currency-specific minimum).
- * A price of 0 (free event) is always valid — this only checks paid events.
+ * A price of 0 (free event) is always valid. this only checks paid events.
  */
 export const isEventPriceInvalid = (price: string, currencyCode: string): boolean => {
   const n = parseFloat(price.replace(/[^\d.]/g, ''));

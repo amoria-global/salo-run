@@ -9,7 +9,7 @@ interface MoneyHeroProps {
 }
 
 /**
- * Big hero balance card at the top of the wallet page —
+ * Big hero balance card at the top of the wallet page.
  * Connekyt-branded gradient panel with the available balance front and center.
  */
 export default function MoneyHero({ stats }: MoneyHeroProps) {

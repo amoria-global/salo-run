@@ -54,7 +54,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   const { currencies, currency: globalCurrency } = useCurrency();
   const rwfRate = currencies.find(c => c.code === 'RWF')?.rate || 1460;
 
-  // Display currency for the entire modal — every visible amount + the input
+  // Display currency for the entire modal. every visible amount + the input
   // prefix + quick-amount presets re-render in this currency. Defaults to
   // whatever the user picked in the topbar but is then controlled by the
   // currency-preview panel's selector at the top of the modal.
@@ -179,7 +179,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   // The user types `withdrawAmount` in the chosen displayCurrency. We derive
   // an RWF equivalent (for balance comparisons / errors against the legacy
   // RWF totals) and a USD equivalent (which is what the backend submit
-  // expects on the wire — see /withdraw/initiate body below).
+  // expects on the wire. see /withdraw/initiate body below).
   const parsedDisplayAmount = parseFloat(withdrawAmount) || 0;
   const parsedUsdAmount = displayRate > 0 ? parsedDisplayAmount / displayRate : 0;
   const parsedRwfAmount = parsedUsdAmount * rwfRate;
@@ -219,7 +219,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${apiNamespace}/withdraw/initiate`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // Submit USD on the wire — backend canonical. parsedUsdAmount and
+          // Submit USD on the wire. backend canonical. parsedUsdAmount and
           // donationUsdValue are derived above from the user's typed
           // displayCurrency input via /displayRate.
           amount: parsedUsdAmount,
@@ -801,7 +801,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
           {/* Form */}
           {step === 'form' && (
             <>
-              {/* Available Balance Card — Connekyt brand gradient */}
+              {/* Available Balance Card. Connekyt brand gradient */}
               <div className="mobile-balance-display" style={{
                 background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 60%, #1654b8 100%)',
                 borderRadius: 16, padding: '22px 24px', marginBottom: 14,
@@ -842,7 +842,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                 </div>
               </div>
 
-              {/* Currency preview panel — pinned top-right under the balance
+              {/* Currency preview panel. pinned top-right under the balance
                   card, always visible. Shows every relevant RWF amount on the
                   modal converted to the user's preferred currency. Display-
                   only; the actual withdrawal still submits in RWF and the
@@ -895,7 +895,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                 </div>
                 {/* Quick amount buttons. Presets are a fraction of the
                     *selected source* balance (withdrawal is validated
-                    per-source, not against the combined total — see
+                    per-source, not against the combined total. see
                     `amountError` / `sourceBalanceRwf`), so "Max" withdraws
                     exactly the chosen bucket. The display value is floored
                     to the display currency's precision so the round-trip

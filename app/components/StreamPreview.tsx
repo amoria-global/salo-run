@@ -221,7 +221,7 @@ export default function StreamPreview({
       video.muted = true;
       video.play().catch(() => {});
     }).catch(() => {
-      // WHEP connection failed — will retry on next poll
+      // WHEP connection failed. will retry on next poll
     });
 
     const handleWaiting = () => setIsBuffering(true);
@@ -616,7 +616,7 @@ export default function StreamPreview({
         )}
       </div>
 
-      {/* Stream stats row — when live or paused */}
+      {/* Stream stats row. when live or paused */}
       {(isLive || isPaused) && (
         <div style={{ display: 'flex', gap: 6, marginTop: '0.65rem' }}>
           {[
@@ -700,7 +700,7 @@ export default function StreamPreview({
         )}
       </div>
 
-      {/* Stream Credentials — WHIP or RTMP fallback */}
+      {/* Stream Credentials. WHIP or RTMP fallback */}
       {!isEnded && hasCredentials && (
         <div style={{
           background: isDark
@@ -920,7 +920,7 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* No credentials yet — setup prompt */}
+      {/* No credentials yet. setup prompt */}
       {!isEnded && !hasCredentials && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.4rem', maxWidth: 520, margin: '0 auto' }}>
           {/* Icon */}
@@ -1017,7 +1017,7 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* Invite Token — hide when ended */}
+      {/* Invite Token. hide when ended */}
       {!isEnded && inviteToken && (
         <div style={{
           background: isDark
@@ -1081,7 +1081,7 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* Encoder Guide removed — OBS steps shown inline above Get RTMP button */}
+      {/* Encoder Guide removed. OBS steps shown inline above Get RTMP button */}
 
       {/* Error */}
       {error && (
@@ -1136,7 +1136,7 @@ export default function StreamPreview({
       {!isEnded && (
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-          {/* Go Live — encoder detected, ready to broadcast */}
+          {/* Go Live. encoder detected, ready to broadcast */}
           {isTestPreview && (
             <button
               onClick={onResumeStream}
@@ -1163,7 +1163,7 @@ export default function StreamPreview({
             </button>
           )}
 
-          {/* Go Live — has credentials, still waiting for encoder (fallback) */}
+          {/* Go Live. has credentials, still waiting for encoder (fallback) */}
           {isDisconnected && hasCredentials && !encoderDetected && (
             <button
               onClick={onResumeStream}
@@ -1187,7 +1187,7 @@ export default function StreamPreview({
             </button>
           )}
 
-          {/* Paused — show Resume */}
+          {/* Paused. show Resume */}
           {isPaused && (
             <button
               onClick={onResumeStream}
@@ -1214,7 +1214,7 @@ export default function StreamPreview({
             </button>
           )}
 
-          {/* Live — show Pause + End Stream */}
+          {/* Live. show Pause + End Stream */}
           {isLive && (
             <>
               <button
@@ -1265,7 +1265,7 @@ export default function StreamPreview({
             </>
           )}
 
-          {/* Paused — also allow End Stream */}
+          {/* Paused. also allow End Stream */}
           {isPaused && (
             <button
               onClick={() => setShowEndConfirm(true)}
@@ -1518,7 +1518,7 @@ export default function StreamPreview({
 
           {/* Body */}
           {!hasCredentials && !isEnded ? (
-            /* Phase 1: Get Credentials — single column, no video */
+            /* Phase 1: Get Credentials. single column, no video */
             <div style={{ padding: '2rem 1.5rem' }}>
               {renderControlPanel()}
             </div>

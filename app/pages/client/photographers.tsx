@@ -630,7 +630,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const handleRebookEventSelect = (eventId: string) => {
     setSelectedRebookEventId(eventId);
     if (!eventId) {
-      // Cleared selection — reset fields
+      // Cleared selection. reset fields
       setRebookEventType('');
       setRebookDate('');
       setRebookTime('');
@@ -1208,7 +1208,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>RELATIONSHIPS</div>
               <h1 className="mobile-title" style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>Booked photographers</h1>
               <p className="mobile-subtitle" style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
-                Photographers you&apos;ve worked with — rebook your favorites in one tap.
+                Photographers you&apos;ve worked with. rebook your favorites in one tap.
               </p>
             </div>
             <div className="mobile-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -1441,7 +1441,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 <p style={{ margin: '4px auto 0', fontSize: '0.9rem', color: colors.textSecondary, maxWidth: 420, lineHeight: 1.5 }}>
                   {activeTab === 'favorites'
                     ? "You haven't added any photographers to favorites yet. Star a photographer from their profile to see them here."
-                    : 'Try adjusting your search or filters — your booked photographers will appear here.'}
+                    : 'Try adjusting your search or filters. your booked photographers will appear here.'}
                 </p>
               </div>
             </div>
@@ -2550,7 +2550,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   outline: 'none',
                 }}
               >
-                <option value="">{rebookEventsLoading ? 'Loading events…' : '— Select an event or fill manually —'}</option>
+                <option value="">{rebookEventsLoading ? 'Loading events…' : 'Select an event or fill manually'}</option>
                 {rebookEvents.map(evt => (
                   <option key={evt.id} value={evt.id}>
                     {evt.title}{evt.eventDate ? ` · ${evt.eventDate}` : ''}
@@ -2859,7 +2859,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     outline: 'none',
                   }}
                 >
-                  <option value="">— Select an event —</option>
+                  <option value="">Select an event</option>
                   {reviewEvents.map((evt) => (
                     <option key={evt.id} value={evt.id}>
                       {evt.title}{evt.eventDate ? ` · ${new Date(evt.eventDate).toLocaleDateString()}` : ''}
@@ -3184,7 +3184,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     ? 'A payment page has been opened. Complete the payment there and we\'ll confirm it here.'
                     : 'A USSD prompt has been sent to your phone. Please approve the payment on your device.'}
                 </p>
-                <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Waiting for the gateway to confirm — this can take up to a minute.</p>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Waiting for the gateway to confirm. this can take up to a minute.</p>
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
               </div>
             </Modal>

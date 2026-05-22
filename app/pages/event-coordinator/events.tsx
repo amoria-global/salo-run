@@ -380,7 +380,7 @@ const MyEventsPage = () => {
   const [platformPhotographers, setPlatformPhotographers] = useState<{id: string; name: string; image?: string; speciality: string; rating: number; eventsWorked: number}[]>([]);
 
   useEffect(() => {
-    // Fetch booked/connected photographers (authenticated — same as inbox new chat)
+    // Fetch booked/connected photographers (authenticated. same as inbox new chat)
     const normalizeImg = (url: string | undefined | null): string | undefined => {
       if (!url || url.includes('/null')) return undefined;
       return normalizeImageUrl(url);
@@ -754,7 +754,7 @@ const MyEventsPage = () => {
           setEventCategories(data.data);
         }
       } catch {
-        // Fallback silently — dropdowns will be empty
+        // Fallback silently. dropdowns will be empty
       }
     })();
   }, []);
@@ -775,7 +775,7 @@ const MyEventsPage = () => {
   const [pendingBookingEvent, setPendingBookingEvent] = useState<Event | null>(null);
   const [noPhotoEvent, setNoPhotoEvent] = useState<Event | null>(null);
 
-  // Fetch events — use coordinator endpoint (returns only this user's events)
+  // Fetch events. use coordinator endpoint (returns only this user's events)
   const fetchMyEvents = useCallback(async () => {
     setIsLoadingEvents(true);
     setEventsError(null);
@@ -826,7 +826,7 @@ const MyEventsPage = () => {
             bannerImage: photo,
             // The "price" field on the UI event card is the LIVE STREAM FEE
             // (per-viewer access charge), not the photographer's package
-            // price. Reading evt.price here was a long-standing bug — it
+            // price. Reading evt.price here was a long-standing bug. it
             // pulled the wrong number, so the edit modal showed "Free"
             // even when the coordinator had set a stream fee. Now we
             // prefer evt.streamFee (which the booking + edit endpoints
@@ -887,7 +887,7 @@ const MyEventsPage = () => {
   }, [user, fetchMyEvents]);
 
   const handlePublishEvent = async (eventId: string) => {
-    // Gate on `user` rather than `token` — cookie-only sessions (no Bearer
+    // Gate on `user` rather than `token`. cookie-only sessions (no Bearer
     // in localStorage) populate `user` via the /profile cookie handshake but
     // leave `token` empty, and those sessions are still fully authenticated.
     if (!user) return;
@@ -915,7 +915,7 @@ const MyEventsPage = () => {
 
   const handleUnpublishEvent = async (eventId: string) => {
     if (!user) return;
-    // Capture the event title before we close the confirm modal — used later
+    // Capture the event title before we close the confirm modal. used later
     // if the backend responds with the "event is live" block so the modal can
     // name which event is stuck.
     const targetTitle = unpublishConfirmEvent?.title
@@ -1389,7 +1389,7 @@ const MyEventsPage = () => {
     try {
       // Call the backend API. Gate on `user`, not `token`, so cookie-only
       // sessions (no Bearer in localStorage) aren't blocked before the
-      // request is even sent — dashboardAuthFetch handles attaching the
+      // request is even sent. dashboardAuthFetch handles attaching the
       // HttpOnly cookie via credentials: 'include'.
       if (user) {
         const apiUrl = getApiUrl();
@@ -1424,7 +1424,7 @@ const MyEventsPage = () => {
           notes: '',
         };
 
-        // Only include photographer/package IDs if they are valid UUIDs — sending null causes backend JPA errors
+        // Only include photographer/package IDs if they are valid UUIDs. sending null causes backend JPA errors
         if (validPhotographerId) {
           payload.photographerId = validPhotographerId;
         }
@@ -1793,7 +1793,7 @@ const MyEventsPage = () => {
                 <div key={event.id} className="mobile-event-card" style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
                   {/* Blurred cover image = glow effect */}
                   <img src={event.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                  {/* Inner card — clickable to view */}
+                  {/* Inner card. clickable to view */}
                   <div
                     onClick={() => setShowEventDetails(event)}
                     style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
@@ -1857,7 +1857,7 @@ const MyEventsPage = () => {
                           </div>
                         )}
                       </div>
-                      {/* Action buttons — always 4 buttons: Share, Edit, Delete, Publish/Unpublish */}
+                      {/* Action buttons. always 4 buttons: Share, Edit, Delete, Publish/Unpublish */}
                       <div className="mobile-event-actions" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                           <ShareIcon />
@@ -1883,8 +1883,8 @@ const MyEventsPage = () => {
                         {event.status.toUpperCase() !== 'COMPLETED' && (
                           (event.isPublished || event.status.toUpperCase() === 'PUBLISHED' || event.status.toUpperCase() === 'ONGOING') ? (
                             <button onClick={() => {
-                              // Short-circuit straight to the block modal when the event is live —
-                              // no point asking the coordinator "are you sure?" for an action the
+                              // Short-circuit straight to the block modal when the event is live.
+                              // No point asking the coordinator "are you sure?" for an action the
                               // backend will reject. Backend still enforces the same rule.
                               if (event.status.toUpperCase() === 'ONGOING') {
                                 setOngoingUnpublishBlock({
@@ -2613,7 +2613,7 @@ const MyEventsPage = () => {
           </div>
 
 
-          {/* Escrow / Payment Milestone Selector — shown when photographer + package selected */}
+          {/* Escrow / Payment Milestone Selector. shown when photographer + package selected */}
           {createPhotographerId && createPackageId && (
             <div data-section="escrow" style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -3440,7 +3440,7 @@ const MyEventsPage = () => {
       {/*
         Shown when the backend rejects the unpublish because the event is
         currently live (status ONGOING). Unlike the confirm modal above, this
-        one has no "proceed" action — the only way out is for the photographer
+        one has no "proceed" action. the only way out is for the photographer
         to end the stream, so we just guide the creator to do that.
       */}
       {ongoingUnpublishBlock && (

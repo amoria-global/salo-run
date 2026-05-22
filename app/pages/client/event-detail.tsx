@@ -310,7 +310,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
     try {
       const apiUrl = getApiUrl();
 
-      // Always use the customer events endpoint — it allows both creator and photographer access
+      // Always use the customer events endpoint. it allows both creator and photographer access
       const eventRes = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${eventId}`);
 
       if (!eventRes.ok) {

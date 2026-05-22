@@ -208,7 +208,7 @@ export const allCountries: CountryOption[] = [
   { name: 'Zimbabwe', code: '+263', iso: 'zw' },
 ];
 
-// Legacy alias — kept so existing imports don't break
+// Legacy alias. kept so existing imports don't break
 export const eastAfricanCountries = allCountries;
 
 interface CountrySelectProps {

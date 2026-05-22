@@ -282,7 +282,7 @@ const EventCoordinatorDashboard = () => {
               status: p.status === 'FAILED' ? 'failed' : p.status === 'PARTIAL' ? 'partially_paid' : 'pending' as PendingPayment['status'],
             }));
           setPendingPayments(pending);
-          // Recent transactions — show all non-completed (pending/unpaid)
+          // Recent transactions. show all non-completed (pending/unpaid)
           const pendingTxns = items
             .filter((p: any) => p.status !== 'COMPLETED' && p.status !== 'SUCCESS')
             .slice(0, 5)

@@ -777,7 +777,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                       </div>
                     </div>
 
-                    {/* BOTTOM: title, date, photographer, stats, buttons — all overlaid */}
+                    {/* BOTTOM: title, date, photographer, stats, buttons. all overlaid */}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
                       {/* Title + date over image */}
                       <div style={{ padding: '0 0.8rem 0.5rem' }}>

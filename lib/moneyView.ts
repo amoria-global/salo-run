@@ -1,8 +1,8 @@
 /**
- * moneyView.ts — Role-aware money formatting layer.
+ * moneyView.ts. Role-aware money formatting layer.
  *
  * Pure TypeScript (no React). Every function takes the user's dashboard role
- * and returns data shaped for the UI. Components never decide what to show —
+ * and returns data shaped for the UI. Components never decide what to show;
  * they just render what this module returns.
  */
 
@@ -37,7 +37,7 @@ export interface MoneyItem {
   id: string;
   /** Human-friendly title, e.g. "Tip received" */
   title: string;
-  /** Optional second line — event name, person, etc. */
+  /** Optional second line. event name, person, etc. */
   subtitle?: string;
   /** Absolute value in USD (always positive) */
   amount: number;
@@ -46,7 +46,7 @@ export interface MoneyItem {
   originalCurrency?: string | null;
   /** Visual direction indicator */
   direction: 'in' | 'out';
-  /** Colour hint — maps to the design-system colour scale */
+  /** Colour hint. maps to the design-system colour scale */
   color: 'green' | 'red' | 'blue' | 'amber' | 'purple' | 'neutral';
   /** ISO timestamp */
   timestamp: string;
@@ -240,10 +240,10 @@ export function shouldHideMovement(
 
   const cat = m.category as WalletCategory;
 
-  // Internal platform ledger — hide from everyone except admin
+  // Internal platform ledger. hide from everyone except admin
   if (cat === 'PLATFORM_FEE') return true;
 
-  // Stat-only categories — shown in hero/cards, not in the activity feed
+  // Stat-only categories. shown in hero/cards, not in the activity feed
   if (cat === 'HELD' || cat === 'PENDING' || cat === 'BLOCKED') return true;
 
   // Photographer shouldn't see client-side spend rows
@@ -283,7 +283,7 @@ export function formatWalletMovement(
   if (meta) {
     title = meta.label[role] || meta.label.admin;
   } else {
-    // Unknown category — use description or fallback
+    // Unknown category. use description or fallback
     title = cat.replace(/_/g, ' ').toLowerCase();
     title = title.charAt(0).toUpperCase() + title.slice(1);
   }
@@ -408,7 +408,7 @@ export function selectWalletStats(
     };
   }
 
-  // Admin — show everything
+  // Admin. show everything
   return {
     hero: { label: 'Available balance', value: w.balanceAvailable },
     cards: [
@@ -453,9 +453,9 @@ export interface PaymentDeclaration {
 /**
  * Formats a payment declaration into a role-appropriate MoneyItem.
  *
- *  - Photographer: "Booking — {eventName}" (income perspective)
- *  - Client: "Payment — {eventName}" (spend perspective)
- *  - Coordinator (organizer): "Event payment — {eventName}" — never shows booking fee
+ *  - Photographer: "Booking. {eventName}" (income perspective)
+ *  - Client: "Payment. {eventName}" (spend perspective)
+ *  - Coordinator (organizer): "Event payment. {eventName}". never shows booking fee
  *  - Admin: raw view with all data
  */
 export function formatPaymentDeclaration(
@@ -473,21 +473,21 @@ export function formatPaymentDeclaration(
   let color: MoneyItem['color'];
 
   if (role === 'photographer') {
-    title = p.eventName ? `Booking — ${p.eventName}` : 'Booking payment';
+    title = p.eventName ? `Booking. ${p.eventName}` : 'Booking payment';
     direction = 'in';
     color = isFailed ? 'red' : isPending ? 'amber' : 'green';
   } else if (role === 'client') {
-    title = p.eventName ? `Payment — ${p.eventName}` : 'Payment';
+    title = p.eventName ? `Payment. ${p.eventName}` : 'Payment';
     direction = 'out';
     color = isFailed ? 'red' : isPending ? 'amber' : 'neutral';
   } else if (role === 'event-coordinator') {
-    title = p.eventName ? `Event payment — ${p.eventName}` : 'Event payment';
+    title = p.eventName ? `Event payment. ${p.eventName}` : 'Event payment';
     direction = isOrganizer ? 'out' : 'in';
     color = isFailed ? 'red' : isPending ? 'amber' : isOrganizer ? 'neutral' : 'green';
   } else {
     // admin
     title = p.eventName
-      ? `Declaration — ${p.eventName}`
+      ? `Declaration. ${p.eventName}`
       : `Declaration #${p.declarationId || p.id}`;
     direction = 'in';
     color = isFailed ? 'red' : isPending ? 'amber' : 'green';

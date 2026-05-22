@@ -558,7 +558,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const [showReceipt, setShowReceipt] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  // Escrow states — auto-skip if already set at booking time
+  // Escrow states. auto-skip if already set at booking time
   const [escrowStep, setEscrowStep] = useState<'options' | 'method'>('options');
   const [selectedEscrowOption, setSelectedEscrowOption] = useState<number | null>(null);
   const [surveyCompleted, setSurveyCompleted] = useState<boolean>(false);
@@ -633,7 +633,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   }
 
   // For escrow payments, the amount due is the remaining balance.
-  // When payment.escrowPercentage is already set, declaration amount IS the milestone amount — don't re-apply %.
+  // When payment.escrowPercentage is already set, declaration amount IS the milestone amount. don't re-apply %.
   const fullAmountDue = payment.amountNum - payment.paidAmount;
   const amountDue = (selectedEscrowOption && selectedEscrowOption < 100 && !payment.escrowPercentage)
     ? fullAmountDue * selectedEscrowOption / 100
@@ -764,7 +764,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               ? 'A payment page has been opened. Complete the payment there and we\'ll confirm it here.'
               : 'A USSD prompt has been sent to your phone. Please approve the payment on your device.'}
           </p>
-          <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Waiting for the gateway to confirm your payment — this can take up to a minute.</p>
+          <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Waiting for the gateway to confirm your payment. this can take up to a minute.</p>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </Modal>
@@ -806,7 +806,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     );
   }
 
-  // Escrow Options View — choose payment percentage
+  // Escrow Options View. choose payment percentage
   if (escrowStep === 'options' && xentriPayStep === 'select' && !showReceipt) {
     const fullAmountDue = payment.amountNum - payment.paidAmount;
     const options = [

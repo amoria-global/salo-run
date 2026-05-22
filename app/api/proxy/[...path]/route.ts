@@ -120,7 +120,7 @@ async function proxyRequest(
           fetchOptions.body = JSON.stringify(body);
           headers['Content-Type'] = 'application/json';
         } catch {
-          // No JSON body — continue without body
+          // No JSON body. continue without body
         }
       } else if (bodyContentType) {
         const rawBody = await request.arrayBuffer();
@@ -137,12 +137,12 @@ async function proxyRequest(
     // Build response headers: CORS + any Set-Cookie echoed from the backend.
     // In production the backend sets Domain=.connekyt.com so the cookie is
     // shared across connekyt.com, dashboard.connekyt.com, backend.connekyt.com.
-    // In local dev the proxy's host is localhost — a Domain=.connekyt.com
+    // In local dev the proxy's host is localhost. a Domain=.connekyt.com
     // attribute on a Set-Cookie returned from localhost gets rejected by the
     // browser as a cross-domain cookie. Strip the Domain attribute in that
     // case so the cookie becomes host-only on `localhost`. Host-only cookies
     // match by hostname only (port-agnostic), so a cookie set during login on
-    // localhost:3000 will also be sent to localhost:3001 — exactly what we
+    // localhost:3000 will also be sent to localhost:3001. exactly what we
     // need to bridge landing → dashboard locally.
     const proxyHost = (request.headers.get('host') || '').toLowerCase();
     const isLocalhost = proxyHost.startsWith('localhost') || proxyHost.startsWith('127.0.0.1');

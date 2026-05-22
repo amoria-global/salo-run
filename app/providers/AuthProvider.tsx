@@ -137,7 +137,7 @@ export interface DashboardUser {
   preferredWithdrawalVerification?: string;
   twoFactorEnabled?: boolean;
   /**
-   * Server-computed profile completion percentage (0-100). Authoritative —
+   * Server-computed profile completion percentage (0-100). Authoritative:
    * the photographer dashboard layout gates navigation on this, so don't
    * shadow it with a client-side recomputation.
    */
@@ -184,7 +184,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  *
  * We now rely on the `amoria_auth` HttpOnly cookie (scoped to .connekyt.com)
  * that the backend sets on login. The browser sends it automatically on
- * cross-origin fetches as long as `credentials: 'include'` is set — which
+ * cross-origin fetches as long as `credentials: 'include'` is set. which
  * dashboardAuthFetch now does. JS never reads or writes the JWT.
  *
  * These writer functions are kept as explicit no-ops to preserve call-sites
@@ -260,7 +260,7 @@ function clearLegacyJwtStorage(): void {
     document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
     document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   } catch {
-    // Storage can be blocked in some privacy modes — ignore.
+    // Storage can be blocked in some privacy modes. ignore.
   }
 }
 
@@ -282,7 +282,7 @@ function mapProfessionalSkills(skills: Array<{
 }
 
 /**
- * Token refresh mutex — prevents multiple simultaneous refresh attempts
+ * Token refresh mutex. prevents multiple simultaneous refresh attempts
  */
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
@@ -386,7 +386,7 @@ function mapProfileData(data: any): DashboardUser {
 
 /**
  * Try fetching a single profile endpoint. Returns the parsed user on success, or null.
- * Does NOT handle 401 — caller is responsible for token refresh logic.
+ * Does NOT handle 401. caller is responsible for token refresh logic.
  */
 async function tryFetchProfile(
   endpoint: string,
@@ -397,8 +397,8 @@ async function tryFetchProfile(
     const url = `${getApiUrl()}${endpoint}`;
     const headers: Record<string, string> = {};
     // Bearer is only attached if the caller happens to have a token (legacy
-    // in-memory value). The amoria_auth HttpOnly cookie — sent because of
-    // credentials: 'include' — is the primary auth signal.
+    // in-memory value). The amoria_auth HttpOnly cookie. sent because of
+    // credentials: 'include'. is the primary auth signal.
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
       method: 'GET',
@@ -414,7 +414,7 @@ async function tryFetchProfile(
     const result = await response.json();
     if (result.action === 1 && result.data) {
       const userData = mapProfileData(result.data);
-      // Ensure customerType is set — infer from endpoint if API didn't return it
+      // Ensure customerType is set. infer from endpoint if API didn't return it
       if (!userData.customerType) {
         if (roleName === 'photographer') userData.customerType = 'PHOTOGRAPHER';
         else if (roleName === 'coordinator') userData.customerType = 'EVENT_COORDINATOR';
@@ -454,7 +454,7 @@ async function fetchUserProfile(token: string | null): Promise<{ user: Dashboard
       if (user) return { user, reason: 'success' };
       if (status === 401) { got401 = true; break; }
       if (status >= 500) { gotServerError = true; }
-      // 403/404 means wrong role — try next endpoint
+      // 403/404 means wrong role. try next endpoint
     }
 
     // If any endpoint returned 401, attempt token refresh and retry all
@@ -466,7 +466,7 @@ async function fetchUserProfile(token: string | null): Promise<{ user: Dashboard
           if (user) return { user, reason: 'success' };
         }
       }
-      // Token refresh failed — redirect photographer to login to prevent stale data
+      // Token refresh failed. redirect photographer to login to prevent stale data
       if (typeof window !== 'undefined') {
         const isPhotographer = window.location.pathname.includes('/photographer') ||
           document.cookie.includes('userRole=photographer');
@@ -528,11 +528,11 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
       // Read any cached user profile so the UI has something to render
       // instantly while the authoritative fetch is in flight. The cache is
-      // profile data only (name, role, etc.) — it does NOT contain a JWT.
+      // profile data only (name, role, etc.). it does NOT contain a JWT.
       const storedUserStr = typeof window !== 'undefined'
           ? localStorage.getItem(AUTH_USER_KEY) : null;
 
-      // Always attempt the profile fetch — no Bearer token needed; the cookie
+      // Always attempt the profile fetch. no Bearer token needed; the cookie
       // carries auth. If it succeeds, we're authenticated. If it 401s, we're
       // not, and we'll show the logged-out UI (middleware will redirect to
       // the landing login on any /user/* navigation).
@@ -558,7 +558,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         timeoutPromise,
       ]);
       if (timedOut) {
-        console.warn(`[Dashboard Auth] Profile fetch did not settle within ${PROFILE_INIT_TIMEOUT_MS}ms — falling back to cached state. Check the network tab for the in-flight request to ${getApiUrl()}/api/remote/<role>/profile-summary.`);
+        console.warn(`[Dashboard Auth] Profile fetch did not settle within ${PROFILE_INIT_TIMEOUT_MS}ms. falling back to cached state. Check the network tab for the in-flight request to ${getApiUrl()}/api/remote/<role>/profile-summary.`);
       }
 
       if (userProfile) {
@@ -570,8 +570,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           }
         }
       } else if (reason === 'server_error' || reason === 'network_error') {
-        // Backend is down (or the fetch hit the local-dev timeout above) —
-        // fall back to cached profile so the UI renders. The user is still
+        // Backend is down (or the fetch hit the local-dev timeout above),
+        // so fall back to cached profile so the UI renders. The user is still
         // "authenticated" per the cookie; we just can't talk to the backend
         // right now. Real 401s clear state below.
         if (storedUserStr) {
@@ -590,7 +590,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   // Proactively re-fetch the profile every 4 hours. The backend's
   // /profile-summary call triggers JwtAuthFilter, which handles silent
-  // refresh server-side if the token is near expiry — so the cookie value
+  // refresh server-side if the token is near expiry. so the cookie value
   // stays fresh without us doing anything client-side. This interval also
   // surfaces the user as logged out the moment the session becomes invalid
   // (e.g. the refresh token is revoked), without waiting for them to click
@@ -611,7 +611,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           }
         }
       } else if (reason === 'unauthorized') {
-        console.warn('[Dashboard Auth] Session invalidated — redirecting to login');
+        console.warn('[Dashboard Auth] Session invalidated. redirecting to login');
         clearAuthFromStorage();
         setUser(null);
         const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
@@ -674,7 +674,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           }
         }
       } catch {
-        // Silently fail — don't block the user if the check fails
+        // Silently fail. don't block the user if the check fails
       }
     };
 
@@ -688,7 +688,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     if (!token || !user) return;
 
     const role = user.customerType?.toUpperCase();
-    // Only apply to client and coordinator — photographers keep sessions indefinitely
+    // Only apply to client and coordinator. photographers keep sessions indefinitely
     if (role === 'PHOTOGRAPHER') return;
 
     const cfg = getPlatformConfig().security;
@@ -765,7 +765,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
     // Tell the backend to revoke the refresh token AND clear the amoria_auth
     // HttpOnly cookie (via Set-Cookie Max-Age=0 with Domain=.connekyt.com).
-    // That cookie is HttpOnly so JS can't delete it — only the backend can.
+    // That cookie is HttpOnly so JS can't delete it. only the backend can.
     // Without this round-trip, the landing app would still see the user as
     // authenticated because the .connekyt.com cookie would survive the
     // redirect, breaking cross-app logout sync.
@@ -783,7 +783,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         credentials: 'include',
       });
     } catch (err) {
-      // Fall through — if the backend is unreachable we still complete local
+      // Fall through. if the backend is unreachable we still complete local
       // logout and redirect. The cookie will expire on its own eventually.
       console.warn('[Dashboard Auth] Backend logout failed; clearing locally only', err);
     }
@@ -817,7 +817,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
    * Call this after any profile update operation to get fresh data
    */
   const refreshUserProfile = useCallback(async (): Promise<boolean> => {
-    // No token needed — the amoria_auth HttpOnly cookie carries auth.
+    // No token needed. the amoria_auth HttpOnly cookie carries auth.
     const { user: userProfile } = await fetchUserProfile(null);
     if (userProfile) {
       setUser(userProfile);
@@ -832,7 +832,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     // `token` is kept in the context for source-compat but is intentionally
-    // always null — the JWT is never surfaced to JS. Components should
+    // always null. the JWT is never surfaced to JS. Components should
     // derive auth state from `isAuthenticated` or `user` instead.
     token,
     isAuthenticated: !!user && !isLoading,
@@ -947,15 +947,15 @@ export async function dashboardAuthFetch(
   options: RequestInit = {}
 ): Promise<Response> {
   // Auth source priority:
-  //   1. Bearer from localStorage/authToken cookie — legacy, still dominant for
+  //   1. Bearer from localStorage/authToken cookie. legacy, still dominant for
   //      existing sessions that predate the .connekyt.com HttpOnly cookie.
-  //   2. The amoria_auth HttpOnly cookie — travels automatically on cross-
+  //   2. The amoria_auth HttpOnly cookie. travels automatically on cross-
   //      origin requests as long as credentials: 'include' is set below, since
   //      dashboard.connekyt.com and backend.connekyt.com share a registrable
   //      site (connekyt.com → SameSite=Lax permits the subresource cookie).
   //
   // When (1) isn't available, we fall through to a cookie-only request
-  // instead of synthesising a 401 — that unblocks users whose session moved
+  // instead of synthesising a 401. that unblocks users whose session moved
   // to cookie-only (no localStorage token) after the JWT-in-URL handoff was
   // removed from the landing app.
   const currentToken = (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null) || getCookieToken();
@@ -974,7 +974,7 @@ export async function dashboardAuthFetch(
   const fetchOpts: RequestInit = { ...options, headers, credentials: 'include' };
 
   // Retry network-level failures (e.g. dev backend reloading) up to 2 extra times
-  // with short backoff. Only retries on fetch throws — HTTP error statuses pass through.
+  // with short backoff. Only retries on fetch throws. HTTP error statuses pass through.
   const fetchWithRetry = async (u: string, init: RequestInit): Promise<Response> => {
     const bodyIsStream = init.body instanceof ReadableStream;
     const maxAttempts = bodyIsStream ? 1 : 3;

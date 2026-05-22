@@ -363,7 +363,7 @@ interface Album {
   isStandalone?: boolean;
   // Standalone free-album fields. recipientEmail is the email captured at
   // album creation (already auto-sent then); "Send" on these is a Resend
-  // via POST /albums/{id}/send-free — no event/eventId needed.
+  // via POST /albums/{id}/send-free. no event/eventId needed.
   isFreeAlbum?: boolean;
   recipientEmail?: string;
   accessCode?: string;
@@ -475,7 +475,7 @@ const PhotographerEventsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
   const [showAlbumSuccessModal, setShowAlbumSuccessModal] = useState(false);
-  // `status` drives the icon/tone/eyebrow of the result modal — without it
+  // `status` drives the icon/tone/eyebrow of the result modal. without it
   // failure messages get the green "Success" check (see the failed-send
   // screenshot before this fix).
   const [albumSuccessMessage, setAlbumSuccessMessage] = useState<{
@@ -804,7 +804,7 @@ const PhotographerEventsPage = () => {
         if (res.ok) {
           const data = Array.isArray(result?.data) ? result.data : result?.data?.content || [];
           if (data.length > 0) {
-            // Single mapping pass — collects the Album rows AND the
+            // Single mapping pass. collects the Album rows AND the
             // url→imageId entries the edit/delete flow needs.
             const idMap: Record<string, string> = {};
             const mapped: Album[] = data.map((a: any) => {
@@ -1087,7 +1087,7 @@ const PhotographerEventsPage = () => {
         const msg = data.message || 'Failed to end stream. Please try again.';
         setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: msg } }));
       } else {
-        // Stream permanently ended — credentials cleared by backend
+        // Stream permanently ended. credentials cleared by backend
         setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'ended', serverUrl: undefined, streamKey: undefined } }));
         setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'completed' as EventStatus } : e));
       }
@@ -1594,13 +1594,13 @@ const PhotographerEventsPage = () => {
     setSelectedFiles(null);
 
     // Reconcile local state with the backend's canonical view of this new
-    // album. The locally-built newAlbum above is an approximation — for
+    // album. The locally-built newAlbum above is an approximation. for
     // event albums where no new files were picked, `images`/`coverImage`
     // here point at the event cover (which is NOT actually in the gallery
     // server-side), and fields like recipientEmail / accessCode /
     // isFreeAlbum are unset. Without this refetch, opening the edit modal
     // immediately after create shows phantom images and PUT sends bad
-    // coverImageUrl values — the user has to reload to recover. Single
+    // coverImageUrl values. the user has to reload to recover. Single
     // GET, swap the entry in state, populate mediaIdMap with the real
     // image ids. Best-effort: if it fails we keep the local version.
     try {
@@ -1675,7 +1675,7 @@ const PhotographerEventsPage = () => {
   // Enabling face recognition asks the backend for the album's invite code
   // via POST /albums/{id}/invite-code. The backend's standalone-album path on
   // that endpoint now returns gallery.inviteCode (PAID standalone) or
-  // gallery.accessCode (FREE standalone), generating one if neither is set —
+  // gallery.accessCode (FREE standalone), generating one if neither is set,
   // so the previous "Failed to generate invite code" error is gone for
   // standalone albums.
   const handleToggleFaceRecognition = async (album: Album) => {
@@ -1703,7 +1703,7 @@ const PhotographerEventsPage = () => {
   const handleSendToClient = async (album: Album) => {
     setShowSendModal(false);
     // Standalone FREE albums were already emailed at creation time, so "Send"
-    // here means RESEND to the captured recipientEmail via /send-free — no
+    // here means RESEND to the captured recipientEmail via /send-free. no
     // event/eventId required. Event-linked albums use the original /send.
     const isStandaloneFree = (album.isStandalone || album.albumType === 'standalone')
       && album.isFreeAlbum;
@@ -1979,7 +1979,7 @@ const PhotographerEventsPage = () => {
                     const isLive = streamCfg?.connectionStatus === 'connected';
                     const isHighlighted = highlightId != null && String(event.id) === highlightId;
                     return (
-                      /* Outer glow wrapper — blurred image border */
+                      /* Outer glow wrapper. blurred image border */
                       <div
                         key={event.id}
                         ref={isHighlighted ? highlightCardRef : null}
@@ -1989,7 +1989,7 @@ const PhotographerEventsPage = () => {
                         onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                       >
                         <img src={event.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                        {/* Inner card — clickable to open details */}
+                        {/* Inner card. clickable to open details */}
                         <div
                           onClick={() => { setSelectedEvent(event); setShowEventDetailModal(true); }}
                           style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
@@ -2370,7 +2370,7 @@ const PhotographerEventsPage = () => {
                     <div key={album.id} style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
                       {/* Blurred cover image behind card = image-based border glow */}
                       <img src={album.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                      {/* Inner card — clickable to browse album */}
+                      {/* Inner card. clickable to browse album */}
                       <div
                         onClick={() => { setSelectedAlbum(album); setViewerAlbum(album); setCurrentImageIndex(0); setShowAlbumBrowseModal(true); }}
                         style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
@@ -2379,7 +2379,7 @@ const PhotographerEventsPage = () => {
                       >
                         {/* Full-bleed cover image spanning entire inner card */}
                         <img src={album.coverImage || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                        {/* Gradient overlay — lighter so image shows through */}
+                        {/* Gradient overlay. lighter so image shows through */}
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
                         {/* TOP: date badge + shared badge */}
@@ -2499,7 +2499,7 @@ const PhotographerEventsPage = () => {
                             )) : album.isFreeAlbum ? (
                               // Free standalone albums were emailed at creation;
                               // the card-level action here is always a Resend
-                              // (no terminal "Sent" chip — opens the send modal
+                              // (no terminal "Sent" chip. opens the send modal
                               // which then resends to the captured recipient).
                               <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} title="Resend invitation" style={{
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -3210,7 +3210,7 @@ const PhotographerEventsPage = () => {
             }}>
               {[
                 { icon: 'bi-calendar3', label: 'Date', value: formatDate(selectedEvent.date) },
-                { icon: 'bi-clock', label: 'Time', value: `${formatTime(selectedEvent.startTime)} – ${formatTime(selectedEvent.endTime)}` },
+                { icon: 'bi-clock', label: 'Time', value: `${formatTime(selectedEvent.startTime)}. ${formatTime(selectedEvent.endTime)}` },
                 { icon: 'bi-geo-alt-fill', label: 'Location', value: [selectedEvent.location.address, selectedEvent.location.city, selectedEvent.location.country].filter(Boolean).join(', ') || 'No location' },
                 { icon: 'bi-person-fill', label: 'Client', value: selectedEvent.clientName },
                 { icon: 'bi-box-seam-fill', label: 'Package', value: selectedEvent.packageName },
@@ -3427,7 +3427,7 @@ const PhotographerEventsPage = () => {
               <div style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.65rem', letterSpacing: '-0.005em' }}>{bookingActionTarget.title}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem 0.75rem', fontSize: '0.8rem', color: colors.textSecondary }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i className="bi bi-calendar3" style={{ fontSize: 11, color: '#F20C8F' }} /> {formatDate(bookingActionTarget.date)}</div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i className="bi bi-clock" style={{ fontSize: 11, color: '#F20C8F' }} /> {formatTime(bookingActionTarget.startTime)} – {formatTime(bookingActionTarget.endTime)}</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i className="bi bi-clock" style={{ fontSize: 11, color: '#F20C8F' }} /> {formatTime(bookingActionTarget.startTime)}. {formatTime(bookingActionTarget.endTime)}</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i className="bi bi-person-fill" style={{ fontSize: 11, color: '#F20C8F' }} /> {bookingActionTarget.clientName}</div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}><i className="bi bi-geo-alt-fill" style={{ fontSize: 11, color: '#F20C8F', flexShrink: 0 }} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bookingActionTarget.location.address || [bookingActionTarget.location.city, bookingActionTarget.location.country].filter(Boolean).join(', ') || 'N/A'}</span></div>
                 {bookingActionTarget.packageName && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i className="bi bi-box-seam-fill" style={{ fontSize: 11, color: '#F20C8F' }} /> {bookingActionTarget.packageName}</div>}
@@ -3435,7 +3435,7 @@ const PhotographerEventsPage = () => {
               </div>
             </div>
 
-            {/* Payment Terms Info — only show on accept */}
+            {/* Payment Terms Info. only show on accept */}
             {isAccept && bookingActionTarget.escrowPercentage && (
               <div style={{
                 background: actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : 'rgba(239,246,255,0.85)',
@@ -4268,7 +4268,7 @@ const PhotographerEventsPage = () => {
                 {(() => {
                   // Standalone-free albums: the invitation was emailed on
                   // creation, so the action here is always a Resend (no
-                  // "Delivered" terminal state — they may need it resent
+                  // "Delivered" terminal state. they may need it resent
                   // multiple times). Event-linked albums keep the original
                   // "Send Now / Delivered" two-state UX.
                   const sf = (selectedAlbum.isStandalone || selectedAlbum.albumType === 'standalone') && !!selectedAlbum.isFreeAlbum;
@@ -4395,7 +4395,7 @@ const PhotographerEventsPage = () => {
             </div>
             {selectedAlbum.faceRecognitionEnabled ? (
               <>
-                {/* Already live — show status + invite code + link */}
+                {/* Already live. show status + invite code + link */}
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 7,
                   padding: '0.7rem 0.85rem',
@@ -4473,7 +4473,7 @@ const PhotographerEventsPage = () => {
               </>
             ) : (
               <>
-                {/* Not yet sent — show form */}
+                {/* Not yet sent. show form */}
                 <p style={{ fontSize: '0.88rem', color: colors.textSecondary, marginBottom: '1rem', lineHeight: 1.55 }}>
                   Upload this album to <strong style={{ color: colors.textPrimary }}>Find-My-Photos</strong> so event attendees can use face recognition to find their photos. Share the invite code below to help them filter results.
                 </p>
@@ -4596,7 +4596,7 @@ const PhotographerEventsPage = () => {
                   setSelectedAlbum(updated);
                   setShowFaceRecognitionModal(false);
                   try {
-                    // Publish with pricing — triggers Rekognition face indexing without notifying client
+                    // Publish with pricing. triggers Rekognition face indexing without notifying client
                     const publishBody: Record<string, unknown> = {};
                     if (faceAIPrice && parseFloat(faceAIPrice) > 0) {
                       publishBody.pricePerImage = parseFloat(faceAIPrice);

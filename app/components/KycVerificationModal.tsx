@@ -54,12 +54,12 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   // Separate warning fired when the front image looks like a face photo (big face)
   // rather than a real document. Gates Next the same way the ratio warning does.
   const [govIdFaceWarning, setGovIdFaceWarning] = useState('');
-  // Server-side OCR validation result — checked while on Step 3 so the user is
+  // Server-side OCR validation result. checked while on Step 3 so the user is
   // gated right there instead of at submit.
   const [govIdOcrWarning, setGovIdOcrWarning] = useState('');
   const [govIdOcrStatus, setGovIdOcrStatus] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle');
 
-  // Side-validation warnings — distinguish FRONT from BACK of ID / license.
+  // Side-validation warnings. distinguish FRONT from BACK of ID / license.
   const [govIdFrontSideWarning, setGovIdFrontSideWarning] = useState('');
   const [govIdBackSideWarning, setGovIdBackSideWarning] = useState('');
   const [govIdSideCheckStatus, setGovIdSideCheckStatus] = useState<'idle' | 'checking' | 'ok'>('idle');
@@ -99,8 +99,8 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   const challengeOrderRef = useRef<LivenessChallenge[]>([]);
   const challengeIndexRef = useRef(0);
   const challengeStartTimeRef = useRef(0);
-  const CHALLENGE_TIME_LIMIT = 8000; // 8 seconds per challenge — generous for slow users
-  const REQUIRED_BLINKS = 1; // was 2 — still requires a real eye close/open cycle
+  const CHALLENGE_TIME_LIMIT = 8000; // 8 seconds per challenge. generous for slow users
+  const REQUIRED_BLINKS = 1; // was 2. still requires a real eye close/open cycle
   const [challengeTimeLeft, setChallengeTimeLeft] = useState(0);
 
   // Multi-frame selfie capture (one frame per completed challenge)
@@ -109,10 +109,10 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   // Backend session-binding challenge token
   const challengeTokenRef = useRef<string | null>(null);
 
-  // Forensic metadata — timing per challenge in ms
+  // Forensic metadata. timing per challenge in ms
   const challengeTimingsRef = useRef<number[]>([]);
 
-  // Portrait orientation — used to rotate camera overlays for mobile
+  // Portrait orientation. used to rotate camera overlays for mobile
   const [isPortrait, setIsPortrait] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia('(orientation: portrait) and (max-width: 768px)');
@@ -122,7 +122,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     return () => mq.removeEventListener('change', update);
   }, []);
 
-  // Preload state — shows users whether the liveness model is ready before they reach Step 2
+  // Preload state. shows users whether the liveness model is ready before they reach Step 2
   const [preloadState, setPreloadState] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle');
 
   // Respect users who prefer reduced motion
@@ -135,7 +135,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     return () => mq.removeEventListener('change', update);
   }, []);
 
-  // Screen-reader announcement for step changes — read aloud by assistive tech
+  // Screen-reader announcement for step changes. read aloud by assistive tech
   const [stepAnnouncement, setStepAnnouncement] = useState('');
   useEffect(() => {
     if (!isOpen || step !== 'form') return;
@@ -143,7 +143,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     setStepAnnouncement(`Step ${wizardStep} of 4: ${stepName}`);
   }, [wizardStep, isOpen, step]);
 
-  // Keyboard-aware bottom offset — lifts the sticky footer above the virtual keyboard on mobile.
+  // Keyboard-aware bottom offset. lifts the sticky footer above the virtual keyboard on mobile.
   // Uses VisualViewport API (iOS 13+, Android 11+).
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   useEffect(() => {
@@ -163,7 +163,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   }, []);
 
   // Track the actual VISIBLE viewport height. On iOS Safari, window.innerHeight is
-  // unreliable — it includes the URL bar area. visualViewport.height gives the true
+  // unreliable. it includes the URL bar area. visualViewport.height gives the true
   // visible area. We expose this as a CSS variable --kyc-vh for use by the modal.
   useEffect(() => {
     const vv = (window as typeof window & { visualViewport?: VisualViewport }).visualViewport;
@@ -406,7 +406,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
         setChallengeTimeLeft(Math.max(0, Math.ceil((CHALLENGE_TIME_LIMIT - elapsed) / 1000)));
       }
       if (elapsed > CHALLENGE_TIME_LIMIT) {
-        // Timeout — retry ONLY the current challenge, keep completed ones intact.
+        // Timeout. retry ONLY the current challenge, keep completed ones intact.
         // Previously this reshuffled everything; that was frustrating when a user
         // nailed 2 of 3 challenges and timed out on the third.
         const failedChallenge = stage;
@@ -447,7 +447,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
         if (next >= REQUIRED_BLINKS) advanceToNextChallenge();
       }
     } else if (stage === 'turn-left') {
-      // Relaxed yaw threshold — small head turn now counts (was 0.62).
+      // Relaxed yaw threshold. small head turn now counts (was 0.62).
       if (yawRatio > 0.57) advanceToNextChallenge();
     } else if (stage === 'turn-right') {
       if (yawRatio < 0.43) advanceToNextChallenge();
@@ -527,7 +527,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     if (!isOpen) { stopCamera(); return; }
     setStep('form');
     setError('');
-    // Selfies and ID photos are always re-captured — we only persist text.
+    // Selfies and ID photos are always re-captured. we only persist text.
     setSelfiePhoto(null);
     setSelfiePreview('');
     setGovIdFront(null);
@@ -555,7 +555,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
         if (d.locationAddress) setLocationAddress(d.locationAddress);
         if (d.documentType) setDocumentType(d.documentType);
         if (typeof d.wizardStep === 'number' && d.wizardStep >= 1 && d.wizardStep <= 4) {
-          // Don't restore past step 2 — selfie/ID photos were wiped.
+          // Don't restore past step 2. selfie/ID photos were wiped.
           setWizardStep(Math.min(d.wizardStep, 2) as WizardStep);
         } else {
           setWizardStep(1);
@@ -585,7 +585,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
             gender: sub.gender,
             locationAddress: sub.locationAddress,
           });
-          // Server rejection data overrides a local draft — the user needs
+          // Server rejection data overrides a local draft. the user needs
           // to correct the submission the admin flagged.
           if (sub.status === 'REJECTED') {
             setFullLegalName(sub.fullLegalName || '');
@@ -604,7 +604,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       localStorage.setItem(KYC_DRAFT_KEY, JSON.stringify({
         fullLegalName, gender, locationAddress, documentType, wizardStep,
       }));
-    } catch { /* quota or private mode — ignore */ }
+    } catch { /* quota or private mode. ignore */ }
   }, [isOpen, fullLegalName, gender, locationAddress, documentType, wizardStep]);
 
   useEffect(() => {
@@ -694,7 +694,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     });
   };
 
-  // Server-side side-check — asks backend whether the image looks like FRONT or BACK.
+  // Server-side side-check. asks backend whether the image looks like FRONT or BACK.
   // Clear rejection (SIDE_WRONG) blocks Next; anything else passes through.
   const checkDocSideOnServer = async (file: File, side: 'FRONT' | 'BACK') => {
     setGovIdSideCheckStatus('checking');
@@ -711,7 +711,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       if (side === 'FRONT') setGovIdFrontSideWarning(msg);
       else setGovIdBackSideWarning(msg);
     } catch {
-      // Network error — don't block; backend submit will still run the same check.
+      // Network error. don't block; backend submit will still run the same check.
     } finally {
       setGovIdSideCheckStatus('ok');
     }
@@ -760,21 +760,21 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       const data = await res.json();
       const status = data.status;
       if (status === 'MISMATCH' || status === 'NOT_A_DOCUMENT') {
-        // Clear rejection — the image is not the selected document type.
+        // Clear rejection. the image is not the selected document type.
         setGovIdOcrWarning(data.message || 'The uploaded document does not match the selected type.');
         setGovIdOcrStatus('error');
       } else if (status === 'MATCH') {
-        // Positive confirmation — user sees green "verified" state.
+        // Positive confirmation. user sees green "verified" state.
         setGovIdOcrWarning('');
         setGovIdOcrStatus('ok');
       } else {
-        // UNCERTAIN / SKIPPED / ERROR — let through; backend final-check on submit,
+        // UNCERTAIN / SKIPPED / ERROR. let through; backend final-check on submit,
         // admin review catches anything actually wrong via risk score.
         setGovIdOcrWarning('');
         setGovIdOcrStatus('ok');
       }
     } catch {
-      // Network error or endpoint unavailable — don't block on this, backend will
+      // Network error or endpoint unavailable. don't block on this, backend will
       // still run the same check at final submission.
       setGovIdOcrStatus('idle');
     }
@@ -889,7 +889,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     const video = idVideoRef.current;
     const side = idCameraSide;
     if (!video || !video.videoWidth || !side) return;
-    // ID card aspect ratio ~1.58:1 — crop a centered rectangle from the video
+    // ID card aspect ratio ~1.58:1. crop a centered rectangle from the video
     const targetRatio = 1.58;
     const videoRatio = video.videoWidth / video.videoHeight;
     let cropW: number, cropH: number;
@@ -964,7 +964,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       if (challengeTokenRef.current) {
         formData.append('challengeToken', challengeTokenRef.current);
       }
-      // Forensic metadata — challenge order and per-challenge timings
+      // Forensic metadata. challenge order and per-challenge timings
       if (challengeOrderRef.current.length > 0) {
         formData.append('challengeOrder', challengeOrderRef.current.join(','));
       }
@@ -1064,7 +1064,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       alignItems: 'center', justifyContent: 'center', zIndex: 1000,
     }} onClick={onClose}>
       <style>{`
-        /* Keyboard accessibility — visible focus outline on all interactive KYC elements */
+        /* Keyboard accessibility. visible focus outline on all interactive KYC elements */
         .kyc-modal button:focus-visible {
           outline: none !important;
           box-shadow: 0 0 0 3px rgba(242, 12, 143, 0.30) !important;
@@ -1088,7 +1088,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
         .kyc-footer button[disabled] {
           filter: saturate(0.85);
         }
-        /* Reduced motion — users who opt out get instant transitions, no animations */
+        /* Reduced motion. users who opt out get instant transitions, no animations */
         @media (prefers-reduced-motion: reduce) {
           .kyc-modal *, .kyc-modal *::before, .kyc-modal *::after {
             animation-duration: 0.001ms !important;
@@ -1101,7 +1101,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
             border-radius: 0 !important;
             width: 100vw !important;
             max-width: 100vw !important;
-            /* Use JS-computed --kyc-vh as authoritative — visualViewport.height is
+            /* Use JS-computed --kyc-vh as authoritative. visualViewport.height is
                reliable on iOS Safari where 100dvh and 100vh both misbehave. */
             max-height: var(--kyc-vh, 100dvh) !important;
             min-height: var(--kyc-vh, 100dvh) !important;
@@ -1124,7 +1124,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
           .kyc-doctype-btn { flex: 1 1 auto !important; flex-direction: row !important; justify-content: space-between !important; padding: 0.6rem 0.75rem !important; }
           .kyc-id-row { flex-direction: column !important; gap: 1rem !important; }
           .kyc-review-media { flex-direction: column !important; }
-          /* Prevent iOS zoom on input focus — font-size must be >= 16px */
+          /* Prevent iOS zoom on input focus. font-size must be >= 16px */
           .kyc-body input[type="text"],
           .kyc-body input[type="file"],
           .kyc-body select,
@@ -1186,7 +1186,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
           </button>
         </div>
 
-        {/* Screen-reader live region — announces step changes to assistive tech. */}
+        {/* Screen-reader live region. announces step changes to assistive tech. */}
         <div role="status" aria-live="polite" aria-atomic="true" style={{
           position: 'absolute', width: '1px', height: '1px',
           padding: 0, margin: '-1px', overflow: 'hidden',
@@ -1500,7 +1500,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                             strokeDasharray={livenessStage === 'success' ? '0' : '2 1.5'} />
                         </svg>
 
-                        {/* Stage instruction pill — includes a color-blind-safe glyph so
+                        {/* Stage instruction pill. includes a color-blind-safe glyph so
                             state is conveyed by shape + text, not color alone. */}
                         <div role="status" aria-live="polite" style={{
                           position: 'absolute', top: '12px', left: '50%', transform: 'translateX(-50%)',
@@ -1534,7 +1534,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                           }} />
                         </div>
 
-                        {/* Cancel only — capture is automatic on success */}
+                        {/* Cancel only. capture is automatic on success */}
                         <div style={{
                           position: 'absolute', bottom: '14px', left: '50%', transform: 'translateX(-50%)',
                         }}>
@@ -1565,7 +1565,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                           Look straight • Good lighting • No glasses or hat
                         </span>
                       </button>
-                      {/* Preload status — tells users whether liveness model is ready */}
+                      {/* Preload status. tells users whether liveness model is ready */}
                       <div style={{
                         marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
                         fontSize: '0.72rem', color: colors.textSecondary,
@@ -1603,7 +1603,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                 </div>
               )}
 
-              {/* Step 3: Government ID — type selector + front/back capture */}
+              {/* Step 3: Government ID. type selector + front/back capture */}
               {wizardStep === 3 && (() => {
                 const backRequired = documentType && documentType !== 'PASSPORT';
                 const docOptions: Array<{ value: DocumentType; label: string; hint: string }> = [
@@ -1680,7 +1680,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                           <button key={opt.value} onClick={() => {
                             // Switching document type wipes any uploaded ID images
                             // and clears all validation warnings. Users should start
-                            // fresh for the new type — old uploads would be invalid.
+                            // fresh for the new type. old uploads would be invalid.
                             if (documentType && documentType !== opt.value) {
                               setGovIdFront(null);
                               setGovIdFrontPreview('');
@@ -1843,7 +1843,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                       }}>
                         {/* On portrait phones, use a taller container so the rear camera
                             feed doesn't get squashed into a thin letterbox. The ID card
-                            guide stays horizontal (IDs are always landscape) — centered. */}
+                            guide stays horizontal (IDs are always landscape). centered. */}
                         <div style={{
                           position: 'relative',
                           width: '100%',
@@ -1858,7 +1858,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                               width: '100%', height: '100%', objectFit: 'cover',
                               backgroundColor: '#000',
                             }} />
-                          {/* Rectangular card guide — horizontal ID shape centered.
+                          {/* Rectangular card guide. horizontal ID shape centered.
                               viewBox height adapts so the card shows at the same physical proportions. */}
                           {(() => {
                             // Card is 80 wide × 32 tall within a 100 × H viewBox.
@@ -1986,7 +1986,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
           )}
         </div>
 
-        {/* Footer — always visible on form step. Buttons render in disabled state
+        {/* Footer. always visible on form step. Buttons render in disabled state
             when the current step isn't valid yet so users always know what's available. */}
         {step === 'form' && (() => {
           const stepValid = isStepValid(wizardStep);

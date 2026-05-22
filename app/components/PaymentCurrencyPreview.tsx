@@ -7,7 +7,7 @@
  * preferred display currency and the panel shows every relevant amount on the
  * surface (available balance, amount entered, etc.) converted to that
  * currency. Display-only: the actual submitted amount and currency are
- * unchanged — the backend converts to USD on receipt and to the gateway
+ * unchanged. the backend converts to USD on receipt and to the gateway
  * currency at the XentriPay boundary.
  *
  * Visual: a small card pinned at top-right of the modal body. Pill-shaped
@@ -34,7 +34,7 @@ interface PaymentCurrencyPreviewProps {
   /**
    * Notify parent when the user picks a different display currency, so the
    * surrounding modal can also re-render its amounts in that currency if it
-   * wants to. Optional — the component works standalone too.
+   * wants to. Optional. the component works standalone too.
    */
   onCurrencyChange?: (code: CurrencyCode) => void;
 }
@@ -49,7 +49,7 @@ const PaymentCurrencyPreview: React.FC<PaymentCurrencyPreviewProps> = ({
   const { colors, actualTheme } = useTheme();
 
   // Default the panel to whatever currency the user picked in the topbar.
-  // Modal-local choice doesn't push back to the global selector — modal
+  // Modal-local choice doesn't push back to the global selector. modal
   // selection is a one-off "view what would I pay in X" check.
   const [displayCode, setDisplayCode] = useState<CurrencyCode>(globalCurrency);
   const [open, setOpen] = useState(false);
@@ -177,7 +177,7 @@ const PaymentCurrencyPreview: React.FC<PaymentCurrencyPreviewProps> = ({
 
           {/*
             Dropdown is anchored to the RIGHT edge of the pill so it grows
-            leftward — keeps it inside the parent panel, which itself is
+            leftward. keeps it inside the parent panel, which itself is
             already anchored at the modal's right edge. That avoids the
             previous "dropdown bleeds past the modal's left edge" issue.
           */}

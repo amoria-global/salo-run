@@ -250,7 +250,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
     if (existing) {
       handleSelectConversation(existing.id);
     } else {
-      // Create a local conversation shell — the backend will create it on first message
+      // Create a local conversation shell. the backend will create it on first message
       const newConv: Conversation = {
         id: contact.id,
         participants: [
@@ -342,7 +342,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const handleSelectConversation = useCallback((convId: string) => {
     setSelectedConversation(convId);
     loadMessages(convId);
-    // Always call markAsRead — avoids stale-closure issues where conversations
+    // Always call markAsRead. avoids stale-closure issues where conversations
     // may not be loaded yet when this fires. The API is idempotent.
     markAsRead(convId);
   }, [loadMessages, markAsRead]);

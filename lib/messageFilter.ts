@@ -1,5 +1,5 @@
 /**
- * Message content filter — detects emails, phone numbers, and external links
+ * Message content filter. detects emails, phone numbers, and external links
  * to prevent off-platform contact sharing between photographers and clients.
  *
  * Two-pass approach:
@@ -14,7 +14,7 @@ export interface FilterResult {
 }
 
 // ============================================
-// NORMALIZATION — defeat common evasion tricks
+// NORMALIZATION. defeat common evasion tricks
 // ============================================
 
 /** Map of leetspeak / unicode substitutions → latin letters */
@@ -114,10 +114,10 @@ const EMAIL_PATTERNS = [
   /[a-zA-Z0-9._%+\-]+\s+at\s+[a-zA-Z0-9.\-]+\s+dot\s+[a-zA-Z]{2,}/i,
 ];
 
-/** Email provider names — "my gmail is...", "send me on gmail", "email me at yahoo" */
+/** Email provider names. "my gmail is...", "send me on gmail", "email me at yahoo" */
 const EMAIL_PROVIDER_PATTERNS = [
   /\b(?:my|send|email|mail)\s*(?:me\s+)?(?:on|at|to|is|:)?\s*[a-zA-Z0-9._]+\s*(?:at|@)\s*(?:gmail|yahoo|hotmail|outlook|icloud|proton|aol)/i,
-  // "my gmail/yahoo is <username>" — provider before username
+  // "my gmail/yahoo is <username>". provider before username
   /\b(?:my\s+)?(?:gmail|yahoo|hotmail|outlook|icloud|proton|aol)\s+(?:is|:|-|=)\s*[a-zA-Z0-9._]+/i,
   // "email me at/on gmail/yahoo"
   /\b(?:email|mail|send)\s+(?:me\s+)?(?:at|on|to|via)\s+(?:gmail|yahoo|hotmail|outlook|icloud|proton|aol)/i,
@@ -183,7 +183,7 @@ const LINK_PATTERNS = [
 const SOCIAL_DOMAIN_COLLAPSED = /(?:gmail|yahoo|hotmail|outlook|instagram|facebook|whatsapp|telegram|tiktok|snapchat|twitter|linkedin|youtube)\s*\.\s*(?:com|org|net)/i;
 
 // ============================================
-// WHITELIST — allow these through
+// WHITELIST. allow these through
 // ============================================
 
 function isWhitelisted(text: string): boolean {
@@ -278,7 +278,7 @@ export function checkMessageContent(message: string): FilterResult {
   }
 
   // Long contiguous sequence of number words (single or compound): "two fifty seven eight one..."
-  // Split on whitespace, newlines, hyphens, commas — check for runs of 7+ number words
+  // Split on whitespace, newlines, hyphens, commas. check for runs of 7+ number words
   // Compound words like "fifty" count as number words too
   {
     const allNumWordRe = new RegExp(`^(?:${ALL_NUM_WORD_NAMES})$`, 'i');
@@ -324,7 +324,7 @@ export function checkMessageContent(message: string): FilterResult {
   // Collapsed-space digit check: "0 7 9 1 8 7 6 0 6 0" collapsed → "0791876060"
   const collapsedDigits = collapsed.replace(/\D/g, '');
   if (collapsedDigits.length >= 10 && collapsedDigits.length > allDigits.length) {
-    // Spaces were separating individual digits — likely a phone number
+    // Spaces were separating individual digits. likely a phone number
     return {
       blocked: true,
       reason: 'Sharing phone numbers is not allowed. Please keep all communication within the platform.',
