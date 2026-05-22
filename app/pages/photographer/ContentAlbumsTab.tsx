@@ -44,7 +44,18 @@ interface ContentAlbumDto {
   contentApprovalComment?: string;
   isPublished?: boolean;
   createdAt?: string;
+  // Populated by backend only when the album is APPROVED + published —
+  // backend hosts the slug-resolver at /api/public/content/album-by-slug.
+  // Dashboard joins this with the knockout base URL to produce the
+  // photographer's shareable deep link.
+  shareSlug?: string;
 }
+
+// Public knockout host that serves /user/browse-photos/{slug}. We don't
+// have the env var on the dashboard build (different app, different
+// .env) — hardcode the prod domain so the copy-link button never breaks
+// on an env miss. Override in dev by editing this one line.
+const KNOCKOUT_PUBLIC_BASE = 'https://connekyt.com';
 
 interface CategoryOption { name: string; label: string; }
 interface CurrencyOption { id?: string; code: string; name?: string; }
@@ -67,6 +78,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
   const [editingAlbum, setEditingAlbum] = useState<ContentAlbumDto | null>(null);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [copiedSlugId, setCopiedSlugId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
@@ -106,6 +118,26 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
     }
   };
   useEffect(() => { void refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  const handleCopyShareLink = async (album: ContentAlbumDto) => {
+    if (!album.shareSlug) return;
+    const url = `${KNOCKOUT_PUBLIC_BASE}/user/browse-photos/${album.shareSlug}`;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        // Fallback for non-secure contexts where clipboard API is blocked.
+        const ta = document.createElement('textarea');
+        ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+      }
+      setCopiedSlugId(album.id);
+      setTimeout(() => setCopiedSlugId(prev => prev === album.id ? null : prev), 2500);
+    } catch {
+      alert('Could not copy link. Long-press to copy manually:\n' + url);
+    }
+  };
 
   const handleDelete = async (album: ContentAlbumDto) => {
     if (!confirm(`Delete content album "${album.title}"? Photos and the cover image will be removed from storage. This cannot be undone.`)) return;
@@ -445,6 +477,28 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
                         }}>
                           <i className="bi bi-broadcast" style={{ fontSize: 11 }} /> Live
                         </span>
+                      )}
+
+                      {/* Share link — only on live albums (shareSlug is
+                          backend-populated when the album is APPROVED +
+                          published). Copies the slug deep-link to the
+                          buyer-facing page so photographers can post
+                          directly anywhere. */}
+                      {a.shareSlug && (
+                        <button type="button"
+                          onClick={() => handleCopyShareLink(a)}
+                          title="Copy public link to this album"
+                          aria-label="Copy share link"
+                          style={{
+                            ...cardActionBtn,
+                            background: copiedSlugId === a.id
+                              ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                              : 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
+                          }}
+                        >
+                          <i className={`bi ${copiedSlugId === a.id ? 'bi-check2' : 'bi-link-45deg'}`} style={{ fontSize: 12 }} />
+                          {copiedSlugId === a.id ? 'Copied' : 'Copy link'}
+                        </button>
                       )}
 
                       <Can permission="albums.delete">
