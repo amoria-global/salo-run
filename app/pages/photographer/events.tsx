@@ -519,6 +519,34 @@ const PhotographerEventsPage = () => {
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
   const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number } | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Clipboard helper used by the album-success modal's Copy code +
+  // Copy link buttons. Tries the modern API, falls back to the legacy
+  // textarea trick on browsers where the Clipboard API is gated (e.g.
+  // http dev, sandboxed contexts), and to window.prompt as a last
+  // resort so the user can always copy something.
+  const copyToClipboard = (value: string, onSuccess: () => void) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(value).then(onSuccess).catch(() => {
+          const ta = document.createElement('textarea');
+          ta.value = value; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          document.execCommand('copy'); ta.remove();
+          onSuccess();
+        });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = value; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+        onSuccess();
+      }
+    } catch {
+      window.prompt('Copy this:', value);
+    }
+  };
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
 
@@ -3862,7 +3890,14 @@ const PhotographerEventsPage = () => {
               {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Find My Photos Link</div>
-                  <div style={{ fontSize: '0.78rem', color: colors.textPrimary, wordBreak: 'break-all' }}>{`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/find-my-photos?code=${albumSuccessModal.inviteCode}`}</div>
+                  {/* Hardcoded host matches the URL MailService bakes into
+                      the invitation email — flip this single line if the
+                      public host ever moves. The NEXT_PUBLIC_LANDING_URL
+                      env var was rendering "undefined" on production
+                      builds where the env wasn't injected. */}
+                  <div style={{ fontSize: '0.78rem', color: colors.textPrimary, wordBreak: 'break-all' }}>
+                    {`https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.inviteCode}`}
+                  </div>
                 </div>
               )}
               {albumSuccessModal.type === 'free' && albumSuccessModal.email && (
@@ -3877,60 +3912,69 @@ const PhotographerEventsPage = () => {
                   <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10B981', letterSpacing: '0.3em', fontFamily: 'monospace' }}>{albumSuccessModal.accessCode}</div>
                 </div>
               )}
+              {/* Direct album link — same URL the invitation email uses,
+                  surfaced here so the photographer can share it manually
+                  (WhatsApp, SMS, etc.) without waiting for / re-sending
+                  the email. Free albums need both code + email in the
+                  URL; paid albums use just the invite code. */}
+              {albumSuccessModal.type === 'free' && albumSuccessModal.accessCode && albumSuccessModal.email && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Album Link</div>
+                  <div style={{ fontSize: '0.78rem', color: colors.textPrimary, wordBreak: 'break-all' }}>
+                    {`https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.accessCode}&email=${encodeURIComponent(albumSuccessModal.email)}`}
+                  </div>
+                </div>
+              )}
               <div>
                 <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Photos</div>
                 <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary }}>{albumSuccessModal.photoCount} uploaded</div>
               </div>
             </div>
 
-            {/* Copy + Done buttons */}
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+            {/* Copy code + Copy link + Done buttons.
+                Link = the same URL the invitation email's button uses.
+                Paid: ?code=<inviteCode>. Free: ?code=<accessCode>&email=<recipient>. */}
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               {(albumSuccessModal.inviteCode || albumSuccessModal.accessCode) && (
                 <button
                   onClick={() => {
                     const code = albumSuccessModal.type === 'paid' ? albumSuccessModal.inviteCode : albumSuccessModal.accessCode;
                     if (!code) return;
-                    try {
-                      if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(code).then(() => {
-                          setCodeCopied(true);
-                          setTimeout(() => setCodeCopied(false), 2000);
-                        }).catch(() => {
-                          // Fallback for clipboard API failure
-                          const ta = document.createElement('textarea');
-                          ta.value = code;
-                          ta.style.position = 'fixed';
-                          ta.style.opacity = '0';
-                          document.body.appendChild(ta);
-                          ta.select();
-                          document.execCommand('copy');
-                          document.body.removeChild(ta);
-                          setCodeCopied(true);
-                          setTimeout(() => setCodeCopied(false), 2000);
-                        });
-                      } else {
-                        // Fallback for browsers without clipboard API
-                        const ta = document.createElement('textarea');
-                        ta.value = code;
-                        ta.style.position = 'fixed';
-                        ta.style.opacity = '0';
-                        document.body.appendChild(ta);
-                        ta.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(ta);
-                        setCodeCopied(true);
-                        setTimeout(() => setCodeCopied(false), 2000);
-                      }
-                    } catch {
-                      // Last resort fallback
-                      window.prompt('Copy this code:', code);
-                    }
+                    copyToClipboard(code, () => {
+                      setCodeCopied(true);
+                      setTimeout(() => setCodeCopied(false), 2000);
+                    });
                   }}
-                  style={{ ...secondaryBtn, minWidth: '160px' }}
+                  style={{ ...secondaryBtn, minWidth: '150px' }}
                 >
                   {codeCopied ? 'Copied!' : `Copy ${albumSuccessModal.type === 'paid' ? 'Invite Code' : 'Access Code'}`}
                 </button>
               )}
+              {(() => {
+                // Build the share URL identically to the URL the invitation
+                // email uses (MailService.java). Paid albums skip the email
+                // param since face-scan unlocks per face, not per recipient.
+                let link: string | null = null;
+                if (albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode) {
+                  link = `https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.inviteCode}`;
+                } else if (albumSuccessModal.type === 'free' && albumSuccessModal.accessCode && albumSuccessModal.email) {
+                  link = `https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.accessCode}&email=${encodeURIComponent(albumSuccessModal.email)}`;
+                }
+                if (!link) return null;
+                return (
+                  <button
+                    onClick={() => {
+                      copyToClipboard(link!, () => {
+                        setLinkCopied(true);
+                        setTimeout(() => setLinkCopied(false), 2000);
+                      });
+                    }}
+                    style={{ ...secondaryBtn, minWidth: '150px' }}
+                  >
+                    {linkCopied ? 'Link copied!' : 'Copy Album Link'}
+                  </button>
+                );
+              })()}
               <button onClick={() => setAlbumSuccessModal(null)} style={primaryBtn}>Done</button>
             </div>
           </div>
