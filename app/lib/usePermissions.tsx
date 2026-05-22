@@ -254,6 +254,20 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => { void fetchPerms(); }, [fetchPerms]);
 
+  // Defensive owner-state assertion. fetchPerms can transiently nuke
+  // state to empty perms (during !isAuthenticated, on a network blip,
+  // or while reading a poisoned-from-an-earlier-session cache). This
+  // effect watches user.isTeamMember and re-asserts owner state the
+  // moment user.isTeamMember resolves to false — without waiting on
+  // the network or trusting cache. Net effect: an owner ALWAYS ends
+  // up in the owner ctx within one tick of their user object loading.
+  useEffect(() => {
+    if (user && user.isTeamMember === false) {
+      setState({ ...ownerCtxFrom(user), refresh: fetchPerms });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.isTeamMember]);
+
   const value = useMemo(() => ({ ...state, refresh: fetchPerms }), [state, fetchPerms]);
   return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>;
 }
