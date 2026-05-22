@@ -13,6 +13,7 @@ import KycBadge from '../../components/KycBadge';
 import KycVerificationModal from '../../components/KycVerificationModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 
@@ -186,6 +187,14 @@ interface PhotographerProfilePageProps {
 const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProfilePageProps) => {
   const { colors, actualTheme } = useTheme();
   const { token, user, refreshUserProfile } = useDashboardAuth();
+  const { hasPermission } = usePermissions();
+  // Team members without profile.edit see this page in read-only mode —
+  // they can view the owner's profile (the data is the owner's, swapped
+  // in by PhotographerService.getPhotographerProfileSummary) but can't
+  // mutate it. The backend belt-and-braces is @PreAuthorize on every
+  // /api/remote/photographer/* mutation endpoint, so even if the form
+  // were re-enabled in devtools, the save would 403.
+  const canEditProfile = hasPermission('profile.edit');
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience' | 'packages'>('overview');
@@ -2416,6 +2425,28 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         overflow: 'hidden'
       }}>
         <Topbar userRole="photographer" />
+
+        {/* Read-only banner for team members without profile.edit.
+            Sits at the top of the scrollable area so it doesn't shift
+            when the user scrolls. The whole content below is wrapped in
+            a fieldset[disabled] when !canEditProfile, which makes EVERY
+            input / button / select / textarea native-disabled with no
+            need to retrofit each one individually. Backend @PreAuthorize
+            is the actual security boundary; this is UX. */}
+        {!canEditProfile && (
+          <div role="alert" style={{
+            padding: '10px 18px', background: '#fffbeb', color: '#92400e',
+            borderBottom: '1px solid #fde68a', fontSize: 13.5, display: 'flex',
+            alignItems: 'center', gap: 10,
+          }}>
+            <i className="bi bi-eye" />
+            <span>
+              <strong>View-only:</strong> you don't have the <code style={{
+                background: '#fde68a', padding: '1px 6px', borderRadius: 4, fontSize: 12,
+              }}>profile.edit</code> permission. Ask an organization owner to grant it if you need to make changes.
+            </span>
+          </div>
+        )}
 
         <div className="mobile-main-content" style={{
           flex: 1,
