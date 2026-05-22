@@ -309,7 +309,7 @@ const ClientDashboard = () => {
         }
       }
 
-      // Recent Transactions — show pending/unpaid photographers
+      // Recent Transactions. show pending/unpaid photographers
       if (paymentsRes.status === 'fulfilled' && paymentsRes.value.ok) {
         const data = await paymentsRes.value.json();
         if (data.action === 1 && data.data) {

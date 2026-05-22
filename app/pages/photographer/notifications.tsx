@@ -217,14 +217,14 @@ const Notifications = () => {
   useEffect(() => { selectedRef.current = selectedNotif; }, [selectedNotif]);
 
   // If the user navigates away while the modal is open, treat that as review
-  // and mark read. Fire-and-forget — backend /read endpoint is idempotent.
+  // and mark read. Fire-and-forget. backend /read endpoint is idempotent.
   useEffect(() => {
     return () => {
       const n = selectedRef.current;
       if (!n) return;
       const apiUrl = getApiUrl();
       dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/${n.id}/read`, { method: 'PATCH' })
-        .catch(() => { /* swallow — user is leaving the page */ });
+        .catch(() => { /* swallow. user is leaving the page */ });
     };
   }, []);
 

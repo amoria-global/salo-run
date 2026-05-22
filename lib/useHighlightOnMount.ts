@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
  * Reads the `highlight` query param on mount, clears it from the URL so
  * back/forward navigation or reloads don't re-trigger the effect, and returns
  * the captured id. Destination pages use the returned value to scroll-to and
- * pop-animate the matching row — typically set via a "Go to notification" CTA
+ * pop-animate the matching row. typically set via a "Go to notification" CTA
  * in the notifications modal.
  *
  * Returns `null` until the effect has run (or if no param was present), so

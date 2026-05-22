@@ -1015,7 +1015,7 @@ Amount: ${formatPrice(transaction.amountNum)}
         dashboardAuthFetch(`${apiUrl}/api/remote/photographer/analytics`),
       ]);
 
-      // Wallet — source of truth for balances
+      // Wallet. source of truth for balances
       getMyWallet().then(w => setWallet(w)).catch(() => {});
 
       if (txRes.status === 'fulfilled' && txRes.value.ok) {
@@ -1032,7 +1032,7 @@ Amount: ${formatPrice(transaction.amountNum)}
             id: t.id || i + 1,
             date: formatTxDate(t.createdAt || t.date || ''),
             // Ledger rows have no counterparty (a photographer's row is their
-            // own earning leg). Never fall back to photographerName — that
+            // own earning leg). Never fall back to photographerName. that
             // wrongly showed the photographer as their own client.
             clientName: t.viewerName || t.service || t.eventTitle || t.paymentType || '—',
             clientImage: t.clientImage || t.customerImage || undefined,
@@ -1091,7 +1091,7 @@ Amount: ${formatPrice(transaction.amountNum)}
   }, [user]);
 
   // Totals come from the reconciled wallet (the same source as the top-bar
-  // balance) — NOT a sum of the gross transaction rows. Summing the rows
+  // balance). NOT a sum of the gross transaction rows. Summing the rows
   // double-counted gross client payments and surfaced never-paid phantom
   // declarations, so Total Earnings / Earnings Summary disagreed with the
   // $11.95 wallet. Completed = currently withdrawable net, Pending = real

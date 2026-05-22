@@ -81,7 +81,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
       >
         {/* Blurred cover = glow effect */}
         <img src={album.thumbnail || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} />
-        {/* Inner card — clickable */}
+        {/* Inner card. clickable */}
         <div
           onClick={(e) => { if (!hideActionButton) { e.stopPropagation(); onCardClick(album); } }}
           style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}

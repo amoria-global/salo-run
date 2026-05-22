@@ -309,7 +309,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
               : `A USSD prompt has been sent to your phone. Please approve the payment on your device.`}
           </p>
           <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
-            Waiting for the gateway to confirm your payment — this can take up to a minute.
+            Waiting for the gateway to confirm your payment. this can take up to a minute.
           </p>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -848,7 +848,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             {donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}
           </button>
 
-          {/* Donations Page Link — opens on the public platform */}
+          {/* Donations Page Link. opens on the public platform */}
           <div style={{ marginTop: '0.5rem' }}>
             <a
               href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`}

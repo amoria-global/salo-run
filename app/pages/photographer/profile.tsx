@@ -316,7 +316,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     'Other preferences',
   ];
 
-  // Legacy helper kept for savePackageToAPI — returns features to persist
+  // Legacy helper kept for savePackageToAPI. returns features to persist
   const getFeaturesForPackage = (packageName: string) => {
     if (packageName === 'Diamond') {
       return SELECTABLE_FEATURES['Diamond'] || [];
@@ -324,7 +324,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     return SELECTABLE_FEATURES[packageName] || [];
   };
 
-  // Specialties fetched from API — [{id, name}]
+  // Specialties fetched from API. [{id, name}]
   const [availableSpecialties, setAvailableSpecialties] = useState<{ id: string; name: string }[]>([]);
 
   // Days and time options
@@ -408,8 +408,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // removed along with their UI section above.
 
   // Package handler functions. serviceType selects whether the new row is
-  // an outdoor (event) package or an indoor (studio session) package —
-  // they share the same backend table and the same editor card, just
+  // an outdoor (event) package or an indoor (studio session) package.
+  // They share the same backend table and the same editor card, just
   // rendered in two sections of the profile.
   const addPackage = (serviceType: 'OUTDOOR' | 'STUDIO' = 'OUTDOOR') => {
     const newId = Date.now().toString();
@@ -508,7 +508,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
 
     // Delivery days: no min/max numeric limit anymore. The only rule is a
-    // single-direction tier ordering — a higher tier must deliver strictly
+    // single-direction tier ordering. a higher tier must deliver strictly
     // faster (fewer days) than the tier directly below it:
     //   Diamond < Gold   and   Gold < Silver
     // Each tier checks ONLY its immediate cheaper neighbour; Silver is the
@@ -539,7 +539,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
 
     // Validate photo/video counts: Diamond > Gold > Silver (scoped per
-    // serviceType — see sameService above).
+    // serviceType. see sameService above).
     const photos = parseInt(pkg.includedPhotos) || 0;
     const videos = parseInt(pkg.includedVideos) || 0;
     if (photos > 0 || videos > 0) {
@@ -608,7 +608,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           photobookPhotos: parseInt(pkg.photobookPhotos) || null,
           deliveryDays: parseInt(pkg.deliveryDays) || 0,
           // Backend defaults to OUTDOOR when serviceType is missing, so
-          // sending it explicitly is only strictly required for STUDIO —
+          // sending it explicitly is only strictly required for STUDIO,
           // but always sending it keeps the dedup-by-(name,serviceType)
           // upsert key honest for both kinds.
           serviceType: pkg.serviceType === 'STUDIO' ? 'STUDIO' : 'OUTDOOR',
@@ -626,7 +626,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       // Swap the local temporary id (Date.now-based) for the backend UUID
       // so subsequent edits PUT to the right /packages/{uuid} URL and the
       // editor-vs-summary toggle (which keys off isUUID(pkg.id)) treats this
-      // row as a saved one. Outdoor sees this too — harmless because the
+      // row as a saved one. Outdoor sees this too. harmless because the
       // UUID just replaces an equivalent id.
       try {
         const body = await response.json();
@@ -1104,7 +1104,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           extraVideoPrice: String(p.extraVideoPrice ?? ''),
           photobookPhotos: p.photobookPhotos != null ? String(p.photobookPhotos) : '',
           deliveryDays: String(p.deliveryDays ?? ''),
-          // Pre-migration backend rows have no serviceType — default to
+          // Pre-migration backend rows have no serviceType. default to
           // OUTDOOR so they render in the existing event-packages section
           // instead of leaking into the new indoor section by mistake.
           serviceType: (p.serviceType === 'STUDIO' ? 'STUDIO' : 'OUTDOOR') as 'OUTDOOR' | 'STUDIO',
@@ -1140,7 +1140,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         ].filter(Boolean).length,
         total: 4
       },
-      // Overview — specialties only (25%)
+      // Overview. specialties only (25%)
       overview: {
         weight: 25,
         filled: [
@@ -1148,7 +1148,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         ].filter(Boolean).length,
         total: 1
       },
-      // Portfolio — at least one featured project (30%)
+      // Portfolio. at least one featured project (30%)
       portfolio: {
         weight: 30,
         filled: [
@@ -1156,7 +1156,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         ].filter(Boolean).length,
         total: 1
       },
-      // Experience — at least one entry, with a written description (20%)
+      // Experience. at least one entry, with a written description (20%)
       experience: {
         weight: 20,
         filled: [
@@ -1217,7 +1217,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       setActiveTab(section);
     }
     if (typeof window === 'undefined') return;
-    // Find the actual scroll container — the dashboard puts every page inside
+    // Find the actual scroll container. the dashboard puts every page inside
     // a flex column whose middle child has overflowY:auto. window.scrollTo is
     // useless here because the document itself doesn't scroll. Walk up from
     // the target until we find something that does, then scroll that.
@@ -1233,7 +1233,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (scrollParent) {
       const offset = target.getBoundingClientRect().top - scrollParent.getBoundingClientRect().top + scrollParent.scrollTop;
       // Small breathing room above the section header. The banner is no
-      // longer sticky, so we don't need to clear its height — just give
+      // longer sticky, so we don't need to clear its height. just give
       // the section a bit of margin from the very top so it doesn't slam
       // into the topbar.
       scrollParent.scrollTo({ top: Math.max(0, offset - 24), behavior: 'smooth' });
@@ -1263,7 +1263,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (target) {
       platformAlert(
         `You need to reach 100% profile completion before you can use the rest of the dashboard. ` +
-        `Start with your ${target.label} — the section is open below.`,
+        `Start with your ${target.label}. the section is open below.`,
         { tone: 'warning', title: 'Finish your profile to continue' }
       );
       jumpToSection(target.section);
@@ -2074,7 +2074,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Reusable currency dropdown for a package, identical in look/behaviour to
   // the main Price→Currency selector. Bound to the SAME pkg.currencyId (a
-  // package has one currency — the extra photo/video prices are charged in
+  // package has one currency. the extra photo/video prices are charged in
   // it too), so picking a currency on any of them keeps them in sync.
   // `ddKey` is a unique open-state key so multiple dropdowns on the same
   // package card don't all open at once.
@@ -2457,7 +2457,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           {/*
             Missing-fields banner. When the profile is below 100%, the
             PhotographerLayout has already redirected every other route to
-            this page — this banner is what tells the user why, and shows
+            this page. this banner is what tells the user why, and shows
             the four sections they need to finish before they can move on.
           */}
           {profileCompletion < 100 && (() => {
@@ -2483,7 +2483,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
             const completedCount = items.filter(i => i.ok).length;
             // On first load (before the user has clicked "Jump there"), the
-            // banner sits as a centered overlay above the profile fields —
+            // banner sits as a centered overlay above the profile fields,
             // backdrop-blurred so the form is still visible behind it but
             // not interactive. The moment the user picks a section to fix,
             // `setMissingFieldsOverlayDismissed(true)` collapses it down
@@ -2674,7 +2674,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           key={idx}
                           type="button"
                           onClick={() => {
-                            // User actively picked a section — collapse the
+                            // User actively picked a section. collapse the
                             // overlay so the form fields become editable.
                             setMissingFieldsOverlayDismissed(true);
                             jumpToSection(it.section);
@@ -2705,12 +2705,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               </div>
             );
 
-            // Inline mode — user has already engaged with at least one row.
+            // Inline mode. user has already engaged with at least one row.
             if (!showAsOverlay) {
               return cardBody;
             }
 
-            // Overlay mode — first visit, sit on top of the profile fields
+            // Overlay mode. first visit, sit on top of the profile fields
             // as a true centered modal (same recipe as the PlatformAlert
             // "Got it" dialog but with a higher-impact tinted backdrop).
             // The user MUST pick a "Jump there" row before the form
@@ -2918,7 +2918,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               );
             }
 
-            // Profile is >= 90% but still pending — under review
+            // Profile is >= 90% but still pending. under review
             return (
               <div style={{
                 background: 'linear-gradient(135deg, #0066cc 0%, #004d99 100%)',
@@ -2976,7 +2976,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             </div>
           )}
 
-          {/* Profile Completion Card — always shown so photographers can
+          {/* Profile Completion Card. always shown so photographers can
               see their score at a glance (chips below self-hide at 100%). */}
           {(
             <div className="mobile-card completion-card-enhanced" style={{
@@ -3044,7 +3044,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     margin: '4px 0 12px', lineHeight: 1.5,
                   }}>
                     {profileCompletion >= 100
-                      ? 'Nice work — every section clients look at is filled in.'
+                      ? 'Nice work. every section clients look at is filled in.'
                       : 'A complete profile helps clients find you and trust your expertise.'}
                   </p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -3118,7 +3118,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 <input type="file" ref={profileInputRef} onChange={handleProfileImageUpload} accept="image/*" style={{ display: 'none' }} />
                 <input type="file" ref={bannerInputRef} onChange={handleBannerImageUpload} accept="image/*" style={{ display: 'none' }} />
 
-                {/* Banner — Connekyt brand gradient */}
+                {/* Banner. Connekyt brand gradient */}
                 <div style={{
                   height: 170,
                   background: bannerImage
@@ -3644,7 +3644,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           value={basicInfo.fullName}
                           onChange={(e) => handleFullNameChange(e.target.value)}
                           disabled={!isEditEnabled}
-                          placeholder="e.g. Joe Photocuts — the name clients know you by"
+                          placeholder="e.g. Joe Photocuts. the name clients know you by"
                           style={validationErrors.fullName ? inputErrorStyle : inputStyle}
                         />
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary, #94a3b8)', marginTop: '0.25rem', display: 'block' }}>
@@ -3963,7 +3963,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.25)'; e.currentTarget.style.boxShadow = '0 10px 22px -10px rgba(8,58,133,0.20)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = '0 4px 12px -4px rgba(8, 58, 133, 0.10)'; }}
                         >
-                          {/* Project Image — compact cover */}
+                          {/* Project Image. compact cover */}
                           <div
                             onClick={() => {
                               setEditingProjectId(project.id);
@@ -4073,7 +4073,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 />
                               </div>
                             </div>
-                            {/* Action buttons — single row */}
+                            {/* Action buttons. single row */}
                             <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
                               <button
                                 onClick={async () => {
@@ -4512,7 +4512,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ position: 'relative', opacity: isPackageEditEnabled ? 1 : 0.6, transition: 'opacity 0.2s' }}>
                     {!isPackageEditEnabled && <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'not-allowed' }} />}
 
-                    {/* Outdoor Packages Section — required event packages (Silver/Gold/Diamond) */}
+                    {/* Outdoor Packages Section. required event packages (Silver/Gold/Diamond) */}
                     <div style={sectionTitleStyle}>
                       <span>Your Outdoor Packages</span>
                       <button
@@ -4801,7 +4801,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               <div style={{ marginBottom: '1.25rem' }}>
                                 <label style={labelStyle}>Time Delivery (days) *</label>
                                 <p style={{ fontSize: '0.75rem', color: colors.textTertiary, margin: '0 0 0.5rem 0' }}>
-                                  {pkg.packageName === 'Diamond' ? 'Set any number of days — just keep it faster (fewer days) than your Gold package.' : pkg.packageName === 'Gold' ? 'Set any number of days — just keep it faster (fewer days) than your Silver package.' : pkg.packageName === 'Silver' ? 'Set any number of days you need — no limit.' : 'Set the number of days for photo delivery.'}
+                                  {pkg.packageName === 'Diamond' ? 'Set any number of days. just keep it faster (fewer days) than your Gold package.' : pkg.packageName === 'Gold' ? 'Set any number of days. just keep it faster (fewer days) than your Silver package.' : pkg.packageName === 'Silver' ? 'Set any number of days you need. no limit.' : 'Set the number of days for photo delivery.'}
                                 </p>
                                 <input type="number" value={pkg.deliveryDays}
                                   onChange={(e) => {
@@ -4810,7 +4810,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   }}
                                   placeholder={pkg.packageName === 'Diamond' ? 'e.g., 3' : pkg.packageName === 'Gold' ? 'e.g., 7' : pkg.packageName === 'Silver' ? 'e.g., 14' : 'e.g., 7'}
                                   disabled={!isPackageEditEnabled} style={pkgInputStyle} />
-                                {/* Validation warning — single-direction tier
+                                {/* Validation warning. single-direction tier
                                     rule only (no min/max limit): a tier must be
                                     faster than the one directly cheaper than it.
                                     Diamond vs Gold, Gold vs Silver; Silver is the
@@ -4852,7 +4852,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     Photobook & Media
                                   </label>
 
-                                  {/* Included counts — all packages */}
+                                  {/* Included counts. all packages */}
                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                                     <div>
                                       <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Photos included</label>
@@ -4912,7 +4912,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     </span>
                                   </div>
 
-                                  {/* Extra photo/video pricing — each price now
+                                  {/* Extra photo/video pricing. each price now
                                       pairs with the package currency selector,
                                       same as the main Price field. All three
                                       dropdowns edit the one pkg.currencyId. */}
@@ -5114,7 +5114,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 8px 24px -4px rgba(0,0,0,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px -2px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                             >
-                              {/* Top metallic gradient bar — matches landing booking wizard tier colors */}
+                              {/* Top metallic gradient bar. matches landing booking wizard tier colors */}
                               <div style={{ height: 3, background: tierColor.gradient }} />
 
                               <div style={{ padding: '0.9rem 1rem 0.75rem' }}>
@@ -5265,13 +5265,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     </div>{/* end pointer-events wrapper */}
 
                     {/* ───────── Indoor Studio Packages (OPTIONAL) ─────────
-                        Same package shape as the outdoor section above — up
+                        Same package shape as the outdoor section above. up
                         to 3 (Silver / Gold / Diamond), photographer-set,
                         independent edit toggle, sent to the SAME backend
                         endpoint with serviceType=STUDIO. The old rate-based
                         per-photo/per-video calculator is gone; indoor is
                         now package-based just like outdoor. This section
-                        does NOT count toward profile completion — it is the
+                        does NOT count toward profile completion. it is the
                         single optional field of the photographer profile. */}
                     {(() => {
                     const accent = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
@@ -5301,7 +5301,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: accent, background: accentBg, border: `1px solid ${accentBorder}`, padding: '2px 8px', borderRadius: 999 }}>Optional</span>
                             </div>
                             <p style={{ margin: '0.25rem 0 0', fontSize: '0.83rem', color: colors.textSecondary, lineHeight: 1.5 }}>
-                              Add up to 3 Silver / Gold / Diamond packages clients can book for indoor studio sessions. Same fields as your outdoor packages — leaving this empty just means you aren&apos;t listed for indoor bookings.
+                              Add up to 3 Silver / Gold / Diamond packages clients can book for indoor studio sessions. Same fields as your outdoor packages. leaving this empty just means you aren&apos;t listed for indoor bookings.
                             </p>
                           </div>
                         </div>
@@ -5357,7 +5357,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           // unsaved (temp id) OR the photographer explicitly
                           // re-opened it for editing from the summary below.
                           // Persisted packages collapse to their summary
-                          // card after Save — clicking that card sets
+                          // card after Save. clicking that card sets
                           // expandedPackageId and brings the editor back.
                           const isPersisted = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pkg.id);
                           return !isPersisted || expandedPackageId === pkg.id;
@@ -5523,7 +5523,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       )}
                       </div>
 
-                      {/* Listed Studio Packages Summary — mirrors the outdoor
+                      {/* Listed Studio Packages Summary. mirrors the outdoor
                           summary above so the saved indoor packages also
                           appear as compact cards. Per spec these omit the
                           features/offers list (studio sessions are priced
@@ -5558,7 +5558,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 8px 24px -4px rgba(0,0,0,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px -2px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                                 >
-                                  {/* Top metallic gradient bar — same tier colors as the outdoor cards */}
+                                  {/* Top metallic gradient bar. same tier colors as the outdoor cards */}
                                   <div style={{ height: 3, background: tierColor.gradient }} />
 
                                   <div style={{ padding: '0.9rem 1rem 0.75rem' }}>
@@ -5598,7 +5598,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       </div>
                                     )}
 
-                                    {/* Delivery chip (studio sessions don't have durationHours displayed here — the
+                                    {/* Delivery chip (studio sessions don't have durationHours displayed here. the
                                         compact form doesn't capture it) */}
                                     {pkg.deliveryDays && parseInt(pkg.deliveryDays) > 0 && (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: '0.5rem', flexWrap: 'wrap' }}>

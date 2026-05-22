@@ -326,7 +326,7 @@ const InboxPage = () => {
   const handleSelectConversation = useCallback((convId: string) => {
     setSelectedConversation(convId);
     loadMessages(convId);
-    // Always call markConversationAsRead — avoids stale-closure issues where conversations
+    // Always call markConversationAsRead. avoids stale-closure issues where conversations
     // may not be loaded yet when this fires. The API is idempotent.
     markConversationAsRead(convId);
   }, [loadMessages, markConversationAsRead]);

@@ -300,7 +300,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
           setBlockedDates(new Set(json.data as string[]));
         }
       }
-    } catch { /* non-fatal — calendar just shows nothing blocked */ }
+    } catch { /* non-fatal. calendar just shows nothing blocked */ }
     finally { setAvailLoading(false); }
   }, [userRole, user]);
 
@@ -409,7 +409,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                       type="button"
                       disabled={isPast || saving}
                       onClick={() => { if (!isPast) toggleBlockedDate(dateStr); }}
-                      title={isPast ? 'Past date' : isBlocked ? 'Booked — click to free up' : 'Available — click to mark booked'}
+                      title={isPast ? 'Past date' : isBlocked ? 'Booked. click to free up' : 'Available. click to mark booked'}
                       style={{
                         aspectRatio: '1', borderRadius: 8, fontSize: 12, fontWeight: 700,
                         fontFamily: 'inherit',

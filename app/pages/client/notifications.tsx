@@ -143,7 +143,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
 
   const fetchNotifications = async () => {
     // Cookie-only sessions have no JS-readable token, so gate purely on
-    // the user object — dashboardAuthFetch sends the HttpOnly cookie
+    // the user object. dashboardAuthFetch sends the HttpOnly cookie
     // alongside any Bearer it can find.
     if (!user?.id) return;
     try {
@@ -168,7 +168,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
         : (rawData && Array.isArray(rawData.content) ? rawData.content : []);
 
       if (result?.action !== 1 || items.length === 0) {
-        // Only loud-log when we expected items but got none — useful when
+        // Only loud-log when we expected items but got none. useful when
         // the unread-count endpoint reports >0 but the list endpoint comes
         // back empty (backend pagination/role-routing mismatch).
         console.warn('[notifications] unexpected response shape', {
@@ -266,7 +266,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
         ? `${apiUrl}/api/remote/coordinator/notifications/${n.id}/read`
         : `${apiUrl}/api/remote/customer/notifications/${n.id}/read`;
       dashboardAuthFetch(readEndpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } })
-        .catch(() => { /* swallow — user is leaving the page */ });
+        .catch(() => { /* swallow. user is leaving the page */ });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

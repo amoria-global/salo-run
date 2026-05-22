@@ -67,7 +67,7 @@ export default function AdminWalletDetailPage({ walletId }: AdminWalletDetailPag
       setAuditLogs(result.content);
       setAuditTotalPages(result.totalPages);
     } catch {
-      // Audit logs are supplementary — fail silently
+      // Audit logs are supplementary. fail silently
     } finally {
       setAuditLoading(false);
     }

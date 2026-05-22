@@ -6,7 +6,7 @@
  * Native `alert()` shows an ugly chrome-styled prompt ("localhost:3001 says...")
  * that breaks the dashboard's visual language. This component mounts once at the
  * root and renders a Connekyt-styled modal whenever any code calls
- * `platformAlert(message)` — drop-in replacement.
+ * `platformAlert(message)`. drop-in replacement.
  *
  * Usage:
  *   import { platformAlert } from '@/app/components/PlatformAlert';
@@ -67,7 +67,7 @@ const EVENT_NAME = 'connekyt:platform-alert';
 
 /**
  * Imperative API. Dispatches a window event that the mounted <PlatformAlert />
- * picks up. Works from anywhere — page handlers, fetch error catches, etc.
+ * picks up. Works from anywhere. page handlers, fetch error catches, etc.
  */
 export function platformAlert(message: string, options: Omit<AlertPayload, 'message'> = {}) {
   if (typeof window === 'undefined') return;

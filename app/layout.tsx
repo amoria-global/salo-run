@@ -48,7 +48,7 @@ export default function RootLayout({
                       stay reachable. */}
                   <PasswordChangeGate />
                   {children}
-                  {/* Global platform alert — replaces native browser alert() with brand-styled modal. */}
+                  {/* Global platform alert: replaces native browser alert() with brand-styled modal. */}
                   <PlatformAlert />
                 </UserProfileProvider>
               </CurrencyProvider>

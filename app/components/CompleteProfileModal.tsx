@@ -174,7 +174,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
     }
   }, [user, prefilled]);
 
-  // Freeze which steps are shown when the modal opens — computed once on open,
+  // Freeze which steps are shown when the modal opens. computed once on open,
   // not re-derived on every user refresh (which would shift steps mid-flow).
   const [activeSteps, setActiveSteps] = useState<typeof ALL_STEPS>(ALL_STEPS);
 
@@ -374,7 +374,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
         break;
       }
       case 3: {
-        // Education — add new entries
+        // Education. add new entries
         const existingEduKeys = new Set((user?.educationLevels || []).map(e => `${e.degree}|${e.institution}`));
         for (const edu of educationEntries.filter(e => e.degree && e.institution && !existingEduKeys.has(`${e.degree}|${e.institution}`))) {
           const ok = await apiCall(`education "${edu.degree}"`, '/api/remote/photographer/add-education-level', {
@@ -389,7 +389,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
         break;
       }
       case 4: {
-        // Certifications & Training — add new entries
+        // Certifications & Training. add new entries
         const existingCertKeys = new Set((user?.certifications || []).map(c => `${c.title}|${c.institution}`));
         for (const cert of certEntries.filter(c => c.title && c.issuer && !existingCertKeys.has(`${c.title}|${c.issuer}`))) {
           const ok = await apiCall(`certification "${cert.title}"`, '/api/remote/photographer/add-trainting-certification', {

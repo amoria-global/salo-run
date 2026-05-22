@@ -55,7 +55,7 @@ export const DEFAULT_CONFIG: PlatformConfig = {
     storagePlans: [
       { id: 'one-time', name: 'One-Time', price: 40, currencyId: 'USD', durationMonths: 5, description: '5 months access' },
       { id: 'archive-plus', name: 'Archive Plus', price: 14.99, currencyId: 'USD', billingCycle: 'monthly', cancelAfterMonths: 4, description: 'Cancel after 4 months' },
-      { id: 'archive-pro', name: 'Archive Pro', price: 139.99, currencyId: 'USD', billingCycle: 'yearly', savingsPercent: 22, description: 'Best value — save 22%' },
+      { id: 'archive-pro', name: 'Archive Pro', price: 139.99, currencyId: 'USD', billingCycle: 'yearly', savingsPercent: 22, description: 'Best value. save 22%' },
     ],
   },
   streaming: { groupSize: 5 },

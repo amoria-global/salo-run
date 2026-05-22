@@ -136,7 +136,7 @@ export class WHEPPlayer {
       bundlePolicy: 'max-bundle',
     });
 
-    // We only receive — add transceivers in recvonly mode
+    // We only receive. add transceivers in recvonly mode
     this.pc.addTransceiver('video', { direction: 'recvonly' });
     this.pc.addTransceiver('audio', { direction: 'recvonly' });
 

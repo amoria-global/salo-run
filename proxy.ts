@@ -36,11 +36,11 @@ export function proxy(request: NextRequest) {
   }
 
   // Auth sources, in priority order:
-  //  1. `amoria_auth` — HttpOnly cookie set by backend on .connekyt.com scope;
+  //  1. `amoria_auth`: HttpOnly cookie set by backend on .connekyt.com scope;
   //     the primary mechanism going forward.
-  //  2. `authToken` — legacy JS-visible cookie set by the dashboard itself,
+  //  2. `authToken`: legacy JS-visible cookie set by the dashboard itself,
   //     kept while the frontend still uses it.
-  //  3. `?token=…` — legacy URL handoff from the landing app. Removed by the
+  //  3. `?token=…`: legacy URL handoff from the landing app. Removed by the
   //     landing security/remove-url-token-handoff change, but still accepted
   //     here so older open tabs don't break.
   const amoriaAuthCookie = request.cookies.get('amoria_auth')?.value;
@@ -114,7 +114,7 @@ export function proxy(request: NextRequest) {
     const pathRole = pathname.split('/')[2]; // 'client', 'photographer', 'event-coordinator'
 
     if (pathRole && pathRole !== userRole) {
-      // User is trying to access a different role's pages — redirect to their correct dashboard
+      // User is trying to access a different role's pages, so redirect to their correct dashboard
       const roleHomePaths: Record<string, string> = {
         'photographer': '/user/photographer/dashboard',
         'client': '/user/client/home',

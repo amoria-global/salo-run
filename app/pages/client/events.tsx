@@ -874,7 +874,7 @@ const MyEventsPage = () => {
 
   const handleUnpublishEvent = async (eventId: string) => {
     if (!user) return;
-    // Capture the title before closing the confirm modal — used below if the
+    // Capture the title before closing the confirm modal. used below if the
     // backend rejects with EVENT_ONGOING so the block modal can name it.
     const targetTitle = unpublishConfirmEvent?.title
       ?? events.find(e => e.id === eventId)?.title
@@ -1418,7 +1418,7 @@ const MyEventsPage = () => {
           notes: '',
         };
 
-        // Only include photographer/package IDs if they are valid UUIDs — sending null causes backend JPA errors
+        // Only include photographer/package IDs if they are valid UUIDs. sending null causes backend JPA errors
         if (validPhotographerId) {
           payload.photographerId = validPhotographerId;
         }
@@ -1892,7 +1892,7 @@ const MyEventsPage = () => {
                 <div key={event.id} className="mobile-event-card" style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
                   {/* Blurred cover image = glow effect */}
                   <img src={event.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                  {/* Inner card — clickable to view */}
+                  {/* Inner card. clickable to view */}
                   <div
                     onClick={() => setShowEventDetails(event)}
                     style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
@@ -1956,7 +1956,7 @@ const MyEventsPage = () => {
                           </div>
                         )}
                       </div>
-                      {/* Action buttons — always 4 buttons: Share, Edit, Delete, Publish/Unpublish */}
+                      {/* Action buttons. always 4 buttons: Share, Edit, Delete, Publish/Unpublish */}
                       <div className="mobile-event-actions" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                           <ShareIcon />
@@ -1982,8 +1982,8 @@ const MyEventsPage = () => {
                         {event.status.toUpperCase() !== 'COMPLETED' && (
                           (event.isPublished || event.status.toUpperCase() === 'PUBLISHED' || event.status.toUpperCase() === 'ONGOING') ? (
                             <button onClick={() => {
-                              // Short-circuit straight to the block modal when the event is live —
-                              // backend will reject the unpublish anyway, so skip the "Are you sure?"
+                              // Short-circuit straight to the block modal when the event is live.
+                              // Backend will reject the unpublish anyway, so skip the "Are you sure?"
                               // prompt and tell the creator what they actually need to do.
                               if (event.status.toUpperCase() === 'ONGOING') {
                                 setOngoingUnpublishBlock({
@@ -2625,7 +2625,7 @@ const MyEventsPage = () => {
             )}
           </div>
 
-          {/* Escrow / Payment Milestone Selector — shown when photographer + package selected */}
+          {/* Escrow / Payment Milestone Selector. shown when photographer + package selected */}
           {createPhotographerId && createPackageId && (
             <div data-section="escrow" style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -3499,7 +3499,7 @@ const MyEventsPage = () => {
       {/*
         Block modal shown instead of the generic unpublish confirm when the
         event is currently ONGOING (live stream in progress). The creator can't
-        unpublish from here — the photographer has to end the stream first.
+        unpublish from here. the photographer has to end the stream first.
       */}
       {ongoingUnpublishBlock && (
         <EventConfirmModal

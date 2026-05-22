@@ -183,7 +183,7 @@ interface Photobook {
 
 // Album shape used across the gallery page. Sourced from
 // GET /api/remote/customer/albums (ClientAlbumResponseDTO on the backend),
-// flattened so `images` is a plain string[] of full URLs — the rest of
+// flattened so `images` is a plain string[] of full URLs. the rest of
 // this page treats images as URLs, not media-item objects.
 interface Album {
   id: string;
@@ -2348,7 +2348,7 @@ const ClientGallery = () => {
         </div>
       )}
 
-      {/* Image Viewer Modal — full-screen cinematic lightbox */}
+      {/* Image Viewer Modal. full-screen cinematic lightbox */}
       {showImageViewer && viewerAlbum && (
         <div
           style={{

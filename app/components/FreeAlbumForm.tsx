@@ -151,7 +151,7 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
           />
         </div>
       </div>
-      {/* Currency selector — required when there's an extras price set,
+      {/* Currency selector. required when there's an extras price set,
           otherwise the client cap+pay flow on knockout refuses to charge.
           Pre-filled from props (typically the photographer's last-picked
           paid-album currency) so they don't have to re-pick every time. */}
@@ -175,7 +175,7 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
             <option value="">Pick a currency…</option>
             {currencies.map((c) => (
               <option key={c.id || c.code} value={c.id || c.code}>
-                {c.code}{c.name ? ` — ${c.name}` : ''}
+                {c.code}{c.name ? `. ${c.name}` : ''}
               </option>
             ))}
           </select>

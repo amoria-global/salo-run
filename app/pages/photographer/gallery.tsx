@@ -550,7 +550,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
     const selectedClient = clients.find(c => c.id === uploadClientId);
 
     // Create ONE album with all selected images.
-    // NOTE: this currently only updates local state — the file does not yet
+    // NOTE: this currently only updates local state. the file does not yet
     // POST to /api/remote/photographer/albums. Wiring the actual upload is
     // tracked separately. The optimistic id is a client-side UUID so it
     // stays unique even after a backend refetch overwrites this entry.

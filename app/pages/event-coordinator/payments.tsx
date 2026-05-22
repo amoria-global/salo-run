@@ -559,7 +559,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  // Escrow states — auto-skip if already set at booking time
+  // Escrow states. auto-skip if already set at booking time
   const [escrowStep, setEscrowStep] = useState<'options' | 'method'>('options');
   const [selectedEscrowOption, setSelectedEscrowOption] = useState<number | null>(null);
   const [surveyCompleted, setSurveyCompleted] = useState<boolean>(false);
@@ -614,7 +614,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   if (!payment) return null;
 
   // For escrow payments, the amount due is the remaining balance.
-  // When payment.escrowPercentage is already set, declaration amount IS the milestone amount — don't re-apply %.
+  // When payment.escrowPercentage is already set, declaration amount IS the milestone amount. don't re-apply %.
   const fullAmountDue = payment.amountNum - payment.paidAmount;
   const amountDue = (selectedEscrowOption && selectedEscrowOption < 100 && !payment.escrowPercentage)
     ? fullAmountDue * selectedEscrowOption / 100
@@ -763,7 +763,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
               ? 'A payment page has been opened. Complete the payment there and we\'ll confirm it here.'
               : 'A USSD prompt has been sent to your phone. Please approve the payment on your device.'}
           </p>
-          <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Waiting for the gateway to confirm your payment — this can take up to a minute.</p>
+          <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Waiting for the gateway to confirm your payment. this can take up to a minute.</p>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </Modal>
@@ -805,7 +805,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
     );
   }
 
-  // Escrow Options View — choose payment percentage
+  // Escrow Options View. choose payment percentage
   if (escrowStep === 'options' && xentriPayStep === 'select' && !showReceipt) {
     const fullAmountForOptions = payment.amountNum - payment.paidAmount;
     const options = [
@@ -1328,7 +1328,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                   onBlur={(e) => { e.currentTarget.style.borderColor = customDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
                 </div>
               )}
-              {/* Donation amount preview — the tier buttons + custom input
+              {/* Donation amount preview. the tier buttons + custom input
                   are USD-denominated internally (see donationValue below),
                   so the panel converts from USD using the live backend
                   rates. Display-only; submit still carries USD as

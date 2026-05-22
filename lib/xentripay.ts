@@ -433,7 +433,7 @@ export function pollPaymentStatus(
 // ==================== Escrow Release APIs ====================
 
 /**
- * Release escrow funds — collects remaining balance after survey completion
+ * Release escrow funds. collects remaining balance after survey completion
  */
 export async function releaseEscrowFunds(
   declarationId: string,

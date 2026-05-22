@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 // Mobile Money (Rwanda) rejects collections below 100 RWF. The minimum only
-// applies when the album is priced in RWF — other currencies pass through
+// applies when the album is priced in RWF. other currencies pass through
 // different rails and do not share this constraint.
 export const MIN_PAID_ALBUM_PRICE_RWF = 100;
 

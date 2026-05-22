@@ -11,7 +11,7 @@ interface ActivityRowProps {
   onClick?: (item: MoneyItem) => void;
 }
 
-/** Single row in the activity feed. Fully presentational — data comes from moneyView.ts. */
+/** Single row in the activity feed. Fully presentational. data comes from moneyView.ts. */
 export default function ActivityRow({ item, onClick }: ActivityRowProps) {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
@@ -182,7 +182,7 @@ function formatRelativeTime(isoString: string): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
 
-  // Older than a week — show date
+  // Older than a week. show date
   const d = new Date(isoString);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

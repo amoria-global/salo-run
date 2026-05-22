@@ -3,7 +3,7 @@
 /**
  * Branded sort/filter dropdown that replaces native <select> across the dashboard.
  *
- * Native browser dropdowns can't be styled — they fall back to the OS theme
+ * Native browser dropdowns can't be styled. they fall back to the OS theme
  * (flat solid-blue highlight, default fonts, no brand language). This
  * component renders a small button + popover menu that matches the rest of
  * the Connekyt dashboard: brand border, brand-pink uppercase eyebrow on the
@@ -203,7 +203,7 @@ const SortDropdown: React.FC<SortDropdownProps> = ({
                     if (!isSelected) e.currentTarget.style.background = 'transparent';
                   }}
                 >
-                  {/* Left selected indicator — brand gradient bar */}
+                  {/* Left selected indicator. brand gradient bar */}
                   {isSelected && (
                     <span aria-hidden style={{
                       position: 'absolute',

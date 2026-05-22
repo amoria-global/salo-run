@@ -353,7 +353,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       const apiUrl = getApiUrl();
       // The photographer/customer handler lives on CustomerProfileController
       // (@RequestMapping "/api/remote/customer/profile"), so the path needs
-      // the "/profile" segment — without it Spring matched no handler and
+      // the "/profile" segment. without it Spring matched no handler and
       // returned "No static resource ...". The coordinator handler is on
       // CoordinatorController ("/api/remote/coordinator"), no /profile there.
       const basePath = userType === 'event-coordinator'
@@ -754,7 +754,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         } else if (!accountName.trim() || enteredNorm === xentriNorm) {
           nameToSave = registeredName;
         } else {
-          // Names don't match — show confirmation dialog
+          // Names don't match. show confirmation dialog
           setXentriPayName(registeredName);
           setEnteredNameForMismatch(accountName);
           setShowNameMismatch(true);

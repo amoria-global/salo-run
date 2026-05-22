@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * WalletMovementsTable — thin wrapper around the new ActivityFeed.
+ * WalletMovementsTable. thin wrapper around the new ActivityFeed.
  *
  * Two modes:
  *   - mode="me"    → ActivityFeed fetches user movements via getMyWalletMovements()
