@@ -19,6 +19,7 @@ import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import FreeAlbumForm from '../../components/FreeAlbumForm';
 import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 import ContentAlbumsTab from './ContentAlbumsTab';
+import LiveChatPreviewDrawer from '../../components/LiveChatPreviewDrawer';
 
 const CURRENCY_FLAG_MAP: Record<string, string> = {
   USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
@@ -408,6 +409,12 @@ const PhotographerEventsPage = () => {
   // Add more permission flags here when wrapping additional buttons.
   const canCreateEvents = hasPermission('events.create');
   const apiUrl = getApiUrl();
+
+  // Live-chat preview drawer state. Set to {id, title} when the
+  // photographer clicks the 'Chat' chip on a LIVE event card; drawer
+  // closes by setting back to null. Single instance shared across
+  // every card so we never mount two pollers.
+  const [chatPreview, setChatPreview] = useState<{ id: string; title: string } | null>(null);
 
   const [activeTab, setActiveTab] = useState<'events' | 'albums' | 'photobooks' | 'content'>(() => {
     if (typeof window !== 'undefined') {
@@ -2125,6 +2132,43 @@ const PhotographerEventsPage = () => {
                           {/* Viewer count for live */}
                           {isLive && streamCfg && event.status !== 'completed' && (
                             <div style={{ position: 'absolute', top: '2.5rem', right: '0.6rem', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '2rem', fontSize: '0.65rem', fontWeight: 600, pointerEvents: 'none' }}>{streamCfg.viewerCount.toLocaleString()} viewers</div>
+                          )}
+
+                          {/* Live-chat preview trigger - sits under the
+                              viewer count chip on a LIVE card so the
+                              photographer can read what viewers are
+                              saying without opening the public watch
+                              URL. Read-only; replies still go through
+                              the viewer side. */}
+                          {isLive && event.status !== 'completed' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setChatPreview({ id: event.id, title: event.title });
+                              }}
+                              title="View live chat"
+                              style={{
+                                position: 'absolute',
+                                top: '4.5rem',
+                                right: '0.6rem',
+                                backgroundColor: 'rgba(8, 58, 133, 0.85)',
+                                backdropFilter: 'blur(6px)',
+                                border: '1px solid rgba(255,255,255,0.25)',
+                                color: '#fff',
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: '2rem',
+                                fontSize: '0.65rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                boxShadow: '0 4px 10px rgba(0,0,0,0.30)',
+                              }}
+                            >
+                              <i className="bi bi-chat-square-text-fill" style={{ fontSize: 10 }} />
+                              Chat
+                            </button>
                           )}
 
                           {/* MIDDLE-BOTTOM: title + location over image */}
@@ -5460,6 +5504,16 @@ const PhotographerEventsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Live-chat preview drawer - rendered once, fed by chatPreview
+          state. Polls the coordinator chats endpoint every 1s and
+          renders compact bubbles. */}
+      <LiveChatPreviewDrawer
+        eventId={chatPreview?.id ?? null}
+        eventTitle={chatPreview?.title}
+        isOpen={!!chatPreview}
+        onClose={() => setChatPreview(null)}
+      />
     </>
   );
 };
