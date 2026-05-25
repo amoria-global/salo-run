@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import EventConfirmModal from '../../components/EventConfirmModal';
 import Topbar from '../../components/topbar';
@@ -307,6 +308,40 @@ const ClientGallery = () => {
   useEffect(() => {
     fetchAlbums();
   }, [fetchAlbums]);
+
+  // Deep-link from album-detail's "Create photobook" CTA:
+  //   /user/client/gallery?tab=photobooks&albumId=<uuid>&create=1
+  // Switch into the photobook tab when ?tab=photobooks, and either open the
+  // create modal (no existing photobook) or the per-album "add to photobook"
+  // picker (photobook already exists) — without this, the client landed on
+  // the gallery page and the CTA was effectively dead.
+  const searchParams = useSearchParams();
+  const [deepLinkConsumed, setDeepLinkConsumed] = useState(false);
+  useEffect(() => {
+    if (deepLinkConsumed || !searchParams) return;
+    if (isLoadingAlbums) return;
+    const tab = searchParams.get('tab');
+    const albumId = searchParams.get('albumId');
+    const create = searchParams.get('create');
+    if (tab !== 'photobooks' && create !== '1' && !albumId) return;
+
+    if (tab === 'photobooks') setViewingPhotobooks(true);
+
+    if (create === '1' || albumId) {
+      if (photobook && albumId) {
+        const sourceAlbum = albums.find(a => a.id === albumId);
+        if (sourceAlbum) {
+          setAddToPhotobookAlbum(sourceAlbum);
+          setSelectedImagesForPhotobook([]);
+          setShowAddToPhotobookModal(true);
+        }
+      } else if (!photobook) {
+        setShowCreatePhotobookModal(true);
+      }
+    }
+
+    setDeepLinkConsumed(true);
+  }, [searchParams, isLoadingAlbums, albums, photobook, deepLinkConsumed]);
 
   const categories = ['All', 'Wedding', 'Portrait', 'Event', 'Product'];
   const photographers = ['All', ...Array.from(new Set(albums.map(a => a.photographer)))];

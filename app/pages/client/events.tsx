@@ -839,6 +839,40 @@ const MyEventsPage = () => {
     }
   }, [user, fetchMyEvents]);
 
+  // Deep-link from album-detail's "Request changes" CTA:
+  //   /user/client/events?requestChanges=<eventId>
+  //   /user/client/events?requestChangesAlbum=<albumId>  (fallback for older builds)
+  // Open the completion-confirmation modal pre-set to REQUIRE_CHANGES so the
+  // client lands directly in the feedback flow instead of having to hunt for
+  // the right event and re-pick the option.
+  const [requestChangesConsumed, setRequestChangesConsumed] = useState(false);
+  useEffect(() => {
+    if (requestChangesConsumed || !searchParams) return;
+    if (isLoadingEvents) return;
+    const eventIdParam = searchParams.get('requestChanges');
+    const albumIdParam = searchParams.get('requestChangesAlbum');
+    if (!eventIdParam && !albumIdParam) return;
+
+    let target: Event | undefined;
+    if (eventIdParam) {
+      target = events.find(e => e.id === eventIdParam);
+    } else if (albumIdParam) {
+      // Best-effort fallback: any event with an album delivered and pending
+      // customer confirmation. If there's exactly one, take it; otherwise
+      // leave the modal closed so the user can pick manually.
+      const candidates = events.filter(e =>
+        e.albumDelivered && e.completionStatus === 'PENDING_CUSTOMER_CONFIRMATION'
+      );
+      if (candidates.length === 1) target = candidates[0];
+    }
+    if (target) {
+      setCompletionModalEvent(target);
+      setCompletionFeedbackStatus('REQUIRE_CHANGES');
+      setCompletionComment('');
+    }
+    setRequestChangesConsumed(true);
+  }, [searchParams, isLoadingEvents, events, requestChangesConsumed]);
+
   // Auto-refresh events when tab regains focus (e.g. after photographer accepts on their dashboard)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -2147,19 +2181,22 @@ const MyEventsPage = () => {
           eventId={surveyForEvent.id}
           eventName={surveyForEvent.title}
           photographerName={surveyForEvent.photographerName || ''}
-          onSurveyComplete={async (disputeFlagged) => {
+          onSurveyComplete={async (disputeFlagged, surveyComment) => {
             const ev = surveyForEvent;
             try {
               const apiUrl = getApiUrl();
               // Survey backend already releases escrow; this endpoint
               // updates the event's completion-feedback fields so the
               // event card / status badge reflects the outcome.
+              // For COMPLETED path the user reached the survey directly
+              // (no completion-modal comment), so surface the survey's
+              // own issuesDescription instead of the empty modal comment.
               await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${ev.id}/confirm-completion`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   status: disputeFlagged ? 'REQUIRE_CHANGES' : 'COMPLETED',
-                  comment: completionComment || null,
+                  comment: surveyComment || completionComment || null,
                 }),
               });
               setEvents(prev => prev.map(e =>
