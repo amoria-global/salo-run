@@ -1136,7 +1136,11 @@ const PhotographerDashboard = () => {
               <HeroMiniStat label="Clients"  value={String(analytics?.totalClients || analytics?.clients || 0)} color="#F20C8F" />
               <HeroMiniStat label="Accuracy" value={analytics?.accuracy ? `${analytics.accuracy}%` : '0%'} color="#10B981" />
               {balance?.heldForDelivery > 0 && (
-                <HeroMiniStat label="Held" value={formatPrice(balance.heldForDelivery)} color="#F59E0B" />
+                <HeroMiniStat
+                  label="In escrow"
+                  value={formatPrice(balance.heldForDelivery)}
+                  color="#F59E0B"
+                />
               )}
             </div>
           </header>

@@ -359,8 +359,12 @@ export function selectWalletStats(
         { label: 'Photo sales', value: w.balancePhotoPurchase, color: 'blue', hidden: w.balancePhotoPurchase === 0 },
         { label: 'Gifts', value: w.balanceGifts, color: 'purple', hidden: w.balanceGifts === 0 },
         { label: 'Donations', value: w.balanceDonations, color: 'purple', hidden: w.balanceDonations === 0 },
-        { label: 'Held for delivery', value: w.deliveryHeldAmount || 0, color: 'amber', hidden: !w.deliveryHeldAmount || w.deliveryHeldAmount === 0 },
-        { label: 'Held for survey', value: w.surveyHeldAmount || 0, color: 'red', hidden: !w.surveyHeldAmount || w.surveyHeldAmount === 0 },
+        // Total funds in escrow. The backend aggregates album-delivery-held
+        // and photobook-held into a single HELD wallet bucket
+        // (heldForDelivery on BalanceResponseDTO), so we display the total
+        // and explain the release schedule in the tooltip / docs instead of
+        // exposing two separate cards that the API can't itemise yet.
+        { label: 'In escrow (releases on album + photobook)', value: w.heldForDelivery || w.deliveryHeldAmount || 0, color: 'amber', hidden: !(w.heldForDelivery || w.deliveryHeldAmount) },
         { label: 'Total withdrawn', value: w.totalWithdrawn, color: 'neutral', hidden: w.totalWithdrawn === 0 },
       ],
       pendingChip:
