@@ -7,6 +7,7 @@ import localforage from 'localforage';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
+import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
 import EventConfirmModal from '../../components/EventConfirmModal';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
@@ -474,6 +475,11 @@ const MyEventsPage = () => {
   const [completionFeedbackStatus, setCompletionFeedbackStatus] = useState<'COMPLETED' | 'REQUIRE_CHANGES'>('COMPLETED');
   const [completionComment, setCompletionComment] = useState('');
   const [completionSubmitting, setCompletionSubmitting] = useState(false);
+  // Satisfaction survey - shown AFTER the client picks "Completed" on
+  // the confirmation modal. Submission of the survey then triggers the
+  // backend's confirm-completion endpoint (which releases survey-held
+  // escrow). "Require Changes" skips the survey entirely.
+  const [surveyForEvent, setSurveyForEvent] = useState<Event | null>(null);
 
   // Fetch packages when photographer changes
   useEffect(() => {
@@ -2083,6 +2089,17 @@ const MyEventsPage = () => {
               <button
                 disabled={completionSubmitting}
                 onClick={async () => {
+                  // For COMPLETED, route through the satisfaction survey
+                  // first - the survey submission is what releases the
+                  // remaining held funds on the backend (see
+                  // ClientSurveyService.submitSurvey -> releaseSurveyHeldFunds).
+                  // For REQUIRE_CHANGES, skip the survey and just submit
+                  // the feedback so the photographer can iterate.
+                  if (completionFeedbackStatus === 'COMPLETED') {
+                    setSurveyForEvent(completionModalEvent);
+                    setCompletionModalEvent(null);
+                    return;
+                  }
                   setCompletionSubmitting(true);
                   try {
                     const apiUrl = getApiUrl();
@@ -2092,11 +2109,7 @@ const MyEventsPage = () => {
                       body: JSON.stringify({ status: completionFeedbackStatus, comment: completionComment || null }),
                     });
                     if (res.ok) {
-                      if (completionFeedbackStatus === 'COMPLETED') {
-                        setEvents(prev => prev.map(e => e.id === completionModalEvent.id ? { ...e, status: 'AWAITING_REVIEW' as EventStatus, completionStatus: 'COMPLETED' } : e));
-                      } else {
-                        setEvents(prev => prev.map(e => e.id === completionModalEvent.id ? { ...e, completionStatus: 'PENDING_CUSTOMER_CONFIRMATION' } : e));
-                      }
+                      setEvents(prev => prev.map(e => e.id === completionModalEvent.id ? { ...e, completionStatus: 'PENDING_CUSTOMER_CONFIRMATION' } : e));
                       setCompletionModalEvent(null);
                     } else {
                       const err = await res.json().catch(() => null);
@@ -2116,12 +2129,58 @@ const MyEventsPage = () => {
                   opacity: completionSubmitting ? 0.7 : 1,
                 }}
               >
-                {completionSubmitting ? 'Submitting...' : (completionFeedbackStatus === 'COMPLETED' ? 'Confirm Completion' : 'Request Changes')}
+                {completionSubmitting ? 'Submitting...' : (completionFeedbackStatus === 'COMPLETED' ? 'Continue to survey' : 'Request Changes')}
               </button>
             </div>
           </div>
         )}
       </Modal>
+
+      {/* Satisfaction Survey - the 6-question form gates the final
+          escrow release. After submit (or dispute), call confirm-completion
+          so the event's completionStatus reflects the outcome and
+          downstream notifications fire correctly. */}
+      {surveyForEvent && (
+        <SatisfactionSurveyModal
+          isOpen={!!surveyForEvent}
+          onClose={() => setSurveyForEvent(null)}
+          eventId={surveyForEvent.id}
+          eventName={surveyForEvent.title}
+          photographerName={surveyForEvent.photographerName || ''}
+          onSurveyComplete={async (disputeFlagged) => {
+            const ev = surveyForEvent;
+            try {
+              const apiUrl = getApiUrl();
+              // Survey backend already releases escrow; this endpoint
+              // updates the event's completion-feedback fields so the
+              // event card / status badge reflects the outcome.
+              await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${ev.id}/confirm-completion`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  status: disputeFlagged ? 'REQUIRE_CHANGES' : 'COMPLETED',
+                  comment: completionComment || null,
+                }),
+              });
+              setEvents(prev => prev.map(e =>
+                e.id === ev.id
+                  ? {
+                      ...e,
+                      status: disputeFlagged ? e.status : 'AWAITING_REVIEW' as EventStatus,
+                      completionStatus: disputeFlagged ? 'PENDING_CUSTOMER_CONFIRMATION' : 'COMPLETED',
+                    }
+                  : e
+              ));
+            } catch {
+              // Survey persisted on the backend; failure of the
+              // confirm-completion mirror is recoverable by refresh.
+            } finally {
+              setSurveyForEvent(null);
+              setCompletionComment('');
+            }
+          }}
+        />
+      )}
 
       {/* Create Event Modal */}
       <Modal isOpen={showCreateModal} onClose={() => { resetCreateForm(false); setShowCreateModal(false); }} title="Create New Event" maxWidth="700px">
