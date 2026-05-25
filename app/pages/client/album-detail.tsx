@@ -569,6 +569,48 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                 )}
               </div>
             </div>
+
+            {/* Client actions on a delivered album. Previously the
+                only path to a photobook was via /gallery, which buried
+                the workflow. Both buttons are scoped to the client
+                role so photographer/admin views aren't disturbed. */}
+            {userRole === 'client' && (
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.location.href = `/user/client/gallery?tab=photobooks&albumId=${encodeURIComponent(album.id)}&create=1`;
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    background: '#083A85', color: '#fff', border: 'none',
+                    borderRadius: '0.5rem', padding: '0.55rem 1rem',
+                    fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <i className="bi bi-book-half" />
+                  Create photobook
+                </button>
+                <button
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.location.href = `/user/client/events?requestChanges=${encodeURIComponent(album.id)}`;
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    background: 'transparent', color: '#F59E0B',
+                    border: '1.5px solid #F59E0B', borderRadius: '0.5rem',
+                    padding: '0.55rem 1rem',
+                    fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <i className="bi bi-arrow-counterclockwise" />
+                  Request changes
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── Two Column Layout ──────────────────────────────────────── */}

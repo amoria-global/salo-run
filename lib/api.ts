@@ -35,5 +35,16 @@ export function normalizeImageUrl(url: string | undefined | null): string | unde
   if (!url || url.includes('/null')) return undefined;
   const OLD_IP = 'http://197.243.24.101';
   if (url.startsWith(OLD_IP)) return url.replace(OLD_IP, getApiUrl());
+  // Relative URLs (e.g. "/uploads/abc.jpg" returned by some album/gallery
+  // endpoints) used to render against the current origin
+  // (dashboard.connekyt.com) instead of the API origin
+  // (backend.connekyt.com), so the <img> 404'd and the client saw
+  // broken photo tiles on album-detail. Anchor relative paths to the
+  // API origin explicitly. Absolute http(s):// URLs are returned
+  // verbatim so CDN-hosted images keep working.
+  if (url.startsWith('/')) {
+    const base = getApiUrl();
+    if (base) return `${base.replace(/\/+$/, '')}${url}`;
+  }
   return url;
 }
