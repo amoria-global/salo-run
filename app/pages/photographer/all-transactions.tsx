@@ -31,8 +31,26 @@ function mapTransactionStatus(status: string): string {
 
 const AllTransactions = () => {
   const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currency } = useCurrency();
   const { user } = useDashboardAuth();
+
+  // Render a row amount using the SOURCE currency the backend tagged on
+  // it (rows are returned already converted to whatever displayCurrency
+  // we requested). Falls back to formatPrice when the row has no tag,
+  // so legacy callers keep working.
+  const formatRowAmount = (amount: number, ccy?: string): string => {
+    const safeAmount = typeof amount === 'number' ? amount : 0;
+    if (!ccy) return formatPrice(safeAmount);
+    // Currency symbol map mirroring CurrencyContext.formatPrice.
+    const decimals = ccy === 'USD' || ccy === 'EUR' ? 2 : 0;
+    const formatted = safeAmount.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+    if (ccy === 'USD') return `$${formatted}`;
+    if (ccy === 'EUR') return `€${formatted}`;
+    return `${ccy} ${formatted}`;
+  };
   const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
@@ -55,7 +73,14 @@ const AllTransactions = () => {
   const fetchTransactions = useCallback(async (page: number = 0) => {
     const apiUrl = getApiUrl();
     try {
-      const txRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=${page}&size=20`);
+      // Ask the backend to convert canonical-USD amounts to the user's
+      // selected display currency BEFORE serving them. Each row comes
+      // back with both `amount` (in displayCurrency) and
+      // `currencyAbbreviation` so the renderer can stamp the right
+      // symbol without re-converting (which would double-count).
+      const txRes = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/photographer/transactions?page=${page}&size=20&displayCurrency=${encodeURIComponent(currency)}`
+      );
 
       if (txRes.ok) {
         const data = await txRes.json();
@@ -75,6 +100,7 @@ const AllTransactions = () => {
             service: t.service || t.paymentType || t.description || t.eventTitle || 'Payment',
             method: t.paymentMethod || t.method || 'N/A',
             amount: t.amount || 0,
+            currency: t.currencyAbbreviation || 'USD',
             status: mapTransactionStatus(t.status || ''),
             requestId: t.requestId || t.reference || t.invoiceNumber || `AM${t.id || index}`,
           }));
@@ -94,9 +120,13 @@ const AllTransactions = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currency]);
 
   useEffect(() => {
+    // Refetch when the user flips their display-currency selection so
+    // every row's `amount` is recalculated server-side in the new
+    // currency (the page renders the value verbatim — no client-side
+    // conversion — so we have to round-trip on currency change).
     fetchTransactions(0);
   }, [fetchTransactions]);
 
@@ -554,7 +584,7 @@ const AllTransactions = () => {
                           fontSize: '0.75rem',
                           fontWeight: '600',
                           color: colors.textPrimary
-                        }}>{formatPrice(transaction.amount)}</td>
+                        }}>{formatRowAmount(transaction.amount, transaction.currency)}</td>
                         <td style={{ padding: '0.5rem' }}>
                           <span style={{
                             display: 'inline-block',
@@ -883,7 +913,7 @@ const AllTransactions = () => {
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.65rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Amount</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                    ${selectedTransaction.amount}
+                    {formatRowAmount(selectedTransaction.amount, selectedTransaction.currency)}
                   </div>
                 </div>
               </div>
