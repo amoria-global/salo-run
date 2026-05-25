@@ -110,7 +110,7 @@ interface SatisfactionSurveyModalProps {
   eventId: string;
   eventName: string;
   photographerName: string;
-  onSurveyComplete: (disputeFlagged: boolean) => void;
+  onSurveyComplete: (disputeFlagged: boolean, comment: string) => void;
 }
 
 type OptionValue = string | boolean | null;
@@ -166,8 +166,9 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
 
     if (result.success) {
       setSubmitted(true);
+      const surveyComment = issuesDescription.trim();
       setTimeout(() => {
-        onSurveyComplete(result.disputeFlagged || false);
+        onSurveyComplete(result.disputeFlagged || false, surveyComment);
       }, 1500);
     } else {
       setError(result.error || 'Failed to submit survey. Please try again.');

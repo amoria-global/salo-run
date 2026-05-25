@@ -110,6 +110,7 @@ const HeartIcon = () => (
 interface Album {
   id: string;
   title: string;
+  eventId: string | null;
   photographerId: string | null;
   photographer: string;
   photographerAvatar: string | null;
@@ -222,6 +223,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
       setAlbum({
         id: data.id,
         title: data.title || 'Untitled Album',
+        eventId: data.eventId || null,
         photographerId: data.photographerId || null,
         photographer: data.photographer || 'Unknown Photographer',
         photographerAvatar: normalizeImageUrl(data.photographerAvatar) || null,
@@ -595,7 +597,13 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                 <button
                   onClick={() => {
                     if (typeof window !== 'undefined') {
-                      window.location.href = `/user/client/events?requestChanges=${encodeURIComponent(album.id)}`;
+                      // Prefer eventId (precise target); fall back to album.id
+                      // so older browser tabs that hit a backend without the
+                      // eventId field still land on a usable events page.
+                      const target = album.eventId
+                        ? `/user/client/events?requestChanges=${encodeURIComponent(album.eventId)}`
+                        : `/user/client/events?requestChangesAlbum=${encodeURIComponent(album.id)}`;
+                      window.location.href = target;
                     }
                   }}
                   style={{
