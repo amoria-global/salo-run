@@ -8,6 +8,23 @@ import { getLandingUrl } from '@/lib/urls';
  * - Redirects to home app login if no token found
  * - Allows access to auth pages without token
  */
+// Build the externally-visible URL for the current request. `request.nextUrl.href`
+// reflects the internal Node host (`http://localhost:8097`) when the dashboard
+// runs behind nginx, which breaks login round-trips: the landing app would
+// receive `returnUrl=http://localhost:8097/...` and the user's browser can't
+// reach that. nginx is configured to forward `x-forwarded-host` and
+// `x-forwarded-proto`; honor them so the returnUrl is reachable.
+function publicHref(request: NextRequest): string {
+  const fwdHost = request.headers.get('x-forwarded-host');
+  const fwdProto = request.headers.get('x-forwarded-proto');
+  const host = fwdHost || request.headers.get('host');
+  if (host) {
+    const proto = fwdProto || 'https';
+    return `${proto}://${host}${request.nextUrl.pathname}${request.nextUrl.search}`;
+  }
+  return request.nextUrl.href;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
@@ -86,7 +103,7 @@ export function proxy(request: NextRequest) {
       : new URL('/user/auth/login', request.url);
 
     // Add return URL so user can be redirected back after login
-    loginUrl.searchParams.set('returnUrl', request.nextUrl.href);
+    loginUrl.searchParams.set('returnUrl', publicHref(request));
 
     return NextResponse.redirect(loginUrl);
   }
@@ -102,7 +119,7 @@ export function proxy(request: NextRequest) {
     const loginUrl = landingBase2
       ? new URL(`${landingBase2}/user/auth/login`)
       : new URL('/user/auth/login', request.url);
-    loginUrl.searchParams.set('returnUrl', request.nextUrl.href);
+    loginUrl.searchParams.set('returnUrl', publicHref(request));
 
     const response = NextResponse.redirect(loginUrl);
     response.cookies.delete('userRole');
