@@ -121,10 +121,22 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Role-based access control: prevent users from accessing other roles' pages
-  // Normalize: backend sends Coordinator/event_coordinator/EVENT_COORDINATOR → canonical 'event-coordinator'
+  // Role-based access control: prevent users from accessing other roles' pages.
+  // Normalize legacy/backend variants to the canonical path segment used in
+  // /user/{role}/...:
+  //   - customerType "CUSTOMER" / "customer" → 'client'  (the path segment)
+  //   - "EC" / "EVENT_COORDINATOR" / "event_coordinator" → 'event-coordinator'
+  //   - "Coordinator" → 'event-coordinator'
+  // AuthProvider sets userRole=${customerType.toLowerCase()} on every profile
+  // fetch, so a stale "CUSTOMER" from the backend would otherwise mismatch
+  // pathRole='client' and bounce the user into an infinite login loop.
   const rawRole = (request.cookies.get('userRole')?.value || '').toLowerCase().replace(/_/g, '-');
-  const userRole = rawRole === 'coordinator' ? 'event-coordinator' : rawRole || undefined;
+  const roleAliases: Record<string, string> = {
+    'customer': 'client',
+    'ec': 'event-coordinator',
+    'coordinator': 'event-coordinator',
+  };
+  const userRole = (roleAliases[rawRole] || rawRole) || undefined;
 
   // Defensive guard: If we have a role but no token, clear the role cookie to force re-auth
   if (userRole && !hasToken && pathname.startsWith('/user/')) {
