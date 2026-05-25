@@ -16,10 +16,14 @@ import { getLandingUrl } from '@/lib/urls';
 // `x-forwarded-proto`; honor them so the returnUrl is reachable.
 function publicHref(request: NextRequest): string {
   const fwdHost = request.headers.get('x-forwarded-host');
-  const fwdProto = request.headers.get('x-forwarded-proto');
   const host = fwdHost || request.headers.get('host');
   if (host) {
-    const proto = fwdProto || 'https';
+    // Force https for production hosts. Cloudflare → origin is plain HTTP
+    // (and may forward x-forwarded-proto: http), which is correct for the
+    // ORIGIN hop but wrong for the PUBLIC URL the browser must follow.
+    // Anything on a `localhost`/local-IP host stays http for dev.
+    const isLocal = /^(localhost|127\.|\[?::1\]?)/.test(host);
+    const proto = isLocal ? 'http' : 'https';
     return `${proto}://${host}${request.nextUrl.pathname}${request.nextUrl.search}`;
   }
   return request.nextUrl.href;
