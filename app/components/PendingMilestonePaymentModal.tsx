@@ -90,6 +90,15 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
     if (stopPollingRef.current) stopPollingRef.current();
   }, []);
 
+  // EVERY hook call must live above this early-return. The earlier
+  // version had a third useEffect below this guard — first render
+  // (loading=true) returned null and skipped it; second render
+  // (loading=false) ran it, changing the hook count and tripping
+  // React error #310. Because PendingMilestonePaymentModal is mounted
+  // by app/user/client/layout.tsx, that crash took down the entire
+  // client tree and rendered Chrome's "page couldn't load" on every
+  // /user/client/* route. Photographer/coordinator layouts don't mount
+  // this modal, so they were unaffected.
   if (!isOpen || loading || pendingPayments.length === 0) return null;
 
   const firstPayment = pendingPayments[0];
@@ -299,7 +308,17 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
           <Button variant="ghost" onClick={() => setStep('overview')}>Back</Button>
           <Button
             variant="primary"
-            onClick={() => setStep(selectedMethod === 'card' ? 'processing' : 'phone')}
+            onClick={() => {
+              // Card has no phone step — fire initiate immediately and let
+              // it transition to 'processing' itself. Inlining avoids a
+              // useEffect-on-step that previously sat below the early-
+              // return and tripped React error #310.
+              if (selectedMethod === 'card') {
+                handleInitiatePayment();
+              } else {
+                setStep('phone');
+              }
+            }}
           >Continue</Button>
         </>
       );
@@ -328,17 +347,6 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
     // processing - no footer buttons (would interrupt)
     return null;
   };
-
-  // Fire the card-flow's initiate when we land on 'processing' directly
-  // from the method picker (card has no phone step, so the click on
-  // Continue jumps straight to processing - we still need to call
-  // initiateBookingPayment from somewhere).
-  useEffect(() => {
-    if (step === 'processing' && selectedMethod === 'card' && !submitting && !stopPollingRef.current) {
-      handleInitiatePayment();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, selectedMethod]);
 
   return (
     <Modal
