@@ -356,7 +356,7 @@ export function selectWalletStats(
         { label: 'Tips', value: w.balanceTips, color: 'purple', hidden: w.balanceTips === 0 },
         { label: 'Bonuses', value: w.balanceBonuses, color: 'amber', hidden: w.balanceBonuses === 0 },
         { label: 'Stream bonus', value: w.balanceStreamFees, color: 'blue', hidden: w.balanceStreamFees === 0 },
-        { label: 'Photo sales', value: w.balancePhotoPurchase, color: 'blue', hidden: w.balancePhotoPurchase === 0 },
+        { label: 'Album sales', value: w.balancePhotoPurchase, color: 'blue', hidden: w.balancePhotoPurchase === 0 },
         { label: 'Gifts', value: w.balanceGifts, color: 'purple', hidden: w.balanceGifts === 0 },
         { label: 'Donations', value: w.balanceDonations, color: 'purple', hidden: w.balanceDonations === 0 },
         // Total funds in escrow. The backend aggregates album-delivery-held
