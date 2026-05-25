@@ -14,19 +14,28 @@ import { getLandingUrl } from '@/lib/urls';
 // receive `returnUrl=http://localhost:8097/...` and the user's browser can't
 // reach that. nginx is configured to forward `x-forwarded-host` and
 // `x-forwarded-proto`; honor them so the returnUrl is reachable.
-function publicHref(request: NextRequest): string {
+function publicOrigin(request: NextRequest): string | null {
   const fwdHost = request.headers.get('x-forwarded-host');
   const host = fwdHost || request.headers.get('host');
-  if (host) {
-    // Force https for production hosts. Cloudflare → origin is plain HTTP
-    // (and may forward x-forwarded-proto: http), which is correct for the
-    // ORIGIN hop but wrong for the PUBLIC URL the browser must follow.
-    // Anything on a `localhost`/local-IP host stays http for dev.
-    const isLocal = /^(localhost|127\.|\[?::1\]?)/.test(host);
-    const proto = isLocal ? 'http' : 'https';
-    return `${proto}://${host}${request.nextUrl.pathname}${request.nextUrl.search}`;
-  }
+  if (!host) return null;
+  // Force https for production hosts. Cloudflare → origin is plain HTTP
+  // (and may forward x-forwarded-proto: http), which is correct for the
+  // ORIGIN hop but wrong for the PUBLIC URL the browser must follow.
+  // Anything on a `localhost`/local-IP host stays http for dev.
+  const isLocal = /^(localhost|127\.|\[?::1\]?)/.test(host);
+  const proto = isLocal ? 'http' : 'https';
+  return `${proto}://${host}`;
+}
+
+function publicHref(request: NextRequest): string {
+  const origin = publicOrigin(request);
+  if (origin) return `${origin}${request.nextUrl.pathname}${request.nextUrl.search}`;
   return request.nextUrl.href;
+}
+
+function publicRedirect(request: NextRequest, path: string): URL {
+  const origin = publicOrigin(request);
+  return new URL(path, origin || request.url);
 }
 
 export function proxy(request: NextRequest) {
@@ -141,8 +150,22 @@ export function proxy(request: NextRequest) {
         'client': '/user/client/home',
         'event-coordinator': '/user/event-coordinator/home',
       };
-      const correctPath = roleHomePaths[userRole] || '/user/client/home';
-      return NextResponse.redirect(new URL(correctPath, request.url));
+      const correctPath = roleHomePaths[userRole];
+      // If userRole is something unrecognized (e.g. a legacy/typo cookie),
+      // sending them to /user/client/home creates a redirect loop because
+      // pathRole=='client' still won't match userRole. Bail to landing
+      // login and let the user re-auth cleanly.
+      if (!correctPath) {
+        const landingBase = getLandingUrl();
+        const loginUrl = landingBase
+          ? new URL(`${landingBase}/user/auth/login`)
+          : publicRedirect(request, '/user/auth/login');
+        loginUrl.searchParams.set('returnUrl', publicHref(request));
+        const response = NextResponse.redirect(loginUrl);
+        response.cookies.delete('userRole');
+        return response;
+      }
+      return NextResponse.redirect(publicRedirect(request, correctPath));
     }
   }
 
