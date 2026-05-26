@@ -60,7 +60,13 @@ export const DEFAULT_CONFIG: PlatformConfig = {
   },
   streaming: { groupSize: 5 },
   security: { sessionTimeoutMs: 3600000, sessionCheckIntervalMs: 60000 },
-  uploads: { maxImageSizeMb: 5 },
+  // No client-side image size cap. The previous 5MB limit blocked
+  // high-resolution camera output and modern phone shots. Backend
+  // multipart + nginx client_max_body_size are the upstream caps now;
+  // setting this to Number.POSITIVE_INFINITY keeps the existing
+  // `file.size > maxImageSizeMb * 1024 * 1024` comparison sites
+  // working without rewriting them.
+  uploads: { maxImageSizeMb: Number.POSITIVE_INFINITY },
 };
 
 let cachedConfig: PlatformConfig | null = null;
