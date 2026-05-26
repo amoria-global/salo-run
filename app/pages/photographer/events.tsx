@@ -468,7 +468,12 @@ const PhotographerEventsPage = () => {
   const [albumTitle, setAlbumTitle] = useState('');
   const [albumDescription, setAlbumDescription] = useState('');
   const [albumCategory, setAlbumCategory] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  // File[] (not FileList) so subsequent uploads can APPEND. The native
+  // FileList off an <input type=file> is a static snapshot of the most
+  // recent selection — assigning it directly threw away anything the
+  // viewer picked before, which is why re-clicking "Upload" wiped the
+  // earlier picks instead of stacking them.
+  const [selectedFiles, setSelectedFiles] = useState<File[] | null>(null);
   const [uploadedImagePreviews, setUploadedImagePreviews] = useState<string[]>([]);
   const [selectedCoverIndex, setSelectedCoverIndex] = useState(0);
   const [showAlbumBrowseModal, setShowAlbumBrowseModal] = useState(false);
@@ -1372,9 +1377,25 @@ const PhotographerEventsPage = () => {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files; if (!files) return; setSelectedFiles(files);
-    const previews: string[] = [];
-    Array.from(files).forEach(file => { const reader = new FileReader(); reader.onload = (ev) => { previews.push(ev.target?.result as string); if (previews.length === files.length) setUploadedImagePreviews([...previews]); }; reader.readAsDataURL(file); });
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const added = Array.from(files);
+    // APPEND to whatever the viewer picked before. Previously we
+    // overwrote both selectedFiles and the previews array, so clicking
+    // the upload tile a second time wiped the first batch.
+    setSelectedFiles(prev => (prev ? [...prev, ...added] : added));
+    added.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const src = ev.target?.result as string;
+        setUploadedImagePreviews(prev => [...prev, src]);
+      };
+      reader.readAsDataURL(file);
+    });
+    // Clear the input value so picking the same file twice in a row
+    // still fires onChange (browsers suppress change when value is
+    // unchanged).
+    e.target.value = '';
   };
 
   // Check if an event already has an album (sent albums block creation permanently)
@@ -3909,7 +3930,7 @@ const PhotographerEventsPage = () => {
                         <div key={i} onClick={() => setSelectedCoverIndex(i)} style={{ position: 'relative', borderRadius: '0.375rem', overflow: 'hidden', cursor: 'pointer', border: selectedCoverIndex === i ? '3px solid #F20C8F' : `2px solid ${colors.borderPrimary}`, aspectRatio: '1' }}>
                           <img src={preview} alt={`Preview ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           {selectedCoverIndex === i && <div style={{ position: 'absolute', top: '2px', left: '2px', backgroundColor: '#F20C8F', color: 'white', fontSize: '0.6rem', padding: '0.1rem 0.3rem', borderRadius: '0.2rem', fontWeight: 600 }}>Cover</div>}
-                          <button onClick={(e) => { e.stopPropagation(); setUploadedImagePreviews(prev => prev.filter((_, idx) => idx !== i)); if (selectedCoverIndex >= uploadedImagePreviews.length - 1) setSelectedCoverIndex(Math.max(0, uploadedImagePreviews.length - 2)); else if (selectedCoverIndex === i) setSelectedCoverIndex(0); else if (selectedCoverIndex > i) setSelectedCoverIndex(selectedCoverIndex - 1); }} style={{ position: 'absolute', top: '2px', right: '2px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'rgba(220,38,38,0.85)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, lineHeight: 1 }}>&times;</button>
+                          <button onClick={(e) => { e.stopPropagation(); setUploadedImagePreviews(prev => prev.filter((_, idx) => idx !== i)); setSelectedFiles(prev => prev ? prev.filter((_, idx) => idx !== i) : prev); if (selectedCoverIndex >= uploadedImagePreviews.length - 1) setSelectedCoverIndex(Math.max(0, uploadedImagePreviews.length - 2)); else if (selectedCoverIndex === i) setSelectedCoverIndex(0); else if (selectedCoverIndex > i) setSelectedCoverIndex(selectedCoverIndex - 1); }} style={{ position: 'absolute', top: '2px', right: '2px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'rgba(220,38,38,0.85)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, lineHeight: 1 }}>&times;</button>
                         </div>
                       ))}
                     </div>

@@ -274,7 +274,11 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   const [maxImagesLimit, setMaxImagesLimit] = useState<string>(''); // Maximum images client can select for photobook
 
   // Upload form state
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  // File[] (not FileList) so clicking the upload tile a second time
+  // appends to the prior selection instead of replacing it. The native
+  // input.files property is a snapshot of the most recent picker
+  // session, so storing it directly threw away every earlier batch.
+  const [selectedFiles, setSelectedFiles] = useState<File[] | null>(null);
   const [uploadedImagePreviews, setUploadedImagePreviews] = useState<string[]>([]);
   const [selectedCoverIndex, setSelectedCoverIndex] = useState<number>(0);
   const [uploadTitle, setUploadTitle] = useState('');
@@ -509,13 +513,21 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFiles(e.target.files);
-      // Generate image previews
-      const previews = Array.from(e.target.files).map(file => URL.createObjectURL(file));
-      setUploadedImagePreviews(previews);
-      setSelectedCoverIndex(0); // Default to first image as cover
-    }
+    if (!e.target.files || e.target.files.length === 0) return;
+    const added = Array.from(e.target.files);
+    const newPreviews = added.map(file => URL.createObjectURL(file));
+    setSelectedFiles(prev => (prev ? [...prev, ...added] : added));
+    setUploadedImagePreviews(prev => {
+      const merged = [...prev, ...newPreviews];
+      // Default cover to the very first image when this is the first
+      // selection; otherwise leave the existing cover pick intact.
+      if (prev.length === 0) setSelectedCoverIndex(0);
+      return merged;
+    });
+    // Clear the input so picking the same file twice still fires
+    // onChange — browsers suppress change events when the value is
+    // unchanged.
+    e.target.value = '';
   };
 
   const handleCopyLink = (link: string) => {
