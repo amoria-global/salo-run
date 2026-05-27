@@ -364,6 +364,11 @@ function mapProfileData(data: any): DashboardUser {
     about: data.about || undefined,
     professionalPhilosophy: data.professionalPhilosophy || undefined,
     specialties: data.specialties || [],
+    // Map the photographer's spoken-language codes through to the
+    // React user object. Without this entry mapProfileData silently
+    // dropped the field and the Overview tab + missing-fields banner
+    // always thought the photographer had no languages saved.
+    spokenLanguages: Array.isArray(data.spokenLanguages) ? data.spokenLanguages : [],
     rating: data.rating || 0,
     availabilities: data.availabilities || [],
     projects: data.projects || [],
