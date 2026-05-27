@@ -109,6 +109,11 @@ export interface DashboardUser {
   about?: string;
   professionalPhilosophy?: string;
   specialties?: string[];
+  // Language codes the photographer speaks (EN, FR, RW, SWA, SPA, CHI).
+  // Required by /update-important-details going forward; legacy rows
+  // may still come back undefined/empty until the photographer next
+  // saves their profile.
+  spokenLanguages?: string[];
   rating?: number;
   availabilities?: UserAvailability[];
   projects?: UserProject[];

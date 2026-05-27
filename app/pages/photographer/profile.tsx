@@ -363,10 +363,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     availability: {} as { [key: string]: DayAvailability },
   });
 
-  // Overview Tab State - initialized empty, loaded from user context
+  // Overview Tab State - initialized empty, loaded from user context.
+  // spokenLanguages is now required by /update-important-details — the
+  // save button blocks until at least one is picked.
   const [overviewData, setOverviewData] = useState({
     about: '',
     specialties: [] as string[],
+    spokenLanguages: [] as string[],
     equipments: [] as string[],
   });
 
@@ -743,6 +746,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         about: autoCapitalize(overviewData.about),
         address: capitalizeWords(basicInfo.address),
         specialtyIds: overviewData.specialties,
+        spokenLanguages: overviewData.spokenLanguages,
         professionalPhilosophy: autoCapitalize(portfolioData.beliefs),
       });
       if (success) {
@@ -996,6 +1000,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         // Store specialty IDs for saving; backend returns [{id, name}] but AuthProvider types as string[]
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         specialties: (user.specialties as any[])?.map((s) => typeof s === 'object' ? (s.id || s.name) : s) || [],
+        // spokenLanguages comes back from the profile-summary response
+        // as an array of upper-case codes. Hydrate so the photographer
+        // sees their existing picks without re-selecting.
+        spokenLanguages: ((user as { spokenLanguages?: string[] }).spokenLanguages || []).filter(Boolean),
         equipments: user.equipments?.map(e => e.name) || [],
       }));
 
@@ -1140,13 +1148,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         ].filter(Boolean).length,
         total: 4
       },
-      // Overview. specialties only (25%)
+      // Overview. specialties + at least one spoken language (25%
+      // bucket split across two required fields so the completion
+      // percentage doesn't jump from 0 → 100 on the section).
       overview: {
         weight: 25,
         filled: [
           overviewData.specialties.length >= 2,
+          overviewData.spokenLanguages.length >= 1,
         ].filter(Boolean).length,
-        total: 1
+        total: 2
       },
       // Portfolio. at least one featured project (30%)
       portfolio: {
@@ -1189,6 +1200,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
     if (overviewData.specialties.length < 2) {
       return { section: 'overview', label: 'specialties' };
+    }
+    if (overviewData.spokenLanguages.length < 1) {
+      return { section: 'overview', label: 'spoken languages' };
     }
     if (portfolioData.projects.length < 1) {
       return { section: 'portfolio', label: 'portfolio' };
@@ -1376,6 +1390,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }));
   };
 
+  const toggleSpokenLanguage = (code: string) => {
+    setOverviewData(prev => ({
+      ...prev,
+      spokenLanguages: prev.spokenLanguages.includes(code)
+        ? prev.spokenLanguages.filter(c => c !== code)
+        : [...prev.spokenLanguages, code],
+    }));
+  };
+
   // Equipment handlers
   const addEquipment = async () => {
     if (newEquipment.trim()) {
@@ -1538,6 +1561,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     about?: string;
     address?: string;
     specialtyIds?: string[];
+    spokenLanguages?: string[];
     professionalPhilosophy?: string;
   }): Promise<boolean> => {
     if (!user) return false;
@@ -1571,6 +1595,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     about?: string;
     address?: string;
     specialtyIds?: string[];
+    spokenLanguages?: string[];
     professionalPhilosophy?: string;
   }) => {
     if (importantDetailsTimeoutRef.current) {
@@ -2468,6 +2493,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             if (!profileImage) basicMissing.push('Profile photo');
 
             const specialtiesOk = overviewData.specialties.length >= 2;
+            const languagesOk = overviewData.spokenLanguages.length >= 1;
             const portfolioOk = portfolioData.projects.length >= 1;
             const hasExp = experienceData.experiences.length >= 1;
             const hasLongDesc = experienceData.experiences.some(e => e.description.length > 50);
@@ -2477,6 +2503,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             const items: { label: string; ok: boolean; detail: string | null; section: BannerSection }[] = [
               { label: 'Basic info (name, phone, working city, profile photo)', ok: basicMissing.length === 0, detail: basicMissing.length ? 'Missing: ' + basicMissing.join(', ') : null, section: 'basic' },
               { label: 'At least 2 specialties selected', ok: specialtiesOk, detail: specialtiesOk ? null : `Currently ${overviewData.specialties.length}`, section: 'overview' },
+              { label: 'At least 1 spoken language selected', ok: languagesOk, detail: languagesOk ? null : 'No languages picked yet', section: 'overview' },
               { label: 'At least 1 portfolio project', ok: portfolioOk, detail: portfolioOk ? null : `Currently ${portfolioData.projects.length}`, section: 'portfolio' },
               { label: 'At least 1 work experience with a description (50+ chars)', ok: experienceOk, detail: !hasExp ? 'No entries yet' : (!hasLongDesc ? 'Add a description over 50 characters to one of your entries' : null), section: 'experience' },
             ];
@@ -3896,6 +3923,54 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           >
                             {isSelected && <CheckIcon />}
                             {s.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Languages spoken — required. Same chip pattern as
+                        Specialties above. The /update-important-details
+                        endpoint enforces non-empty + the allowed code
+                        set, and the wizard slide 1 mirrors this UI. */}
+                    <div style={sectionTitleStyle}>
+                      <span>Languages You Speak *</span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem' }}>
+                      Pick every language you can comfortably work with — clients see this on your public profile.
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2rem' }}>
+                      {([
+                        { code: 'EN', label: 'English' },
+                        { code: 'FR', label: 'French' },
+                        { code: 'RW', label: 'Kinyarwanda' },
+                        { code: 'SWA', label: 'Swahili' },
+                        { code: 'SPA', label: 'Spanish' },
+                        { code: 'CHI', label: 'Chinese' },
+                      ] as { code: string; label: string }[]).map(opt => {
+                        const isSelected = overviewData.spokenLanguages.includes(opt.code);
+                        return (
+                          <button
+                            key={opt.code}
+                            onClick={() => isEditEnabled && toggleSpokenLanguage(opt.code)}
+                            disabled={!isEditEnabled}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              borderRadius: '2rem',
+                              border: isSelected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                              backgroundColor: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                              color: isSelected ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                              fontSize: '0.875rem',
+                              fontWeight: '500',
+                              cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.375rem',
+                              transition: 'all 0.2s',
+                              opacity: isEditEnabled ? 1 : 0.7,
+                            }}
+                          >
+                            {isSelected && <CheckIcon />}
+                            {opt.label} <span style={{ opacity: 0.7, fontSize: '0.75rem' }}>({opt.code})</span>
                           </button>
                         );
                       })}
