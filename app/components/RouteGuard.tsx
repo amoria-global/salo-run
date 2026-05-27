@@ -29,19 +29,29 @@ import { matchRouteRule } from '../lib/routePermissions';
 export default function RouteGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { loading, hasAny } = usePermissions();
+  const { loading, hasAny, isOwner } = usePermissions();
 
   const rule = useMemo(() => matchRouteRule(pathname), [pathname]);
 
   useEffect(() => {
     if (loading) return;
     if (!rule) return;
+    // ownerOnly rules take precedence: even if the caller's role
+    // happens to hold one of the listed perms, only org owners get
+    // through. Bouncing a non-owner here is what keeps invited
+    // team members off team-management pages regardless of how
+    // their role was seeded.
+    if (rule.ownerOnly && !isOwner) {
+      const returnTo = pathname || '/';
+      router.replace(`/user/not-authorized?required=owner&from=${encodeURIComponent(returnTo)}`);
+      return;
+    }
     if (hasAny(rule.any)) return;
     // Build a single-use return URL so the not-authorized page can
     // offer "go back" without losing the original intent.
     const returnTo = pathname || '/';
     router.replace(`/user/not-authorized?required=${encodeURIComponent(rule.any.join(','))}&from=${encodeURIComponent(returnTo)}`);
-  }, [loading, rule, hasAny, pathname, router]);
+  }, [loading, rule, hasAny, isOwner, pathname, router]);
 
   return <>{children}</>;
 }

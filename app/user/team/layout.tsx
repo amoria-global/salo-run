@@ -30,19 +30,23 @@ export default function TeamLayout({ children }: { children: React.ReactNode }) 
   const { colors } = useTheme();
   const { loading, hasAny, organizationName, roleName, isOwner } = usePermissions();
 
-  // Bounce out if the user has zero team permissions.
+  // Team management is owner-only. Bounce invited team members back
+  // to their dashboard home regardless of which permissions their
+  // role was seeded with. Previously the gate accepted users.view /
+  // roles.view, but those perms ship on the default Videographer
+  // role so any invited photographer/videographer hit the Team page,
+  // got a 400 from the listing API, and saw an empty table with an
+  // Invite button they shouldn't have.
   useEffect(() => {
     if (loading) return;
-    const ok = hasAny(['users.view', 'roles.view']);
-    if (!ok) {
-      const role = (user?.customerType || '').toUpperCase();
-      const home =
-        role === 'PHOTOGRAPHER' || role === 'VIDEOGRAPHER' ? '/user/photographer/dashboard' :
-        role === 'EVENT_COORDINATOR' ? '/user/event-coordinator/home' :
-        '/user/client/home';
-      router.replace(home);
-    }
-  }, [loading, hasAny, router, user?.customerType]);
+    if (isOwner) return;
+    const role = (user?.customerType || '').toUpperCase();
+    const home =
+      role === 'PHOTOGRAPHER' || role === 'VIDEOGRAPHER' ? '/user/photographer/dashboard' :
+      role === 'EVENT_COORDINATOR' ? '/user/event-coordinator/home' :
+      '/user/client/home';
+    router.replace(home);
+  }, [loading, isOwner, router, user?.customerType]);
 
   const topbarRole: 'client' | 'photographer' | 'event-coordinator' = useMemo(() => {
     const t = (user?.customerType || '').toUpperCase();
