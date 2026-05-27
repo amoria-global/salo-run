@@ -23,14 +23,21 @@ interface NavigationItem {
   // Owners hold every permission so this only ever hides items for
   // restricted team members.
   requires?: string[];
+  // When true, the item is shown ONLY to organisation owners. Use
+  // for structurally owner-only surfaces (e.g. team management) so
+  // a team-member role that happens to be seeded with the matching
+  // permissions still can't see the link.
+  ownerOnly?: boolean;
 }
 
 // Single Team entry-point. The /user/team layout already renders an
 // internal tab strip for Users / Roles / Permissions, so duplicating
-// those as separate sidebar items would be redundant. Hidden entirely
-// for restricted team members who can't see any of those sub-tabs.
+// those as separate sidebar items would be redundant. Owner-only —
+// invited team members never see the link in their sidebar, even if
+// the default role they were assigned was seeded with users.view /
+// roles.view.
 const TEAM_ITEMS: NavigationItem[] = [
-  { name: "Team", href: "/user/team/users", icon: "bi-people-fill", group: 'Team', requires: ['users.view', 'roles.view'] },
+  { name: "Team", href: "/user/team/users", icon: "bi-people-fill", group: 'Team', ownerOnly: true },
 ];
 
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
@@ -132,7 +139,7 @@ export default function Sidebar() {
   const { logout, user } = useDashboardAuth();
   // hasAny() reads from the permission set fetched by PermissionProvider.
   // Until that resolves, the set is empty so gated items stay hidden.
-  const { hasAny } = usePermissions();
+  const { hasAny, isOwner } = usePermissions();
   const currentUserId = user?.id || '';
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -208,17 +215,19 @@ export default function Sidebar() {
     // NEVER see the tab, not even for a frame (was causing a flash of
     // restricted items on initial render). Owners see un-gated items
     // immediately and the rest pop in once /api/remote/team/me/permissions
-    // resolves (usually <300ms).
+    // resolves (usually <300ms). ownerOnly is the strictest tier and
+    // hides the item from every non-owner regardless of which perms
+    // their role was seeded with.
+    .filter(item => !item.ownerOnly || isOwner)
     .filter(item => !item.requires || hasAny(item.requires))
     .map(item => {
       if (item.name === "Notifications") return { ...item, badge: notificationCount };
       if (item.name === "Inbox") return { ...item, badge: messageCount };
       return item;
     });
-  // Same strict permission filter as the main nav - bottom-nav items
-  // with a `requires` array (Preferences) are hidden when the caller
-  // lacks the permission.
+  // Same filters as the main nav for the bottom nav.
   const bottomNavigationItems = getBottomNavigationItems(currentRole)
+    .filter(item => !item.ownerOnly || isOwner)
     .filter(item => !item.requires || hasAny(item.requires));
 
   const groups = useMemo(() => {

@@ -29,8 +29,18 @@
 export interface RouteRule {
   /** URL pathname prefix this rule applies to. Longest prefix wins. */
   pattern: string;
-  /** Pass iff the caller has AT LEAST ONE of these permission names. */
+  /** Pass iff the caller has AT LEAST ONE of these permission names.
+   *  Use an empty list when ownerOnly is true and no per-permission
+   *  fallback should let team members through. */
   any: string[];
+  /** When true, ONLY org owners can enter this route — invited team
+   *  members are bounced no matter what permissions their role
+   *  grants. Used for the /user/team/* surfaces because team
+   *  management is structurally an owner action; even if an owner
+   *  seeded a role with users.view / roles.view, members of that
+   *  role still shouldn't be able to invite new members or edit
+   *  the org's roles. */
+  ownerOnly?: boolean;
 }
 
 export const ROUTE_RULES: RouteRule[] = [
@@ -64,10 +74,16 @@ export const ROUTE_RULES: RouteRule[] = [
   { pattern: '/user/event-coordinator/wallet',         any: ['payments.view'] },
   { pattern: '/user/event-coordinator/preferences',    any: ['settings.manage'] },
 
-  // ─── Team (self-gated by /user/team/layout.tsx, listed here for completeness) ─
-  { pattern: '/user/team/users',       any: ['users.view'] },
-  { pattern: '/user/team/roles',       any: ['roles.view'] },
-  { pattern: '/user/team/permissions', any: ['users.view', 'roles.view'] },
+  // ─── Team — owner-only ──────────────────────────────────────────
+  // Team management (inviting members, editing roles, viewing the
+  // permission matrix) is reserved for the organisation owner.
+  // Invited team members are bounced to /user/not-authorized even
+  // when their role's permissions seem to allow it, so seed quirks
+  // (e.g. a default Videographer role granting users.view) can't
+  // accidentally surface the Team UI for a non-owner.
+  { pattern: '/user/team/users',       any: [], ownerOnly: true },
+  { pattern: '/user/team/roles',       any: [], ownerOnly: true },
+  { pattern: '/user/team/permissions', any: [], ownerOnly: true },
 ];
 
 /**
