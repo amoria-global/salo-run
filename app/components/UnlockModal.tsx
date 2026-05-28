@@ -7,6 +7,9 @@ import { useTheme } from "../context/ThemeContext";
 import { dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
 import { initiateBookingPayment, initiateArchivePayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage } from '@/lib/xentripay';
+import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
+import { usePaymentOptions } from '@/lib/payments/usePaymentOptions';
+import { PaymentMethodPicker, type PaymentMethodSelection } from './payments/PaymentMethodPicker';
 
 // Heart Icon for donate section
 export const HeartIcon = () => (
@@ -131,6 +134,17 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   const router = useRouter();
   const { formatPrice, currencyId } = useCurrency();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+  const [selectedOperatorProvider, setSelectedOperatorProvider] = useState<string>('');
+  // Multi-country payment routing. Country drives backend gateway
+  // selection (PawaPay primary, XentriPay backup for RW). Detected by
+  // IP on first load, overridable via the picker. usePaymentOptions
+  // fetches the operator list for that country.
+  const { country: payCountry, setCountry: setPayCountry } = usePaymentCountry();
+  const { options: payOptions } = usePaymentOptions(payCountry);
+  const handlePickerSelect = (sel: PaymentMethodSelection) => {
+    setSelectedPaymentMethod(sel.methodId);
+    setSelectedOperatorProvider(sel.operator?.id ?? '');
+  };
   const [donationAmount, setDonationAmount] = useState<string>('');
   const [customDonation, setCustomDonation] = useState<string>('');
   const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
@@ -211,9 +225,15 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
     setXentriPayStep('processing');
 
     try {
-      const telecom = getTelecomProvider(selectedPaymentMethod);
+      // Prefer the operator selected through PaymentMethodPicker
+      // (handles MPESA / WAVE / etc.); fall back to the legacy
+      // mtn/airtel mapping for the static method buttons.
+      const telecom = selectedOperatorProvider
+        || getTelecomProvider(selectedPaymentMethod)
+        || (selectedPaymentMethod !== 'card' ? selectedPaymentMethod.toUpperCase() : '');
       const methodType = getPaymentMethodType(selectedPaymentMethod);
       const phone = selectedPaymentMethod === 'card' ? '' : paymentPhone.trim();
+      const country = payCountry ?? undefined;
 
       let result;
       if (isArchive && payment?.eventId) {
@@ -225,7 +245,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
           telecom,
           methodType,
           undefined,
-          donationValue > 0 ? donationValue : undefined
+          donationValue > 0 ? donationValue : undefined,
+          country
         );
       } else {
         result = await initiateBookingPayment(
@@ -235,7 +256,9 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
           methodType,
           undefined,
           donationValue > 0 ? donationValue : undefined,
-          currencyId
+          currencyId,
+          undefined,
+          country
         );
       }
 
@@ -557,109 +580,25 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
       <div>
-        {/* Payment Method Selection */}
+        {/* Payment Method Selection — driven by the multi-country
+            PaymentMethodPicker. Replaces the old hardcoded
+            Card/MTN/Airtel tiles so M-Pesa / Wave / Orange / etc. show
+            up automatically for the detected country, with country
+            override + picker fallback baked in. */}
         <div style={{ marginBottom: '1.25rem' }}>
           <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
             Select Payment Method
           </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {/* Credit/Debit Card */}
-            <div
-              onClick={() => setSelectedPaymentMethod('card')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedPaymentMethod === 'card' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Credit/Debit Card</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay with Visa, Mastercard, etc.</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedPaymentMethod === 'card' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
+          <PaymentMethodPicker
+            country={payCountry}
+            onCountryChange={(iso2) => { setPayCountry(iso2); setSelectedPaymentMethod('card'); }}
+            selectedMethodId={selectedPaymentMethod}
+            onSelect={handlePickerSelect}
+            disabled={paymentLoading}
+          />
 
-            {/* MTN Mobile Money */}
-            <div
-              onClick={() => setSelectedPaymentMethod('mtn')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedPaymentMethod === 'mtn' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via MTN MoMo</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedPaymentMethod === 'mtn' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
-
-            {/* Airtel Mobile Money */}
-            <div
-              onClick={() => setSelectedPaymentMethod('airtel')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedPaymentMethod === 'airtel' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via Airtel Money</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedPaymentMethod === 'airtel' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
-          </div>
-
-          {/* Phone Number Input (for mobile money) */}
-          {(selectedPaymentMethod === 'mtn' || selectedPaymentMethod === 'airtel') && (
+          {/* Phone Number Input — any non-card method is mobile money. */}
+          {selectedPaymentMethod !== 'card' && (
             <div style={{ marginTop: '0.75rem' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>
                 Phone Number
