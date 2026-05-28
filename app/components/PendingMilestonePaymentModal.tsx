@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { dashboardAuthFetch } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { initiateBookingPayment, pollPaymentStatus, sanitizeErrorMessage } from '@/lib/xentripay';
+import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
@@ -56,6 +57,11 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<Step>('overview');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('mtn');
+  // IP-detected payment country drives backend gateway routing
+  // (PawaPay primary, XentriPay backup for RW). Threading-only here;
+  // the static MTN/Airtel/Card grid in this modal stays — bookings
+  // are RW-heavy and the grid is fine for that case.
+  const { country: payCountry } = usePaymentCountry();
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -129,7 +135,8 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
         redirectUrl,
         undefined,
         currencyId,
-        undefined
+        undefined,
+        payCountry ?? undefined
       );
 
       if (!result.success || !result.data) {

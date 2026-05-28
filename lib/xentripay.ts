@@ -79,13 +79,19 @@ export function sanitizeErrorMessage(msg: string, fallback: string): string {
 }
 
 /**
- * Map frontend payment method to XentriPay telecom provider
+ * Map frontend payment method id to the canonical provider name the
+ * backend expects (MTN, AIRTEL, MPESA, WAVE, …). Hardcoded for the
+ * legacy mtn/airtel ids; for anything else (operators that come back
+ * dynamically from /api/remote/public/payments/options) it returns
+ * the id upper-cased — PawapayConfig.normalizeProvider handles common
+ * aliases on the backend.
  */
 export function getTelecomProvider(method: string): string {
   switch (method) {
     case 'mtn': return 'MTN';
     case 'airtel': return 'AIRTEL';
-    default: return '';
+    case 'card': return '';
+    default: return method ? method.toUpperCase() : '';
   }
 }
 
@@ -109,7 +115,9 @@ export async function initiateBookingPayment(
   redirectUrl?: string,
   donationAmount?: number,
   currencyId?: string,
-  escrowPercentage?: number
+  escrowPercentage?: number,
+  /** ISO-2 country code. Drives backend gateway selection. */
+  country?: string
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
     const body: Record<string, unknown> = { declarationId, paymentMethod, redirectUrl };
@@ -118,6 +126,7 @@ export async function initiateBookingPayment(
     if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
     if (currencyId) body.currencyId = currencyId;
     if (escrowPercentage) body.escrowPercentage = escrowPercentage;
+    if (country) body.country = country;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate`,
       {
@@ -159,7 +168,9 @@ export async function initiateArchivePayment(
   telecomProvider: string,
   paymentMethod: string,
   redirectUrl?: string,
-  donationAmount?: number
+  donationAmount?: number,
+  /** ISO-2 country code. Drives backend gateway selection. */
+  country?: string
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
     const body: Record<string, unknown> = { eventId, amount, currencyId, paymentMethod };
@@ -167,6 +178,7 @@ export async function initiateArchivePayment(
     if (telecomProvider) body.telecomProvider = telecomProvider;
     if (redirectUrl) body.redirectUrl = redirectUrl;
     if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
+    if (country) body.country = country;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate-archive`,
       {
@@ -206,11 +218,14 @@ export async function initiateTipPayment(
   currencyId: string,
   phone: string,
   telecomProvider: string,
-  donationAmount?: number
+  donationAmount?: number,
+  /** ISO-2 country code. Drives backend gateway selection. */
+  country?: string
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
     const body: Record<string, unknown> = { eventId, amount, currencyId, phone, telecomProvider };
     if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
+    if (country) body.country = country;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate-tip`,
       {
@@ -250,11 +265,14 @@ export async function initiateStreamingPayment(
   currencyId: string,
   phone: string,
   telecomProvider: string,
-  donationAmount?: number
+  donationAmount?: number,
+  /** ISO-2 country code. Drives backend gateway selection. */
+  country?: string
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
     const body: Record<string, unknown> = { eventId, amount, currencyId, phone, telecomProvider };
     if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
+    if (country) body.country = country;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate-streaming`,
       {
@@ -293,11 +311,14 @@ export async function initiatePhotobookExtrasPayment(
   phone: string,
   telecomProvider: string,
   currencyId: string,
-  donationAmount?: number
+  donationAmount?: number,
+  /** ISO-2 country code. Drives backend gateway selection. */
+  country?: string
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
     const body: Record<string, unknown> = { photobookId, phone, telecomProvider, currencyId };
     if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
+    if (country) body.country = country;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate-photobook-extras`,
       {

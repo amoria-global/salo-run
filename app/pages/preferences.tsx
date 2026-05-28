@@ -622,12 +622,26 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const saveWithdrawalMethod = async (methodType: string, accountName: string, accountNumber: string, bankName: string) => {
     const apiUrl = getApiUrl();
     const isDefault = paymentMethods.length === 0;
+    // Derive ISO-2 country from the user-selected dial code (+250→RW,
+    // +254→KE, …). The backend stores this on the withdrawal_method
+    // row so payout routing can pick PawaPay for non-RW numbers and
+    // XentriPay only for Rwanda.
+    const dialToIso: Record<string, string> = {
+      '+250': 'RW', '+254': 'KE', '+256': 'UG', '+255': 'TZ',
+      '+260': 'ZM', '+233': 'GH', '+234': 'NG', '+265': 'MW',
+      '+229': 'BJ', '+226': 'BF', '+237': 'CM', '+243': 'CD',
+      '+242': 'CG', '+225': 'CI', '+251': 'ET', '+241': 'GA',
+      '+266': 'LS', '+258': 'MZ', '+221': 'SN', '+232': 'SL',
+      '+263': 'ZW',
+    };
+    const country = dialToIso[countryCode] ?? 'RW';
     const params = new URLSearchParams({
       methodType,
       accountName,
       accountNumber,
       bankName,
       isDefault: String(isDefault),
+      country,
     });
 
     const res = await dashboardAuthFetch(`${apiUrl}${withdrawalMethodBasePath}?${params.toString()}`, {
