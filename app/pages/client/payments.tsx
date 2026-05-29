@@ -12,6 +12,11 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { HeartIcon } from '../../components/UnlockModal';
 import WithdrawModal from '../../components/WithdrawModal';
 import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
+import { PaymentMethodPicker, type PaymentMethodSelection } from '../../components/payments/PaymentMethodPicker';
+import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
+import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
+import { iconForOperator } from '@/lib/payments/operatorIcons';
+import type { PaymentOperator } from '@/lib/payments/types';
 import { getApiUrl } from '@/lib/api';
 import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
 import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
@@ -551,6 +556,10 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const { profile } = useUserProfile();
   const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+  // Multi-country PawaPay: detected/overridable country + the selected
+  // operator object (for the receipt logo/name). The picker drives both.
+  const { country: payCountry, setCountry: setPayCountry } = usePaymentCountry();
+  const [selectedOperator, setSelectedOperator] = useState<PaymentOperator | null>(null);
   const [donationAmount, setDonationAmount] = useState<string>('');
   const [customDonation, setCustomDonation] = useState<string>('');
   const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
@@ -682,8 +691,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
       setXentriPayError('This payment cannot be processed. The event may have been removed or the booking is no longer active.');
       return;
     }
-    if (!paymentPhone.trim()) {
-      setXentriPayError(`Please enter your ${selectedPaymentMethod === 'mtn' ? 'MTN' : selectedPaymentMethod === 'airtel' ? 'Airtel' : ''} phone number to receive the payment prompt.`);
+    if (selectedPaymentMethod !== 'card' && !isPlausibleMobile(paymentPhone, payCountry)) {
+      setXentriPayError('Please enter a valid phone number for the selected country to receive the payment prompt.');
       return;
     }
     setIsProcessing(true);
@@ -701,7 +710,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         : undefined;
 
       const escrowPct = (!payment.escrowPercentage && (selectedEscrowOption === 50 || selectedEscrowOption === 70)) ? selectedEscrowOption : undefined;
-      const result = await initiateBookingPayment(payment.declarationId, phone, telecom, methodType, redirectUrl, donationValue > 0 ? donationValue : undefined, currencyId, escrowPct);
+      const result = await initiateBookingPayment(payment.declarationId, phone, telecom, methodType, redirectUrl, donationValue > 0 ? donationValue : undefined, currencyId, escrowPct, payCountry || undefined);
 
       if (!result.success || !result.data) {
         setXentriPayError(result.error || 'Payment could not be initiated. Please check your payment details and try again.');
@@ -1015,7 +1024,14 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
 
   // Receipt View (Phase 2)
   if (showReceipt) {
-    const methodInfo = PAYMENT_METHODS[selectedPaymentMethod] || PAYMENT_METHODS.card;
+    // Resolve the chosen method's logo + label. Card uses the static dict;
+    // mobile-money operators come from the PawaPay picker so any country's
+    // operator (M-Pesa, Orange, …) renders its own logo, not just MTN/Airtel.
+    const methodInfo = selectedPaymentMethod === 'card'
+      ? PAYMENT_METHODS.card
+      : selectedOperator
+        ? { label: selectedOperator.name, image: iconForOperator(selectedOperator.iconKey) }
+        : (PAYMENT_METHODS[selectedPaymentMethod] || { label: selectedPaymentMethod.toUpperCase(), image: iconForOperator(selectedPaymentMethod) });
 
     return (
       <Modal isOpen={isOpen} onClose={handleClose} title="Payment Summary" maxWidth="450px">
@@ -1120,108 +1136,24 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.55rem' }}>
             Select Payment Method
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            {([
-              {
-                id: 'card',
-                title: 'Credit/Debit Card',
-                subtitle: 'Pay with Visa, Mastercard, etc.',
-                kind: 'card' as const,
-              },
-              {
-                id: 'mtn',
-                title: 'MTN Mobile Money',
-                subtitle: 'Pay via MTN MoMo',
-                kind: 'logo' as const,
-                src: '/mtn.png',
-              },
-              {
-                id: 'airtel',
-                title: 'Airtel Mobile Money',
-                subtitle: 'Pay via Airtel Money',
-                kind: 'logo' as const,
-                src: '/airtel.png',
-              },
-            ]).map((m) => {
-              const isSelected = selectedPaymentMethod === m.id;
-              return (
-                <div
-                  key={m.id}
-                  onClick={() => setSelectedPaymentMethod(m.id)}
-                  style={{
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.85rem',
-                    padding: '0.85rem 0.95rem',
-                    border: `1.5px solid ${isSelected ? '#F20C8F' : colors.borderPrimary}`,
-                    borderRadius: 14,
-                    cursor: 'pointer',
-                    background: isSelected
-                      ? (actualTheme === 'dark'
-                        ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
-                        : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.05) 100%)')
-                      : colors.bgCard,
-                    boxShadow: isSelected ? '0 8px 22px -8px rgba(242,12,143,0.30)' : 'none',
-                    overflow: 'hidden',
-                    transition: 'border-color 0.18s, background 0.18s, box-shadow 0.18s',
-                  }}
-                >
-                  {isSelected && (
-                    <span aria-hidden style={{
-                      position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-                      background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
-                    }} />
-                  )}
-                  <div style={{
-                    width: 50, height: 46,
-                    borderRadius: 11,
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    gap: m.kind === 'card' ? 3 : 0,
-                    background: m.kind === 'card' ? colors.bgCard : 'transparent',
-                    border: m.kind === 'card' ? `1px solid ${colors.borderPrimary}` : 'none',
-                  }}>
-                    {m.kind === 'card' ? (
-                      <>
-                        <Image src="/visa.png" alt="Visa" width={22} height={36} unoptimized style={{ objectFit: 'contain' }} />
-                        <Image src="/master.png" alt="Mastercard" width={22} height={36} unoptimized style={{ objectFit: 'contain' }} />
-                      </>
-                    ) : (
-                      <Image src={m.src} alt={m.title} width={46} height={46} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                    )}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>{m.title}</div>
-                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: 2 }}>{m.subtitle}</div>
-                  </div>
-                  {/* Branded radio */}
-                  <div style={{
-                    width: 20, height: 20, borderRadius: '50%',
-                    flexShrink: 0,
-                    padding: isSelected ? 2 : 0,
-                    background: isSelected ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' : 'transparent',
-                    border: isSelected ? 'none' : `1.5px solid ${colors.borderPrimary}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all 0.15s',
-                  }}>
-                    {isSelected && (
-                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' }} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <PaymentMethodPicker
+            country={payCountry}
+            onCountryChange={(iso2) => { setPayCountry(iso2); setSelectedPaymentMethod(''); setSelectedOperator(null); }}
+            selectedMethodId={selectedPaymentMethod || null}
+            onSelect={(sel: PaymentMethodSelection) => {
+              setSelectedPaymentMethod(sel.methodId);
+              setSelectedOperator(sel.operator);
+              setXentriPayError('');
+            }}
+            allowCard
+            disabled={isProcessing}
+          />
 
           {/* Phone Number Input (for all methods - XentriPay requires it) */}
           {selectedPaymentMethod && (
             <div style={{ marginTop: '0.85rem' }}>
               <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>Phone Number</label>
-              <input type="tel" placeholder="e.g. 078XXXXXXX" value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
+              <input type="tel" placeholder={phoneHintForCountry(payCountry)} value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
                 style={{ width: '100%', padding: '0.7rem 0.85rem', border: `1.5px solid ${colors.borderPrimary}`, borderRadius: 11, fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.18s, box-shadow 0.18s' }}
                 onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.12)'; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
@@ -1230,7 +1162,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                 <i className="bi bi-info-circle-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
                 {selectedPaymentMethod === 'card'
                   ? 'Required for payment verification'
-                  : `Enter the ${selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt`}
+                  : `Enter the ${selectedOperator?.name ?? 'mobile money'} number to receive the payment prompt`}
               </p>
             </div>
           )}

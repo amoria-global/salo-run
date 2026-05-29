@@ -15,6 +15,9 @@ import {
   type ExchangeRate,
   type CurrencyInfo,
 } from '@/lib/donationApi';
+import { PaymentMethodPicker, type PaymentMethodSelection } from '../components/payments/PaymentMethodPicker';
+import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
+import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
 
 const FALLBACK_TIERS = [1000, 2000, 5000, 10000];
 
@@ -57,6 +60,11 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
   // Payment
   const [step, setStep] = useState<Step>('form');
   const [paymentMethod, setPaymentMethod] = useState('');
+  // Selected operator's canonical provider id (e.g. "MTN", "MPESA") + method type,
+  // both come from PaymentMethodPicker so donations work in every PawaPay country.
+  const [operatorProvider, setOperatorProvider] = useState('');
+  const [methodType, setMethodType] = useState<'MOBILE_MONEY' | 'CARD'>('MOBILE_MONEY');
+  const { country: payCountry, setCountry: setPayCountry } = usePaymentCountry();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -154,18 +162,21 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
   // Handle payment initiation
   const handlePay = async () => {
     if (!paymentMethod) { setError('Please select a payment method'); return; }
-    if (paymentMethod !== 'card' && !phone.trim()) { setError('Please enter your phone number'); return; }
+    if (methodType !== 'CARD' && !isPlausibleMobile(phone, payCountry)) {
+      setError('Please enter a valid phone number for the selected country'); return;
+    }
     setLoading(true);
     setError('');
     try {
-      const telecom = paymentMethod === 'mtn' ? 'MTN' : paymentMethod === 'airtel' ? 'AIRTEL' : '';
-      const method = paymentMethod === 'card' ? 'CARD' : 'MOBILE_MONEY';
+      const telecom = methodType === 'CARD' ? '' : operatorProvider;
+      const method = methodType;
       const res = await initiateDonationPayment({
         donationId,
         phone: phone || undefined,
         telecomProvider: telecom || undefined,
         paymentMethod: method,
         redirectUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+        country: payCountry || undefined,
       });
       if (!res.success || !res.data) throw new Error(res.error || 'Failed to initiate payment');
       if (res.data.paymentUrl) setPaymentUrl(res.data.paymentUrl);
@@ -199,6 +210,8 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
     setIsCustom(false);
     setMessage('');
     setPaymentMethod('');
+    setOperatorProvider('');
+    setMethodType('MOBILE_MONEY');
     setPhone('');
     setError('');
     setDonationId('');
@@ -446,27 +459,25 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: colors.textPrimary, marginBottom: '6px' }}>Choose Payment Method</h3>
           <p style={{ fontSize: '13px', color: colors.textSecondary, marginBottom: '16px' }}>Donation: <strong style={{ color: accent }}>{formatAmt(getAmount())}</strong></p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-            {[
-              { id: 'mtn', label: 'MTN Mobile Money', icon: 'bi-phone' },
-              { id: 'airtel', label: 'Airtel Money', icon: 'bi-phone' },
-              { id: 'card', label: 'Visa / Mastercard', icon: 'bi-credit-card' },
-            ].map(m => (
-              <button key={m.id} onClick={() => setPaymentMethod(m.id)} style={{
-                padding: '14px 16px', borderRadius: '12px', border: `2px solid ${paymentMethod === m.id ? accent : colors.borderPrimary}`,
-                background: paymentMethod === m.id ? (actualTheme === 'dark' ? `${accent}15` : `${accent}08`) : colors.bgCard,
-                cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.2s',
-              }}>
-                <i className={`bi ${m.icon}`} style={{ fontSize: '20px', color: paymentMethod === m.id ? accent : colors.textSecondary }} />
-                <span style={{ fontSize: '14px', fontWeight: 600, color: paymentMethod === m.id ? accent : colors.textPrimary }}>{m.label}</span>
-              </button>
-            ))}
+          <div style={{ marginBottom: '16px' }}>
+            <PaymentMethodPicker
+              country={payCountry}
+              onCountryChange={(iso2) => { setPayCountry(iso2); setPaymentMethod(''); setOperatorProvider(''); }}
+              selectedMethodId={paymentMethod || null}
+              onSelect={(sel: PaymentMethodSelection) => {
+                setPaymentMethod(sel.methodId);
+                setOperatorProvider(sel.operator?.id ?? '');
+                setMethodType(sel.type);
+              }}
+              allowCard
+              disabled={loading}
+            />
           </div>
 
-          {paymentMethod && paymentMethod !== 'card' && (
+          {paymentMethod && methodType !== 'CARD' && (
             <div style={{ marginBottom: '16px' }}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: colors.textSecondary, display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>Phone Number</label>
-              <input type="tel" placeholder="07XXXXXXXX" value={phone} onChange={e => setPhone(e.target.value)}
+              <input type="tel" placeholder={phoneHintForCountry(payCountry)} value={phone} onChange={e => setPhone(e.target.value)}
                 style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${colors.borderPrimary}`, fontSize: '14px', color: colors.textPrimary, background: colors.bgInput, outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
