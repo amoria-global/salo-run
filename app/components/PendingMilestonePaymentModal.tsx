@@ -415,10 +415,10 @@ const MethodTile = ({ label, hint, image, active, onClick }: {
     <span style={{
       width: 40, height: 40, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
       background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      border: '1px solid rgba(8,58,133,0.10)',
+      border: '1px solid rgba(8,58,133,0.10)', padding: 5,
     }}>
       <img src={image} alt={label} onError={handleLogoError}
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
     </span>
     <div style={{ flex: 1 }}>
       <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--ck-text)' }}>{label}</div>
