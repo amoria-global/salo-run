@@ -1010,6 +1010,17 @@ const MyEventsPage = () => {
     return event.status.toUpperCase() === 'PAUSED';
   };
 
+  // Backend rejects PUT on completed/paused events with a 400. Hide Edit in
+  // those states so the user doesn't get a confusing "Bad request" toast for
+  // an action that was never going to succeed.
+  const isEventEditable = (event: Event): boolean => {
+    const s = event.status.toUpperCase();
+    if (s === 'COMPLETED') return false;
+    if (s === 'PAUSED') return false;
+    if (event.completionStatus && event.completionStatus !== 'NOT_COMPLETED') return false;
+    return true;
+  };
+
   const handlePauseEvent = async () => {
     if (!pauseEvent) return;
     const eventId = pauseEvent.id;
@@ -1862,9 +1873,11 @@ const MyEventsPage = () => {
                         <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                           <ShareIcon />
                         </button>
-                        <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
-                          <EditIcon />
-                        </button>
+                        {isEventEditable(event) && (
+                          <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
+                            <EditIcon />
+                          </button>
+                        )}
                         {isEventDeletable(event) && (
                           <button onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }} title="Delete" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', boxShadow: '0 4px 10px rgba(220,38,38,0.30)', transition: 'transform 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
                             <TrashIcon />
