@@ -5,6 +5,7 @@ import { dashboardAuthFetch } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { initiateBookingPayment, pollPaymentStatus, sanitizeErrorMessage } from '@/lib/xentripay';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
+import { handleLogoError } from '@/lib/payments/operatorIcons';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
@@ -214,11 +215,11 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
         Choose how you want to pay <strong>{firstPayment.currency} {firstPayment.amount.toLocaleString()}</strong>:
       </p>
       <div style={{ display: 'grid', gap: 10 }}>
-        <MethodTile label="MTN Mobile Money" hint="USSD prompt to your phone" icon="bi-phone"
+        <MethodTile label="MTN Mobile Money" hint="USSD prompt to your phone" image="/mtn.png"
           active={selectedMethod === 'mtn'} onClick={() => setSelectedMethod('mtn')} />
-        <MethodTile label="Airtel Money" hint="USSD prompt to your phone" icon="bi-phone"
+        <MethodTile label="Airtel Money" hint="USSD prompt to your phone" image="/airtel.png"
           active={selectedMethod === 'airtel'} onClick={() => setSelectedMethod('airtel')} />
-        <MethodTile label="Card" hint="Pay in a new tab" icon="bi-credit-card-2-front"
+        <MethodTile label="VISA & Master Card" hint="Pay in a new tab" image="/cards.png"
           active={selectedMethod === 'card'} onClick={() => setSelectedMethod('card')} />
       </div>
     </div>
@@ -396,22 +397,29 @@ const Row = ({ label, value, valueStyle, last }: { label: string; value: React.R
   </div>
 );
 
-const MethodTile = ({ label, hint, icon, active, onClick }: {
-  label: string; hint: string; icon: string; active: boolean; onClick: () => void;
+const MethodTile = ({ label, hint, image, active, onClick }: {
+  label: string; hint: string; image: string; active: boolean; onClick: () => void;
 }) => (
   <button
     onClick={onClick}
     style={{
       display: 'flex', alignItems: 'center', gap: 12,
       padding: '12px 14px',
-      borderRadius: 10,
+      borderRadius: 12,
       border: active ? '2px solid #083A85' : '1px solid var(--ck-stroke)',
       background: active ? 'rgba(8, 58, 133, 0.06)' : 'var(--ck-surface)',
       cursor: 'pointer',
       textAlign: 'left',
     }}
   >
-    <i className={`bi ${icon}`} style={{ fontSize: 22, color: '#083A85' }} />
+    <span style={{
+      width: 40, height: 40, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+      background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      border: '1px solid rgba(8,58,133,0.10)',
+    }}>
+      <img src={image} alt={label} onError={handleLogoError}
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    </span>
     <div style={{ flex: 1 }}>
       <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--ck-text)' }}>{label}</div>
       <div style={{ fontSize: '0.78rem', color: 'var(--ck-text-soft)', marginTop: 2 }}>{hint}</div>
