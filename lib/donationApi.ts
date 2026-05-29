@@ -134,6 +134,8 @@ export async function initiateDonationPayment(data: {
   telecomProvider?: string;
   paymentMethod?: string;
   redirectUrl?: string;
+  /** ISO-2 country code. Drives backend PawaPay/XentriPay gateway selection. */
+  country?: string;
 }): Promise<{ success: boolean; data?: { refid: string; tid: string; paymentUrl?: string; status: string }; error?: string }> {
   try {
     const res = await fetch(`${getApiUrl()}/api/remote/public/payments/xentripay/initiate-donation`, {

@@ -8,6 +8,7 @@ import { dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
 import { initiateBookingPayment, initiateArchivePayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage } from '@/lib/xentripay';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
+import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
 import { usePaymentOptions } from '@/lib/payments/usePaymentOptions';
 import { PaymentMethodPicker, type PaymentMethodSelection } from './payments/PaymentMethodPicker';
 
@@ -165,7 +166,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
   const totalAmount = amountDue + donationValue;
   const donationAddressed = donationSkipped || donationValue > 0;
-  const phoneValid = selectedPaymentMethod === 'card' || paymentPhone.trim().length > 0;
+  const phoneValid = selectedPaymentMethod === 'card' || isPlausibleMobile(paymentPhone, payCountry);
   const isPayEnabled = donationAddressed && phoneValid;
 
   const handleSelectDonation = (amount: string) => {
@@ -215,8 +216,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
     }
 
     // For mobile money, phone is required
-    if (selectedPaymentMethod !== 'card' && !paymentPhone.trim()) {
-      setXentriPayError(`Please enter your ${selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} phone number to receive the payment prompt.`);
+    if (selectedPaymentMethod !== 'card' && !isPlausibleMobile(paymentPhone, payCountry)) {
+      setXentriPayError('Please enter a valid phone number for the selected country to receive the payment prompt.');
       return;
     }
 
@@ -605,7 +606,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
               </label>
               <input
                 type="tel"
-                placeholder="e.g. 078XXXXXXX"
+                placeholder={phoneHintForCountry(payCountry)}
                 value={paymentPhone}
                 onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
                 style={{
@@ -630,7 +631,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                 }}
               />
               <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
-                Enter the {selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt
+                Enter your mobile money number to receive the payment prompt
               </p>
             </div>
           )}

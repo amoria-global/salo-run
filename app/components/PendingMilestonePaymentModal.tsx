@@ -5,7 +5,9 @@ import { dashboardAuthFetch } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { initiateBookingPayment, pollPaymentStatus, sanitizeErrorMessage } from '@/lib/xentripay';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
-import { handleLogoError } from '@/lib/payments/operatorIcons';
+import { PaymentMethodPicker, type PaymentMethodSelection } from './payments/PaymentMethodPicker';
+import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
+import type { PaymentOperator } from '@/lib/payments/types';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
@@ -34,16 +36,6 @@ type Step =
   | 'success'
   | 'failed';
 
-type PaymentMethod = 'mtn' | 'airtel' | 'card';
-
-function getTelecomProvider(method: PaymentMethod): string {
-  if (method === 'mtn') return 'MTN';
-  if (method === 'airtel') return 'AIRTEL';
-  return '';
-}
-function getPaymentMethodType(method: PaymentMethod): string {
-  return method === 'card' ? 'CARD' : 'MOBILE_MONEY';
-}
 
 /**
  * Dashboard "Payment required" alert. Embeds the full XentriPay payment
@@ -57,12 +49,12 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
   const [pendingPayments, setPendingPayments] = useState<PendingDeclaration[]>([]);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<Step>('overview');
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('mtn');
-  // IP-detected payment country drives backend gateway routing
-  // (PawaPay primary, XentriPay backup for RW). Threading-only here;
-  // the static MTN/Airtel/Card grid in this modal stays — bookings
-  // are RW-heavy and the grid is fine for that case.
-  const { country: payCountry } = usePaymentCountry();
+  const [selectedMethod, setSelectedMethod] = useState<string>('');
+  const [selectedOperator, setSelectedOperator] = useState<PaymentOperator | null>(null);
+  // IP-detected (overridable) payment country drives both the operator
+  // list shown and the backend gateway routing (PawaPay primary,
+  // XentriPay backup for RW).
+  const { country: payCountry, setCountry: setPayCountry } = usePaymentCountry();
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -114,15 +106,16 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
 
   const handleInitiatePayment = async () => {
     setError('');
-    if (selectedMethod !== 'card' && !phone.trim()) {
-      setError(`Please enter your ${selectedMethod === 'mtn' ? 'MTN' : 'Airtel'} phone number.`);
+    if (!selectedMethod) { setError('Please select a payment method.'); return; }
+    if (selectedMethod !== 'card' && !isPlausibleMobile(phone, payCountry)) {
+      setError('Please enter a valid phone number for the selected country.');
       return;
     }
     setSubmitting(true);
     setStep('processing');
     try {
-      const telecom = getTelecomProvider(selectedMethod);
-      const methodType = getPaymentMethodType(selectedMethod);
+      const telecom = selectedMethod === 'card' ? '' : (selectedOperator?.id ?? selectedMethod.toUpperCase());
+      const methodType = selectedMethod === 'card' ? 'CARD' : 'MOBILE_MONEY';
       const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
       const redirectUrl = selectedMethod === 'card'
         ? (currentUrl.startsWith('http://') ? 'https://connekyt.com/user/client/payments' : currentUrl)
@@ -214,25 +207,25 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
       <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: 'var(--ck-text-soft)' }}>
         Choose how you want to pay <strong>{firstPayment.currency} {firstPayment.amount.toLocaleString()}</strong>:
       </p>
-      <div style={{ display: 'grid', gap: 10 }}>
-        <MethodTile label="MTN Mobile Money" hint="USSD prompt to your phone" image="/mtn.png"
-          active={selectedMethod === 'mtn'} onClick={() => setSelectedMethod('mtn')} />
-        <MethodTile label="Airtel Money" hint="USSD prompt to your phone" image="/airtel.png"
-          active={selectedMethod === 'airtel'} onClick={() => setSelectedMethod('airtel')} />
-        <MethodTile label="VISA & Master Card" hint="Pay in a new tab" image="/cards.png"
-          active={selectedMethod === 'card'} onClick={() => setSelectedMethod('card')} />
-      </div>
+      <PaymentMethodPicker
+        country={payCountry}
+        onCountryChange={(iso2) => { setPayCountry(iso2); setSelectedMethod(''); setSelectedOperator(null); }}
+        selectedMethodId={selectedMethod || null}
+        onSelect={(sel: PaymentMethodSelection) => { setSelectedMethod(sel.methodId); setSelectedOperator(sel.operator); setError(''); }}
+        allowCard
+        disabled={submitting}
+      />
     </div>
   );
 
   const renderPhoneInput = () => (
     <div>
       <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--ck-text-soft)', marginBottom: 6 }}>
-        {selectedMethod === 'mtn' ? 'MTN' : 'Airtel'} phone number
+        {selectedOperator?.name ?? 'Mobile money'} phone number
       </label>
       <input
         type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-        placeholder="e.g. 0788123456"
+        placeholder={phoneHintForCountry(payCountry)}
         style={{
           width: '100%', padding: '10px 12px', borderRadius: 10,
           border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)',
@@ -397,33 +390,3 @@ const Row = ({ label, value, valueStyle, last }: { label: string; value: React.R
   </div>
 );
 
-const MethodTile = ({ label, hint, image, active, onClick }: {
-  label: string; hint: string; image: string; active: boolean; onClick: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: '12px 14px',
-      borderRadius: 12,
-      border: active ? '2px solid #083A85' : '1px solid var(--ck-stroke)',
-      background: active ? 'rgba(8, 58, 133, 0.06)' : 'var(--ck-surface)',
-      cursor: 'pointer',
-      textAlign: 'left',
-    }}
-  >
-    <span style={{
-      width: 40, height: 40, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
-      background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      border: '1px solid rgba(8,58,133,0.10)', padding: 5,
-    }}>
-      <img src={image} alt={label} onError={handleLogoError}
-        style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-    </span>
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--ck-text)' }}>{label}</div>
-      <div style={{ fontSize: '0.78rem', color: 'var(--ck-text-soft)', marginTop: 2 }}>{hint}</div>
-    </div>
-    {active && <i className="bi bi-check-circle-fill" style={{ fontSize: 18, color: '#083A85' }} />}
-  </button>
-);

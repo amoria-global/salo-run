@@ -11,6 +11,11 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { HeartIcon as DonateHeartIcon } from '../../components/UnlockModal';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType } from '@/lib/xentripay';
+import { PaymentMethodPicker, type PaymentMethodSelection } from '../../components/payments/PaymentMethodPicker';
+import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
+import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
+import { iconForOperator } from '@/lib/payments/operatorIcons';
+import type { PaymentOperator } from '@/lib/payments/types';
 import SortDropdown from '../../components/SortDropdown';
 
 // Icons
@@ -404,8 +409,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [inviteCopied, setInviteCopied] = useState(false);
   const [pendingReviewPhotographer, setPendingReviewPhotographer] = useState<BookedPhotographer | null>(null);
   const [selectedTipPaymentMethod, setSelectedTipPaymentMethod] = useState<string>('card');
+  const [selectedTipOperator, setSelectedTipOperator] = useState<PaymentOperator | null>(null);
   const [paymentBooking, setPaymentBooking] = useState<{ photographer: BookedPhotographer; booking: Booking } | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+  // Multi-country PawaPay: detected/overridable country + selected operator
+  // object (for receipt logo/name). Shared by both payment flows below.
+  const { country: payCountry, setCountry: setPayCountry } = usePaymentCountry();
+  const [selectedOperator, setSelectedOperator] = useState<PaymentOperator | null>(null);
   // Donation states for payment modal
   const [payDonationAmount, setPayDonationAmount] = useState<string>('');
   const [payCustomDonation, setPayCustomDonation] = useState<string>('');
@@ -3148,13 +3158,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         const handlePayNowXentriPay = async () => {
           const declId = paymentBooking.booking.declarationId || paymentBooking.booking.id;
           if (!declId) { setXentriPayError('No payment declaration found'); return; }
-          if (selectedPaymentMethod !== 'card' && !paymentPhone.trim()) { setXentriPayError('Please enter your phone number'); return; }
+          if (selectedPaymentMethod !== 'card' && !isPlausibleMobile(paymentPhone, payCountry)) { setXentriPayError('Please enter a valid phone number for the selected country'); return; }
           setIsProcessingPayment(true); setXentriPayError(''); setXentriPayStep('processing');
           try {
             const telecom = getTelecomProvider(selectedPaymentMethod);
             const methodType = getPaymentMethodType(selectedPaymentMethod);
             const phone = selectedPaymentMethod === 'card' ? '' : paymentPhone.trim();
-            const result = await initiateBookingPayment(String(declId), phone, telecom, methodType, undefined, undefined, currencyId);
+            const result = await initiateBookingPayment(String(declId), phone, telecom, methodType, undefined, undefined, currencyId, undefined, payCountry || undefined);
             if (!result.success || !result.data) {
               setXentriPayError(result.error || 'Failed to initiate payment'); setXentriPayStep('failed'); setIsProcessingPayment(false); return;
             }
@@ -3227,7 +3237,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         }
 
         if (payShowReceipt) {
-          const mi = payMethodMap[selectedPaymentMethod] || payMethodMap.card;
+          const mi = selectedPaymentMethod === 'card'
+            ? payMethodMap.card
+            : selectedOperator
+              ? { label: selectedOperator.name, image: iconForOperator(selectedOperator.iconKey) }
+              : (payMethodMap[selectedPaymentMethod] || { label: selectedPaymentMethod.toUpperCase(), image: iconForOperator(selectedPaymentMethod) });
           return (
             <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Summary" maxWidth="450px">
               <div>
@@ -3311,48 +3325,26 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               {/* Payment Method Selection */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Select Payment Method</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {[
-                    { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
-                    { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay via MTN MoMo', image: '/mtn.png' },
-                    { id: 'airtel', label: 'Airtel Mobile Money', description: 'Pay via Airtel Money', image: '/airtel.png' },
-                  ].map((method) => (
-                    <div key={method.id} onClick={() => setSelectedPaymentMethod(method.id)} style={{
-                      display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
-                      border: selectedPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.75rem', cursor: 'pointer',
-                      backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
-                    }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                        {method.id === 'card' ? (
-                          <>
-                            <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                            <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                          </>
-                        ) : (
-                          <Image src={method.image} alt={method.label} width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                        )}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{method.label}</div>
-                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{method.description}</div>
-                      </div>
-                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, flexShrink: 0 }} />
-                    </div>
-                  ))}
-                </div>
+                <PaymentMethodPicker
+                  country={payCountry}
+                  onCountryChange={(iso2) => { setPayCountry(iso2); setSelectedPaymentMethod(''); setSelectedOperator(null); }}
+                  selectedMethodId={selectedPaymentMethod || null}
+                  onSelect={(sel: PaymentMethodSelection) => { setSelectedPaymentMethod(sel.methodId); setSelectedOperator(sel.operator); setXentriPayError(''); }}
+                  allowCard
+                  disabled={isProcessingPayment}
+                />
 
                 {/* Phone Number Input (for mobile money) */}
-                {(selectedPaymentMethod === 'mtn' || selectedPaymentMethod === 'airtel') && (
+                {selectedPaymentMethod && selectedPaymentMethod !== 'card' && (
                   <div style={{ marginTop: '0.75rem' }}>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>Phone Number</label>
-                    <input type="tel" placeholder="e.g. 078XXXXXXX" value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
+                    <input type="tel" placeholder={phoneHintForCountry(payCountry)} value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
                       style={{ width: '100%', padding: '0.7rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       onFocus={(e) => { e.currentTarget.style.borderColor = '#083A85'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)'; }}
                       onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                     <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
-                      Enter the {selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt
+                      Enter the {selectedOperator?.name ?? 'mobile money'} number to receive the payment prompt
                     </p>
                   </div>
                 )}
@@ -3674,7 +3666,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         };
 
         if (tipShowReceipt) {
-          const mi = tipMethodMap[selectedTipPaymentMethod] || tipMethodMap.card;
+          const mi = selectedTipPaymentMethod === 'card'
+            ? tipMethodMap.card
+            : selectedTipOperator
+              ? { label: selectedTipOperator.name, image: iconForOperator(selectedTipOperator.iconKey) }
+              : (tipMethodMap[selectedTipPaymentMethod] || { label: selectedTipPaymentMethod.toUpperCase(), image: iconForOperator(selectedTipPaymentMethod) });
           return (
             <Modal isOpen={showTipPaymentModal} onClose={handleTipClose} title="Payment Summary" maxWidth="450px">
               <div>
@@ -3737,36 +3733,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               {/* Payment Method Selection */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Select Payment Method</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {[
-                    { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
-                    { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay via MTN MoMo', image: '/mtn.png' },
-                    { id: 'airtel', label: 'Airtel Mobile Money', description: 'Pay via Airtel Money', image: '/airtel.png' },
-                  ].map((method) => (
-                    <div key={method.id} onClick={() => setSelectedTipPaymentMethod(method.id)} style={{
-                      display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
-                      border: selectedTipPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.75rem', cursor: 'pointer',
-                      backgroundColor: selectedTipPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
-                    }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                        {method.id === 'card' ? (
-                          <>
-                            <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                            <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                          </>
-                        ) : (
-                          <Image src={method.image} alt={method.label} width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                        )}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{method.label}</div>
-                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{method.description}</div>
-                      </div>
-                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedTipPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, flexShrink: 0 }} />
-                    </div>
-                  ))}
-                </div>
+                <PaymentMethodPicker
+                  country={payCountry}
+                  onCountryChange={(iso2) => { setPayCountry(iso2); setSelectedTipPaymentMethod(''); setSelectedTipOperator(null); }}
+                  selectedMethodId={selectedTipPaymentMethod || null}
+                  onSelect={(sel: PaymentMethodSelection) => { setSelectedTipPaymentMethod(sel.methodId); setSelectedTipOperator(sel.operator); }}
+                  allowCard
+                />
                 <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
                   <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
                   Manage your payment methods in <span onClick={() => router.push(`/user/${userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}/preferences?tab=payments`)} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
