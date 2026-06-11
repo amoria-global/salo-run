@@ -328,55 +328,73 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
 
     switch (currentStepData.index) {
       case 0: {
-        // Bio & Location → update-important-details
-        if (bio || location) {
-          const ok = await apiCall('bio & location', '/api/remote/photographer/update-important-details', {
-            about: bio,
-            address: location,
-          });
-          if (!ok) allOk = false;
-        }
+        // Bio & Location → update-important-details.
+        // Saved unconditionally: clearing the textarea/input is a legitimate
+        // edit (e.g. fixing a typo by emptying the field). The previous
+        // `if (bio || location)` guard meant the photographer could never
+        // remove a previously-saved value via this UI.
+        const ok = await apiCall('bio & location', '/api/remote/photographer/update-important-details', {
+          about: bio,
+          address: location,
+        });
+        if (!ok) allOk = false;
         break;
       }
       case 1: {
-        // Specialties & Equipment
-        if (selectedSpecialties.length > 0) {
-          const ok = await apiCall('specialties', '/api/remote/photographer/update-important-details', {
-            specialties: selectedSpecialties,
-          });
-          if (!ok) allOk = false;
-        }
-        // Add new equipment items
-        const existingEquipmentNames = new Set((user?.equipments || []).map(e => e.name));
-        for (const name of equipmentList.filter(n => !existingEquipmentNames.has(n))) {
+        // Specialties → always send. Empty array is a valid edit ("I no
+        // longer specialise in X") and used to be silently skipped.
+        const okSpec = await apiCall('specialties', '/api/remote/photographer/update-important-details', {
+          specialties: selectedSpecialties,
+        });
+        if (!okSpec) allOk = false;
+        // Equipment: add new items AND delete server-side rows the user removed.
+        const existingEquipment = user?.equipments || [];
+        const existingByName = new Map(existingEquipment.map(e => [e.name, e.id]));
+        // Adds
+        for (const name of equipmentList.filter(n => !existingByName.has(n))) {
           const ok = await apiCall(`equipment "${name}"`, '/api/remote/photographer/add-equipment', { name });
           if (!ok) allOk = false;
+        }
+        // Deletes — items present server-side but absent from the local list.
+        const keptNames = new Set(equipmentList);
+        for (const [name, id] of existingByName) {
+          if (!keptNames.has(name) && id) {
+            const ok = await apiCall(`remove equipment "${name}"`, `/api/remote/photographer/delete-equipment/${id}`);
+            if (!ok) allOk = false;
+          }
         }
         break;
       }
       case 2: {
-        // Philosophy & Skills
-        if (philosophy) {
-          const ok = await apiCall('philosophy', '/api/remote/photographer/update-important-details', {
-            professionalPhilosophy: philosophy,
-          });
-          if (!ok) allOk = false;
-        }
-        // Add new skills
-        const existingSkillNames = new Set((user?.professionalSkills || []).map(s => s.name));
-        for (const skill of skills.filter(s => !existingSkillNames.has(s.name))) {
+        // Philosophy → always send (clearing is a valid edit).
+        const okPhi = await apiCall('philosophy', '/api/remote/photographer/update-important-details', {
+          professionalPhilosophy: philosophy,
+        });
+        if (!okPhi) allOk = false;
+        // Skills: add new, delete removed.
+        const existingSkills = user?.professionalSkills || [];
+        const existingSkillsByName = new Map(existingSkills.map(s => [s.name, s.id]));
+        for (const skill of skills.filter(s => !existingSkillsByName.has(s.name))) {
           const ok = await apiCall(`skill "${skill.name}"`, '/api/remote/photographer/add-professional-skills', {
             name: skill.name,
             skillPercentage: skill.level,
           });
           if (!ok) allOk = false;
         }
+        const keptSkillNames = new Set(skills.map(s => s.name));
+        for (const [name, id] of existingSkillsByName) {
+          if (!keptSkillNames.has(name) && id) {
+            const ok = await apiCall(`remove skill "${name}"`, `/api/remote/photographer/delete-professional-skills/${id}`);
+            if (!ok) allOk = false;
+          }
+        }
         break;
       }
       case 3: {
-        // Education. add new entries
-        const existingEduKeys = new Set((user?.educationLevels || []).map(e => `${e.degree}|${e.institution}`));
-        for (const edu of educationEntries.filter(e => e.degree && e.institution && !existingEduKeys.has(`${e.degree}|${e.institution}`))) {
+        // Education: add new entries, delete the ones the photographer removed.
+        const existingEdus = user?.educationLevels || [];
+        const existingEduByKey = new Map(existingEdus.map(e => [`${e.degree}|${e.institution}`, e.id]));
+        for (const edu of educationEntries.filter(e => e.degree && e.institution && !existingEduByKey.has(`${e.degree}|${e.institution}`))) {
           const ok = await apiCall(`education "${edu.degree}"`, '/api/remote/photographer/add-education-level', {
             degree: edu.degree,
             institution: edu.institution,
@@ -386,13 +404,24 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
           });
           if (!ok) allOk = false;
         }
+        const keptEduKeys = new Set(educationEntries.map(e => `${e.degree}|${e.institution}`));
+        for (const [key, id] of existingEduByKey) {
+          if (!keptEduKeys.has(key) && id) {
+            const ok = await apiCall(`remove education "${key.split('|')[0]}"`, `/api/remote/photographer/delete-education-level/${id}`);
+            if (!ok) allOk = false;
+          }
+        }
         break;
       }
       case 4: {
-        // Certifications & Training. add new entries
-        const existingCertKeys = new Set((user?.certifications || []).map(c => `${c.title}|${c.institution}`));
-        for (const cert of certEntries.filter(c => c.title && c.issuer && !existingCertKeys.has(`${c.title}|${c.issuer}`))) {
-          const ok = await apiCall(`certification "${cert.title}"`, '/api/remote/photographer/add-trainting-certification', {
+        // Certifications & trainings live in the same backend table
+        // discriminated by `type`. Use the canonical path
+        // (`add-training-certification`) — the backend also accepts the
+        // legacy misspelling for older clients.
+        const existingCerts = user?.certifications || [];
+        const existingCertsByKey = new Map(existingCerts.map(c => [`${c.title}|${c.institution}`, c.id]));
+        for (const cert of certEntries.filter(c => c.title && c.issuer && !existingCertsByKey.has(`${c.title}|${c.issuer}`))) {
+          const ok = await apiCall(`certification "${cert.title}"`, '/api/remote/photographer/add-training-certification', {
             title: cert.title,
             institution: cert.issuer,
             yearObtained: cert.year || '',
@@ -401,9 +430,17 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
           });
           if (!ok) allOk = false;
         }
-        const existingTrainingKeys = new Set((user?.trainings || []).map(t => `${t.title}|${t.institution}`));
-        for (const training of trainingEntries.filter(t => t.title && t.issuer && !existingTrainingKeys.has(`${t.title}|${t.issuer}`))) {
-          const ok = await apiCall(`training "${training.title}"`, '/api/remote/photographer/add-trainting-certification', {
+        const keptCertKeys = new Set(certEntries.map(c => `${c.title}|${c.issuer}`));
+        for (const [key, id] of existingCertsByKey) {
+          if (!keptCertKeys.has(key) && id) {
+            const ok = await apiCall(`remove certification "${key.split('|')[0]}"`, `/api/remote/photographer/delete-training-certification/${id}`);
+            if (!ok) allOk = false;
+          }
+        }
+        const existingTrainings = user?.trainings || [];
+        const existingTrainingsByKey = new Map(existingTrainings.map(t => [`${t.title}|${t.institution}`, t.id]));
+        for (const training of trainingEntries.filter(t => t.title && t.issuer && !existingTrainingsByKey.has(`${t.title}|${t.issuer}`))) {
+          const ok = await apiCall(`training "${training.title}"`, '/api/remote/photographer/add-training-certification', {
             title: training.title,
             institution: training.issuer,
             yearObtained: training.year || '',
@@ -411,6 +448,13 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
             type: 'TRAINING',
           });
           if (!ok) allOk = false;
+        }
+        const keptTrainingKeys = new Set(trainingEntries.map(t => `${t.title}|${t.issuer}`));
+        for (const [key, id] of existingTrainingsByKey) {
+          if (!keptTrainingKeys.has(key) && id) {
+            const ok = await apiCall(`remove training "${key.split('|')[0]}"`, `/api/remote/photographer/delete-training-certification/${id}`);
+            if (!ok) allOk = false;
+          }
         }
         break;
       }
