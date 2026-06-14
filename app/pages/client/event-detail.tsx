@@ -136,6 +136,14 @@ interface EventData {
   completionStatus: string | null;
   createdAt: string;
   eventVisibility: string;
+  hasLiveStream: boolean;
+  bookingProgress: ProgressStage[];
+}
+
+interface ProgressStage {
+  key: string;
+  label: string;
+  done: boolean;
 }
 
 interface PaymentData {
@@ -276,6 +284,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
   const [completionComment, setCompletionComment] = useState('');
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [selectedPayNowPayment, setSelectedPayNowPayment] = useState<Payment | null>(null);
 
@@ -358,6 +367,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         completionStatus: data.completionStatus || data.eventCompletionStatus || null,
         createdAt: data.createdAt || '',
         eventVisibility: data.eventVisibility || data.visibility || 'PUBLIC',
+        hasLiveStream: Boolean(data.hasLiveStream),
+        bookingProgress: Array.isArray(data.bookingProgress) ? data.bookingProgress : [],
       };
 
       setEvent(mappedEvent);
@@ -793,6 +804,32 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
     }
   };
 
+  // Deep-link to the photographer Events page with the action pre-opened for
+  // this event (Create Album / Live Stream control reuse the working flows
+  // there rather than duplicating them on the detail page).
+  const goToEventAction = (action: 'createAlbum' | 'stream') => {
+    if (!event) return;
+    router.push(`/user/${userRole}/events?event=${event.id}&action=${action}`);
+  };
+
+  const handleShareEvent = async () => {
+    if (!event) return;
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const shareData = { title: event.title, text: `Event: ${event.title}`, url: shareUrl };
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        platformAlert('Event link copied to clipboard.');
+      }
+    } catch {
+      /* user cancelled share or clipboard blocked - no-op */
+    }
+  };
+
   const renderEventContent = () => {
     if (!event) return null;
 
@@ -1059,7 +1096,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                 {event.bookingStatus?.toUpperCase() === 'PENDING' && (
                   <>
                     <button
-                      onClick={handleAcceptBooking}
+                      onClick={() => setShowAcceptModal(true)}
                       disabled={actionLoading === 'accept'}
                       style={{
                         padding: '0.5rem 1rem',
@@ -1093,30 +1130,111 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   </>
                 )}
 
-                {/* Mark Complete (photographer, booking accepted) */}
-                {event.bookingStatus?.toUpperCase() === 'ACCEPTED' && event.completionStatus?.toUpperCase() !== 'COMPLETED' && (
-                  <button
-                    onClick={handleMarkComplete}
-                    disabled={actionLoading === 'markComplete'}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      backgroundColor: '#059669',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
-                      cursor: actionLoading === 'markComplete' ? 'not-allowed' : 'pointer',
-                      opacity: actionLoading === 'markComplete' ? 0.7 : 1,
-                    }}
-                  >
-                    {actionLoading === 'markComplete' ? 'Marking...' : 'Mark Complete'}
-                  </button>
+                {/* Photographer action row (booking accepted): Create Album,
+                    Live Stream, Share, Mark Complete - shown together so the
+                    photographer has every next step in one place. */}
+                {event.bookingStatus?.toUpperCase() === 'ACCEPTED' && (
+                  <>
+                    <button
+                      onClick={() => goToEventAction('createAlbum')}
+                      style={{
+                        padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: 6,
+                        backgroundColor: '#083A85', color: 'white', border: 'none',
+                        borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+                      }}
+                    >
+                      <i className="bi bi-plus-circle-fill" style={{ fontSize: 13 }} /> Create Album
+                    </button>
+                    {event.hasLiveStream && (
+                      <button
+                        onClick={() => goToEventAction('stream')}
+                        style={{
+                          padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: 6,
+                          backgroundColor: '#F20C8F', color: 'white', border: 'none',
+                          borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+                        }}
+                      >
+                        <i className="bi bi-broadcast-pin" style={{ fontSize: 13 }} /> Live Stream
+                      </button>
+                    )}
+                    <button
+                      onClick={handleShareEvent}
+                      style={{
+                        padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: 6,
+                        backgroundColor: colors.bgCard, color: colors.textPrimary,
+                        border: `1px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+                      }}
+                    >
+                      <i className="bi bi-share-fill" style={{ fontSize: 13 }} /> Share
+                    </button>
+                    {event.completionStatus?.toUpperCase() !== 'COMPLETED' && (
+                      <button
+                        onClick={handleMarkComplete}
+                        disabled={actionLoading === 'markComplete'}
+                        style={{
+                          padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: 6,
+                          backgroundColor: '#059669', color: 'white', border: 'none',
+                          borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600',
+                          cursor: actionLoading === 'markComplete' ? 'not-allowed' : 'pointer',
+                          opacity: actionLoading === 'markComplete' ? 0.7 : 1,
+                        }}
+                      >
+                        <i className="bi bi-check2-circle" style={{ fontSize: 13 }} />
+                        {actionLoading === 'markComplete' ? 'Marking...' : 'Mark Complete'}
+                      </button>
+                    )}
+                  </>
                 )}
               </>
             )}
           </div>
         </div>
+
+        {/* Booking progression bar */}
+        {event.bookingProgress && event.bookingProgress.length > 0 && (
+          <div style={{
+            backgroundColor: colors.bgCard, borderRadius: '0.75rem',
+            border: `1px solid ${colors.borderPrimary}`, padding: '1.25rem',
+            marginBottom: '1rem',
+          }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textPrimary, margin: '0 0 1.1rem' }}>
+              Booking Progress
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 4 }}>
+              {event.bookingProgress.map((stage, i) => {
+                const isLast = i === event.bookingProgress.length - 1;
+                const nextDone = !isLast && event.bookingProgress[i + 1].done;
+                return (
+                  <div key={stage.key} style={{ display: 'flex', alignItems: 'flex-start', flex: isLast ? '0 0 auto' : 1, minWidth: isLast ? 64 : 90 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, width: 64, flexShrink: 0 }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backgroundColor: stage.done ? '#10B981' : 'transparent',
+                        border: stage.done ? 'none' : `2px solid ${colors.borderPrimary}`,
+                        color: stage.done ? '#fff' : colors.textSecondary,
+                        fontSize: 13, fontWeight: 700,
+                      }}>
+                        {stage.done ? <i className="bi bi-check-lg" /> : i + 1}
+                      </div>
+                      <span style={{
+                        fontSize: '0.66rem', fontWeight: 600, textAlign: 'center', lineHeight: 1.25,
+                        color: stage.done ? colors.textPrimary : colors.textSecondary,
+                      }}>{stage.label}</span>
+                    </div>
+                    {!isLast && (
+                      <div style={{
+                        flex: 1, height: 2, marginTop: 14, minWidth: 12,
+                        backgroundColor: nextDone ? '#10B981' : colors.borderPrimary,
+                      }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Info Cards Row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
@@ -1922,6 +2040,77 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       )}
 
       {/* Decline Modal (Photographer) */}
+      {showAcceptModal && event && (
+        <div
+          onClick={() => setShowAcceptModal(false)}
+          style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)',
+            backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '1rem',
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{
+            position: 'relative', backgroundColor: colors.bgCard, borderRadius: 18,
+            maxWidth: 500, width: '95%', border: `1px solid ${colors.borderPrimary}`,
+            boxShadow: '0 25px 60px -12px rgba(8,58,133,0.30)', overflow: 'hidden',
+          }}>
+            <span aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #10B981 0%, #059669 100%)' }} />
+            <div style={{ padding: '1.5rem 1.5rem 1.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.85rem' }}>
+                <div style={{ width: 60, height: 60, borderRadius: 18, background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 10px 24px rgba(16,185,129,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="bi bi-check2-circle" style={{ fontSize: 26, color: '#fff' }} />
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#059669', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Accept booking</div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Accept this booking?</h3>
+              </div>
+
+              {/* Booking summary */}
+              <div style={{ backgroundColor: 'rgba(127,127,127,0.08)', border: `1px solid ${colors.borderPrimary}`, borderRadius: 11, padding: '0.85rem 1rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.85rem', marginBottom: 6 }}>
+                  <span style={{ color: colors.textSecondary }}>Event</span>
+                  <span style={{ color: colors.textPrimary, fontWeight: 600, textAlign: 'right' }}>{event.title}</span>
+                </div>
+                {event.packageName && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.85rem', marginBottom: 6 }}>
+                    <span style={{ color: colors.textSecondary }}>Package</span>
+                    <span style={{ color: colors.textPrimary, fontWeight: 600, textAlign: 'right' }}>{event.packageName}</span>
+                  </div>
+                )}
+                {event.packagePrice != null && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.85rem' }}>
+                    <span style={{ color: colors.textSecondary }}>Price</span>
+                    <span style={{ color: colors.textPrimary, fontWeight: 700, textAlign: 'right' }}>{event.packageCurrencyAbbreviation || ''} {event.packagePrice}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* What happens next */}
+              <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: 1.55, marginBottom: '1.3rem' }}>
+                By accepting, you confirm your availability for this event. The client is notified and their deposit is held securely in escrow by Connekyt, not paid to you directly. Your share is released to your wallet (net of fees) as you deliver: the upfront portion on acceptance, then on album delivery and photobook acceptance.
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <button
+                  onClick={() => setShowAcceptModal(false)}
+                  style={{ flex: 1, padding: '0.75rem 0', fontSize: '0.9rem', fontWeight: 700, backgroundColor: colors.bgCard, color: colors.textPrimary, border: `1px solid ${colors.borderPrimary}`, borderRadius: 11, cursor: 'pointer' }}
+                >Cancel</button>
+                <button
+                  onClick={() => { setShowAcceptModal(false); handleAcceptBooking(); }}
+                  disabled={actionLoading === 'accept'}
+                  style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0.75rem 0', fontSize: '0.9rem', fontWeight: 700, background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: 11, cursor: 'pointer', boxShadow: '0 8px 18px rgba(16,185,129,0.30)' }}
+                >
+                  <i className="bi bi-check2-circle" style={{ fontSize: 13 }} /> Confirm acceptance
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDeclineModal && (
         <div
           onClick={() => setShowDeclineModal(false)}

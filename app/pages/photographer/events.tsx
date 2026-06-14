@@ -859,6 +859,31 @@ const PhotographerEventsPage = () => {
     loadEvents();
   }, [user?.id, apiUrl]);
 
+  // Deep-link from the event-detail page: ?event=<id>&action=createAlbum|stream
+  // auto-opens the matching flow once events have loaded, then clears the query
+  // so a refresh doesn't re-trigger it.
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandled.current || events.length === 0) return;
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const evId = params.get('event');
+    const action = params.get('action');
+    if (!evId || !action) return;
+    const ev = events.find(e => e.id === evId);
+    if (!ev) return;
+    deepLinkHandled.current = true;
+    if (action === 'createAlbum') {
+      handleOpenCreateAlbum(ev.id);
+    } else if (action === 'stream') {
+      setSelectedEvent(ev);
+      if (!ev.isPublished) setShowUnpublishedModal(true);
+      else setShowStreamPreview(true);
+    }
+    try { window.history.replaceState(null, '', '/user/photographer/events'); } catch { /* no-op */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
+
   // Fetch albums from API (galleries)
   useEffect(() => {
     if (!user?.id) return;
