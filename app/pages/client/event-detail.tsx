@@ -153,6 +153,8 @@ interface PaymentData {
   escrowPercentage: number | null;
   heldAmount: number;
   releasedAmount: number;
+  heldAmountInUsd: number;
+  releasedAmountInUsd: number;
   eventCompletionStatus: string;
   paymentType: string;
   createdAt: string;
@@ -385,6 +387,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
               escrowPercentage: item.escrowPercentage || null,
               heldAmount: Number(item.heldAmount) || 0,
               releasedAmount: Number(item.releasedAmount) || 0,
+              heldAmountInUsd: Number(item.heldAmountInUsd ?? item.heldAmount) || 0,
+              releasedAmountInUsd: Number(item.releasedAmountInUsd ?? item.releasedAmount) || 0,
               eventCompletionStatus: item.eventCompletionStatus || 'NOT_COMPLETED',
               paymentType: item.paymentType || 'Booking',
               createdAt: item.createdAt || '',
@@ -1387,9 +1391,11 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                 const paidAmount = payment.paidAmountInUsd;
                 const remaining = paymentAmount - paidAmount;
 
-                // 70/30 breakdown for escrow
-                const withdrawableAmount = payment.heldAmount > 0 ? paymentAmount - payment.heldAmount : 0;
-                const heldForDelivery = payment.heldAmount;
+                // 70/30 breakdown for escrow (all USD - heldAmountInUsd is the
+                // converted hold; mixing it with the RWF heldAmount used to show
+                // the raw RWF figure as dollars).
+                const heldForDelivery = payment.heldAmountInUsd;
+                const withdrawableAmount = heldForDelivery > 0 ? paymentAmount - heldForDelivery : 0;
 
                 return (
                   <div key={payment.id || index} style={{

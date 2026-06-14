@@ -105,6 +105,10 @@ interface PaymentDeclaration {
   deliveryHeldReleased: boolean;
   amountInUsd: number;
   paidAmountInUsd: number;
+  heldAmountInUsd: number;
+  releasedAmountInUsd: number;
+  withdrawableAmountInUsd: number;
+  deliveryHeldAmountInUsd: number;
 }
 
 interface PaymentDetailPageProps {
@@ -249,6 +253,10 @@ const PaymentDetailPage: React.FC<PaymentDetailPageProps> = ({ userRole }) => {
         deliveryHeldReleased: Boolean(data.deliveryHeldReleased),
         amountInUsd: Number(data.amountInUsd ?? data.amount) || 0,
         paidAmountInUsd: Number(data.paidAmountInUsd ?? data.paidAmount) || 0,
+        heldAmountInUsd: Number(data.heldAmountInUsd ?? data.heldAmount) || 0,
+        releasedAmountInUsd: Number(data.releasedAmountInUsd ?? data.releasedAmount) || 0,
+        withdrawableAmountInUsd: Number(data.withdrawableAmountInUsd ?? data.withdrawableAmount) || 0,
+        deliveryHeldAmountInUsd: Number(data.deliveryHeldAmountInUsd ?? data.deliveryHeldAmount) || 0,
       });
     } catch (err) {
       console.error('Failed to fetch payment:', err);
@@ -709,7 +717,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                     }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Held Amount</div>
                       <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#F59E0B' }}>
-                        {formatPrice(payment.heldAmount)}
+                        {formatPrice(payment.heldAmountInUsd)}
                       </div>
                     </div>
                     <div style={{
@@ -720,7 +728,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                     }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Released Amount</div>
                       <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10B981' }}>
-                        {formatPrice(payment.releasedAmount)}
+                        {formatPrice(payment.releasedAmountInUsd)}
                       </div>
                     </div>
                   </div>
@@ -771,7 +779,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                           <div>
                             <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawable </span>
                             <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#10B981' }}>
-                              {formatPrice(payment.withdrawableAmount)}
+                              {formatPrice(payment.withdrawableAmountInUsd)}
                             </span>
                           </div>
                         </div>
@@ -789,7 +797,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                               fontWeight: '600',
                               color: payment.deliveryHeldReleased ? '#3B82F6' : '#F59E0B',
                             }}>
-                              {formatPrice(payment.deliveryHeldAmount)}
+                              {formatPrice(payment.deliveryHeldAmountInUsd)}
                             </span>
                           </div>
                         </div>
