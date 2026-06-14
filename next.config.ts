@@ -35,14 +35,20 @@ const cspDirectives = [
   // flagcdn.com:          currency flag PNGs in the topbar switcher
   // i.pinimg.com:         placeholder client avatars in photographer/gallery.tsx
   // images.unsplash.com:  placeholder photo thumbnails in photographer/gallery.tsx
-  `img-src 'self' data: blob: ${apiOriginHttp} https://backend.connekyt.com https://*.cloudflarestream.com https://flagcdn.com https://i.pinimg.com https://images.unsplash.com`,
+  // *.r2.cloudflarestorage.com: media now lives in Cloudflare R2. When a file
+  // is not on the local disk the backend 302-redirects /uploads/** to a
+  // presigned R2 URL, so the browser's final image request lands on the R2
+  // endpoint - it must be allowed or every R2-served photo renders broken.
+  `img-src 'self' data: blob: ${apiOriginHttp} https://backend.connekyt.com https://*.r2.cloudflarestorage.com https://*.cloudflarestream.com https://flagcdn.com https://i.pinimg.com https://images.unsplash.com`,
   // cdn.jsdelivr.net: Bootstrap Icons webfont files
   "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
   // cdn.jsdelivr.net:        MediaPipe WASM binary fetched by KYC verification
   // storage.googleapis.com:  MediaPipe face-landmarker model download
   // *.cloudflarestream.com:  WHEP HTTP handshake for live-stream preview playback
   `connect-src 'self' ${apiOriginHttp} ${apiOriginWs} https://backend.connekyt.com https://connekyt.com wss://backend.connekyt.com https://cdn.jsdelivr.net https://storage.googleapis.com https://*.cloudflarestream.com`,
-  "media-src 'self' blob: https://*.cloudflarestream.com",
+  // *.r2.cloudflarestorage.com: videos in R2 are 302-redirected from /uploads/**
+  // to a presigned R2 URL (R2 serves the Range request), same as img-src above.
+  "media-src 'self' blob: https://*.r2.cloudflarestorage.com https://*.cloudflarestream.com",
   "frame-src 'self' https://customer-ngk2huwatflljurq.cloudflarestream.com https://*.cloudflarestream.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
