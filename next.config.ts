@@ -81,6 +81,10 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'https', hostname: 'backend.connekyt.com' },
+      // next/image's optimizer follows the backend's /uploads/** 302 to a
+      // presigned R2 URL server-side and validates the FINAL host against this
+      // list - without R2 here, every R2-served photo fails optimization.
+      { protocol: 'https', hostname: '**.r2.cloudflarestorage.com' },
       {
         protocol: apiUrl.protocol.replace(':', '') as 'http' | 'https',
         hostname: apiUrl.hostname,
