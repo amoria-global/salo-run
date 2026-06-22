@@ -1531,6 +1531,10 @@ const PhotographerEventsPage = () => {
       platformAlert('Please enter recipient email for FREE album');
       return;
     }
+    if (!selectedFiles || selectedFiles.length === 0) {
+      platformAlert('Please select at least one photo to upload.');
+      return;
+    }
 
     setIsUploadingAlbum(true);
 
@@ -3931,7 +3935,7 @@ const PhotographerEventsPage = () => {
                 )}
                 {/* Image Upload */}
                 <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Upload Photos</label>
+                  <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Upload Photos <span style={{ color: '#EF4444' }}>*</span></label>
                   <div style={{
                     border: `2px dashed ${actualTheme === 'dark' ? 'rgba(242,12,143,0.30)' : 'rgba(242,12,143,0.35)'}`,
                     borderRadius: 12,
@@ -3981,6 +3985,7 @@ const PhotographerEventsPage = () => {
                       (createAlbumMode === 'event' && !createAlbumEventId) ||
                       (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || paidAlbumPriceInvalid)) ||
                       (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
+                      !selectedFiles || selectedFiles.length === 0 ||
                       isUploadingAlbum
                     }
                     style={{
@@ -3990,6 +3995,7 @@ const PhotographerEventsPage = () => {
                         (createAlbumMode === 'event' && !createAlbumEventId) ||
                         (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || paidAlbumPriceInvalid)) ||
                         (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
+                        !selectedFiles || selectedFiles.length === 0 ||
                         isUploadingAlbum
                       ) ? 0.5 : 1
                     }}
