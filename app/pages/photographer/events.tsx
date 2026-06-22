@@ -1761,11 +1761,12 @@ const PhotographerEventsPage = () => {
     const files = e.target.files; if (!files || !selectedAlbum) return;
     for (const file of Array.from(files)) {
       const result = await uploadImageToAlbum(selectedAlbum.id, file);
-      if (result && result.url) {
+      if (result && 'url' in result && result.url) {
         const nUrl = normalizeImg(result.url) || result.url;
         setEditImages(prev => [...prev, nUrl]);
         setMediaIdMap(prev => ({ ...prev, [nUrl]: result.id }));
       } else {
+        if (result && 'error' in result) platformAlert(result.error);
         // Fallback to local preview if upload fails
         const reader = new FileReader();
         reader.onload = (ev) => { setEditImages(prev => [...prev, ev.target?.result as string]); };
