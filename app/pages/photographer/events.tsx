@@ -1355,7 +1355,7 @@ const PhotographerEventsPage = () => {
     }
   };
 
-  const uploadImageToAlbum = async (albumId: string, file: File): Promise<{ id: string; url: string } | null> => {
+  const uploadImageToAlbum = async (albumId: string, file: File): Promise<{ id: string; url: string } | { error: string } | null> => {
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -1368,8 +1368,9 @@ const PhotographerEventsPage = () => {
         const img = data.data || data;
         return { id: img.id || '', url: img.url || img.fileUrl || img.imageUrl || img.mediaUrl || '' };
       }
+      const errorMsg = data?.message || `Upload failed (HTTP ${res.status})`;
       console.error('Failed to upload album image:', res.status, data);
-      return null;
+      return { error: errorMsg };
     } catch (err) {
       console.error('Error uploading album image:', err);
       return null;
@@ -1612,19 +1613,28 @@ const PhotographerEventsPage = () => {
     if (selectedFiles && selectedFiles.length > 0) {
       const uploadedUrls: string[] = [];
       const idMap: Record<string, string> = {};
+      const rejectedMessages: string[] = [];
       for (let i = 0; i < selectedFiles.length; i++) {
         setUploadProgress(`Uploading ${i + 1} of ${selectedFiles.length}...`);
         const result = await uploadImageToAlbum(backendAlbumId, selectedFiles[i]);
-        if (result && result.url) {
+        if (result && 'url' in result && result.url) {
           const normalizedUrl = normalizeImg(result.url) || result.url;
           uploadedUrls.push(normalizedUrl);
           idMap[normalizedUrl] = result.id;
+        } else if (result && 'error' in result) {
+          rejectedMessages.push(`${selectedFiles[i].name}: ${result.error}`);
         }
       }
       if (uploadedUrls.length > 0) {
         albumImages = uploadedUrls;
         albumCover = uploadedUrls[Math.min(selectedCoverIndex, uploadedUrls.length - 1)];
         setMediaIdMap(prev => ({ ...prev, ...idMap }));
+      }
+      if (rejectedMessages.length > 0) {
+        platformAlert(
+          `${rejectedMessages.length} photo${rejectedMessages.length === 1 ? '' : 's'} could not be uploaded:\n\n` +
+          rejectedMessages.join('\n')
+        );
       }
     }
 
