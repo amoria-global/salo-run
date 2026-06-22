@@ -529,7 +529,7 @@ const PhotographerEventsPage = () => {
   const [freeExtraCurrencyId, setFreeExtraCurrencyId] = useState('');
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
-  const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number } | null>(null);
+  const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number; rejected?: string[] } | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   // Tracks which album card's Copy Link button just flashed "Copied" —
@@ -1613,11 +1613,11 @@ const PhotographerEventsPage = () => {
     // 2. Upload images to the album
     let albumImages: string[] = isStandalone ? [] : [event!.coverImage];
     let albumCover = isStandalone ? '' : event!.coverImage;
+    const rejectedMessages: string[] = [];
 
     if (selectedFiles && selectedFiles.length > 0) {
       const uploadedUrls: string[] = [];
       const idMap: Record<string, string> = {};
-      const rejectedMessages: string[] = [];
       for (let i = 0; i < selectedFiles.length; i++) {
         setUploadProgress(`Uploading ${i + 1} of ${selectedFiles.length}...`);
         const result = await uploadImageToAlbum(backendAlbumId, selectedFiles[i]);
@@ -1633,12 +1633,6 @@ const PhotographerEventsPage = () => {
         albumImages = uploadedUrls;
         albumCover = uploadedUrls[Math.min(selectedCoverIndex, uploadedUrls.length - 1)];
         setMediaIdMap(prev => ({ ...prev, ...idMap }));
-      }
-      if (rejectedMessages.length > 0) {
-        platformAlert(
-          `${rejectedMessages.length} photo${rejectedMessages.length === 1 ? '' : 's'} could not be uploaded:\n\n` +
-          rejectedMessages.join('\n')
-        );
       }
     }
 
@@ -1698,6 +1692,7 @@ const PhotographerEventsPage = () => {
         email: standaloneAlbumType === 'FREE' ? freeAlbumEmail : undefined,
         accessCode: backendAccessCode || undefined,
         photoCount: albumImages.length,
+        rejected: rejectedMessages.length > 0 ? rejectedMessages : undefined,
       });
     }
 
@@ -4107,6 +4102,29 @@ const PhotographerEventsPage = () => {
                 <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary }}>{albumSuccessModal.photoCount} uploaded</div>
               </div>
             </div>
+
+            {albumSuccessModal.rejected && albumSuccessModal.rejected.length > 0 && (
+              <div style={{
+                background: actualTheme === 'dark' ? 'rgba(239,68,68,0.10)' : 'rgba(239,68,68,0.06)',
+                border: '1px solid rgba(239,68,68,0.30)',
+                borderRadius: 10,
+                padding: '0.75rem 1rem',
+                marginBottom: '0.75rem',
+                textAlign: 'left',
+              }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#EF4444', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: '0.4rem' }}>
+                  {albumSuccessModal.rejected.length} photo{albumSuccessModal.rejected.length === 1 ? '' : 's'} not uploaded (resolution too low)
+                </div>
+                <ul style={{ margin: 0, padding: '0 0 0 1rem', listStyle: 'disc' }}>
+                  {albumSuccessModal.rejected.map((msg, i) => (
+                    <li key={i} style={{ fontSize: '0.78rem', color: colors.textSecondary, marginBottom: '0.2rem', wordBreak: 'break-word' as const }}>{msg}</li>
+                  ))}
+                </ul>
+                <div style={{ fontSize: '0.72rem', color: colors.textTertiary, marginTop: '0.4rem' }}>
+                  Re-export these photos at 700×700 or larger and add them to this album.
+                </div>
+              </div>
+            )}
 
             {/* Copy code + Copy link + Done buttons.
                 Link = the same URL the invitation email's button uses.
