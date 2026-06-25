@@ -7,9 +7,11 @@ export class WHIPClient {
   private pc: RTCPeerConnection | null = null;
   private resourceUrl: string | null = null;
   private whipUrl: string;
+  private onStateChange?: (state: RTCPeerConnectionState) => void;
 
-  constructor(whipUrl: string) {
+  constructor(whipUrl: string, onStateChange?: (state: RTCPeerConnectionState) => void) {
     this.whipUrl = whipUrl;
+    this.onStateChange = onStateChange;
   }
 
   /**
@@ -20,6 +22,13 @@ export class WHIPClient {
       iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
       bundlePolicy: 'max-bundle',
     });
+
+    if (this.onStateChange) {
+      const cb = this.onStateChange;
+      this.pc.addEventListener('connectionstatechange', () => {
+        if (this.pc) cb(this.pc.connectionState);
+      });
+    }
 
     // Add all tracks from the stream
     stream.getTracks().forEach((track) => {

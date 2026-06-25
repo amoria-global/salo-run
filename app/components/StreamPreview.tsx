@@ -135,6 +135,7 @@ export default function StreamPreview({
   const whipRef = useRef<WHIPClient | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const localPreviewRef = useRef<HTMLVideoElement>(null);
+  const checkInProgressRef = useRef(false);
   const [copiedField, setCopiedField] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -153,8 +154,10 @@ export default function StreamPreview({
   const isDisconnected = connectionStatus === 'disconnected';
   const isTestPreview = isDisconnected && hasCredentials && encoderDetected;
 
-  // Detect encoder connection via WHEP probe
+  // Detect OBS encoder connection via WHEP probe. Only runs in OBS mode;
+  // browser mode sets encoderDetected directly when the camera starts.
   useEffect(() => {
+    if (publishMode === 'browser') return;
     if (!isDisconnected || !hasCredentials || !whepUrl || isEnded) {
       setEncoderDetected(false);
       return;
@@ -162,6 +165,8 @@ export default function StreamPreview({
     let cancelled = false;
 
     const checkEncoder = async () => {
+      if (checkInProgressRef.current) return;
+      checkInProgressRef.current = true;
       try {
         const testPlayer = new WHEPPlayer(whepUrl);
         const stream = await testPlayer.play();
@@ -170,14 +175,20 @@ export default function StreamPreview({
         }
         await testPlayer.stop();
       } catch {
-        // Encoder not connected yet
+        // OBS not connected yet
+      } finally {
+        checkInProgressRef.current = false;
       }
     };
 
     checkEncoder();
-    const interval = setInterval(checkEncoder, 3000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [isDisconnected, hasCredentials, whepUrl, isEnded]);
+    const interval = setInterval(checkEncoder, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      checkInProgressRef.current = false;
+    };
+  }, [isDisconnected, hasCredentials, whepUrl, isEnded, publishMode]);
 
   // Callback ref to detect when video element mounts/unmounts
   const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
@@ -199,7 +210,7 @@ export default function StreamPreview({
   // Cleanup browser capture on unmount
   useEffect(() => {
     return () => {
-      if (whipRef.current) { whipRef.current.stop(); whipRef.current = null; }
+      if (whipRef.current) { const c = whipRef.current; whipRef.current = null; void c.stop(); }
       if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
     };
   }, []);
@@ -243,8 +254,7 @@ export default function StreamPreview({
 
   const handleEndConfirm = () => {
     setShowEndConfirm(false);
-    // Stop browser capture if active
-    if (whipRef.current) { whipRef.current.stop(); whipRef.current = null; }
+    if (whipRef.current) { const c = whipRef.current; whipRef.current = null; void c.stop(); }
     if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
     setIsBrowserCapturing(false);
     onEndStream();
@@ -258,13 +268,19 @@ export default function StreamPreview({
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStreamRef.current = stream;
 
-      // Show local preview
       if (localPreviewRef.current) {
         localPreviewRef.current.srcObject = stream;
       }
 
-      // Publish to WHIP
-      const client = new WHIPClient(whipUrl);
+      const client = new WHIPClient(whipUrl, (state) => {
+        if (state === 'failed') {
+          setBrowserCaptureError('Stream connection failed. Please stop and try again.');
+          setIsBrowserCapturing(false);
+          whipRef.current = null;
+        } else if (state === 'connected') {
+          setBrowserCaptureError(null);
+        }
+      });
       await client.publish(stream);
       whipRef.current = client;
       setIsBrowserCapturing(true);
@@ -283,11 +299,22 @@ export default function StreamPreview({
 
   // Stop browser capture
   const stopBrowserCapture = () => {
-    if (whipRef.current) { whipRef.current.stop(); whipRef.current = null; }
+    if (whipRef.current) { const c = whipRef.current; whipRef.current = null; void c.stop(); }
     if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
     if (localPreviewRef.current) { localPreviewRef.current.srcObject = null; }
     setIsBrowserCapturing(false);
     setEncoderDetected(false);
+  };
+
+  // Switch between browser camera and OBS modes
+  const handleModeChange = (mode: 'browser' | 'obs') => {
+    if (mode === 'obs' && isBrowserCapturing) {
+      stopBrowserCapture();
+    }
+    if (mode === 'browser') {
+      setEncoderDetected(false);
+    }
+    setPublishMode(mode);
   };
 
   if (!isOpen) return null;
@@ -420,7 +447,6 @@ export default function StreamPreview({
               playsInline
               muted
               autoPlay
-              controls
               crossOrigin="anonymous"
             />
             {isBuffering && (
@@ -717,205 +743,375 @@ export default function StreamPreview({
             background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
           }} />
 
-          {/* OBS Setup Steps */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem' }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: 9,
-              background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-              boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <i className="bi bi-broadcast-pin" style={{ fontSize: 14, color: '#fff' }} />
-            </div>
+          {/* Publish mode toggle */}
+          <div style={{
+            display: 'flex',
+            gap: 4,
+            background: isDark ? 'rgba(0,0,0,0.20)' : 'rgba(8,58,133,0.05)',
+            border: `1px solid ${isDark ? 'rgba(8,58,133,0.24)' : 'rgba(8,58,133,0.12)'}`,
+            borderRadius: 11,
+            padding: 4,
+            marginBottom: '0.9rem',
+          }}>
+            {(['browser', 'obs'] as const).map((mode) => {
+              const active = publishMode === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => handleModeChange(mode)}
+                  style={{
+                    flex: 1,
+                    padding: '0.45rem 0.7rem',
+                    borderRadius: 8,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: active ? 800 : 600,
+                    letterSpacing: '-0.005em',
+                    color: active ? 'white' : colors.textSecondary,
+                    background: active
+                      ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
+                      : 'transparent',
+                    boxShadow: active ? '0 4px 10px rgba(8,58,133,0.26)' : 'none',
+                    transition: 'all 0.18s',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <i className={`bi ${mode === 'browser' ? 'bi-camera-video-fill' : 'bi-broadcast-pin'}`} style={{ fontSize: 11 }} />
+                  {mode === 'browser' ? 'Browser Camera' : 'OBS / Software'}
+                </button>
+              );
+            })}
+          </div>
+
+          {publishMode === 'browser' ? (
+            /* ─── Browser camera mode ─── */
             <div>
-              <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>WebRTC streaming</div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>OBS Setup (WHIP)</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: '0.9rem' }}>
-            {[
-              'Open OBS. Go to File then Settings.',
-              'Go to the Stream tab.',
-              'Set Service to WHIP.',
-              'Paste the WHIP URL below into the Server field.',
-              'Leave Bearer Token empty.',
-              'Click Apply, then close Settings.',
-              'Click Start Streaming in OBS.',
-            ].map((text, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 9,
-                padding: '0.55rem 0.7rem',
-                background: colors.bgCard,
-                borderRadius: 10,
-                border: `1px solid ${colors.borderPrimary}`,
-                transition: 'border-color 0.15s, box-shadow 0.15s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.25)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(8,58,133,0.08)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                  color: 'white', fontSize: '0.68rem', fontWeight: 800,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 3px 6px rgba(8,58,133,0.24)',
-                  letterSpacing: '-0.005em',
-                }}>{i + 1}</div>
-                <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }}>{text}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* WHIP URL */}
-          <label style={{
-            display: 'block',
-            fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-            textTransform: 'uppercase', letterSpacing: '0.08em',
-            marginBottom: '0.4rem',
-          }}>WHIP URL</label>
-          <div style={{ display: 'flex', gap: 6, marginBottom: '0.4rem' }}>
-            <input readOnly value={showKey ? whipUrl : `${whipUrl!.substring(0, 40)}...`} style={inputField} />
-            <button onClick={() => setShowKey(!showKey)} style={smallBtn} title={showKey ? 'Hide' : 'Show'}>
-              <i className={`bi ${showKey ? 'bi-eye-slash' : 'bi-eye'}`} style={{ fontSize: 12 }} />
-            </button>
-            <button
-              onClick={() => handleCopy(whipUrl!, 'whipUrl')}
-              style={{
-                ...smallBtn,
-                ...(copiedField === 'whipUrl' ? {
-                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                  color: 'white',
-                  border: 'none',
-                  boxShadow: '0 4px 10px rgba(16,185,129,0.30)',
-                } : {}),
-              }}
-            >
-              {copiedField === 'whipUrl' ? <><i className="bi bi-check2" style={{ fontSize: 12 }} /> Copied</> : <><i className="bi bi-clipboard-fill" style={{ fontSize: 11 }} /> Copy</>}
-            </button>
-          </div>
-          <div style={{
-            fontSize: '0.74rem',
-            color: colors.textSecondary,
-            marginBottom: '0.85rem',
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontStyle: 'italic',
-            opacity: 0.85,
-          }}>
-            <i className="bi bi-info-circle" style={{ fontSize: 10, color: '#F20C8F' }} />
-            No stream key or bearer token needed. The URL is self-authenticating.
-          </div>
-
-          {/* Recommended OBS Encoder Settings */}
-          <div style={{
-            background: isDark
-              ? 'linear-gradient(135deg, rgba(14,165,233,0.10) 0%, rgba(8,58,133,0.08) 100%)'
-              : 'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(240,249,255,0.55) 100%)',
-            border: `1px solid ${isDark ? 'rgba(14,165,233,0.22)' : 'rgba(14,165,233,0.18)'}`,
-            borderRadius: 12,
-            padding: '0.85rem 0.95rem',
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            <span aria-hidden style={{
-              position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
-              background: 'linear-gradient(180deg, #0EA5E9 0%, #0284C7 100%)',
-            }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.55rem', paddingLeft: 4 }}>
-              <i className="bi bi-sliders" style={{ fontSize: 13, color: isDark ? '#7DD3FC' : '#0369A1' }} />
-              <div style={{
-                fontSize: '0.78rem', fontWeight: 800,
-                color: isDark ? '#7DD3FC' : '#0369A1',
-                letterSpacing: '-0.005em',
-              }}>Recommended OBS Output Settings</div>
-            </div>
-            <div style={{
-              fontSize: '0.72rem',
-              color: colors.textSecondary,
-              marginBottom: '0.6rem',
-              paddingLeft: 4,
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              flexWrap: 'wrap',
-            }}>
-              <i className="bi bi-arrow-right-short" style={{ fontSize: 14, color: '#F20C8F' }} />
-              <span>Go to OBS &rarr; File &rarr; Settings &rarr; Output (Simple mode).</span>
-            </div>
-            <div style={{
-              background: colors.bgCard,
-              border: `1px solid ${isDark ? 'rgba(14,165,233,0.18)' : 'rgba(14,165,233,0.15)'}`,
-              borderRadius: 10,
-              overflow: 'hidden',
-              marginBottom: '0.55rem',
-            }}>
-              <table style={{ width: '100%', fontSize: '0.74rem', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{
-                    background: isDark ? 'rgba(14,165,233,0.10)' : 'rgba(240,249,255,0.85)',
-                    borderBottom: `1px solid ${isDark ? 'rgba(14,165,233,0.18)' : 'rgba(14,165,233,0.15)'}`,
+              {!isBrowserCapturing ? (
+                <>
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    background: isDark ? 'rgba(8,58,133,0.12)' : 'rgba(8,58,133,0.04)',
+                    border: `1px solid ${isDark ? 'rgba(8,58,133,0.24)' : 'rgba(8,58,133,0.10)'}`,
+                    borderRadius: 12,
+                    padding: '0.85rem 1rem',
+                    marginBottom: '0.85rem',
                   }}>
-                    <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Internet Speed</th>
-                    <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Bitrate</th>
-                    <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Resolution</th>
-                    <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>FPS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { speed: '5–10 Mbps', bitrate: '1500 Kbps', resolution: '854 × 480', fps: '30', tier: 'Basic', tierColor: '#9CA3AF' },
-                    { speed: '10–25 Mbps', bitrate: '2500 Kbps', resolution: '1280 × 720', fps: '30', tier: 'Standard', tierColor: '#0EA5E9' },
-                    { speed: '25–50 Mbps', bitrate: '4000 Kbps', resolution: '1280 × 720', fps: '30', tier: 'High', tierColor: '#10B981' },
-                    { speed: '50+ Mbps', bitrate: '6000 Kbps', resolution: '1920 × 1080', fps: '30', tier: 'Premium', tierColor: '#F20C8F' },
-                  ].map((row, i) => (
-                    <tr key={i} style={{
-                      borderBottom: i < 3 ? `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(14,165,233,0.08)'}` : 'none',
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 10px rgba(8,58,133,0.26)',
                     }}>
-                      <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 700, letterSpacing: '-0.005em' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: row.tierColor, boxShadow: `0 0 6px ${row.tierColor}66` }} />
-                          {row.speed}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 600 }}>{row.bitrate}</td>
-                      <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 600, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72rem' }}>{row.resolution}</td>
-                      <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 600, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72rem' }}>{row.fps}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      <i className="bi bi-camera-video-fill" style={{ fontSize: 15, color: '#fff' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: colors.textPrimary, marginBottom: 3 }}>
+                        Stream from your browser camera
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: colors.textSecondary, lineHeight: 1.5 }}>
+                        No external software needed. Your camera and microphone will stream directly to Cloudflare. Click Start Camera when ready.
+                      </div>
+                    </div>
+                  </div>
+
+                  {browserCaptureError && (
+                    <div style={{
+                      background: isDark ? 'rgba(239,68,68,0.10)' : 'rgba(239,68,68,0.06)',
+                      border: '1px solid rgba(239,68,68,0.30)',
+                      borderRadius: 10,
+                      padding: '0.65rem 0.9rem',
+                      marginBottom: '0.85rem',
+                      display: 'flex', alignItems: 'flex-start', gap: 8,
+                    }}>
+                      <i className="bi bi-exclamation-triangle-fill" style={{ color: '#EF4444', fontSize: 12, marginTop: 2, flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.82rem', color: isDark ? '#FCA5A5' : '#B91C1C', fontWeight: 500, lineHeight: 1.45 }}>{browserCaptureError}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={startBrowserCapture}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      borderRadius: 11,
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      color: 'white',
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      boxShadow: '0 8px 18px rgba(8,58,133,0.28)',
+                      letterSpacing: '-0.005em',
+                      transition: 'transform 0.15s, box-shadow 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(8,58,133,0.34)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(8,58,133,0.28)'; }}
+                  >
+                    <i className="bi bi-camera-video-fill" style={{ fontSize: 13 }} />
+                    Start Camera
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{
+                    background: isDark ? 'rgba(16,185,129,0.10)' : 'rgba(16,185,129,0.06)',
+                    border: '1px solid rgba(16,185,129,0.28)',
+                    borderRadius: 12,
+                    padding: '0.85rem 1rem',
+                    marginBottom: '0.85rem',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                  }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 10px rgba(16,185,129,0.30)',
+                    }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'white', boxShadow: '0 0 8px rgba(255,255,255,0.8)', animation: 'pulse 2s infinite' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isDark ? '#6EE7B7' : '#065F46', marginBottom: 3 }}>
+                        Camera Active
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: colors.textSecondary, lineHeight: 1.5 }}>
+                        Your stream is transmitting to Cloudflare. The preview above shows what viewers will see. Click Go Live when you are ready to broadcast.
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={stopBrowserCapture}
+                    style={{
+                      width: '100%',
+                      padding: '0.72rem 1rem',
+                      borderRadius: 11,
+                      border: `1px solid ${isDark ? 'rgba(239,68,68,0.35)' : 'rgba(239,68,68,0.30)'}`,
+                      background: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.06)',
+                      color: isDark ? '#FCA5A5' : '#B91C1C',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      letterSpacing: '-0.005em',
+                      transition: 'border-color 0.15s, background 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.55)'; e.currentTarget.style.background = isDark ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.10)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = isDark ? 'rgba(239,68,68,0.35)' : 'rgba(239,68,68,0.30)'; e.currentTarget.style.background = isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.06)'; }}
+                  >
+                    <i className="bi bi-camera-video-off-fill" style={{ fontSize: 12 }} />
+                    Stop Camera
+                  </button>
+                </>
+              )}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, paddingLeft: 4, marginBottom: '0.5rem' }}>
-              {[
-                { label: 'Encoder', value: 'Software (x264)', icon: 'bi-cpu-fill' },
-                { label: 'Preset', value: 'veryfast', icon: 'bi-speedometer2' },
-                { label: 'Audio', value: 'Opus 160 Kbps', icon: 'bi-music-note-beamed' },
-              ].map((chip, i) => (
-                <span key={i} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  padding: '0.22rem 0.55rem',
-                  background: colors.bgCard,
-                  border: `1px solid ${isDark ? 'rgba(14,165,233,0.20)' : 'rgba(14,165,233,0.18)'}`,
-                  borderRadius: 9999,
-                  fontSize: '0.66rem',
-                  color: colors.textPrimary,
-                  fontWeight: 600,
+          ) : (
+            /* ─── OBS / Software mode ─── */
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem' }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 9,
+                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                  boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
                 }}>
-                  <i className={`bi ${chip.icon}`} style={{ fontSize: 10, color: '#0EA5E9' }} />
-                  <span style={{ color: colors.textSecondary }}>{chip.label}:</span> <strong style={{ fontWeight: 700, letterSpacing: '-0.005em' }}>{chip.value}</strong>
-                </span>
-              ))}
-            </div>
-            <div style={{
-              fontSize: '0.7rem',
-              color: colors.textSecondary,
-              paddingLeft: 4,
-              fontStyle: 'italic',
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              opacity: 0.85,
-            }}>
-              <i className="bi bi-shield-lock-fill" style={{ fontSize: 10, color: '#10B981' }} />
-              No stream key or bearer token needed. The URL is self-authenticating.
-            </div>
-          </div>
+                  <i className="bi bi-broadcast-pin" style={{ fontSize: 14, color: '#fff' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>WebRTC streaming</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>OBS Setup (WHIP)</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: '0.9rem' }}>
+                {[
+                  'Open OBS. Go to File then Settings.',
+                  'Go to the Stream tab.',
+                  'Set Service to WHIP.',
+                  'Paste the WHIP URL below into the Server field.',
+                  'Leave Bearer Token empty.',
+                  'Click Apply, then close Settings.',
+                  'Click Start Streaming in OBS.',
+                ].map((text, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 9,
+                    padding: '0.55rem 0.7rem',
+                    background: colors.bgCard,
+                    borderRadius: 10,
+                    border: `1px solid ${colors.borderPrimary}`,
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.25)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(8,58,133,0.08)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    <div style={{
+                      width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                      color: 'white', fontSize: '0.68rem', fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 3px 6px rgba(8,58,133,0.24)',
+                      letterSpacing: '-0.005em',
+                    }}>{i + 1}</div>
+                    <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }}>{text}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* WHIP URL */}
+              <label style={{
+                display: 'block',
+                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                marginBottom: '0.4rem',
+              }}>WHIP URL</label>
+              <div style={{ display: 'flex', gap: 6, marginBottom: '0.4rem' }}>
+                <input readOnly value={showKey ? whipUrl : `${whipUrl!.substring(0, 40)}...`} style={inputField} />
+                <button onClick={() => setShowKey(!showKey)} style={smallBtn} title={showKey ? 'Hide' : 'Show'}>
+                  <i className={`bi ${showKey ? 'bi-eye-slash' : 'bi-eye'}`} style={{ fontSize: 12 }} />
+                </button>
+                <button
+                  onClick={() => handleCopy(whipUrl!, 'whipUrl')}
+                  style={{
+                    ...smallBtn,
+                    ...(copiedField === 'whipUrl' ? {
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                      color: 'white',
+                      border: 'none',
+                      boxShadow: '0 4px 10px rgba(16,185,129,0.30)',
+                    } : {}),
+                  }}
+                >
+                  {copiedField === 'whipUrl' ? <><i className="bi bi-check2" style={{ fontSize: 12 }} /> Copied</> : <><i className="bi bi-clipboard-fill" style={{ fontSize: 11 }} /> Copy</>}
+                </button>
+              </div>
+              <div style={{
+                fontSize: '0.74rem',
+                color: colors.textSecondary,
+                marginBottom: '0.85rem',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                fontStyle: 'italic',
+                opacity: 0.85,
+              }}>
+                <i className="bi bi-info-circle" style={{ fontSize: 10, color: '#F20C8F' }} />
+                No stream key or bearer token needed. The URL is self-authenticating.
+              </div>
+
+              {/* Recommended OBS Encoder Settings */}
+              <div style={{
+                background: isDark
+                  ? 'linear-gradient(135deg, rgba(14,165,233,0.10) 0%, rgba(8,58,133,0.08) 100%)'
+                  : 'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(240,249,255,0.55) 100%)',
+                border: `1px solid ${isDark ? 'rgba(14,165,233,0.22)' : 'rgba(14,165,233,0.18)'}`,
+                borderRadius: 12,
+                padding: '0.85rem 0.95rem',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                  background: 'linear-gradient(180deg, #0EA5E9 0%, #0284C7 100%)',
+                }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: '0.55rem', paddingLeft: 4 }}>
+                  <i className="bi bi-sliders" style={{ fontSize: 13, color: isDark ? '#7DD3FC' : '#0369A1' }} />
+                  <div style={{
+                    fontSize: '0.78rem', fontWeight: 800,
+                    color: isDark ? '#7DD3FC' : '#0369A1',
+                    letterSpacing: '-0.005em',
+                  }}>Recommended OBS Output Settings</div>
+                </div>
+                <div style={{
+                  fontSize: '0.72rem',
+                  color: colors.textSecondary,
+                  marginBottom: '0.6rem',
+                  paddingLeft: 4,
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  flexWrap: 'wrap',
+                }}>
+                  <i className="bi bi-arrow-right-short" style={{ fontSize: 14, color: '#F20C8F' }} />
+                  <span>Go to OBS &rarr; File &rarr; Settings &rarr; Output (Simple mode).</span>
+                </div>
+                <div style={{
+                  background: colors.bgCard,
+                  border: `1px solid ${isDark ? 'rgba(14,165,233,0.18)' : 'rgba(14,165,233,0.15)'}`,
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  marginBottom: '0.55rem',
+                }}>
+                  <table style={{ width: '100%', fontSize: '0.74rem', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{
+                        background: isDark ? 'rgba(14,165,233,0.10)' : 'rgba(240,249,255,0.85)',
+                        borderBottom: `1px solid ${isDark ? 'rgba(14,165,233,0.18)' : 'rgba(14,165,233,0.15)'}`,
+                      }}>
+                        <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Internet Speed</th>
+                        <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Bitrate</th>
+                        <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Resolution</th>
+                        <th style={{ textAlign: 'left', padding: '0.45rem 0.6rem', color: '#F20C8F', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>FPS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { speed: '5–10 Mbps', bitrate: '1500 Kbps', resolution: '854 × 480', fps: '30', tier: 'Basic', tierColor: '#9CA3AF' },
+                        { speed: '10–25 Mbps', bitrate: '2500 Kbps', resolution: '1280 × 720', fps: '30', tier: 'Standard', tierColor: '#0EA5E9' },
+                        { speed: '25–50 Mbps', bitrate: '4000 Kbps', resolution: '1280 × 720', fps: '30', tier: 'High', tierColor: '#10B981' },
+                        { speed: '50+ Mbps', bitrate: '6000 Kbps', resolution: '1920 × 1080', fps: '30', tier: 'Premium', tierColor: '#F20C8F' },
+                      ].map((row, i) => (
+                        <tr key={i} style={{
+                          borderBottom: i < 3 ? `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(14,165,233,0.08)'}` : 'none',
+                        }}>
+                          <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 700, letterSpacing: '-0.005em' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: row.tierColor, boxShadow: `0 0 6px ${row.tierColor}66` }} />
+                              {row.speed}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 600 }}>{row.bitrate}</td>
+                          <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 600, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72rem' }}>{row.resolution}</td>
+                          <td style={{ padding: '0.5rem 0.6rem', color: colors.textPrimary, fontWeight: 600, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.72rem' }}>{row.fps}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, paddingLeft: 4, marginBottom: '0.5rem' }}>
+                  {[
+                    { label: 'Encoder', value: 'Software (x264)', icon: 'bi-cpu-fill' },
+                    { label: 'Preset', value: 'veryfast', icon: 'bi-speedometer2' },
+                    { label: 'Audio', value: 'Opus 160 Kbps', icon: 'bi-music-note-beamed' },
+                  ].map((chip, i) => (
+                    <span key={i} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '0.22rem 0.55rem',
+                      background: colors.bgCard,
+                      border: `1px solid ${isDark ? 'rgba(14,165,233,0.20)' : 'rgba(14,165,233,0.18)'}`,
+                      borderRadius: 9999,
+                      fontSize: '0.66rem',
+                      color: colors.textPrimary,
+                      fontWeight: 600,
+                    }}>
+                      <i className={`bi ${chip.icon}`} style={{ fontSize: 10, color: '#0EA5E9' }} />
+                      <span style={{ color: colors.textSecondary }}>{chip.label}:</span> <strong style={{ fontWeight: 700, letterSpacing: '-0.005em' }}>{chip.value}</strong>
+                    </span>
+                  ))}
+                </div>
+                <div style={{
+                  fontSize: '0.7rem',
+                  color: colors.textSecondary,
+                  paddingLeft: 4,
+                  fontStyle: 'italic',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  opacity: 0.85,
+                }}>
+                  <i className="bi bi-shield-lock-fill" style={{ fontSize: 10, color: '#10B981' }} />
+                  No stream key or bearer token needed. The URL is self-authenticating.
+                </div>
+              </div>
+            </>
+          )}
 
         </div>
       )}
@@ -948,17 +1144,17 @@ export default function StreamPreview({
               Set Up Your Live Stream
             </div>
             <div style={{ fontSize: '0.92rem', color: colors.textSecondary, lineHeight: 1.55, maxWidth: 400, margin: '0 auto' }}>
-              Get your WHIP URL, configure OBS, and test your stream before going live.
+              Generate your stream credentials, then go live from your browser camera or via OBS with no extra software required.
             </div>
           </div>
 
           {/* Steps */}
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
-              { step: '1', text: 'Click below to generate your WHIP streaming URL.', icon: 'bi-link-45deg' },
-              { step: '2', text: 'In OBS, go to File then Settings, then the Stream tab, and set Service to WHIP.', icon: 'bi-gear-fill' },
-              { step: '3', text: 'Paste the WHIP URL into the Server field. Leave Bearer Token empty.', icon: 'bi-clipboard-fill' },
-              { step: '4', text: 'Start streaming in OBS to preview and test your feed.', icon: 'bi-play-circle-fill' },
+              { step: '1', text: 'Click below to generate your stream credentials.', icon: 'bi-link-45deg' },
+              { step: '2', text: 'Choose Browser Camera to stream directly from this device, or switch to OBS / Software for a dedicated encoder.', icon: 'bi-toggles' },
+              { step: '3', text: 'Browser mode: click Start Camera. OBS mode: paste the WHIP URL into Settings then Stream then Server.', icon: 'bi-gear-fill' },
+              { step: '4', text: 'A live preview appears above. Test your feed before going live.', icon: 'bi-play-circle-fill' },
               { step: '5', text: 'When ready, click Go Live to broadcast to your audience.', icon: 'bi-broadcast-pin' },
             ].map((item, idx) => (
               <div key={item.step} style={{
@@ -1433,7 +1629,7 @@ export default function StreamPreview({
                     Live broadcast
                   </div>
                   <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
-                    {isEnded ? 'Stream Ended' : !hasCredentials ? 'OBS Stream Setup' : isTestPreview ? 'Test Preview' : 'Live Stream Control'}
+                    {isEnded ? 'Stream Ended' : !hasCredentials ? 'Stream Setup' : isTestPreview ? 'Test Preview' : 'Live Stream Control'}
                   </h2>
                   <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 480 }}>{eventTitle}</p>
                 </div>
