@@ -42,3 +42,6 @@ next-env.d.ts
 
 # claude
 .claude
+
+# greenfield UI design previews (Phase 1 sandbox — see CLAUDE.md)
+/app/_design-sandbox/
