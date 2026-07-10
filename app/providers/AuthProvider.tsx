@@ -134,6 +134,11 @@ export interface DashboardUser {
     createdAt?: string;
   }[];
   completedEvents?: number;
+  // Booking acceptance rate (0-100 whole percent), null when the photographer
+  // hasn't responded to any booking yet. Dashboard profile stat only.
+  acceptanceRate?: number | null;
+  acceptedBookings?: number;
+  respondedBookings?: number;
   pendingChangesCount?: number;
   packages?: unknown[];
   profileReviewStatus?: string;
@@ -381,6 +386,9 @@ function mapProfileData(data: any): DashboardUser {
     joinedFrom: data.joinedFrom || undefined,
     reviews: data.reviews || [],
     completedEvents: data.completedEvents || 0,
+    acceptanceRate: typeof data.acceptanceRate === 'number' ? data.acceptanceRate : null,
+    acceptedBookings: data.acceptedBookings || 0,
+    respondedBookings: data.respondedBookings || 0,
     pendingChangesCount: data.pendingChangesCount || 0,
     packages: data.packages || [],
     profileReviewStatus: data.profileReviewStatus || undefined,

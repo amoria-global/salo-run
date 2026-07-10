@@ -3285,6 +3285,19 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{user?.completedEvents || 0}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Completed Jobs</div>
                   </div>
+                  <div
+                    style={{ textAlign: 'center' }}
+                    title={
+                      user?.respondedBookings
+                        ? `${user.acceptedBookings ?? 0} of ${user.respondedBookings} booking requests accepted`
+                        : 'No booking requests responded to yet'
+                    }
+                  >
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                      {typeof user?.acceptanceRate === 'number' ? `${user.acceptanceRate}%` : '—'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Acceptance</div>
+                  </div>
                 </div>
 
                 {/* KYC Verification Banner */}
