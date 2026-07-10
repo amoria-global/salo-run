@@ -9,6 +9,7 @@ import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import EventConfirmModal from '../../components/EventConfirmModal';
+import RebookWizard from '../../components/RebookWizard';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { StatCard } from '../../components/dashboard/StatCard';
@@ -773,6 +774,7 @@ const MyEventsPage = () => {
   const [ongoingUnpublishBlock, setOngoingUnpublishBlock] = useState<{ title: string; photographerName: string | null } | null>(null);
   const [noPhotographerEvent, setNoPhotographerEvent] = useState<Event | null>(null);
   const [pendingBookingEvent, setPendingBookingEvent] = useState<Event | null>(null);
+  const [rebookEvent, setRebookEvent] = useState<Event | null>(null);
   const [noPhotoEvent, setNoPhotoEvent] = useState<Event | null>(null);
 
   // Fetch events. use coordinator endpoint (returns only this user's events)
@@ -1876,6 +1878,11 @@ const MyEventsPage = () => {
                         {isEventEditable(event) && (
                           <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                             <EditIcon />
+                          </button>
+                        )}
+                        {event.bookingStatus?.toUpperCase() === 'REJECTED' && (
+                          <button onClick={() => setRebookEvent(event)} title="Rebook another photographer" style={{ flex: 1.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '-0.005em', boxShadow: '0 4px 10px rgba(8,58,133,0.30)', transition: 'transform 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+                          <i className="bi bi-arrow-repeat" style={{ fontSize: 13 }} /> Rebook
                           </button>
                         )}
                         {isEventDeletable(event) && (
@@ -3418,12 +3425,30 @@ const MyEventsPage = () => {
           title="Awaiting photographer confirmation"
           intro={<>You cannot publish <strong style={{ color: colors.textPrimary }}>&ldquo;{pendingBookingEvent.title}&rdquo;</strong> because the assigned photographer has not yet accepted the booking.</>}
           detail={pendingBookingEvent.bookingStatus?.toUpperCase() === 'REJECTED'
-            ? 'The photographer has rejected this booking. Please assign a different photographer before publishing.'
+            ? 'The photographer has rejected this booking. Rebook an alternative photographer, we’ll reuse all your original event details.'
             : 'Please wait for the photographer to accept, or assign a different photographer.'}
           colors={colors}
           actualTheme={actualTheme}
           onClose={() => setPendingBookingEvent(null)}
           closeLabel="Close"
+          primary={pendingBookingEvent.bookingStatus?.toUpperCase() === 'REJECTED' ? {
+            label: 'Rebook photographer',
+            icon: 'bi-arrow-repeat',
+            onClick: () => { const evt = pendingBookingEvent; setPendingBookingEvent(null); setRebookEvent(evt); },
+          } : undefined}
+        />
+      )}
+
+      {/* Rebook Wizard. reuses the rejected event's details; only picks a new photographer */}
+      {rebookEvent && (
+        <RebookWizard
+          open={!!rebookEvent}
+          onClose={() => setRebookEvent(null)}
+          eventId={rebookEvent.id}
+          eventTitle={rebookEvent.title}
+          colors={colors}
+          actualTheme={actualTheme}
+          onSuccess={() => { fetchMyEvents(); }}
         />
       )}
 
