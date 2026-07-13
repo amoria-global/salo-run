@@ -5113,7 +5113,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               {/* Save Button (per package) */}
                               {isPackageEditEnabled && (
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                  {isUUID(pkg.id) && (
+                                  {/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pkg.id) && (
                                     <button
                                       type="button"
                                       onClick={() => setGeoPkg({ id: pkg.id, name: pkg.packageName })}
