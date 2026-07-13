@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import localforage from 'localforage';
 import { useSearchParams } from 'next/navigation';
+import GeoPricingManager from '@/app/components/GeoPricingManager';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
@@ -361,6 +362,8 @@ const MyEventsPage = () => {
   const [resumingEventId, setResumingEventId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
+  // Geo-pricing manager modal target (an event to price by location).
+  const [geoEvent, setGeoEvent] = useState<Event | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [apiCurrencies, setApiCurrencies] = useState<{ value: string; label: string; id?: string }[]>([]);
 
@@ -1876,6 +1879,9 @@ const MyEventsPage = () => {
                           <ShareIcon />
                         </button>
                         {isEventEditable(event) && (
+                          <button onClick={() => setGeoEvent(event)} title="Geo pricing" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
+                            🌍
+                          </button>
                           <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                             <EditIcon />
                           </button>
@@ -3544,6 +3550,14 @@ const MyEventsPage = () => {
       )}
 
       {/* Edit Event Modal */}
+      <GeoPricingManager
+        open={!!geoEvent}
+        onClose={() => setGeoEvent(null)}
+        kind="event"
+        targetId={geoEvent?.id ?? ''}
+        name={geoEvent?.title}
+      />
+
       <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditEvent(null); }} title="Edit Event" maxWidth="700px">
         {editEvent && (
           <div>
