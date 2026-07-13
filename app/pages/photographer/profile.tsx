@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import GeoPricingManager from '@/app/components/GeoPricingManager';
 import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
@@ -198,6 +199,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience' | 'packages'>('overview');
+  // Geo-pricing manager target (a package to price by location).
+  const [geoPkg, setGeoPkg] = useState<{ id: string; name?: string } | null>(null);
   // Guards the bounce-arrival toast so it only fires once per redirect, even
   // if React re-renders or the user navigates away and back.
   const bounceHandledRef = useRef(false);
@@ -5109,7 +5112,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                               {/* Save Button (per package) */}
                               {isPackageEditEnabled && (
-                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                  {isUUID(pkg.id) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setGeoPkg({ id: pkg.id, name: pkg.packageName })}
+                                      style={{
+                                        backgroundColor: 'white', color: '#083A85', border: '2px solid #083A85',
+                                        borderRadius: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.85rem',
+                                        fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                      }}
+                                    >
+                                      🌍 Geo pricing
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => savePackageToAPI(pkg)}
                                     disabled={savingPackageId === pkg.id || !pkg.packageName}
@@ -5837,6 +5853,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           }}
         />
       )}
+      <GeoPricingManager
+        open={!!geoPkg}
+        onClose={() => setGeoPkg(null)}
+        kind="package"
+        targetId={geoPkg?.id ?? ''}
+        name={geoPkg?.name}
+      />
     </div>
   );
 };
