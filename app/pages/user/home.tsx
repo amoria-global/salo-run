@@ -19,6 +19,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { getLandingUrl } from '@/lib/urls';
 import PayNowModal, { Payment } from '../../components/UnlockModal';
 
 const NAVY = '#083A85';
@@ -31,6 +32,8 @@ const num = (v: unknown) => (typeof v === 'number' && !Number.isNaN(v) ? v : und
 type Album = { id: string; title: string; thumbnail?: string; photographer?: string; photoCount: number; date?: string; locked: boolean; archived: boolean };
 type Stream = { id: string; eventId?: string; title: string; photographer?: string; coverImage?: string; date?: string; duration?: string };
 type Pending = { id: string; eventName: string; photographerName?: string; amount: number; paidAmount: number };
+type Ev = { id: string; title: string; eventDate?: string; status: string; photographer?: string };
+type Don = { id: string; amount: number; currency?: string; message?: string; date?: string };
 
 function money(n: number): string {
   try {
@@ -50,17 +53,21 @@ export default function UserHome(): React.JSX.Element {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [streams, setStreams] = useState<Stream[]>([]);
   const [pending, setPending] = useState<Pending[]>([]);
+  const [events, setEvents] = useState<Ev[]>([]);
+  const [donations, setDonations] = useState<Don[]>([]);
 
   // In-page pay modal
   const [payTarget, setPayTarget] = useState<Payment | null>(null);
 
   const load = async () => {
     const api = getApiUrl();
-    const [aRes, alRes, stRes, peRes] = await Promise.allSettled([
+    const [aRes, alRes, stRes, peRes, evRes, doRes] = await Promise.allSettled([
       dashboardAuthFetch(`${api}/api/remote/customer/analytics`),
       dashboardAuthFetch(`${api}/api/remote/customer/albums`),
       dashboardAuthFetch(`${api}/api/remote/customer/streams`),
       dashboardAuthFetch(`${api}/api/remote/customer/payments/pending`),
+      dashboardAuthFetch(`${api}/api/remote/customer/events`),
+      dashboardAuthFetch(`${api}/api/remote/donations?page=0&size=20`),
     ]);
 
     if (aRes.status === 'fulfilled' && aRes.value.ok) {
@@ -113,6 +120,32 @@ export default function UserHome(): React.JSX.Element {
         })).filter((p) => p.id),
       );
     }
+    if (evRes.status === 'fulfilled' && evRes.value.ok) {
+      const j = await evRes.value.json();
+      const rows = Array.isArray(j?.data) ? (j.data as Raw[]) : Array.isArray((j?.data as Raw)?.content) ? ((j.data as Raw).content as Raw[]) : [];
+      setEvents(
+        rows.map((r) => ({
+          id: String(r.id ?? ''),
+          title: str(r.title) ?? str(r.eventTitle) ?? 'Event',
+          eventDate: str(r.eventDate),
+          status: (str(r.eventStatus) ?? str(r.status) ?? '').toUpperCase(),
+          photographer: str(r.photographerName),
+        })).filter((e) => e.id),
+      );
+    }
+    if (doRes.status === 'fulfilled' && doRes.value.ok) {
+      const j = await doRes.value.json();
+      const rows = Array.isArray(j?.data) ? (j.data as Raw[]) : Array.isArray((j?.data as Raw)?.content) ? ((j.data as Raw).content as Raw[]) : [];
+      setDonations(
+        rows.map((r) => ({
+          id: String(r.id ?? ''),
+          amount: num(r.amount) ?? 0,
+          currency: str(r.currencyCode) ?? str(r.currency),
+          message: str(r.message),
+          date: str(r.createdAt) ?? str(r.date),
+        })).filter((d) => d.id),
+      );
+    }
     setLoading(false);
   };
 
@@ -131,6 +164,13 @@ export default function UserHome(): React.JSX.Element {
   const purchasedPhotos = useMemo(() => albums.filter((a) => !a.archived), [albums]);
   const archived = useMemo(() => albums.filter((a) => a.archived), [albums]);
   const totalPending = pending.reduce((s, p) => s + (p.amount - p.paidAmount), 0);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const liveEvents = useMemo(() => events.filter((e) => e.status === 'ONGOING'), [events]);
+  const upcomingEvents = useMemo(
+    () => events.filter((e) => !['ONGOING', 'COMPLETED', 'CANCELLED'].includes(e.status) && (!e.eventDate || e.eventDate >= today)),
+    [events, today],
+  );
 
   const stats = [
     { label: 'Spent', value: money(spent), icon: 'bi-wallet2' },
@@ -206,6 +246,59 @@ export default function UserHome(): React.JSX.Element {
                 </Link>
               ))}
             </section>
+
+            {/* Live now — join a stream currently broadcasting */}
+            {!loading && liveEvents.length > 0 ? (
+              <>
+                <SectionHead title="Live now" />
+                <div className="space-y-2">
+                  {liveEvents.slice(0, 4).map((e) => (
+                    <div key={e.id} className="flex items-center gap-3 rounded-2xl bg-white border border-gray-200 p-3 shadow-sm">
+                      <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                      <div className="min-w-0 flex-1">
+                        <h4 className="truncate text-sm font-bold text-gray-900">{e.title}</h4>
+                        <p className="truncate text-xs text-red-500 font-semibold">{[e.photographer, 'Live now'].filter(Boolean).join(' · ')}</p>
+                      </div>
+                      <a
+                        href={`${getLandingUrl()}/user/events/view-event?id=${e.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-red-500 px-4 py-2 text-sm font-bold text-white"
+                      >
+                        <i className="bi bi-play-fill" /> Join
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
+
+            {/* Upcoming events */}
+            <SectionHead title="Upcoming events" actionLabel={upcomingEvents.length > 0 ? 'My bookings' : undefined} href="/user/user/events" />
+            {loading ? (
+              <div className="h-16 rounded-2xl bg-white border border-gray-200 animate-pulse" />
+            ) : upcomingEvents.length === 0 ? (
+              <Empty icon="bi-calendar-event" text="No upcoming events — book a photographer or buy stream access." />
+            ) : (
+              <div className="space-y-2">
+                {upcomingEvents.slice(0, 5).map((e) => (
+                  <a
+                    key={e.id}
+                    href={`${getLandingUrl()}/user/events/view-event?id=${e.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 rounded-2xl bg-white border border-gray-200 p-3 shadow-sm transition hover:shadow-md"
+                  >
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-[#083A85]"><i className="bi bi-calendar-event" /></span>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="truncate text-sm font-bold text-gray-900">{e.title}</h4>
+                      <p className="truncate text-xs text-gray-500">{[e.photographer, e.eventDate].filter(Boolean).join(' · ') || 'Upcoming'}</p>
+                    </div>
+                    <i className="bi bi-chevron-right text-gray-400" />
+                  </a>
+                ))}
+              </div>
+            )}
 
             {/* Recent watches */}
             <SectionHead title="Recent watches" actionLabel={streams.length > 0 ? 'All streams' : undefined} href="/user/user/streams" />
@@ -308,6 +401,24 @@ export default function UserHome(): React.JSX.Element {
                 ))}
               </div>
             )}
+
+            {/* Donations */}
+            {!loading && donations.length > 0 ? (
+              <>
+                <SectionHead title="Your donations" actionLabel="Donate" href="/user/user/donate" />
+                <div className="space-y-2">
+                  {donations.slice(0, 5).map((d) => (
+                    <div key={d.id} className="flex items-center gap-3 rounded-2xl bg-white border border-gray-200 p-3 shadow-sm">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-pink-50 text-[#F20C8F]"><i className="bi bi-heart-fill" /></span>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="truncate text-sm font-bold text-gray-900">{d.amount ? money(d.amount) : 'Donation'}</h4>
+                        <p className="truncate text-xs text-gray-500">{d.message || (d.date ? d.date.slice(0, 10) : 'Thank you for giving')}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
 
             {/* Settings & Help */}
             <div className="mt-8 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
