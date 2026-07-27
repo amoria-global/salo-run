@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { WHIPClient, WHEPPlayer } from '@/lib/whip-client';
+import StreamGiftOverlay from './StreamGiftOverlay';
 
 // ============================================
 // TYPES
@@ -11,6 +12,8 @@ interface StreamPreviewProps {
   isOpen: boolean;
   onClose: () => void;
   eventTitle: string;
+  /** Event id used by the gift/reaction overlay to poll the live chat feed. */
+  eventId?: string;
   whipUrl?: string;
   whepUrl?: string;
   inviteToken?: string;
@@ -113,6 +116,7 @@ export default function StreamPreview({
   isOpen,
   onClose,
   eventTitle,
+  eventId,
   whipUrl,
   whepUrl,
   inviteToken,
@@ -639,6 +643,18 @@ export default function StreamPreview({
               </>
             ) : null}
           </div>
+        )}
+
+        {/* TikTok-style gift/reaction overlay. Pointer-events-none layer
+            over the player; offsets clear the LIVE badge (top-left) and
+            the viewer pill / local camera thumb (top-right). */}
+        {eventId && (
+          <StreamGiftOverlay
+            eventId={eventId}
+            active={isOpen}
+            topLeftOffset={showVideo ? 44 : 12}
+            topRightOffset={isBrowserCapturing ? 112 : isLive && viewerCount > 0 ? 40 : 12}
+          />
         )}
       </div>
 

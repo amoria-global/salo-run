@@ -3554,6 +3554,7 @@ const PhotographerEventsPage = () => {
           isOpen={showStreamPreview}
           onClose={() => setShowStreamPreview(false)}
           eventTitle={selectedEvent.title}
+          eventId={selectedEvent.id}
           whipUrl={streamConfigs[selectedEvent.id]?.whipUrl}
           whepUrl={streamConfigs[selectedEvent.id]?.whepUrl}
           inviteToken={streamConfigs[selectedEvent.id]?.streamType === 'entry_fee' ? undefined : streamConfigs[selectedEvent.id]?.inviteToken}
