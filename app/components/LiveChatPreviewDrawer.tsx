@@ -28,6 +28,14 @@ interface ApiMessage {
   timestamp?: string;
   createdAt?: string;
   chatType?: string;
+  giftMeta?: string | Record<string, unknown>;
+}
+
+interface UiGift {
+  emoji: string;
+  name: string;
+  amountUsd: number | null;
+  note?: string;
 }
 
 interface UiMessage {
@@ -36,7 +44,39 @@ interface UiMessage {
   sender: string;
   time: string;
   avatar: string | null;
+  /** Present when the row is a GIFT — rendered as a highlighted bubble. */
+  gift?: UiGift | null;
 }
+
+/** Defensive giftMeta parse: JSON string (or object) → UiGift, else null. */
+function parseGiftMeta(raw: ApiMessage["giftMeta"]): UiGift | null {
+  let meta: Record<string, unknown> | null = null;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") meta = parsed as Record<string, unknown>;
+    } catch {
+      meta = null;
+    }
+  } else if (raw && typeof raw === "object") {
+    meta = raw as Record<string, unknown>;
+  }
+  if (!meta || !meta.name) return null;
+  const amount = Number(meta.amountUsd);
+  return {
+    emoji: String(meta.emoji || "🎁"),
+    name: String(meta.name),
+    amountUsd: Number.isFinite(amount) ? amount : null,
+    note: typeof meta.message === "string" && meta.message.trim() ? meta.message.trim() : undefined,
+  };
+}
+
+const fmtUsd = (n: number) => {
+  const r = Math.round(n * 100) / 100;
+  return r % 1 === 0
+    ? r.toLocaleString()
+    : r.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 const DEFAULT_AVATAR_GRADIENT = "linear-gradient(135deg, #083A85 0%, #F20C8F 100%)";
 
@@ -88,8 +128,12 @@ export default function LiveChatPreviewDrawer({
             continue;
           }
           seenIds.current.add(id);
+          const isGift = (m.chatType || "").toUpperCase() === "GIFT";
+          const gift = isGift ? parseGiftMeta(m.giftMeta) : null;
           const text = String(m.message || m.content || "");
-          if (!text.trim()) continue;
+          // Gift rows with parsed meta can render without message text;
+          // everything else needs a non-empty body.
+          if (!text.trim() && !gift) continue;
           const sender = (m.viewerUsername || m.sender || "Viewer") as string;
           const raw = (m.createdAt || m.timestamp || "") as string;
           const time = m.time
@@ -103,6 +147,7 @@ export default function LiveChatPreviewDrawer({
             sender,
             time,
             avatar: (m.viewerAvatar || m.avatar || null) as string | null,
+            gift: isGift ? gift : undefined,
           });
         }
         if (fresh.length) {
@@ -242,7 +287,7 @@ export default function LiveChatPreviewDrawer({
               </div>
             </div>
           ) : (
-            messages.map((m) => <ChatRow key={m.id} m={m} />)
+            messages.map((m) => (m.gift !== undefined ? <GiftRow key={m.id} m={m} /> : <ChatRow key={m.id} m={m} />))
           )}
         </div>
 
@@ -261,6 +306,130 @@ export default function LiveChatPreviewDrawer({
         </div>
       </aside>
     </>
+  );
+}
+
+/**
+ * Highlighted bubble for GIFT rows: pink-tinted surface, gift emoji in a
+ * gradient coin, sender + gift name + $amount. Falls back to the row's
+ * plain message text when giftMeta didn't parse.
+ */
+function GiftRow({ m }: { m: UiMessage }) {
+  const gift = m.gift ?? null;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 8,
+        padding: "8px 10px",
+        margin: "2px 0",
+        borderRadius: 10,
+        background: "linear-gradient(135deg, rgba(242,12,143,0.16) 0%, rgba(8,58,133,0.14) 100%)",
+        border: "1px solid rgba(242,12,143,0.35)",
+        boxShadow: "0 2px 8px rgba(242,12,143,0.10)",
+      }}
+    >
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: "50%",
+          background: DEFAULT_AVATAR_GRADIENT,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 15,
+          lineHeight: 1,
+          flexShrink: 0,
+          border: "1px solid rgba(255,255,255,0.18)",
+        }}
+      >
+        {gift ? gift.emoji : "🎁"}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: "#fff",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "50%",
+            }}
+          >
+            {m.sender}
+          </span>
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "#F20C8F",
+              background: "rgba(242,12,143,0.14)",
+              border: "1px solid rgba(242,12,143,0.30)",
+              borderRadius: 9999,
+              padding: "1px 7px",
+              flexShrink: 0,
+            }}
+          >
+            Gift
+          </span>
+          <span style={{ fontSize: 10, color: "#64748b", flexShrink: 0, marginLeft: "auto" }}>{m.time}</span>
+        </div>
+        {gift ? (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 600 }}>
+              sent a {gift.name}
+            </span>
+            {gift.amountUsd !== null && (
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: "#FF3DA0",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                ${fmtUsd(gift.amountUsd)}
+              </span>
+            )}
+          </div>
+        ) : (
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12,
+              lineHeight: 1.35,
+              color: "#e2e8f0",
+              fontWeight: 600,
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+            }}
+          >
+            {m.text}
+          </p>
+        )}
+        {gift?.note && (
+          <p
+            style={{
+              margin: "3px 0 0",
+              fontSize: 11,
+              lineHeight: 1.35,
+              color: "#94a3b8",
+              fontStyle: "italic",
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+            }}
+          >
+            “{gift.note}”
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
