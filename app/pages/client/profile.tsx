@@ -5,6 +5,8 @@ import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import CountrySelect, { eastAfricanCountries } from '../../components/CountrySelect';
+import InternationalPhoneInput, { type PhoneValue } from '../../components/phone/InternationalPhoneInput';
+import { parsePhone } from '@/lib/phone/phoneKit';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -74,6 +76,16 @@ const ProfilePage = () => {
     phoneNumber: ''
   });
 
+  // International phone input: the saved profile phone (code + national
+  // number) is parsed once with phoneKit so the component can be seeded
+  // with the right country + national digits. phoneValue always mirrors
+  // what the field currently shows.
+  const [phoneValue, setPhoneValue] = useState<PhoneValue | null>(null);
+  const savedPhone = React.useMemo(
+    () => parsePhone(`${profile.phoneCode || ''}${profile.phoneNumber || ''}`),
+    [profile.phoneCode, profile.phoneNumber]
+  );
+
   // Sync profile image from user data when it loads
   useEffect(() => {
     if (user?.profilePicture) setProfileImage(user.profilePicture);
@@ -106,13 +118,19 @@ const ProfilePage = () => {
       platformAlert('Location / Address is required. Please fill in at least your district and country.');
       return;
     }
+    if (phoneValue?.nsn && !phoneValue.isValid) {
+      platformAlert('Please enter a valid phone number.');
+      return;
+    }
     setIsSaving(true);
     try {
       const apiUrl = getApiUrl();
       const nameParts = capitalizeWords(formData.fullName.trim()).split(/\s+/);
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
-      const phone = `${formData.phoneCode}${formData.phoneNumber.replace(/\s/g, '')}`;
+      // International digits without '+' (e.g. "250788123456") — the
+      // canonical wire format per the backend phone-format audit.
+      const phone = phoneValue?.digits ?? '';
       const capitalizedAddress = capitalizeWords(address);
 
       const params = new URLSearchParams();
@@ -131,6 +149,11 @@ const ProfilePage = () => {
 
       const result = await response.json();
       if (result.action === 1) {
+        // Keep the shared profile context in sync with the phone just saved
+        // so other pages (payment prefills, etc.) pick it up immediately.
+        if (phoneValue?.dial && phoneValue.nsn) {
+          updateProfile({ phoneCode: `+${phoneValue.dial}`, phoneNumber: phoneValue.nsn });
+        }
         platformAlert('Profile updated successfully!');
       } else {
         throw new Error(result.message || 'Failed to update profile');
@@ -174,17 +197,6 @@ const ProfilePage = () => {
       setValidationErrors(prev => ({ ...prev, username: '' }));
     } else {
       setValidationErrors(prev => ({ ...prev, username: 'Only letters, numbers and underscores allowed' }));
-    }
-  };
-
-  const handlePhoneNumberChange = (value: string) => {
-    if (!isEditEnabled) return;
-    // Allow only numbers and spaces (for formatting like "788 456 789")
-    if (value === '' || /^[\d\s]*$/.test(value)) {
-      handleInputChange('phoneNumber', value);
-      setValidationErrors(prev => ({ ...prev, phoneNumber: '' }));
-    } else {
-      setValidationErrors(prev => ({ ...prev, phoneNumber: 'Only numbers and spaces allowed' }));
     }
   };
 
@@ -947,32 +959,15 @@ const ProfilePage = () => {
                 {/* Phone */}
                 <div>
                   <label style={labelStyle}>Phone</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <CountrySelect
-                      countries={eastAfricanCountries}
-                      value={formData.phoneCode}
-                      onChange={(val) => handleInputChange('phoneCode', val)}
-                      valueKey="code"
-                      displayKey="code"
-                      disabled={!isEditEnabled}
-                      inputStyle={{ ...inputStyle, cursor: isEditEnabled ? 'pointer' : 'not-allowed' }}
-                      colors={colors}
-                      actualTheme={actualTheme}
-                      width="140px"
-                    />
-                    <input
-                      type="tel"
-                      maxLength={15}
-                      value={formData.phoneNumber}
-                      onChange={(e) => handlePhoneNumberChange(e.target.value)}
-                      disabled={!isEditEnabled}
-                      placeholder="788 123 456"
-                      style={validationErrors.phoneNumber ? { ...inputErrorStyle, flex: 1 } : { ...inputStyle, flex: 1 }}
-                    />
-                  </div>
-                  {validationErrors.phoneNumber && (
-                    <span style={errorMessageStyle}>{validationErrors.phoneNumber}</span>
-                  )}
+                  <InternationalPhoneInput
+                    key={`${savedPhone.country?.iso2 ?? 'none'}-${savedPhone.nsn}`}
+                    defaultIso2={savedPhone.country?.iso2}
+                    initialNsn={savedPhone.nsn}
+                    disabled={!isEditEnabled}
+                    dark={actualTheme === 'dark'}
+                    ariaLabel="Phone number"
+                    onChange={(value) => setPhoneValue(value)}
+                  />
                 </div>
 
                 {/* Title */}

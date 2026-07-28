@@ -10,6 +10,8 @@ import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { validateAccountDetails } from '@/lib/xentripay';
+import InternationalPhoneInput, { type PhoneValue } from '../components/phone/InternationalPhoneInput';
+import { parsePhone } from '@/lib/phone/phoneKit';
 
 // API response type
 interface ApiResponse<T = unknown> {
@@ -140,31 +142,6 @@ const TabParamHandler = ({
   return null;
 };
 
-const COUNTRIES: { name: string; dialCode: string; flag: string; iso: string }[] = [
-  { name: 'Benin', dialCode: '+229', flag: '🇧🇯', iso: 'bj' },
-  { name: 'Botswana', dialCode: '+267', flag: '🇧🇼', iso: 'bw' },
-  { name: 'Cameroon', dialCode: '+237', flag: '🇨🇲', iso: 'cm' },
-  { name: 'Chad', dialCode: '+235', flag: '🇹🇩', iso: 'td' },
-  { name: 'Congo (Brazzaville)', dialCode: '+242', flag: '🇨🇬', iso: 'cg' },
-  { name: "Côte d'Ivoire", dialCode: '+225', flag: '🇨🇮', iso: 'ci' },
-  { name: 'Eswatini', dialCode: '+268', flag: '🇸🇿', iso: 'sz' },
-  { name: 'Gabon', dialCode: '+241', flag: '🇬🇦', iso: 'ga' },
-  { name: 'Ghana', dialCode: '+233', flag: '🇬🇭', iso: 'gh' },
-  { name: 'Kenya', dialCode: '+254', flag: '🇰🇪', iso: 'ke' },
-  { name: 'Liberia', dialCode: '+231', flag: '🇱🇷', iso: 'lr' },
-  { name: 'Madagascar', dialCode: '+261', flag: '🇲🇬', iso: 'mg' },
-  { name: 'Malawi', dialCode: '+265', flag: '🇲🇼', iso: 'mw' },
-  { name: 'Niger', dialCode: '+227', flag: '🇳🇪', iso: 'ne' },
-  { name: 'Nigeria', dialCode: '+234', flag: '🇳🇬', iso: 'ng' },
-  { name: 'Rwanda', dialCode: '+250', flag: '🇷🇼', iso: 'rw' },
-  { name: 'Seychelles', dialCode: '+248', flag: '🇸🇨', iso: 'sc' },
-  { name: 'South Africa', dialCode: '+27', flag: '🇿🇦', iso: 'za' },
-  { name: 'South Sudan', dialCode: '+211', flag: '🇸🇸', iso: 'ss' },
-  { name: 'Sudan', dialCode: '+249', flag: '🇸🇩', iso: 'sd' },
-  { name: 'Uganda', dialCode: '+256', flag: '🇺🇬', iso: 'ug' },
-  { name: 'Zambia', dialCode: '+260', flag: '🇿🇲', iso: 'zm' },
-];
-
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
   const { theme, setTheme, actualTheme, colors } = useTheme();
   const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications' | 'security'>('appearance');
@@ -176,12 +153,18 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [paymentType, setPaymentType] = useState<'mtn' | 'airtel' | 'bank'>('mtn');
 
   // Form states
-  const [mobileNumber, setMobileNumber] = useState('');
+  // Mobile money number captured by InternationalPhoneInput — holds every
+  // representation (digits/e164/iso2/validity). accountNumber submits
+  // mobilePhone.digits ("250788123456", no '+') per the backend audit.
+  const [mobilePhone, setMobilePhone] = useState<PhoneValue | null>(null);
+  // Bumped on resetForm so the phone component remounts empty.
+  const [phoneFieldKey, setPhoneFieldKey] = useState(0);
   const [accountHolderName, setAccountHolderName] = useState('');
-  const [countryCode, setCountryCode] = useState('+250');
-  const [countryFlag, setCountryFlag] = useState('🇷🇼');
-  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const [countrySearch, setCountrySearch] = useState('');
+  // Default the phone field's country to the user's saved profile phone.
+  const defaultPhoneIso2 = React.useMemo(
+    () => parsePhone(user?.phone || '').country?.iso2 ?? 'RW',
+    [user?.phone]
+  );
 
   // Bank transfer states
   const [bankAccountNumber, setBankAccountNumber] = useState('');
@@ -601,12 +584,9 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   };
 
   const resetForm = () => {
-    setMobileNumber('');
+    setMobilePhone(null);
+    setPhoneFieldKey(k => k + 1);
     setAccountHolderName('');
-    setCountryCode('+250');
-    setCountryFlag('🇷🇼');
-    setShowCountryDropdown(false);
-    setCountrySearch('');
     setBankAccountNumber('');
     setBankAccountName('');
     setSelectedBank('');
@@ -622,19 +602,11 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const saveWithdrawalMethod = async (methodType: string, accountName: string, accountNumber: string, bankName: string) => {
     const apiUrl = getApiUrl();
     const isDefault = paymentMethods.length === 0;
-    // Derive ISO-2 country from the user-selected dial code (+250→RW,
-    // +254→KE, …). The backend stores this on the withdrawal_method
-    // row so payout routing can pick PawaPay for non-RW numbers and
-    // XentriPay only for Rwanda.
-    const dialToIso: Record<string, string> = {
-      '+250': 'RW', '+254': 'KE', '+256': 'UG', '+255': 'TZ',
-      '+260': 'ZM', '+233': 'GH', '+234': 'NG', '+265': 'MW',
-      '+229': 'BJ', '+226': 'BF', '+237': 'CM', '+243': 'CD',
-      '+242': 'CG', '+225': 'CI', '+251': 'ET', '+241': 'GA',
-      '+266': 'LS', '+258': 'MZ', '+221': 'SN', '+232': 'SL',
-      '+263': 'ZW',
-    };
-    const country = dialToIso[countryCode] ?? 'RW';
+    // ISO-2 country of the phone the user entered (from the international
+    // phone input). The backend stores this on the withdrawal_method row
+    // so payout routing can pick PawaPay for non-RW numbers and XentriPay
+    // only for Rwanda.
+    const country = mobilePhone?.iso2 ?? 'RW';
     const params = new URLSearchParams({
       methodType,
       accountName,
@@ -710,14 +682,14 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       } else if (paymentType === 'mtn') {
         methodType = 'MOBILE_MONEY';
         accountName = accountHolderName || 'MTN Mobile Money';
-        accountNumber = mobileNumber ? `${countryCode}${mobileNumber.replace(/\s/g, '')}` : '';
+        accountNumber = mobilePhone?.digits ?? '';
         bankName = 'MTN Mobile Money';
         const provider = mobileProviders.find(p => p.name.toLowerCase().includes('mtn'));
         bankId = provider?.id || '63510';
       } else {
         methodType = 'MOBILE_MONEY';
         accountName = accountHolderName || 'Airtel Money';
-        accountNumber = mobileNumber ? `${countryCode}${mobileNumber.replace(/\s/g, '')}` : '';
+        accountNumber = mobilePhone?.digits ?? '';
         bankName = 'Airtel Rwanda';
         const provider = mobileProviders.find(p => p.name.toLowerCase().includes('airtel'));
         bankId = provider?.id || '63514';
@@ -725,6 +697,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
       if (!accountNumber) {
         setValidationError('Please enter an account number.');
+        setIsSavingPreference(false);
+        return;
+      }
+
+      if ((paymentType === 'mtn' || paymentType === 'airtel') && !mobilePhone?.isValid) {
+        setValidationError('Please enter a valid phone number.');
         setIsSavingPreference(false);
         return;
       }
@@ -2667,140 +2645,13 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
                     {paymentType === 'mtn' ? 'MTN' : 'Airtel'} Phone Number
                   </label>
-                  <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
-                    {/* Country code selector */}
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                      <button
-                        type="button"
-                        onClick={() => { setShowCountryDropdown(!showCountryDropdown); setCountrySearch(''); }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.375rem',
-                          padding: '0.75rem 0.625rem',
-                          border: `2px solid ${colors.borderSecondary}`,
-                          borderRadius: '0.5rem',
-                          backgroundColor: colors.bgInput,
-                          color: colors.textPrimary,
-                          fontSize: '0.9rem',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          minWidth: '90px',
-                        }}
-                      >
-                        <img src={`https://flagcdn.com/w40/${(COUNTRIES.find(c => c.dialCode === countryCode) || COUNTRIES[15]).iso}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
-                        <span style={{ fontWeight: '500' }}>{countryCode}</span>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                          <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-
-                      {showCountryDropdown && (
-                        <>
-                          {/* Click-outside overlay */}
-                          <div
-                            style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                            onClick={() => setShowCountryDropdown(false)}
-                          />
-                          {/* Dropdown */}
-                          <div style={{
-                            position: 'absolute',
-                            top: 'calc(100% + 4px)',
-                            left: 0,
-                            zIndex: 100,
-                            backgroundColor: colors.bgCard,
-                            border: `2px solid ${colors.borderPrimary}`,
-                            borderRadius: '0.5rem',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                            width: '240px',
-                            maxHeight: '220px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            overflow: 'hidden',
-                          }}>
-                            {/* Search */}
-                            <div style={{ padding: '0.5rem', borderBottom: `1px solid ${colors.borderPrimary}`, flexShrink: 0 }}>
-                              <input
-                                type="text"
-                                placeholder="Search country…"
-                                value={countrySearch}
-                                onChange={(e) => setCountrySearch(e.target.value)}
-                                autoFocus
-                                style={{
-                                  width: '100%',
-                                  padding: '0.375rem 0.5rem',
-                                  border: `1px solid ${colors.borderSecondary}`,
-                                  borderRadius: '0.375rem',
-                                  fontSize: '0.85rem',
-                                  backgroundColor: colors.bgInput,
-                                  color: colors.textPrimary,
-                                  outline: 'none',
-                                  boxSizing: 'border-box',
-                                }}
-                              />
-                            </div>
-                            {/* List */}
-                            <div style={{ overflowY: 'auto', flex: 1 }}>
-                              {COUNTRIES
-                                .filter(c =>
-                                  c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-                                  c.dialCode.includes(countrySearch)
-                                )
-                                .map((c) => (
-                                  <div
-                                    key={c.name}
-                                    onClick={() => {
-                                      setCountryCode(c.dialCode);
-                                      setCountryFlag(c.flag);
-                                      setShowCountryDropdown(false);
-                                      setCountrySearch('');
-                                    }}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '0.5rem',
-                                      padding: '0.5rem 0.75rem',
-                                      cursor: 'pointer',
-                                      fontSize: '0.875rem',
-                                      color: colors.textPrimary,
-                                      backgroundColor: countryCode === c.dialCode && countryFlag === c.flag
-                                        ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
-                                        : 'transparent',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.bgHover; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = countryCode === c.dialCode && countryFlag === c.flag ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent'; }}
-                                  >
-                                    <img src={`https://flagcdn.com/w40/${c.iso}.png`} alt={c.name} style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
-                                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                                    <span style={{ color: colors.textSecondary, flexShrink: 0 }}>{c.dialCode}</span>
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Phone number input */}
-                    <input
-                      type="tel"
-                      placeholder="7XX XXX XXX"
-                      value={mobileNumber}
-                      onChange={(e) => setMobileNumber(e.target.value.replace(/[^\d\s\-]/g, ''))}
-                      style={{
-                        flex: 1,
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderSecondary}`,
-                        borderRadius: '0.5rem',
-                        fontSize: '0.9rem',
-                        backgroundColor: colors.bgInput,
-                        color: colors.textPrimary,
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        minWidth: 0,
-                      }}
-                    />
-                  </div>
+                  <InternationalPhoneInput
+                    key={phoneFieldKey}
+                    defaultIso2={defaultPhoneIso2}
+                    dark={actualTheme === 'dark'}
+                    ariaLabel={`${paymentType === 'mtn' ? 'MTN' : 'Airtel'} phone number`}
+                    onChange={(value) => { setMobilePhone(value); setValidationError(''); }}
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>

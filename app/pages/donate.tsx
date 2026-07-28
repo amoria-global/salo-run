@@ -17,7 +17,7 @@ import {
 } from '@/lib/donationApi';
 import { PaymentMethodPicker, type PaymentMethodSelection } from '../components/payments/PaymentMethodPicker';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
-import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
+import InternationalPhoneInput, { type PhoneValue } from '../components/phone/InternationalPhoneInput';
 
 const FALLBACK_TIERS = [1000, 2000, 5000, 10000];
 
@@ -65,7 +65,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
   const [operatorProvider, setOperatorProvider] = useState('');
   const [methodType, setMethodType] = useState<'MOBILE_MONEY' | 'CARD'>('MOBILE_MONEY');
   const { country: payCountry, setCountry: setPayCountry } = usePaymentCountry();
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState<PhoneValue | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [donationId, setDonationId] = useState('');
@@ -162,7 +162,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
   // Handle payment initiation
   const handlePay = async () => {
     if (!paymentMethod) { setError('Please select a payment method'); return; }
-    if (methodType !== 'CARD' && !isPlausibleMobile(phone, payCountry)) {
+    if (methodType !== 'CARD' && !phone?.isValid) {
       setError('Please enter a valid phone number for the selected country'); return;
     }
     setLoading(true);
@@ -172,7 +172,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
       const method = methodType;
       const res = await initiateDonationPayment({
         donationId,
-        phone: phone || undefined,
+        phone: phone?.digits || undefined,
         telecomProvider: telecom || undefined,
         paymentMethod: method,
         redirectUrl: typeof window !== 'undefined' ? window.location.href : undefined,
@@ -212,7 +212,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
     setPaymentMethod('');
     setOperatorProvider('');
     setMethodType('MOBILE_MONEY');
-    setPhone('');
+    setPhone(null);
     setError('');
     setDonationId('');
     setPaymentUrl('');
@@ -477,8 +477,11 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
           {paymentMethod && methodType !== 'CARD' && (
             <div style={{ marginBottom: '16px' }}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: colors.textSecondary, display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>Phone Number</label>
-              <input type="tel" placeholder={phoneHintForCountry(payCountry)} value={phone} onChange={e => setPhone(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${colors.borderPrimary}`, fontSize: '14px', color: colors.textPrimary, background: colors.bgInput, outline: 'none', boxSizing: 'border-box' }}
+              <InternationalPhoneInput
+                defaultIso2={payCountry}
+                dark={actualTheme === 'dark'}
+                ariaLabel="Mobile money phone number"
+                onChange={(value) => setPhone(value)}
               />
             </div>
           )}
