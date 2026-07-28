@@ -6,9 +6,10 @@ import { getApiUrl } from '@/lib/api';
 import { initiateBookingPayment, pollPaymentStatus, sanitizeErrorMessage } from '@/lib/xentripay';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
 import { PaymentMethodPicker, type PaymentMethodSelection } from './payments/PaymentMethodPicker';
-import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
+import InternationalPhoneInput, { type PhoneValue } from './phone/InternationalPhoneInput';
 import type { PaymentOperator } from '@/lib/payments/types';
 import { useCurrency } from '@/app/context/CurrencyContext';
+import { useTheme } from '../context/ThemeContext';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 
@@ -46,6 +47,7 @@ type Step =
  */
 export default function PendingMilestonePaymentModal({ isOpen, onClose }: PendingMilestonePaymentModalProps) {
   const { currencyId } = useCurrency();
+  const { actualTheme } = useTheme();
   const [pendingPayments, setPendingPayments] = useState<PendingDeclaration[]>([]);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<Step>('overview');
@@ -55,7 +57,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
   // list shown and the backend gateway routing (PawaPay primary,
   // XentriPay backup for RW).
   const { country: payCountry, setCountry: setPayCountry } = usePaymentCountry();
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState<PhoneValue | null>(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const stopPollingRef = useRef<(() => void) | null>(null);
@@ -64,7 +66,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
     if (!isOpen) {
       // Reset on close so the next open starts at the overview step.
       setStep('overview');
-      setPhone('');
+      setPhone(null);
       setError('');
       setSubmitting(false);
       if (stopPollingRef.current) { stopPollingRef.current(); stopPollingRef.current = null; }
@@ -107,7 +109,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
   const handleInitiatePayment = async () => {
     setError('');
     if (!selectedMethod) { setError('Please select a payment method.'); return; }
-    if (selectedMethod !== 'card' && !isPlausibleMobile(phone, payCountry)) {
+    if (selectedMethod !== 'card' && !phone?.isValid) {
       setError('Please enter a valid phone number for the selected country.');
       return;
     }
@@ -123,7 +125,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
 
       const result = await initiateBookingPayment(
         firstPayment.id,
-        phone.trim(),
+        phone?.digits ?? '',
         telecom,
         methodType,
         redirectUrl,
@@ -223,15 +225,11 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
       <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--ck-text-soft)', marginBottom: 6 }}>
         {selectedOperator?.name ?? 'Mobile money'} phone number
       </label>
-      <input
-        type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-        placeholder={phoneHintForCountry(payCountry)}
-        style={{
-          width: '100%', padding: '10px 12px', borderRadius: 10,
-          border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)',
-          color: 'var(--ck-text)', fontSize: '0.95rem', outline: 'none',
-        }}
-        autoFocus
+      <InternationalPhoneInput
+        defaultIso2={payCountry}
+        dark={actualTheme === 'dark'}
+        ariaLabel={`${selectedOperator?.name ?? 'Mobile money'} phone number`}
+        onChange={(value) => { setPhone(value); setError(''); }}
       />
       {error && (
         <p style={{ marginTop: 8, marginBottom: 0, fontSize: '0.8rem', color: '#DC2626' }}>{error}</p>

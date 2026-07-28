@@ -14,7 +14,8 @@ import WithdrawModal from '../../components/WithdrawModal';
 import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
 import { PaymentMethodPicker, type PaymentMethodSelection } from '../../components/payments/PaymentMethodPicker';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
-import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
+import InternationalPhoneInput, { type PhoneValue } from '../../components/phone/InternationalPhoneInput';
+import { parsePhone } from '@/lib/phone/phoneKit';
 import { iconForOperator } from '@/lib/payments/operatorIcons';
 import type { PaymentOperator } from '@/lib/payments/types';
 import { getApiUrl } from '@/lib/api';
@@ -588,17 +589,17 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   }, [isOpen, payment]);
 
   // XentriPay states
-  const [paymentPhone, setPaymentPhone] = useState<string>('');
+  const [paymentPhone, setPaymentPhone] = useState<PhoneValue | null>(null);
   const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
   const [xentriPayError, setXentriPayError] = useState<string>('');
   const stopPollingRef = React.useRef<(() => void) | null>(null);
 
-  // Pre-fill phone from user profile when modal opens
-  useEffect(() => {
-    if (isOpen && profile?.phoneNumber && !paymentPhone) {
-      setPaymentPhone(`${profile.phoneCode || ''}${profile.phoneNumber}`);
-    }
-  }, [isOpen, profile]);
+  // Pre-fill the phone field from the saved profile phone: parse it with
+  // phoneKit so the dial code is stripped into a country + national number.
+  const profilePhoneSeed = React.useMemo(
+    () => parsePhone(`${profile?.phoneCode || ''}${profile?.phoneNumber || ''}`),
+    [profile?.phoneCode, profile?.phoneNumber]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -650,7 +651,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
   const totalAmount = amountDue + donationValue;
   const donationAddressed = donationSkipped || donationValue > 0;
-  const phoneValid = selectedPaymentMethod === 'card' || paymentPhone.trim().length > 0;
+  const phoneValid = selectedPaymentMethod === 'card' || !!paymentPhone?.isValid;
   const isPayEnabled = donationAddressed && phoneValid;
 
   const handleSelectDonation = (amount: string) => {
@@ -680,7 +681,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     setShowReceipt(false);
     setXentriPayStep('select');
     setXentriPayError('');
-    setPaymentPhone('');
+    setPaymentPhone(null);
     setSurveyCompleted(false);
     setShowSurveyModal(false);
     onClose();
@@ -691,7 +692,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
       setXentriPayError('This payment cannot be processed. The event may have been removed or the booking is no longer active.');
       return;
     }
-    if (selectedPaymentMethod !== 'card' && !isPlausibleMobile(paymentPhone, payCountry)) {
+    if (selectedPaymentMethod !== 'card' && !paymentPhone?.isValid) {
       setXentriPayError('Please enter a valid phone number for the selected country to receive the payment prompt.');
       return;
     }
@@ -702,7 +703,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     try {
       const telecom = getTelecomProvider(selectedPaymentMethod);
       const methodType = getPaymentMethodType(selectedPaymentMethod);
-      const phone = paymentPhone.trim();
+      const phone = paymentPhone?.digits ?? '';
       // Use production URL for http (localhost), keep current URL for https (production)
       const currentUrl = window.location.href;
       const redirectUrl = selectedPaymentMethod === 'card'
@@ -1153,10 +1154,12 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           {selectedPaymentMethod && (
             <div style={{ marginTop: '0.85rem' }}>
               <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>Phone Number</label>
-              <input type="tel" placeholder={phoneHintForCountry(payCountry)} value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
-                style={{ width: '100%', padding: '0.7rem 0.85rem', border: `1.5px solid ${colors.borderPrimary}`, borderRadius: 11, fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.18s, box-shadow 0.18s' }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.12)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+              <InternationalPhoneInput
+                defaultIso2={profilePhoneSeed.nsn ? profilePhoneSeed.country?.iso2 : payCountry}
+                initialNsn={profilePhoneSeed.nsn}
+                dark={actualTheme === 'dark'}
+                ariaLabel="Payment phone number"
+                onChange={(value) => { setPaymentPhone(value); setXentriPayError(''); }}
               />
               <p style={{ fontSize: '0.76rem', color: colors.textSecondary, margin: '0.4rem 0 0 0', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 <i className="bi bi-info-circle-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
@@ -2091,6 +2094,13 @@ Amount: ${formatPrice(payment.amountNum)}
     bankAccountName: '',
     selectedBank: '',
   });
+  // Per-network validity of the payout phone numbers (from InternationalPhoneInput).
+  const [giftPhoneValid, setGiftPhoneValid] = useState({ mtn: false, airtel: false });
+  // Default the payout phone's country to the user's saved profile phone.
+  const giftPhoneDefaultIso2 = React.useMemo(
+    () => parsePhone(`${profile.phoneCode || ''}${profile.phoneNumber || ''}`).country?.iso2 ?? null,
+    [profile.phoneCode, profile.phoneNumber]
+  );
   const [bankProviders, setBankProviders] = useState<{ id: string; name: string }[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -2126,8 +2136,8 @@ Amount: ${formatPrice(payment.amountNum)}
     let bankName = '';
 
     if (selectedGiftPaymentMethod === 'mtn') {
-      if (!giftPaymentDetails.mtnNumber.trim()) {
-        setValidationError('Please enter your MTN phone number.');
+      if (!giftPaymentDetails.mtnNumber.trim() || !giftPhoneValid.mtn) {
+        setValidationError('Please enter a valid MTN phone number.');
         return;
       }
       methodType = 'MOBILE_MONEY';
@@ -2135,8 +2145,8 @@ Amount: ${formatPrice(payment.amountNum)}
       accountNumber = giftPaymentDetails.mtnNumber.trim();
       bankName = 'MTN';
     } else if (selectedGiftPaymentMethod === 'airtel') {
-      if (!giftPaymentDetails.airtelNumber.trim()) {
-        setValidationError('Please enter your Airtel phone number.');
+      if (!giftPaymentDetails.airtelNumber.trim() || !giftPhoneValid.airtel) {
+        setValidationError('Please enter a valid Airtel phone number.');
         return;
       }
       methodType = 'MOBILE_MONEY';
@@ -2185,6 +2195,7 @@ Amount: ${formatPrice(payment.amountNum)}
       setShowGiftsPaymentMethodModal(false);
       setSelectedGiftPaymentMethod(null);
       setGiftPaymentDetails({ mtnNumber: '', airtelNumber: '', bankAccountNumber: '', bankAccountName: '', selectedBank: '' });
+      setGiftPhoneValid({ mtn: false, airtel: false });
       setValidationError(null);
       setHasWithdrawalMethod(true);
     } catch (err) {
@@ -3325,21 +3336,13 @@ Amount: ${formatPrice(payment.amountNum)}
                   <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
                     MTN Phone Number
                   </label>
-                  <input
-                    type="tel"
-                    placeholder="+256 78X XXX XXX"
-                    value={giftPaymentDetails.mtnNumber}
-                    onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, mtnNumber: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '0.7rem 0.85rem',
-                      border: `1.5px solid ${colors.borderPrimary}`,
-                      borderRadius: 11,
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgCard,
-                      color: colors.textPrimary,
-                      boxSizing: 'border-box',
-                      outline: 'none',
+                  <InternationalPhoneInput
+                    defaultIso2={giftPhoneDefaultIso2}
+                    dark={actualTheme === 'dark'}
+                    ariaLabel="MTN phone number"
+                    onChange={(value) => {
+                      setGiftPaymentDetails(prev => ({ ...prev, mtnNumber: value.digits }));
+                      setGiftPhoneValid(prev => ({ ...prev, mtn: value.isValid }));
                     }}
                   />
                 </div>
@@ -3351,21 +3354,13 @@ Amount: ${formatPrice(payment.amountNum)}
                   <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
                     Airtel Phone Number
                   </label>
-                  <input
-                    type="tel"
-                    placeholder="+256 70X XXX XXX"
-                    value={giftPaymentDetails.airtelNumber}
-                    onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, airtelNumber: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '0.7rem 0.85rem',
-                      border: `1.5px solid ${colors.borderPrimary}`,
-                      borderRadius: 11,
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgCard,
-                      color: colors.textPrimary,
-                      boxSizing: 'border-box',
-                      outline: 'none',
+                  <InternationalPhoneInput
+                    defaultIso2={giftPhoneDefaultIso2}
+                    dark={actualTheme === 'dark'}
+                    ariaLabel="Airtel phone number"
+                    onChange={(value) => {
+                      setGiftPaymentDetails(prev => ({ ...prev, airtelNumber: value.digits }));
+                      setGiftPhoneValid(prev => ({ ...prev, airtel: value.isValid }));
                     }}
                   />
                 </div>
