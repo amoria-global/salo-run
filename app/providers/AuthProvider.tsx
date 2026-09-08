@@ -631,9 +631,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // 2FA enforcement: if user has balance > 0 and no 2FA, redirect to preferences setup
+  // 2FA enforcement: if user has balance > 0 and no 2FA, redirect to preferences setup.
+  // Gated on `user`, never on `token`: the JWT lives in an HttpOnly cookie and
+  // the context token is always null, so a token guard here means the gate
+  // never runs (CONN-AUTH-10 proved this endpoint was never called).
   useEffect(() => {
-    if (!token || !user || isLoading) return;
+    if (!user || isLoading) return;
     // Skip if already on the preferences page (avoid redirect loop)
     if (typeof window !== 'undefined' && window.location.search.includes('setup2fa=true')) return;
 
@@ -643,12 +646,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     const checkTotpRequirement = async () => {
       try {
         const apiUrl = getApiUrl();
-        // Use credentials: 'include' so the HttpOnly amoria_auth cookie
-        // authenticates cookie-only sessions (empty local Bearer token).
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+        // The HttpOnly amoria_auth cookie authenticates this; there is no
+        // JS-visible token to send.
         const response = await fetch(`${apiUrl}/api/remote/customer/totp/status`, {
-          headers,
           credentials: 'include',
         });
         if (!response.ok) return;
@@ -668,13 +668,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     };
 
     checkTotpRequirement();
-  }, [token, user, isLoading]);
+  }, [user, isLoading]);
 
-  // Inactivity timeout for client & coordinator roles (1 hour)
+  // Inactivity timeout for client & coordinator roles (1 hour). Same rule as
+  // the 2FA gate above: gate on `user`, never on the always-null token.
   const lastActivityRef = useRef(Date.now());
 
   useEffect(() => {
-    if (!token || !user) return;
+    if (!user) return;
 
     const role = user.customerType?.toUpperCase();
     // Only apply to client and coordinator. photographers keep sessions indefinitely
@@ -706,7 +707,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       clearInterval(intervalId);
       events.forEach(e => window.removeEventListener(e, resetTimer));
     };
-  }, [token, user]);
+  }, [user]);
 
   /**
    * Refresh the auth token
