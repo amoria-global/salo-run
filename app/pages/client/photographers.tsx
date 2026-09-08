@@ -351,7 +351,7 @@ interface PhotographersPageProps {
 const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice, currencyId } = useCurrency();
-  const { token, user } = useDashboardAuth();
+  const { user } = useDashboardAuth();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -527,9 +527,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     fetchPhotographers();
   }, [user?.id]);
 
-  // Fetch completed events when review modal opens
+  // Fetch completed events when review modal opens. dashboardAuthFetch
+  // authenticates via the HttpOnly cookie; the context token is always null,
+  // so gating on it meant this list never loaded (CONN-AUTH-10).
   useEffect(() => {
-    if (!showReviewModal || !reviewPhotographer || !token) return;
+    if (!showReviewModal || !reviewPhotographer) return;
 
     const fetchEvents = async () => {
       setReviewEventsLoading(true);
@@ -566,11 +568,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     };
 
     fetchEvents();
-  }, [showReviewModal, reviewPhotographer, token]);
+  }, [showReviewModal, reviewPhotographer]);
 
   // Fetch existing events when rebook modal opens
   useEffect(() => {
-    if (!showRebookModal || !token) return;
+    if (!showRebookModal) return;
 
     const fetchRebookEvents = async () => {
       setRebookEventsLoading(true);
@@ -609,11 +611,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     };
 
     fetchRebookEvents();
-  }, [showRebookModal, token]);
+  }, [showRebookModal]);
 
   // Fetch photographer packages when rebook modal opens
   useEffect(() => {
-    if (!showRebookModal || !rebookPhotographer || !token) return;
+    if (!showRebookModal || !rebookPhotographer) return;
 
     const fetchPackages = async () => {
       setRebookPackagesLoading(true);
@@ -635,7 +637,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     };
 
     fetchPackages();
-  }, [showRebookModal, rebookPhotographer, token]);
+  }, [showRebookModal, rebookPhotographer]);
 
   const handleRebookEventSelect = (eventId: string) => {
     setSelectedRebookEventId(eventId);
