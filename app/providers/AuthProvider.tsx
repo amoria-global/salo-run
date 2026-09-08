@@ -186,37 +186,21 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
- * Auth tokens are no longer stored in JS-accessible storage.
+ * Auth tokens are never held in JS-accessible storage on this origin.
  *
  * Historically the JWT was written to localStorage and a non-HttpOnly cookie
  * so dashboardAuthFetch could attach it as a Bearer header. That made it
  * stealable via any XSS that executed on any dashboard page.
  *
- * We now rely on the `amoria_auth` HttpOnly cookie (scoped to .connekyt.com)
- * that the backend sets on login. The browser sends it automatically on
- * cross-origin fetches as long as `credentials: 'include'` is set. which
- * dashboardAuthFetch now does. JS never reads or writes the JWT.
- *
- * These writer functions are kept as explicit no-ops to preserve call-sites
- * across the provider. Any future attempt to persist a token will hit these
- * and do nothing instead of silently reintroducing the exposure.
+ * Two HttpOnly cookies scoped to .connekyt.com, both set by the backend on
+ * login, carry the session instead. `amoria_auth` is the access token and
+ * rides on every API call made with `credentials: 'include'`. `amoria_refresh`
+ * is the refresh token, path-scoped to the backend's auth surface, so it
+ * reaches /api/remote/auth/refresh-token and nothing else (CONN-AUTH-2). A
+ * refresh is therefore a POST with an empty body: the browser supplies the
+ * proof and the backend answers with fresh cookies. JS never reads or writes
+ * either token, and there is deliberately no function here that could.
  */
-function saveTokenToStorage(_token: string): void {
-  // Intentionally a no-op. See docblock above.
-}
-
-function saveRefreshTokenToStorage(_refreshToken: string): void {
-  // Intentionally a no-op. See docblock above.
-}
-
-function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  // Try localStorage first, then cookie
-  const stored = localStorage.getItem(REFRESH_TOKEN_KEY);
-  if (stored) return stored;
-  const match = document.cookie.match(/(?:^|;\s*)refreshToken=([^;]*)/);
-  return match ? match[1] : null;
-}
 
 /**
  * Atomically clear auth from all storage locations
@@ -247,14 +231,6 @@ function getCookieToken(): string | null {
     return tokenCookie.split('=')[1];
   }
   return null;
-}
-
-/**
- * No-op: we no longer write the JWT to a JS-visible cookie. See docblock on
- * saveTokenToStorage above. Kept as a function so existing call sites compile.
- */
-function setTokenCookie(_token: string): void {
-  // Intentionally a no-op.
 }
 
 /**
@@ -295,52 +271,44 @@ function mapProfessionalSkills(skills: Array<{
  * Token refresh mutex. prevents multiple simultaneous refresh attempts
  */
 let isRefreshing = false;
-let refreshPromise: Promise<string | null> | null = null;
+let refreshPromise: Promise<boolean> | null = null;
 
 /**
- * Attempt to refresh the auth token using the refresh endpoint.
- * Uses a mutex so concurrent 401s only trigger one refresh call.
- * Returns the new token on success, or null on failure.
+ * Renew the session through the refresh endpoint. The request carries no
+ * token: the amoria_refresh HttpOnly cookie is the proof, and the response's
+ * Set-Cookie headers are the result, so there is nothing for JS to store.
+ * A mutex collapses concurrent 401s in this tab into one refresh, which also
+ * keeps two in-flight rotations of the same token from being mistaken for a
+ * replay. Resolves true when the backend renewed the session.
  */
-async function attemptDashboardTokenRefresh(currentToken: string | null): Promise<string | null> {
+async function attemptDashboardTokenRefresh(): Promise<boolean> {
   if (isRefreshing && refreshPromise) return refreshPromise;
   isRefreshing = true;
 
   refreshPromise = (async () => {
     try {
-      const storedRefreshToken = getRefreshToken();
-      if (!storedRefreshToken) {
-        console.warn('[Dashboard Auth] No refresh token available');
-        return null;
-      }
-
       const response = await fetch(
         `${getApiUrl()}/api/remote/auth/refresh-token`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ refreshToken: storedRefreshToken }),
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
           credentials: 'include',
         }
       );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.token) {
-          saveTokenToStorage(data.token);
-          // Save new refresh token if provided
-          if (data.refreshToken) {
-            saveRefreshTokenToStorage(data.refreshToken);
-          }
-          console.log('[Dashboard Auth] Token refreshed successfully');
-          return data.token;
-        }
+      if (!response.ok) {
+        console.warn(`[Dashboard Auth] Session could not be renewed (${response.status})`);
+        return false;
       }
-      return null;
+      // HTTP 200 with action 0 is a failure on this API; always check action.
+      const data = await response.json();
+      const renewed = data?.action === 1;
+      if (renewed) console.log('[Dashboard Auth] Session renewed');
+      else console.warn('[Dashboard Auth] Session could not be renewed:', data?.message);
+      return renewed;
     } catch (error) {
       console.error('[Dashboard Auth] Token refresh failed:', error);
-      return null;
+      return false;
     } finally {
       isRefreshing = false;
       refreshPromise = null;
@@ -475,12 +443,14 @@ async function fetchUserProfile(token: string | null): Promise<{ user: Dashboard
       // 403/404 means wrong role. try next endpoint
     }
 
-    // If any endpoint returned 401, attempt token refresh and retry all
+    // If any endpoint returned 401, renew the session and retry all. The
+    // retry passes no Bearer so the freshly set amoria_auth cookie is what
+    // authenticates it, rather than a stale token the caller may still hold.
     if (got401) {
-      const newToken = await attemptDashboardTokenRefresh(token);
-      if (newToken) {
+      const renewed = await attemptDashboardTokenRefresh();
+      if (renewed) {
         for (const { endpoint, role } of PROFILE_ENDPOINTS) {
-          const { user } = await tryFetchProfile(endpoint, newToken, role);
+          const { user } = await tryFetchProfile(endpoint, null, role);
           if (user) return { user, reason: 'success' };
         }
       }
@@ -606,13 +576,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     initAuth();
   }, [searchParams]);
 
-  // Proactively re-fetch the profile every 4 hours. The backend's
-  // /profile-summary call triggers JwtAuthFilter, which handles silent
-  // refresh server-side if the token is near expiry. so the cookie value
-  // stays fresh without us doing anything client-side. This interval also
-  // surfaces the user as logged out the moment the session becomes invalid
-  // (e.g. the refresh token is revoked), without waiting for them to click
-  // something that hits the backend.
+  // Proactively re-fetch the profile every 4 hours. The backend does no
+  // sliding renewal of the access cookie; renewal is client-driven, in
+  // fetchUserProfile and dashboardAuthFetch, where a 401 triggers one
+  // refresh via the amoria_refresh cookie and a retry. This interval keeps
+  // an idle tab's cookies fresh (4h is inside the 5h access-token life, and
+  // once past it the 401 path renews), and it surfaces the user as logged
+  // out when the session is truly gone, such as the refresh token having
+  // been revoked, without waiting for them to click something.
   useEffect(() => {
     if (!user) return;
 
@@ -741,38 +712,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
    * Refresh the auth token
    */
   const refreshTokenFn = useCallback(async (): Promise<boolean> => {
-    const storedRefreshToken = getRefreshToken();
-    if (!storedRefreshToken) return false;
-
-    try {
-      const response = await fetch(
-        `${getApiUrl()}/api/remote/auth/refresh-token`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ refreshToken: storedRefreshToken }),
-          credentials: 'include',
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.token) {
-          setToken(data.token);
-          saveTokenToStorage(data.token);
-          if (data.refreshToken) {
-            saveRefreshTokenToStorage(data.refreshToken);
-          }
-          return true;
-        }
-      }
-      return false;
-    } catch (error) {
-      console.error('[Dashboard Auth] Token refresh failed:', error);
-      return false;
-    }
+    // Same cookie-driven renewal the fetch helpers use; nothing to store.
+    return attemptDashboardTokenRefresh();
   }, []);
 
   /**
@@ -790,14 +731,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     try {
       const currentToken = (typeof window !== 'undefined'
           ? localStorage.getItem('authToken') : null) || getCookieToken();
-      const refreshTokenValue = getRefreshToken();
+      // The refresh token is not sent: it lives only in the amoria_refresh
+      // cookie, which the backend reads and clears itself.
       await fetch(`${getApiUrl()}/api/remote/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: currentToken,
-          refreshToken: refreshTokenValue,
-        }),
+        body: JSON.stringify({ token: currentToken }),
         credentials: 'include',
       });
     } catch (err) {
@@ -1013,11 +952,10 @@ export async function dashboardAuthFetch(
   let response = await fetchWithRetry(url, fetchOpts);
 
   if (response.status === 401) {
-    // Try one refresh cycle. Works for both Bearer-holding sessions (uses the
-    // stored refresh token) and cookie-only sessions (refresh endpoint reads
-    // its own cookie if present).
-    const newToken = await attemptDashboardTokenRefresh(currentToken || '');
-    if (!newToken) {
+    // One renewal cycle through the amoria_refresh cookie, then one retry
+    // authenticated by the freshly set amoria_auth cookie.
+    const renewed = await attemptDashboardTokenRefresh();
+    if (!renewed) {
       if (typeof window !== 'undefined') {
         const isPhotographer = window.location.pathname.includes('/photographer') ||
           document.cookie.includes('userRole=photographer');
@@ -1029,7 +967,9 @@ export async function dashboardAuthFetch(
       }
       return response;
     }
-    headers['Authorization'] = `Bearer ${newToken}`;
+    // A legacy Bearer from before cookie-only auth would outrank the new
+    // cookie in the JWT filter and 401 again, so the retry sends none.
+    delete headers['Authorization'];
     // ReadableStream bodies are consumed after the first fetch and cannot be retried.
     // FormData, string, ArrayBuffer etc. are safe to reuse.
     const bodyIsStream = options.body instanceof ReadableStream;
