@@ -732,8 +732,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       const currentToken = (typeof window !== 'undefined'
           ? localStorage.getItem('authToken') : null) || getCookieToken();
       // The refresh token is not sent: it lives only in the amoria_refresh
-      // cookie, which the backend reads and clears itself.
-      await fetch(`${getApiUrl()}/api/remote/auth/logout`, {
+      // cookie, which the backend reads and clears itself. This ends only
+      // this device's session (CONN-AUTH-7); /logout is "sign out everywhere".
+      await fetch(`${getApiUrl()}/api/remote/auth/logout-device`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: currentToken }),
