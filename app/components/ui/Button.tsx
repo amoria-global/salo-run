@@ -15,9 +15,9 @@ interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>
 }
 
 const sizeStyles: Record<Size, React.CSSProperties> = {
-  sm: { padding: '7px 12px', fontSize: '0.82rem', borderRadius: 8 },
-  md: { padding: '10px 18px', fontSize: '0.9rem', borderRadius: 10 },
-  lg: { padding: '13px 22px', fontSize: '1rem', borderRadius: 12 },
+  sm: { padding: '7px 12px', fontSize: '0.82rem', borderRadius: 9999 },
+  md: { padding: '10px 18px', fontSize: '0.9rem', borderRadius: 9999 },
+  lg: { padding: '13px 22px', fontSize: '1rem', borderRadius: 9999 },
 };
 
 export const Button: React.FC<ButtonProps> = ({
