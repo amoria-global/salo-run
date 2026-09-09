@@ -32,6 +32,26 @@ const ProfilePage = () => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showKycModal, setShowKycModal] = useState(false);
 
+  /**
+   * Deep link: /user/client/profile?kyc=1 opens verification straight away.
+   *
+   * The mobile app has no working native KYC screen (CONN-ONB-1) and opens this
+   * flow in the in-app browser instead, the same way paid flows already hand off
+   * to the web. It needs a URL that lands on the wizard rather than a profile
+   * page the user then has to find a button on.
+   *
+   * The parameter is stripped afterwards so a refresh or a shared link does not
+   * reopen the modal unexpectedly.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('kyc') !== '1') return;
+    setShowKycModal(true);
+    url.searchParams.delete('kyc');
+    window.history.replaceState({}, '', url.pathname + url.search);
+  }, []);
+
   // East African countries imported from CountrySelect component
 
   // Rwanda provinces and districts
