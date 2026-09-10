@@ -57,7 +57,17 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   // Server-side OCR validation result. checked while on Step 3 so the user is
   // gated right there instead of at submit.
   const [govIdOcrWarning, setGovIdOcrWarning] = useState('');
-  const [govIdOcrStatus, setGovIdOcrStatus] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle');
+  /**
+   * 'ok' means the document-type check RAN and matched. 'unchecked' means it did
+   * not run - SKIPPED, UNCERTAIN, ERROR, or a failed request (CONN-ONB-4).
+   *
+   * These used to collapse into 'ok', so a SKIPPED result rendered a green
+   * "Document verified. You can continue." In production the validator returns
+   * SKIPPED for everything, because Tesseract is not installed on the host, so
+   * that tick was shown to every user and meant nothing: a synthetic image
+   * reading THIS IS NOT AN ID AT ALL passed it.
+   */
+  const [govIdOcrStatus, setGovIdOcrStatus] = useState<'idle' | 'checking' | 'ok' | 'unchecked' | 'error'>('idle');
 
   // Side-validation warnings. distinguish FRONT from BACK of ID / license.
   const [govIdFrontSideWarning, setGovIdFrontSideWarning] = useState('');
@@ -732,9 +742,33 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
 
   useEffect(() => () => stopCamera(), []);
 
+  /**
+   * Client-side upload ceiling (CONN-ONB-10).
+   *
+   * Nothing enforced a size limit at any layer: no check here, Spring's
+   * multipart max-file-size and max-request-size are both -1, and nginx has
+   * client_max_body_size 0 on the backend location. The camera path re-encodes
+   * to JPEG at 0.92 so it stays small in practice, but the UPLOAD path hands
+   * over whatever the user picked - a 48MP HEIC or a mistakenly chosen video is
+   * accepted and streamed to the server.
+   *
+   * Rejecting here is a courtesy, not a control: a real limit has to live in
+   * Spring and nginx, which are config changes outside this file. This at least
+   * tells the user before they wait through a long upload that fails.
+   */
+  const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+  const tooLarge = (file: File): boolean => {
+    if (file.size <= MAX_UPLOAD_BYTES) return false;
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    setError(`That image is ${mb} MB. Please choose one under 15 MB, or retake it with your camera.`);
+    return true;
+  };
+
   const handleSelfieChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (tooLarge(file)) { e.target.value = ''; return; }
     setSelfiePhoto(file);
     const reader = new FileReader();
     reader.onload = () => setSelfiePreview(reader.result as string);
@@ -875,10 +909,13 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
         setGovIdOcrWarning('');
         setGovIdOcrStatus('ok');
       } else {
-        // UNCERTAIN / SKIPPED / ERROR. let through; backend final-check on submit,
-        // admin review catches anything actually wrong via risk score.
+        // UNCERTAIN / SKIPPED / ERROR - nothing actually verified anything.
+        // Still let the user through, because the check is advisory and admin
+        // review is the real gate, but do NOT tell them it was verified
+        // (CONN-ONB-4). In production this is EVERY submission: the validator
+        // returns SKIPPED because Tesseract is not installed on the host.
         setGovIdOcrWarning('');
-        setGovIdOcrStatus('ok');
+        setGovIdOcrStatus('unchecked');
       }
     } catch {
       // Network error or endpoint unavailable. don't block on this, backend will
@@ -951,6 +988,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   const handleGovIdFrontChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.files?.[0];
     if (!raw) return;
+    if (tooLarge(raw)) { e.target.value = ''; return; }
     const file = await autoCropToDocRatio(raw, documentType);
     setGovIdFront(file);
     readFilePreview(file, setGovIdFrontPreview);
@@ -963,6 +1001,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   const handleGovIdBackChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.files?.[0];
     if (!raw) return;
+    if (tooLarge(raw)) { e.target.value = ''; return; }
     const file = await autoCropToDocRatio(raw, documentType);
     setGovIdBack(file);
     readFilePreview(file, setGovIdBackPreview);
@@ -1993,6 +2032,23 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                           }}>
                             <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>&#10003;</span>
                             <span>Document verified. You can continue.</span>
+                          </div>
+                        )}
+
+                        {/* Nothing actually checked it. Neutral, not green, and it
+                            does not say "verified" (CONN-ONB-4). */}
+                        {govIdOcrStatus === 'unchecked' && !govIdRatioWarning && !govIdFaceWarning
+                          && !govIdOcrWarning && govIdFront && (
+                          <div style={{
+                            padding: '0.6rem 0.85rem', marginBottom: '0.75rem',
+                            borderRadius: '0.5rem',
+                            background: colors.bgTertiary,
+                            border: `1px solid ${colors.borderPrimary}`,
+                            color: colors.textSecondary, fontSize: '0.82rem',
+                            display: 'flex', gap: '0.5rem', alignItems: 'center',
+                          }}>
+                            <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>&#8505;</span>
+                            <span>Image received. A reviewer will check it against your details.</span>
                           </div>
                         )}
 
