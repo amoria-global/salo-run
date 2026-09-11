@@ -568,14 +568,19 @@ const PhotographerEventsPage = () => {
   // exact URL the invitation email uses (MailService.java) and the
   // album-create success modal's Copy Album Link button:
   //   paid : /user/find-my-photos?code=<inviteCode>
-  //   free : /user/find-my-photos?code=<accessCode>&email=<recipient>
+  //   free : /user/find-my-photos?code=<accessCode>
   //   event-linked albums use ?code=<inviteCode> too once Face AI is on
+  // The recipient's email used to ride along on the free variant. It was
+  // never a second factor — the code is the secret, and the server holds
+  // the address it was checked against — but it put a real person's email
+  // into browser history, referrer headers and every chat the link was
+  // pasted into. The code alone now identifies the recipient.
   // Returns null when the album doesn't have the required pieces yet —
   // the card hides the Copy Link button entirely in that case so it
   // never offers a broken link.
   const buildAlbumLink = (album: Album): string | null => {
-    if (album.isFreeAlbum && album.accessCode && album.recipientEmail) {
-      return `https://connekyt.com/user/find-my-photos?code=${album.accessCode}&email=${encodeURIComponent(album.recipientEmail)}`;
+    if (album.isFreeAlbum && album.accessCode) {
+      return `https://connekyt.com/user/find-my-photos?code=${album.accessCode}`;
     }
     if (album.inviteCode) {
       return `https://connekyt.com/user/find-my-photos?code=${album.inviteCode}`;
@@ -3554,6 +3559,7 @@ const PhotographerEventsPage = () => {
           isOpen={showStreamPreview}
           onClose={() => setShowStreamPreview(false)}
           eventTitle={selectedEvent.title}
+          eventId={selectedEvent.id}
           whipUrl={streamConfigs[selectedEvent.id]?.whipUrl}
           whepUrl={streamConfigs[selectedEvent.id]?.whepUrl}
           inviteToken={streamConfigs[selectedEvent.id]?.streamType === 'entry_fee' ? undefined : streamConfigs[selectedEvent.id]?.inviteToken}
@@ -4087,13 +4093,14 @@ const PhotographerEventsPage = () => {
               {/* Direct album link - same URL the invitation email uses,
                   surfaced here so the photographer can share it manually
                   (WhatsApp, SMS, etc.) without waiting for / re-sending
-                  the email. Free albums need both code + email in the
-                  URL; paid albums use just the invite code. */}
-              {albumSuccessModal.type === 'free' && albumSuccessModal.accessCode && albumSuccessModal.email && (
+                  the email. The code alone identifies the recipient; the
+                  link carries no email, so sharing it never discloses the
+                  client's address. */}
+              {albumSuccessModal.type === 'free' && albumSuccessModal.accessCode && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Album Link</div>
                   <div style={{ fontSize: '0.78rem', color: colors.textPrimary, wordBreak: 'break-all' }}>
-                    {`https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.accessCode}&email=${encodeURIComponent(albumSuccessModal.email)}`}
+                    {`https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.accessCode}`}
                   </div>
                 </div>
               )}
@@ -4128,7 +4135,7 @@ const PhotographerEventsPage = () => {
 
             {/* Copy code + Copy link + Done buttons.
                 Link = the same URL the invitation email's button uses.
-                Paid: ?code=<inviteCode>. Free: ?code=<accessCode>&email=<recipient>. */}
+                Paid: ?code=<inviteCode>. Free: ?code=<accessCode>. */}
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               {(albumSuccessModal.inviteCode || albumSuccessModal.accessCode) && (
                 <button
@@ -4147,13 +4154,14 @@ const PhotographerEventsPage = () => {
               )}
               {(() => {
                 // Build the share URL identically to the URL the invitation
-                // email uses (MailService.java). Paid albums skip the email
-                // param since face-scan unlocks per face, not per recipient.
+                // email uses (MailService.java). Neither variant carries an
+                // email: the code is the secret and the server resolves the
+                // recipient from it.
                 let link: string | null = null;
                 if (albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode) {
                   link = `https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.inviteCode}`;
-                } else if (albumSuccessModal.type === 'free' && albumSuccessModal.accessCode && albumSuccessModal.email) {
-                  link = `https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.accessCode}&email=${encodeURIComponent(albumSuccessModal.email)}`;
+                } else if (albumSuccessModal.type === 'free' && albumSuccessModal.accessCode) {
+                  link = `https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.accessCode}`;
                 }
                 if (!link) return null;
                 return (

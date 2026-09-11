@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import localforage from 'localforage';
 import { useSearchParams } from 'next/navigation';
+import GeoPricingManager from '@/app/components/GeoPricingManager';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
@@ -361,6 +362,8 @@ const MyEventsPage = () => {
   const [resumingEventId, setResumingEventId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
+  // Geo-pricing manager modal target (an event to price by location).
+  const [geoEvent, setGeoEvent] = useState<Event | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [apiCurrencies, setApiCurrencies] = useState<{ value: string; label: string; id?: string }[]>([]);
 
@@ -1876,9 +1879,14 @@ const MyEventsPage = () => {
                           <ShareIcon />
                         </button>
                         {isEventEditable(event) && (
+                          <>
+                          <button onClick={() => setGeoEvent(event)} title="Geo pricing" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
+                            🌍
+                          </button>
                           <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                             <EditIcon />
                           </button>
+                          </>
                         )}
                         {event.bookingStatus?.toUpperCase() === 'REJECTED' && (
                           <button onClick={() => setRebookEvent(event)} title="Rebook another photographer" style={{ flex: 1.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '-0.005em', boxShadow: '0 4px 10px rgba(8,58,133,0.30)', transition: 'transform 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
@@ -3544,6 +3552,14 @@ const MyEventsPage = () => {
       )}
 
       {/* Edit Event Modal */}
+      <GeoPricingManager
+        open={!!geoEvent}
+        onClose={() => setGeoEvent(null)}
+        kind="event"
+        targetId={geoEvent?.id ?? ''}
+        name={geoEvent?.title}
+      />
+
       <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditEvent(null); }} title="Edit Event" maxWidth="700px">
         {editEvent && (
           <div>

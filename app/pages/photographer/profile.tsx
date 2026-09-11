@@ -2,11 +2,14 @@
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import GeoPricingManager from '@/app/components/GeoPricingManager';
 import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
-import CountrySelect, { eastAfricanCountries } from '../../components/CountrySelect';
+import { eastAfricanCountries } from '../../components/CountrySelect';
+import InternationalPhoneInput, { type PhoneValue } from '../../components/phone/InternationalPhoneInput';
+import { parsePhone } from '@/lib/phone/phoneKit';
 import ApprovalPendingModal from '../../components/ApprovalPendingModal';
 import EventConfirmModal from '../../components/EventConfirmModal';
 import KycBadge from '../../components/KycBadge';
@@ -198,6 +201,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience' | 'packages'>('overview');
+  // Geo-pricing manager target (a package to price by location).
+  const [geoPkg, setGeoPkg] = useState<{ id: string; name?: string } | null>(null);
   // Guards the bounce-arrival toast so it only fires once per redirect, even
   // if React re-renders or the user navigates away and back.
   const bounceHandledRef = useRef(false);
@@ -362,6 +367,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     address: '',
     availability: {} as { [key: string]: DayAvailability },
   });
+
+  // International phone input: the saved phone (code + national number,
+  // hydrated into basicInfo from the user context or the local draft) is
+  // parsed with phoneKit so the component is seeded with the right country
+  // and national digits. phoneValue always mirrors what the field shows.
+  const [phoneValue, setPhoneValue] = useState<PhoneValue | null>(null);
+  const savedPhone = useMemo(
+    () => parsePhone(`${basicInfo.phoneCode || ''}${basicInfo.phoneNumber || ''}`),
+    [basicInfo.phoneCode, basicInfo.phoneNumber]
+  );
 
   // Overview Tab State - initialized empty, loaded from user context.
   // spokenLanguages is now required by /update-important-details — the
@@ -733,6 +748,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // Save all changes handler for the "Save Changes" button
   const handleSaveAllChanges = async () => {
     if (!user) return;
+    if (phoneValue?.nsn && !phoneValue.isValid) {
+      showToast('error', 'Please enter a valid phone number');
+      return;
+    }
     setIsSavingAll(true);
     try {
       const [firstName, ...rest] = capitalizeWords(basicInfo.fullName.trim()).split(' ');
@@ -740,9 +759,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       const success = await saveImportantDetailsToAPI({
         firstName: firstName || '',
         lastName: lastName || '',
-        phone: basicInfo.phoneCode && basicInfo.phoneNumber
-          ? `${basicInfo.phoneCode}${basicInfo.phoneNumber.replace(/\s/g, '')}`
-          : undefined,
+        // International digits without '+' (e.g. "250788123456") — the
+        // canonical wire format per the backend phone-format audit.
+        phone: phoneValue?.digits || undefined,
         about: autoCapitalize(overviewData.about),
         address: capitalizeWords(basicInfo.address),
         specialtyIds: overviewData.specialties,
@@ -750,6 +769,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         professionalPhilosophy: autoCapitalize(portfolioData.beliefs),
       });
       if (success) {
+        // Keep basicInfo (and the auto-saved draft) in sync with the phone
+        // just saved.
+        if (phoneValue?.dial && phoneValue.nsn) {
+          const dial = phoneValue.dial;
+          const nsn = phoneValue.nsn;
+          setBasicInfo(prev => ({ ...prev, phoneCode: `+${dial}`, phoneNumber: nsn }));
+        }
         showToast('success', 'Profile saved successfully!');
         // Show approval modal if profile is not yet approved
         if (user?.profileReviewStatus?.toUpperCase() !== 'ACCEPTED') {
@@ -807,16 +833,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       setValidationErrors(prev => ({ ...prev, username: '' }));
     } else {
       setValidationErrors(prev => ({ ...prev, username: 'Only letters, numbers and underscores allowed' }));
-    }
-  };
-
-  const handlePhoneNumberChange = (value: string) => {
-    // Allow only numbers and spaces (for formatting like "788 456 789")
-    if (value === '' || /^[\d\s]*$/.test(value)) {
-      setBasicInfo(prev => ({ ...prev, phoneNumber: value }));
-      setValidationErrors(prev => ({ ...prev, phoneNumber: '' }));
-    } else {
-      setValidationErrors(prev => ({ ...prev, phoneNumber: 'Only numbers and spaces allowed' }));
     }
   };
 
@@ -3705,31 +3721,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       </div>
                       <div>
                         <label style={labelStyle}>Phone</label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <CountrySelect
-                            countries={eastAfricanCountries}
-                            value={basicInfo.phoneCode}
-                            onChange={(val) => setBasicInfo(prev => ({ ...prev, phoneCode: val }))}
-                            valueKey="code"
-                            displayKey="code"
-                            disabled={!isEditEnabled}
-                            inputStyle={selectStyle}
-                            colors={colors}
-                            actualTheme={actualTheme}
-                            width="140px"
-                          />
-                          <input
-                            type="tel"
-                            maxLength={15}
-                            value={basicInfo.phoneNumber}
-                            onChange={(e) => handlePhoneNumberChange(e.target.value)}
-                            disabled={!isEditEnabled}
-                            style={validationErrors.phoneNumber ? { ...inputErrorStyle, flex: 1 } : { ...inputStyle, flex: 1 }}
-                          />
-                        </div>
-                        {validationErrors.phoneNumber && (
-                          <span style={errorMessageStyle}>{validationErrors.phoneNumber}</span>
-                        )}
+                        <InternationalPhoneInput
+                          key={`${savedPhone.country?.iso2 ?? 'none'}-${savedPhone.nsn}`}
+                          defaultIso2={savedPhone.country?.iso2}
+                          initialNsn={savedPhone.nsn}
+                          disabled={!isEditEnabled}
+                          dark={actualTheme === 'dark'}
+                          ariaLabel="Phone number"
+                          onChange={(value) => setPhoneValue(value)}
+                        />
                       </div>
                       <div>
                         <label style={labelStyle}>Specialty *</label>
@@ -5109,7 +5109,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                               {/* Save Button (per package) */}
                               {isPackageEditEnabled && (
-                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                  {/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pkg.id) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setGeoPkg({ id: pkg.id, name: pkg.packageName })}
+                                      style={{
+                                        backgroundColor: 'white', color: '#083A85', border: '2px solid #083A85',
+                                        borderRadius: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.85rem',
+                                        fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                      }}
+                                    >
+                                      🌍 Geo pricing
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => savePackageToAPI(pkg)}
                                     disabled={savingPackageId === pkg.id || !pkg.packageName}
@@ -5837,6 +5850,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           }}
         />
       )}
+      <GeoPricingManager
+        open={!!geoPkg}
+        onClose={() => setGeoPkg(null)}
+        kind="package"
+        targetId={geoPkg?.id ?? ''}
+        name={geoPkg?.name}
+      />
     </div>
   );
 };

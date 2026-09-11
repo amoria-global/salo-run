@@ -8,7 +8,7 @@ import { dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
 import { initiateBookingPayment, initiateArchivePayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage } from '@/lib/xentripay';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
-import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
+import InternationalPhoneInput, { type PhoneValue } from './phone/InternationalPhoneInput';
 import { usePaymentOptions } from '@/lib/payments/usePaymentOptions';
 import { PaymentMethodPicker, type PaymentMethodSelection } from './payments/PaymentMethodPicker';
 
@@ -154,7 +154,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   const [paymentLoading, setPaymentLoading] = useState<boolean>(false);
 
   // XentriPay states
-  const [paymentPhone, setPaymentPhone] = useState<string>('');
+  const [paymentPhone, setPaymentPhone] = useState<PhoneValue | null>(null);
   const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
   const [xentriPayError, setXentriPayError] = useState<string>('');
   const [xentriPayRefid, setXentriPayRefid] = useState<string>('');
@@ -166,7 +166,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
   const totalAmount = amountDue + donationValue;
   const donationAddressed = donationSkipped || donationValue > 0;
-  const phoneValid = selectedPaymentMethod === 'card' || isPlausibleMobile(paymentPhone, payCountry);
+  const phoneValid = selectedPaymentMethod === 'card' || !!paymentPhone?.isValid;
   const isPayEnabled = donationAddressed && phoneValid;
 
   const handleSelectDonation = (amount: string) => {
@@ -198,7 +198,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
     setXentriPayStep('select');
     setXentriPayError('');
     setXentriPayRefid('');
-    setPaymentPhone('');
+    setPaymentPhone(null);
     onClose();
   };
 
@@ -216,7 +216,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
     }
 
     // For mobile money, phone is required
-    if (selectedPaymentMethod !== 'card' && !isPlausibleMobile(paymentPhone, payCountry)) {
+    if (selectedPaymentMethod !== 'card' && !paymentPhone?.isValid) {
       setXentriPayError('Please enter a valid phone number for the selected country to receive the payment prompt.');
       return;
     }
@@ -233,7 +233,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
         || getTelecomProvider(selectedPaymentMethod)
         || (selectedPaymentMethod !== 'card' ? selectedPaymentMethod.toUpperCase() : '');
       const methodType = getPaymentMethodType(selectedPaymentMethod);
-      const phone = selectedPaymentMethod === 'card' ? '' : paymentPhone.trim();
+      const phone = selectedPaymentMethod === 'card' ? '' : (paymentPhone?.digits ?? '');
       const country = payCountry ?? undefined;
 
       let result;
@@ -604,31 +604,11 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>
                 Phone Number
               </label>
-              <input
-                type="tel"
-                placeholder={phoneHintForCountry(payCountry)}
-                value={paymentPhone}
-                onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
-                style={{
-                  width: '100%',
-                  padding: '0.7rem 0.75rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.2s'
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#083A85';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = colors.borderPrimary;
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+              <InternationalPhoneInput
+                defaultIso2={payCountry}
+                dark={actualTheme === 'dark'}
+                ariaLabel="Mobile money phone number"
+                onChange={(value) => { setPaymentPhone(value); setXentriPayError(''); }}
               />
               <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
                 Enter your mobile money number to receive the payment prompt

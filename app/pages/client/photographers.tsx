@@ -13,7 +13,7 @@ import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType } from '@/lib/xentripay';
 import { PaymentMethodPicker, type PaymentMethodSelection } from '../../components/payments/PaymentMethodPicker';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
-import { phoneHintForCountry, isPlausibleMobile } from '@/lib/payments/formatPhone';
+import InternationalPhoneInput, { type PhoneValue } from '../../components/phone/InternationalPhoneInput';
 import { iconForOperator } from '@/lib/payments/operatorIcons';
 import type { PaymentOperator } from '@/lib/payments/types';
 import SortDropdown from '../../components/SortDropdown';
@@ -351,7 +351,7 @@ interface PhotographersPageProps {
 const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice, currencyId } = useCurrency();
-  const { token, user } = useDashboardAuth();
+  const { user } = useDashboardAuth();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -424,7 +424,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [payShowReceipt, setPayShowReceipt] = useState<boolean>(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   // XentriPay states
-  const [paymentPhone, setPaymentPhone] = useState<string>('');
+  const [paymentPhone, setPaymentPhone] = useState<PhoneValue | null>(null);
   const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
   const [xentriPayError, setXentriPayError] = useState<string>('');
   const stopPollingRef = React.useRef<(() => void) | null>(null);
@@ -527,9 +527,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     fetchPhotographers();
   }, [user?.id]);
 
-  // Fetch completed events when review modal opens
+  // Fetch completed events when review modal opens. dashboardAuthFetch
+  // authenticates via the HttpOnly cookie; the context token is always null,
+  // so gating on it meant this list never loaded (CONN-AUTH-10).
   useEffect(() => {
-    if (!showReviewModal || !reviewPhotographer || !token) return;
+    if (!showReviewModal || !reviewPhotographer) return;
 
     const fetchEvents = async () => {
       setReviewEventsLoading(true);
@@ -566,11 +568,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     };
 
     fetchEvents();
-  }, [showReviewModal, reviewPhotographer, token]);
+  }, [showReviewModal, reviewPhotographer]);
 
   // Fetch existing events when rebook modal opens
   useEffect(() => {
-    if (!showRebookModal || !token) return;
+    if (!showRebookModal) return;
 
     const fetchRebookEvents = async () => {
       setRebookEventsLoading(true);
@@ -609,11 +611,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     };
 
     fetchRebookEvents();
-  }, [showRebookModal, token]);
+  }, [showRebookModal]);
 
   // Fetch photographer packages when rebook modal opens
   useEffect(() => {
-    if (!showRebookModal || !rebookPhotographer || !token) return;
+    if (!showRebookModal || !rebookPhotographer) return;
 
     const fetchPackages = async () => {
       setRebookPackagesLoading(true);
@@ -635,7 +637,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     };
 
     fetchPackages();
-  }, [showRebookModal, rebookPhotographer, token]);
+  }, [showRebookModal, rebookPhotographer]);
 
   const handleRebookEventSelect = (eventId: string) => {
     setSelectedRebookEventId(eventId);
@@ -3135,7 +3137,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         const payDonationValue = payDonationAmount === 'custom' ? (parseFloat(payCustomDonation) || 0) : (parseFloat(payDonationAmount) || 0);
         const payTotalAmount = payAmountDue + payDonationValue;
         const payDonationAddressed = payDonationSkipped || payDonationValue > 0;
-        const payPhoneValid = selectedPaymentMethod === 'card' || paymentPhone.trim().length > 0;
+        const payPhoneValid = selectedPaymentMethod === 'card' || !!paymentPhone?.isValid;
         const payIsEnabled = payDonationAddressed && payPhoneValid;
         const payMethodMap: Record<string, { label: string; image: string }> = {
           card: { label: 'Credit/Debit Card', image: '/cards.png' },
@@ -3152,18 +3154,18 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         };
         const handlePayClose = () => {
           if (stopPollingRef.current) { stopPollingRef.current(); stopPollingRef.current = null; }
-          setPayShowReceipt(false); setShowPaymentModal(false); setXentriPayStep('select'); setXentriPayError(''); setPaymentPhone('');
+          setPayShowReceipt(false); setShowPaymentModal(false); setXentriPayStep('select'); setXentriPayError(''); setPaymentPhone(null);
         };
 
         const handlePayNowXentriPay = async () => {
           const declId = paymentBooking.booking.declarationId || paymentBooking.booking.id;
           if (!declId) { setXentriPayError('No payment declaration found'); return; }
-          if (selectedPaymentMethod !== 'card' && !isPlausibleMobile(paymentPhone, payCountry)) { setXentriPayError('Please enter a valid phone number for the selected country'); return; }
+          if (selectedPaymentMethod !== 'card' && !paymentPhone?.isValid) { setXentriPayError('Please enter a valid phone number for the selected country'); return; }
           setIsProcessingPayment(true); setXentriPayError(''); setXentriPayStep('processing');
           try {
             const telecom = getTelecomProvider(selectedPaymentMethod);
             const methodType = getPaymentMethodType(selectedPaymentMethod);
-            const phone = selectedPaymentMethod === 'card' ? '' : paymentPhone.trim();
+            const phone = selectedPaymentMethod === 'card' ? '' : (paymentPhone?.digits ?? '');
             const result = await initiateBookingPayment(String(declId), phone, telecom, methodType, undefined, undefined, currencyId, undefined, payCountry || undefined);
             if (!result.success || !result.data) {
               setXentriPayError(result.error || 'Failed to initiate payment'); setXentriPayStep('failed'); setIsProcessingPayment(false); return;
@@ -3338,10 +3340,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 {selectedPaymentMethod && selectedPaymentMethod !== 'card' && (
                   <div style={{ marginTop: '0.75rem' }}>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>Phone Number</label>
-                    <input type="tel" placeholder={phoneHintForCountry(payCountry)} value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
-                      style={{ width: '100%', padding: '0.7rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = '#083A85'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)'; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                    <InternationalPhoneInput
+                      defaultIso2={payCountry}
+                      dark={actualTheme === 'dark'}
+                      ariaLabel="Mobile money phone number"
+                      onChange={(value) => { setPaymentPhone(value); setXentriPayError(''); }}
                     />
                     <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
                       Enter the {selectedOperator?.name ?? 'mobile money'} number to receive the payment prompt
