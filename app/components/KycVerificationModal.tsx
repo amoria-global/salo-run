@@ -57,7 +57,17 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   // Server-side OCR validation result. checked while on Step 3 so the user is
   // gated right there instead of at submit.
   const [govIdOcrWarning, setGovIdOcrWarning] = useState('');
-  const [govIdOcrStatus, setGovIdOcrStatus] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle');
+  /**
+   * 'ok' means the document-type check RAN and matched. 'unchecked' means it did
+   * not run - SKIPPED, UNCERTAIN, ERROR, or a failed request (CONN-ONB-4).
+   *
+   * These used to collapse into 'ok', so a SKIPPED result rendered a green
+   * "Document verified. You can continue." In production the validator returns
+   * SKIPPED for everything, because Tesseract is not installed on the host, so
+   * that tick was shown to every user and meant nothing: a synthetic image
+   * reading THIS IS NOT AN ID AT ALL passed it.
+   */
+  const [govIdOcrStatus, setGovIdOcrStatus] = useState<'idle' | 'checking' | 'ok' | 'unchecked' | 'error'>('idle');
 
   // Side-validation warnings. distinguish FRONT from BACK of ID / license.
   const [govIdFrontSideWarning, setGovIdFrontSideWarning] = useState('');
@@ -70,6 +80,9 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   const [idCameraSide, setIdCameraSide] = useState<null | 'front' | 'back'>(null);
 
   const selfieInputRef = useRef<HTMLInputElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  /** Where focus was before the dialog opened, so it can be handed back on close. */
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const govIdFrontInputRef = useRef<HTMLInputElement>(null);
   const govIdBackInputRef = useRef<HTMLInputElement>(null);
   const idVideoRef = useRef<HTMLVideoElement>(null);
@@ -78,6 +91,12 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraMode, setCameraMode] = useState<'idle' | 'live' | 'unavailable'>('idle');
   const [cameraError, setCameraError] = useState('');
+  /**
+   * Set when the challenge token could not be obtained (CONN-ONB-7). Surfaced
+   * on step 2 so the flow fails fast, instead of letting the user finish the
+   * whole wizard and meet "Challenge token is required" at submit.
+   */
+  const [tokenError, setTokenError] = useState('');
 
   // Liveness detection
   type LivenessChallenge = 'blink' | 'turn-left' | 'turn-right';
@@ -456,6 +475,43 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     rafRef.current = requestAnimationFrame(detectLoop);
   };
 
+  /**
+   * Fetch the challenge token that binds this submission to this session.
+   *
+   * Lives on its own rather than inside startCamera() for two reasons
+   * (CONN-ONB-7, CONN-ONB-2):
+   *
+   *  - the upload path never starts the camera, so a user without a working
+   *    webcam completed the entire wizard and only discovered at submit that
+   *    "Challenge token is required";
+   *  - a rejected submission burns the token server-side, and "Try again" has
+   *    to be able to get a fresh one without making the user redo the selfie
+   *    and every liveness challenge.
+   *
+   * Failure is now visible. It used to store the token only on action === 1
+   * with no else, so a failed fetch was indistinguishable from a successful
+   * one until the very end of the flow.
+   */
+  const fetchChallengeToken = async (): Promise<boolean> => {
+    try {
+      const apiUrl = getApiUrl();
+      const tokenRes = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/kyc/challenge-token`, {
+        method: 'POST',
+      });
+      const tokenData = await tokenRes.json();
+      if (tokenData.action === 1 && tokenData.challengeToken) {
+        challengeTokenRef.current = tokenData.challengeToken;
+        setTokenError('');
+        return true;
+      }
+    } catch {
+      // fall through to the shared failure below
+    }
+    challengeTokenRef.current = '';
+    setTokenError('We could not start a secure verification session. Check your connection and try again.');
+    return false;
+  };
+
   const startCamera = async () => {
     setCameraError('');
     setStage('loading');
@@ -464,15 +520,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     blinkArmedRef.current = true;
     shuffleChallenges();
     try {
-      // Request a challenge token from backend (session binding)
-      const apiUrl = getApiUrl();
-      const tokenRes = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/kyc/challenge-token`, {
-        method: 'POST',
-      });
-      const tokenData = await tokenRes.json();
-      if (tokenData.action === 1 && tokenData.challengeToken) {
-        challengeTokenRef.current = tokenData.challengeToken;
-      }
+      await fetchChallengeToken();
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 720 } },
@@ -488,7 +536,12 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       }
     } catch {
       setCameraMode('unavailable');
-      setCameraError('Camera access denied or unavailable.');
+      // Says what to do, not just what happened. The old copy was four words
+      // and left the user with no next step on a screen that gates withdrawals.
+      setCameraError(
+        'We could not start your camera. Check that your browser has camera permission '
+        + 'and that no other app is using it, then try again. You can also upload a photo instead.',
+      );
     }
   };
 
@@ -522,6 +575,70 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       return () => video.removeEventListener('loadeddata', begin);
     }
   }, [cameraMode, landmarkerReady]);
+
+  /**
+   * Dialog behaviour (CONN-ONB-15): background scroll lock, focus moved in on
+   * open and restored on close, Escape to close, and Tab trapped inside.
+   *
+   * Without the trap, tabbing from the last control walked into the dashboard
+   * behind the overlay - which is both a keyboard dead end and a way to
+   * interact with the page while a modal claims to be blocking it. The scroll
+   * lock matters here in particular because the wizard is full-screen on
+   * mobile and the body scrolling underneath made the captured images drift.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const focusables = () => {
+      const root = overlayRef.current;
+      if (!root) return [] as HTMLElement[];
+      return Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]):not([type="file"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+    };
+
+    // Focus the first control rather than the close button, so a keyboard user
+    // lands on the thing they came to do.
+    const t = window.setTimeout(() => {
+      const items = focusables();
+      (items[1] ?? items[0])?.focus();
+    }, 0);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && (active === first || !overlayRef.current?.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.body.style.overflow = prevOverflow;
+      restoreFocusRef.current?.focus?.();
+    };
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!isOpen) { stopCamera(); return; }
@@ -625,9 +742,33 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
 
   useEffect(() => () => stopCamera(), []);
 
+  /**
+   * Client-side upload ceiling (CONN-ONB-10).
+   *
+   * Nothing enforced a size limit at any layer: no check here, Spring's
+   * multipart max-file-size and max-request-size are both -1, and nginx has
+   * client_max_body_size 0 on the backend location. The camera path re-encodes
+   * to JPEG at 0.92 so it stays small in practice, but the UPLOAD path hands
+   * over whatever the user picked - a 48MP HEIC or a mistakenly chosen video is
+   * accepted and streamed to the server.
+   *
+   * Rejecting here is a courtesy, not a control: a real limit has to live in
+   * Spring and nginx, which are config changes outside this file. This at least
+   * tells the user before they wait through a long upload that fails.
+   */
+  const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+  const tooLarge = (file: File): boolean => {
+    if (file.size <= MAX_UPLOAD_BYTES) return false;
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    setError(`That image is ${mb} MB. Please choose one under 15 MB, or retake it with your camera.`);
+    return true;
+  };
+
   const handleSelfieChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (tooLarge(file)) { e.target.value = ''; return; }
     setSelfiePhoto(file);
     const reader = new FileReader();
     reader.onload = () => setSelfiePreview(reader.result as string);
@@ -768,10 +909,13 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
         setGovIdOcrWarning('');
         setGovIdOcrStatus('ok');
       } else {
-        // UNCERTAIN / SKIPPED / ERROR. let through; backend final-check on submit,
-        // admin review catches anything actually wrong via risk score.
+        // UNCERTAIN / SKIPPED / ERROR - nothing actually verified anything.
+        // Still let the user through, because the check is advisory and admin
+        // review is the real gate, but do NOT tell them it was verified
+        // (CONN-ONB-4). In production this is EVERY submission: the validator
+        // returns SKIPPED because Tesseract is not installed on the host.
         setGovIdOcrWarning('');
-        setGovIdOcrStatus('ok');
+        setGovIdOcrStatus('unchecked');
       }
     } catch {
       // Network error or endpoint unavailable. don't block on this, backend will
@@ -844,6 +988,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   const handleGovIdFrontChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.files?.[0];
     if (!raw) return;
+    if (tooLarge(raw)) { e.target.value = ''; return; }
     const file = await autoCropToDocRatio(raw, documentType);
     setGovIdFront(file);
     readFilePreview(file, setGovIdFrontPreview);
@@ -856,6 +1001,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   const handleGovIdBackChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.files?.[0];
     if (!raw) return;
+    if (tooLarge(raw)) { e.target.value = ''; return; }
     const file = await autoCropToDocRatio(raw, documentType);
     setGovIdBack(file);
     readFilePreview(file, setGovIdBackPreview);
@@ -1055,14 +1201,26 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   };
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.45)',
-      backdropFilter: 'blur(2px)',
-      WebkitBackdropFilter: 'blur(2px)',
-      display: 'flex',
-      alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-    }} onClick={onClose}>
+    <div
+      // CONN-ONB-15. This was a plain div: no role, no aria-modal, focus left on
+      // document.body, and the page behind kept scrolling. A screen reader had no
+      // way to know a dialog had opened, and a keyboard user could tab straight
+      // out into the page underneath while identity documents were on screen.
+      // Same defect class as the signup role modal (CONN-AUTHUI-6).
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="kyc-modal-title"
+      ref={overlayRef}
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+        backdropFilter: 'blur(2px)',
+        WebkitBackdropFilter: 'blur(2px)',
+        display: 'flex',
+        alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      }}
+      onClick={onClose}
+    >
       <style>{`
         /* Keyboard accessibility. visible focus outline on all interactive KYC elements */
         .kyc-modal button:focus-visible {
@@ -1165,7 +1323,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
                 Identity check
               </div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+              <h3 id="kyc-modal-title" style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
                 KYC verification
               </h3>
               <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '3px 0 0 0', lineHeight: 1.45 }}>
@@ -1242,7 +1400,20 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               </h3>
               <p style={{ fontSize: '0.88rem', color: '#DC2626', marginBottom: '1.5rem', lineHeight: 1.5, maxWidth: 420, margin: '0 auto 1.5rem' }}>{error}</p>
               <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button onClick={() => setStep('form')} className="ck-btn ck-btn-primary" style={{
+                <button
+                  onClick={async () => {
+                    // The backend consumes the challenge token BEFORE magic-byte validation
+                    // and before the service applies its business rules, so ANY rejection
+                    // leaves the token spent (CONN-ONB-2). The selfie and ID files live in
+                    // React state and survive this transition, so without a fresh token the
+                    // user goes straight back to submit, resends a dead token, and is told
+                    // to "restart the KYC process" - with nothing explaining that the only
+                    // way to do that is redoing the entire selfie and liveness step.
+                    await fetchChallengeToken();
+                    setStep('form');
+                  }}
+                  className="ck-btn ck-btn-primary"
+                  style={{
                   padding: '0.6rem 1.3rem', fontSize: '0.88rem',
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                 }}>
@@ -1380,8 +1551,13 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               {wizardStep === 1 && (
                 <>
                   <div style={{ marginBottom: '1rem' }}>
-                    <label style={labelStyle}>Full Legal Name *</label>
-                    <input type="text" placeholder="As it appears on your ID" value={fullLegalName}
+                    <label htmlFor="kyc-full-legal-name" style={labelStyle}>Full Legal Name *</label>
+                    {/* htmlFor/id, autocomplete and required (CONN-ONB-14). Without the
+                        association a screen reader announced a bare "edit text" on the
+                        first step of identity verification: the visible label existed
+                        but was not connected to the control. */}
+                    <input id="kyc-full-legal-name" name="fullLegalName" required autoComplete="name"
+                      type="text" placeholder="As it appears on your ID" value={fullLegalName}
                       onChange={e => setFullLegalName(e.target.value)} style={inputStyle}
                       onFocus={e => { e.currentTarget.style.borderColor = '#083A85'; }}
                       onBlur={e => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
@@ -1389,8 +1565,9 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                   </div>
 
                   <div style={{ marginBottom: '1rem' }}>
-                    <label style={labelStyle}>Gender *</label>
-                    <select value={gender} onChange={e => setGender(e.target.value)}
+                    <label htmlFor="kyc-gender" style={labelStyle}>Gender *</label>
+                    <select id="kyc-gender" name="gender" required
+                      value={gender} onChange={e => setGender(e.target.value)}
                       style={{ ...inputStyle, cursor: 'pointer', appearance: 'auto' }}>
                       <option value="">Select gender</option>
                       <option value="Male">Male</option>
@@ -1400,8 +1577,9 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                   </div>
 
                   <div style={{ marginBottom: '0.5rem' }}>
-                    <label style={labelStyle}>Location / Address</label>
-                    <input type="text" placeholder="City, Country" value={locationAddress}
+                    <label htmlFor="kyc-location" style={labelStyle}>Location / Address</label>
+                    <input id="kyc-location" name="locationAddress" autoComplete="street-address"
+                      type="text" placeholder="City, Country" value={locationAddress}
                       onChange={e => setLocationAddress(e.target.value)} style={inputStyle}
                       onFocus={e => { e.currentTarget.style.borderColor = '#083A85'; }}
                       onBlur={e => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
@@ -1417,7 +1595,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                   <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0 0 0.75rem 0' }}>
                     Take a clear, well-lit selfie. Center your face inside the oval.
                   </p>
-                  <input ref={selfieInputRef} type="file" accept="image/jpeg,image/png,image/jpg"
+                  <input ref={selfieInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                     onChange={handleSelfieChange} style={{ display: 'none' }} />
 
                   {/* Captured preview */}
@@ -1565,6 +1743,52 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                           Look straight • Good lighting • No glasses or hat
                         </span>
                       </button>
+
+                      {/*
+                        The upload fallback (CONN-ONB-12).
+
+                        selfieInputRef has always been in the DOM and fully wired to
+                        handleSelfieChange, but nothing ever called .click() on it, so it could
+                        not be reached. Anyone whose camera would not start - no webcam,
+                        permission denied, camera busy, a managed device, an in-app browser
+                        without camera access - had no way past this step. KYC gates
+                        withdrawals, so that meant they could not get paid.
+
+                        Step 3 already offers exactly this control beside its Capture buttons;
+                        step 2 was the only step missing it.
+
+                        The token is fetched here too, because this path never calls
+                        startCamera() and would otherwise reach submit without one.
+                      */}
+                      <button
+                        onClick={async () => {
+                          if (!challengeTokenRef.current) await fetchChallengeToken();
+                          selfieInputRef.current?.click();
+                        }}
+                        style={{
+                          width: '100%', marginTop: '0.6rem', padding: '0.55rem',
+                          border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.4rem',
+                          background: colors.bgTertiary, color: colors.textPrimary,
+                          fontSize: '0.78rem', fontWeight: 500, cursor: 'pointer',
+                        }}
+                      >
+                        or upload a photo instead
+                      </button>
+
+                      {tokenError && (
+                        <p role="alert" style={{ fontSize: '0.75rem', color: '#DC2626', margin: '0.5rem 0 0 0' }}>
+                          {tokenError}{' '}
+                          <button
+                            onClick={fetchChallengeToken}
+                            style={{
+                              background: 'none', border: 'none', padding: 0, color: '#DC2626',
+                              textDecoration: 'underline', cursor: 'pointer', font: 'inherit',
+                            }}
+                          >
+                            Retry
+                          </button>
+                        </p>
+                      )}
                       {/* Preload status. tells users whether liveness model is ready */}
                       <div style={{
                         marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -1581,10 +1805,14 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                           </>
                         )}
-                        {preloadState === 'ready' && (
+                        {preloadState === 'ready' && !cameraError && (
                           <>
                             <span style={{ color: '#10B981' }}>&#10003;</span>
-                            <span>Camera ready</span>
+                            {/* This tracks the liveness MODEL, not the webcam. It used to
+                                render alongside "Camera access denied", telling the user
+                                the camera was ready and unavailable in consecutive lines
+                                (CONN-ONB-13). Named for what it actually reports. */}
+                            <span>Liveness check ready</span>
                           </>
                         )}
                         {preloadState === 'failed' && (
@@ -1626,7 +1854,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                     <p style={{ fontSize: '0.75rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 0.4rem 0' }}>
                       {label} {disabled ? '' : '*'}
                     </p>
-                    <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/jpg"
+                    <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                       onChange={onChange} style={{ display: 'none' }} />
                     {preview ? (
                       <div style={{ position: 'relative' }}>
@@ -1804,6 +2032,23 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                           }}>
                             <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>&#10003;</span>
                             <span>Document verified. You can continue.</span>
+                          </div>
+                        )}
+
+                        {/* Nothing actually checked it. Neutral, not green, and it
+                            does not say "verified" (CONN-ONB-4). */}
+                        {govIdOcrStatus === 'unchecked' && !govIdRatioWarning && !govIdFaceWarning
+                          && !govIdOcrWarning && govIdFront && (
+                          <div style={{
+                            padding: '0.6rem 0.85rem', marginBottom: '0.75rem',
+                            borderRadius: '0.5rem',
+                            background: colors.bgTertiary,
+                            border: `1px solid ${colors.borderPrimary}`,
+                            color: colors.textSecondary, fontSize: '0.82rem',
+                            display: 'flex', gap: '0.5rem', alignItems: 'center',
+                          }}>
+                            <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>&#8505;</span>
+                            <span>Image received. A reviewer will check it against your details.</span>
                           </div>
                         )}
 
