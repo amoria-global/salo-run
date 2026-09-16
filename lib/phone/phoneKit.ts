@@ -306,3 +306,28 @@ export function toSubmitFormat(p: ParsedPhone, mode: 'national0' | 'e164' | 'dig
       return `${p.country.dial}${p.nsn}`;
   }
 }
+
+/**
+ * Reads what the user typed or pasted into the national-number field of
+ * InternationalPhoneInput. The dial code is shown once, on the country
+ * button, so the field normally holds only national digits. A pasted
+ * international number still re-detects the country: "+254712345678", or
+ * digits longer than the current plan allows that start with a dial code.
+ * Short national digits are never read as a dial code ("788…" is not +7).
+ */
+export function readTypedPhone(raw: string, current: PhoneCountry): { country: PhoneCountry; nsn: string } {
+  let digits = onlyDigits(raw);
+  let country = current;
+  const explicitPlus = (raw || '').trim().startsWith('+');
+  if (explicitPlus || digits.length > nsnMaxLen(current)) {
+    const m = matchDialCode(digits, current.iso2);
+    if (m) {
+      country = m;
+      digits = digits.slice(m.dial.length);
+    }
+  }
+  if (country.trunkPrefix && digits.startsWith(country.trunkPrefix)) {
+    digits = digits.slice(country.trunkPrefix.length);
+  }
+  return { country, nsn: digits.slice(0, nsnMaxLen(country) + 2) };
+}

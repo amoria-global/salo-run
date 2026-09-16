@@ -7,9 +7,10 @@
  * One field for the whole platform:
  *  - auto-applies the international dial code for the detected/selected
  *    country (flag button + searchable dropdown);
- *  - the dial code lives INSIDE the editable value, so deleting or editing
- *    "+250" re-detects the country from what remains (paste "+254712345678"
- *    and the picker flips to Kenya);
+ *  - the dial code is shown once, on the country button; the field holds
+ *    only the national number. Showing it in both places read as a
+ *    duplicated "+250 +250". Pasting "+254712345678" still flips the
+ *    picker to Kenya (see readTypedPhone);
  *  - validates the national number against the country's numbering plan
  *    (lengths from lib/phone/phoneKit) with live hints and a ✓/✕ state;
  *  - pasting a trunk-prefixed national number ("0788…") strips the 0.
@@ -25,10 +26,10 @@ import {
   type PhoneCountry,
   phoneCountryFor,
   onlyDigits,
-  matchDialCode,
   validateNsn,
   formatNsn,
   nsnMaxLen,
+  readTypedPhone,
 } from '@/lib/phone/phoneKit';
 
 export interface PhoneValue {
@@ -112,22 +113,9 @@ export default function InternationalPhoneInput({
 
   const handleInput = (raw: string) => {
     userTouched.current = true;
-    let digits = onlyDigits(raw);
-    // The dial code is part of the visible value; whatever leading digits
-    // remain decide the country. Editing/deleting "+250" therefore flips
-    // the picker to whichever plan the remaining prefix matches.
-    let next = country;
-    const m = matchDialCode(digits, country.iso2);
-    if (m) {
-      next = m;
-      digits = digits.slice(m.dial.length);
-    }
-    if (next.trunkPrefix && digits.startsWith(next.trunkPrefix)) {
-      digits = digits.slice(next.trunkPrefix.length);
-    }
-    const capped = digits.slice(0, nsnMaxLen(next) + 2);
-    if (next.iso2 !== country.iso2) setCountry(next);
-    setNsn(capped);
+    const next = readTypedPhone(raw, country);
+    if (next.country.iso2 !== country.iso2) setCountry(next.country);
+    setNsn(next.nsn);
   };
 
   const pickCountry = (c: PhoneCountry) => {
@@ -151,7 +139,7 @@ export default function InternationalPhoneInput({
   const { isValid, hint } = validateNsn(country, nsn);
   const maxLen = nsnMaxLen(country);
   const showInvalid = nsn.length > 0 && !isValid && nsn.length >= maxLen;
-  const displayValue = `+${country.dial}${nsn ? ' ' + formatNsn(country, nsn) : ' '}`;
+  const displayValue = formatNsn(country, nsn);
   const exampleNsn = useMemo(
     () => formatNsn(country, '7'.padEnd(country.nsnLengths[0] ?? 9, '8')),
     [country]
@@ -191,6 +179,7 @@ export default function InternationalPhoneInput({
           inputMode="tel"
           autoComplete="tel"
           aria-label={ariaLabel}
+          placeholder={exampleNsn}
           value={displayValue}
           onChange={(e) => handleInput(e.target.value)}
           disabled={disabled}
