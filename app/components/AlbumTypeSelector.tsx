@@ -89,14 +89,18 @@ const AlbumTypeSelector: React.FC<AlbumTypeSelectorProps> = ({
       }}>
         Album Type <span style={{ color: '#EF4444' }}>*</span>
       </label>
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'stretch' }}>
         {OPTIONS.map((opt) => {
           const isSelected = selectedType === opt.value;
           const headingColor = isSelected ? (isDark ? opt.accentDark : opt.accent) : colors.textPrimary;
+          const selectedBorder = isDark ? opt.borderTintDark : opt.borderTintLight;
           return (
             <button
               key={opt.value}
               type="button"
+              // Opts this card out of the app-wide pill rule in globals.css,
+              // which would otherwise force border-radius: 9999px on it.
+              data-ck-shape="card"
               onClick={() => !disabled && onChange(opt.value)}
               disabled={disabled}
               aria-pressed={isSelected}
@@ -104,15 +108,18 @@ const AlbumTypeSelector: React.FC<AlbumTypeSelectorProps> = ({
                 flex: '1 1 220px',
                 position: 'relative',
                 padding: 0,
-                border: `1px solid ${isSelected ? (isDark ? opt.borderTintDark : opt.borderTintLight) : colors.borderPrimary}`,
-                borderRadius: 14,
+                border: `1px solid ${isSelected ? selectedBorder : colors.borderPrimary}`,
+                borderRadius: 16,
                 background: isSelected ? (isDark ? opt.tintDark : opt.tintLight) : colors.bgCard,
                 cursor: disabled ? 'not-allowed' : 'pointer',
                 opacity: disabled ? 0.6 : 1,
                 transition: 'transform 0.18s, border-color 0.18s, box-shadow 0.18s',
                 textAlign: 'left',
                 overflow: 'hidden',
-                boxShadow: isSelected ? `0 10px 24px -8px ${opt.shadowColor}` : 'none',
+                // Inset ring thickens the selected edge without shifting layout.
+                boxShadow: isSelected
+                  ? `inset 0 0 0 1px ${selectedBorder}, 0 10px 24px -10px ${opt.shadowColor}`
+                  : 'none',
               }}
               onMouseEnter={(e) => {
                 if (disabled || isSelected) return;
@@ -125,6 +132,13 @@ const AlbumTypeSelector: React.FC<AlbumTypeSelectorProps> = ({
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.borderColor = colors.borderPrimary;
                 e.currentTarget.style.boxShadow = 'none';
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.outline = `2px solid ${isDark ? opt.accentDark : opt.accent}`;
+                e.currentTarget.style.outlineOffset = '2px';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.outline = 'none';
               }}
             >
               {/* Top accent stripe when selected */}

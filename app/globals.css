@@ -368,9 +368,13 @@ body { background: var(--background); color: var(--foreground); }
 
    Scoped to real <button> elements and .btn/.ck-btn only — deliberately
    NOT [role="button"], which would turn clickable cards into pills.
+
+   Card-shaped controls that happen to be real <button> elements (selectable
+   option cards, tiles) opt out with data-ck-shape="card" and keep their own
+   radius. Without the opt-out they render as ovals.
    ============================================================ */
-button,
-.btn,
-.ck-btn {
+button:not([data-ck-shape="card"]),
+.btn:not([data-ck-shape="card"]),
+.ck-btn:not([data-ck-shape="card"]) {
   border-radius: 9999px !important;
 }
