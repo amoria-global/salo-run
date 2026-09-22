@@ -1495,6 +1495,7 @@ const InboxPage = () => {
                     return (
                       <button
                         key={contact.id}
+                        data-ck-shape="card"
                         onClick={() => startConversation(contact)}
                         style={{
                           display: 'flex',
