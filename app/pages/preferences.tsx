@@ -1006,6 +1006,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 {themeOptions.map((option) => (
                   <button
                     key={option.mode}
+                    data-ck-shape="card"
                     onClick={() => {
                       setTheme(option.mode);
                       savePreference('theme', option.mode);
@@ -2265,6 +2266,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   return (
                     <button
                       key={option.value}
+                      data-ck-shape="card"
                       onClick={() => !isDisabled && saveVerificationMethod(option.value)}
                       disabled={isDisabled}
                       style={{

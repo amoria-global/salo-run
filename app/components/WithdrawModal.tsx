@@ -953,7 +953,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                       const isSelected = selectedSource?.source === s.source;
                       const isDisabled = s.availableBalance <= 0;
                       return (
-                        <button key={s.source} onClick={() => !isDisabled && setSelectedSource(s)} disabled={isDisabled}
+                        <button key={s.source} data-ck-shape="card" onClick={() => !isDisabled && setSelectedSource(s)} disabled={isDisabled}
                           style={{
                             padding: '0.75rem', border: isSelected ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
                             borderRadius: '0.5rem', background: isDisabled ? colors.bgTertiary : isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,

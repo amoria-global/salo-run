@@ -117,6 +117,7 @@ const MethodTile: React.FC<{
 }> = ({ label, image, selected, disabled = false, onClick }) => (
   <button
     type="button"
+    data-ck-shape="card"
     disabled={disabled}
     onClick={onClick}
     style={{
