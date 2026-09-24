@@ -77,11 +77,11 @@ export default function ApprovalPendingModal({ isOpen, profileCompletion = 0 }: 
               <i className="bi bi-clock-history" /> What happens next?
             </p>
             <p style={{ margin: 0, color: '#1E40AF', fontSize: '0.9rem', lineHeight: 1.6 }}>
-              Our team will review your profile to verify your credentials and ensure quality standards. This typically takes <strong>a few hours</strong>. You'll be notified once your account is approved.
+              Our team will review your profile to verify your credentials and ensure quality standards. This typically takes <strong>a few hours</strong>. You&apos;ll be notified once your account is approved.
             </p>
           </div>
           <p style={{ margin: 0, fontSize: '0.88rem', fontStyle: 'italic', color: 'var(--ck-text-soft)' }}>
-            Once approved, you'll be able to receive event bookings and connect with clients.
+            Once approved, you&apos;ll be able to receive event bookings and connect with clients.
           </p>
         </>
       )}

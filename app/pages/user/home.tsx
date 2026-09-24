@@ -158,7 +158,6 @@ export default function UserHome(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const purchasedPhotos = useMemo(() => albums.filter((a) => !a.archived), [albums]);

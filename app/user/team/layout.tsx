@@ -87,7 +87,7 @@ export default function TeamLayout({ children }: { children: React.ReactNode }) 
                 }}>Manage your team</h1>
                 <p style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
                   {organizationName ? <>Organization: <strong>{organizationName}</strong> · </> : null}
-                  You're signed in as <strong>{roleName || (isOwner ? 'Owner' : '-')}</strong>.
+                  You&apos;re signed in as <strong>{roleName || (isOwner ? 'Owner' : '-')}</strong>.
                 </p>
 
                 <nav style={{ marginTop: 18, display: 'flex', gap: 4, borderBottom: `1px solid ${colors.borderPrimary}` }}>

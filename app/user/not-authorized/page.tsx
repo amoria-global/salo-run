@@ -38,12 +38,12 @@ export default function NotAuthorizedPage() {
           <i className="bi bi-shield-lock" />
         </div>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111' }}>
-          You don't have access to this page
+          You don&apos;t have access to this page
         </h1>
         <p style={{ margin: '10px 0 0', fontSize: 14, color: '#6b7280', lineHeight: 1.55 }}>
           {isOwner
             ? 'You are listed as an organization owner - this looks like a route configuration issue. Please contact support.'
-            : <>Your current role <strong>{roleName || '-'}</strong>{organizationName ? <> in <strong>{organizationName}</strong></> : null} doesn't grant the permission this page requires.</>}
+            : <>Your current role <strong>{roleName || '-'}</strong>{organizationName ? <> in <strong>{organizationName}</strong></> : null} doesn&apos;t grant the permission this page requires.</>}
         </p>
 
         {required.length > 0 && (

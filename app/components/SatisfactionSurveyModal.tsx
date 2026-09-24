@@ -121,6 +121,17 @@ interface QuestionOption {
   color?: string;
 }
 
+// Module scope: defined inside the modal it was a new component type on
+// every render, so React remounted each label.
+const QuestionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <label style={{
+    display: 'block',
+    fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+    textTransform: 'uppercase', letterSpacing: '0.08em',
+    marginBottom: '0.45rem',
+  }}>{children}</label>
+);
+
 const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
   isOpen,
   onClose,
@@ -211,15 +222,6 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
         );
       })}
     </div>
-  );
-
-  const QuestionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <label style={{
-      display: 'block',
-      fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-      textTransform: 'uppercase', letterSpacing: '0.08em',
-      marginBottom: '0.45rem',
-    }}>{children}</label>
   );
 
   if (submitted) {

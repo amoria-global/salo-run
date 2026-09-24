@@ -460,7 +460,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         const result = await response.json();
 
         // Build a set of bookmarked photographer IDs
-        let bookmarkedIds = new Set<string>();
+        const bookmarkedIds = new Set<string>();
         if (bookmarksResponse?.ok) {
           try {
             const bmResult = await bookmarksResponse.json();

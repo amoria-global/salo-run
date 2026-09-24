@@ -117,7 +117,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
       setLoading(false);
     }
   };
-  useEffect(() => { void refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void refresh(); }, []);
 
   const handleCopyShareLink = async (album: ContentAlbumDto) => {
     if (!album.shareSlug) return;
@@ -661,8 +661,8 @@ function CreateContentAlbumModal({
       }}>
         <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>New content album</h3>
         <p style={{ margin: '0 0 16px', fontSize: 12.5, color: '#6b7280' }}>
-          Saved as a draft. Hit <strong>Submit for approval</strong> when you're ready
-          and we'll review it before it goes live on Connekyt's public browse.
+          Saved as a draft. Hit <strong>Submit for approval</strong> when you&apos;re ready
+          and we&apos;ll review it before it goes live on Connekyt&apos;s public browse.
         </p>
         {error && (
           <div style={{ padding: 10, borderRadius: 6, background: '#fef2f2', color: '#991b1b', fontSize: 13, marginBottom: 12 }}>{error}</div>
@@ -1032,7 +1032,7 @@ function EditContentAlbumModal({
         <p style={{ margin: '0 0 16px', fontSize: 12.5, color: '#6b7280' }}>
           Status: <strong>{album.contentApprovalStatus}</strong>.
           {album.contentApprovalStatus === 'REJECTED' && (
-            <> Re-submit for approval after you've addressed the admin's feedback.</>
+            <> Re-submit for approval after you&apos;ve addressed the admin&apos;s feedback.</>
           )}
         </p>
 
