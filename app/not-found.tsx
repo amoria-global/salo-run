@@ -38,7 +38,7 @@ export default function NotFound() {
             </h1>
             {/* Message */}
             <p className="text-xl mb-6" style={{ color: colors.textSecondary }}>
-             This page doesn't exist.
+             This page doesn&apos;t exist.
             </p>
 
             {/* Action Buttons */}

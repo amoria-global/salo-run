@@ -625,7 +625,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                   {notifications.length === 0 ? (
                     <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ck-text-soft)' }}>
                       <i className="bi bi-bell-slash" style={{ fontSize: 26, color: 'var(--ck-text-muted)', display: 'block', marginBottom: 8 }} />
-                      <div style={{ fontSize: '0.88rem' }}>You're all caught up</div>
+                      <div style={{ fontSize: '0.88rem' }}>You&apos;re all caught up</div>
                     </div>
                   ) : (
                     notifications.map((notification) => {
