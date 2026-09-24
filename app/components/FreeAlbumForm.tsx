@@ -14,7 +14,6 @@ interface FreeAlbumFormProps {
   // on knockout has nothing to charge in.
   currencyId?: string;
   onCurrencyChange?: (id: string) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   currencies?: Array<{ id?: string; code: string; name?: string }>;
   disabled?: boolean;
   colors?: {

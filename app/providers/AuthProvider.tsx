@@ -672,7 +672,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   // Inactivity timeout for client & coordinator roles (1 hour). Same rule as
   // the 2FA gate above: gate on `user`, never on the always-null token.
-  const lastActivityRef = useRef(Date.now());
+  // Stamped when the timer below first runs, not on every render.
+  const lastActivityRef = useRef(0);
 
   useEffect(() => {
     if (!user) return;
@@ -685,6 +686,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     const INACTIVITY_LIMIT = cfg.sessionTimeoutMs;
     const CHECK_INTERVAL = cfg.sessionCheckIntervalMs;
 
+    // First run only, so a later `user` refresh does not restart the clock.
+    if (lastActivityRef.current === 0) lastActivityRef.current = Date.now();
     const resetTimer = () => { lastActivityRef.current = Date.now(); };
 
     const events: (keyof WindowEventMap)[] = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'];

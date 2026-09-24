@@ -2352,7 +2352,7 @@ const MyEventsPage = () => {
                 <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>%</span>
               </div>
               <span style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.375rem', display: 'block' }}>
-                Discount applied when viewers purchase stream access as a group (0 = no group option, max 50%). Set to 0 if you don't want to offer group packages.
+                Discount applied when viewers purchase stream access as a group (0 = no group option, max 50%). Set to 0 if you don&apos;t want to offer group packages.
               </span>
               {createGroupDiscount && Number(createGroupDiscount) > 0 && createPrice && (() => {
                 const fee = Number(createPrice.replace(/[^\d]/g, ''));
@@ -3807,7 +3807,7 @@ const MyEventsPage = () => {
                   <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>%</span>
                 </div>
                 <span style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.375rem', display: 'block' }}>
-                  Discount applied when viewers purchase stream access as a group (0 = no group option, max 50%). Set to 0 if you don't want to offer group packages.
+                  Discount applied when viewers purchase stream access as a group (0 = no group option, max 50%). Set to 0 if you don&apos;t want to offer group packages.
                 </span>
                 {editGroupDiscount && Number(editGroupDiscount) > 0 && editPrice && (() => {
                   const fee = Number(editPrice.replace(/[^\d]/g, ''));
