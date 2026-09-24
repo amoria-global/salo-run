@@ -24,11 +24,6 @@ export interface XentriPayStatusResponse {
   paidAmount?: number;
 }
 
-export interface XentriPayWithdrawalResponse {
-  customerRef: string;
-  status: string;
-}
-
 export interface XentriPayAccountValidation {
   accountName: string;
   valid: boolean;
@@ -628,36 +623,8 @@ export async function validateAccountDetails(
   }
 }
 
-/**
- * Process withdrawal via XentriPay payout
+/*
+ * There is deliberately no client call to /withdrawals/xentripay/process. A
+ * verified withdrawal is PENDING_APPROVAL and the admin approval fires the
+ * payout; that endpoint refuses anything not PENDING (see WithdrawModal).
  */
-export async function processWithdrawal(
-  photographerTransactionId: string
-): Promise<{ success: boolean; data?: XentriPayWithdrawalResponse; error?: string }> {
-  try {
-    const response = await dashboardAuthFetch(
-      `${getApiUrl()}/api/remote/withdrawals/xentripay/process`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photographerTransactionId }),
-      }
-    );
-
-    const result = await response.json();
-
-    if (result.action === 1 && result.data) {
-      return {
-        success: true,
-        data: {
-          customerRef: result.data.customerRef,
-          status: result.data.status || 'PROCESSING',
-        },
-      };
-    }
-
-    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to process withdrawal. Please try again.') };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
-  }
-}
