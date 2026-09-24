@@ -2755,7 +2755,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       cursor: 'pointer',
                     }}
                   >
-                    Use "{xentriPayName}"
+                    Use &quot;{xentriPayName}&quot;
                   </button>
                 </div>
               </div>

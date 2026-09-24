@@ -257,7 +257,7 @@ function InviteModal({ roles, onClose, onInvited }: {
             <input value={department} onChange={e => setDepartment(e.target.value)} style={inputStyle} placeholder="e.g. Editors, Sales, Support" />
           </label>
           <p style={{ fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>
-            They'll get an email with a temporary password and must change it on first sign-in.
+            They&apos;ll get an email with a temporary password and must change it on first sign-in.
           </p>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
