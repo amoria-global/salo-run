@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { dashboardAuthFetch } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
-import { processWithdrawal, sanitizeErrorMessage } from '@/lib/xentripay';
+import { sanitizeErrorMessage } from '@/lib/xentripay';
 import { useCurrency } from '../context/CurrencyContext';
 import PaymentCurrencyPreview from './PaymentCurrencyPreview';
 import { HeartIcon } from './UnlockModal';
@@ -302,23 +302,14 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
         }
         setIsVerifying(false); return;
       }
-      // Verification succeeded - process payout
-      setStep('processing');
-      const transactionId = result.data?.transactionId || result.data?.id;
-      if (!transactionId) {
-        setError('Withdrawal could not be completed: missing transaction reference. Please contact support.');
-        setStep('failed');
-        setIsVerifying(false);
-        return;
-      }
-      try {
-        const payoutResult = await processWithdrawal(String(transactionId));
-        setStep(payoutResult.success ? 'success' : 'failed');
-        if (!payoutResult.success) setError(payoutResult.error || 'Payout processing failed.');
-      } catch {
-        setError('Network error while processing payout. Please try again.');
-        setStep('failed');
-      }
+      // Verification succeeded, and that is the end of the client's part.
+      // The backend has created the withdrawal as PENDING_APPROVAL, held the
+      // funds and emailed finance; an admin's approval fires the payout
+      // (AdminWithdrawalApprovalApiController). This used to call
+      // /withdrawals/xentripay/process here, which refuses anything not
+      // PENDING, so a request that went through was shown as failed, with a
+      // "Try again" that started a second withdrawal on top of the held one.
+      setStep('success');
     } catch {
       setVerificationError('Network error. Please try again.');
     }
@@ -453,8 +444,8 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                 <i className="bi bi-check2" style={{ fontSize: 32, color: '#fff' }} />
               </div>
               <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#10B981', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Withdrawal submitted</div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>You&apos;re all set!</h3>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, marginBottom: '1.4rem', maxWidth: 360, margin: '0 auto 1.4rem' }}>Your withdrawal is being processed. You will be notified when it completes.</p>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>Request received</h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, marginBottom: '1.4rem', maxWidth: 360, margin: '0 auto 1.4rem' }}>The amount is set aside from your balance. Our team reviews each withdrawal before it is paid out to your account, and you will be notified when it is sent.</p>
               <button onClick={onClose} style={{
                 padding: '0.75rem 2rem',
                 border: 'none',
