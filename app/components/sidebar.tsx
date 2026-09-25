@@ -10,7 +10,7 @@ import { getApiUrl } from '@/lib/api';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 
-type UserRole = "photographer" | "client" | "event-coordinator" | "admin" | "user";
+type UserRole = "photographer" | "client" | "event-coordinator" | "admin";
 
 interface NavigationItem {
   name: string;
@@ -81,18 +81,6 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   admin: [
     { name: "Wallets", href: "/user/admin/wallets", icon: "bi-wallet2", group: 'Admin' },
   ],
-  // Consumer `User` role — buys streams/photos, books photographers, pays.
-  // No wallet (no earnings), no team, no inbox, no event creation.
-  user: [
-    { name: "Home", href: "/user/user/home", icon: "bi-house-door", group: 'Overview' },
-    { name: "Notifications", href: "/user/user/notifications", icon: "bi-bell", group: 'Overview' },
-    { name: "My Bookings", href: "/user/user/events", icon: "bi-calendar-event", group: 'Watch' },
-    { name: "Streams", href: "/user/user/streams", icon: "bi-broadcast", group: 'Watch' },
-    { name: "My Photos", href: "/user/user/gallery", icon: "bi-image", group: 'Watch' },
-    { name: "Photographers", href: "/user/user/photographers", icon: "bi-camera", group: 'Discover' },
-    { name: "Payments", href: "/user/user/payments", icon: "bi-credit-card", group: 'Money' },
-    { name: "Donate", href: "/user/user/donate", icon: "bi-heart", group: 'Money' },
-  ],
 };
 
 const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
@@ -114,12 +102,6 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
     ];
   } else if (role === "admin") {
     return [{ name: "Logout", href: "/", icon: "bi-box-arrow-right" }];
-  } else if (role === "user") {
-    return [
-      { name: "Profile", href: "/user/user/profile", icon: "bi-person" },
-      { name: "Preferences", href: "/user/user/preferences", icon: "bi-sliders" },
-      { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
-    ];
   }
   return [
     { name: "Profile", href: "/user/client/profile", icon: "bi-person" },
@@ -132,9 +114,8 @@ const roleFromCustomerType = (customerType: string | null | undefined): UserRole
   const t = (customerType || '').toUpperCase();
   if (t === 'PHOTOGRAPHER' || t === 'VIDEOGRAPHER') return 'photographer';
   if (t === 'EVENT_COORDINATOR') return 'event-coordinator';
-  if (t === 'CLIENT' || t === 'INDIVIDUAL') return 'client';
-  // Consumer role gets its own dedicated dashboard section (/user/user/*).
-  if (t === 'USER') return 'user';
+  // USER was merged into Client; a session minted before that still says USER.
+  if (t === 'CLIENT' || t === 'INDIVIDUAL' || t === 'USER') return 'client';
   return null;
 };
 
@@ -148,7 +129,6 @@ const detectRole = (pathname: string | null, customerType: string | null | undef
   if (pathname && pathname.includes("/user/admin")) return "admin";
   if (pathname && pathname.includes("/user/photographer")) return "photographer";
   if (pathname && pathname.includes("/user/event-coordinator")) return "event-coordinator";
-  if (pathname && pathname.includes("/user/user")) return "user";
   if (pathname && pathname.includes("/user/client")) return "client";
   return roleFromCustomerType(customerType) ?? "client";
 };
