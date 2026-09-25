@@ -94,6 +94,8 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [isKycRequired, setIsKycRequired] = useState(false);
   const [showKycModal, setShowKycModal] = useState(false);
+  // Withdrawals need 2FA on. null while the status check is in flight.
+  const [twoFactorOn, setTwoFactorOn] = useState<boolean | null>(null);
 
   // Verification state
   const [verificationId, setVerificationId] = useState('');
@@ -120,6 +122,18 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   const prefsPath = role === 'photographer' ? '/user/photographer/preferences?tab=payments'
     : role === 'event-coordinator' ? '/user/event-coordinator/preferences?tab=payments'
     : '/user/client/preferences?tab=payments';
+
+  const twoFactorSetupPath = `/user/${role}/preferences?tab=security&setup2fa=true`;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setTwoFactorOn(null);
+    dashboardAuthFetch(`${getApiUrl()}/api/remote/customer/totp/status`)
+      .then(res => res.json())
+      .then(result => setTwoFactorOn(result?.action === 1 ? result.twoFactorEnabled === true : true))
+      // If the check itself fails, show the form; the server still refuses without 2FA.
+      .catch(() => setTwoFactorOn(true));
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -230,6 +244,9 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
         }),
       });
       const result = await res.json();
+      if (result.action === 0 && result.twoFactorRequired) {
+        setTwoFactorOn(false); setStep('form'); setIsWithdrawing(false); return;
+      }
       if (result.action === 0) {
         if (result.kycRequired) {
           setError('KYC verification is required before you can withdraw funds.');
@@ -287,6 +304,9 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
         body: JSON.stringify({ verificationId, otp, selfie }),
       });
       const result = await res.json();
+      if (result.action === 0 && result.twoFactorRequired) {
+        setTwoFactorOn(false); setStep('form'); setIsVerifying(false); return;
+      }
       if (result.action === 0) {
         if (result.maxAttemptsReached) {
           setError('Maximum verification attempts reached. Please start a new withdrawal.');
@@ -790,7 +810,46 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
           )}
 
           {/* Form */}
-          {step === 'form' && (
+          {step === 'form' && twoFactorOn === null && (
+            <div role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '2.5rem 0', color: colors.textSecondary, fontSize: '0.9rem' }}>
+              <span className="ck-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+              Checking your account security…
+            </div>
+          )}
+
+          {step === 'form' && twoFactorOn === false && (
+            <div style={{ textAlign: 'center', padding: '2rem 0 0.5rem' }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: 20,
+                background: 'linear-gradient(135deg, #083A85 0%, #0B4DAE 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 1.1rem',
+                boxShadow: '0 12px 28px rgba(8,58,133,0.35)',
+              }}>
+                <i className="bi bi-shield-lock-fill" style={{ fontSize: 28, color: '#fff' }} aria-hidden />
+              </div>
+              <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
+                Withdrawals paused
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>
+                Turn on two-factor authentication to withdraw
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, maxWidth: 380, margin: '0 auto 1.4rem' }}>
+                Your wallet holds real money, so withdrawals need a code from your authenticator app. Your balance is safe and stays in your wallet until you turn it on.
+              </p>
+              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button onClick={onClose} className="ck-btn ck-btn-soft" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem' }}>
+                  Not now
+                </button>
+                <a href={twoFactorSetupPath} className="ck-btn ck-btn-primary" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none' }}>
+                  <i className="bi bi-shield-lock-fill" style={{ fontSize: 13 }} aria-hidden />
+                  Turn on 2FA
+                </a>
+              </div>
+            </div>
+          )}
+
+          {step === 'form' && twoFactorOn === true && (
             <>
               {/* Available Balance Card. Connekyt brand gradient */}
               <div className="mobile-balance-display" style={{

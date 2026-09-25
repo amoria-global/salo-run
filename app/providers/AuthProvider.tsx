@@ -631,47 +631,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // 2FA enforcement: if user has balance > 0 and no 2FA, redirect to preferences setup.
-  // Gated on `user`, never on `token`: the JWT lives in an HttpOnly cookie and
-  // the context token is always null, so a token guard here means the gate
-  // never runs (CONN-AUTH-10 proved this endpoint was never called).
-  useEffect(() => {
-    if (!user || isLoading) return;
-    // Skip if already on the preferences page (avoid redirect loop)
-    if (typeof window !== 'undefined' && window.location.search.includes('setup2fa=true')) return;
+  // 2FA is no longer forced on funded accounts. Customers may turn it off, and the
+  // backend then refuses withdrawals until it is back on (WithdrawModal explains why).
 
-    // Only check if 2FA is not already enabled
-    if (user.twoFactorEnabled) return;
-
-    const checkTotpRequirement = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        // The HttpOnly amoria_auth cookie authenticates this; there is no
-        // JS-visible token to send.
-        const response = await fetch(`${apiUrl}/api/remote/customer/totp/status`, {
-          credentials: 'include',
-        });
-        if (!response.ok) return;
-        const result = await response.json();
-        if (result.action === 1 && result.twoFactorRequired && !result.twoFactorEnabled) {
-          // Redirect to preferences security tab with setup2fa flag
-          if (typeof window !== 'undefined') {
-            const role = user.customerType?.toLowerCase() === 'event_coordinator'
-              ? 'event-coordinator'
-              : user.customerType?.toLowerCase() || 'photographer';
-            window.location.href = `/user/${role}/preferences?tab=security&setup2fa=true`;
-          }
-        }
-      } catch {
-        // Silently fail. don't block the user if the check fails
-      }
-    };
-
-    checkTotpRequirement();
-  }, [user, isLoading]);
-
-  // Inactivity timeout for client & coordinator roles (1 hour). Same rule as
-  // the 2FA gate above: gate on `user`, never on the always-null token.
+  // Inactivity timeout for client & coordinator roles (1 hour). Gate on `user`,
+  // never on `token`: the JWT lives in an HttpOnly cookie and the context token is
+  // always null, so a token guard means the timer never runs (CONN-AUTH-10).
   // Stamped when the timer below first runs, not on every render.
   const lastActivityRef = useRef(0);
 

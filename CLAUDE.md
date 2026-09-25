@@ -22,8 +22,9 @@ the gate above it.
 
 - `app/user/photographer/layout.tsx` gates every `/user/photographer/**` route on profile
   completion and redirects to the profile page.
-- Withdrawal needs KYC approved, a withdrawal method owned by the customer, and an active
-  wallet. The backend enforces all three; the UI must not imply otherwise.
+- Withdrawal needs KYC approved, a withdrawal method owned by the customer, an active
+  wallet, and 2FA turned on. The backend enforces all four; the UI must not imply
+  otherwise. Customers may turn 2FA off even with a balance, which pauses withdrawals.
 
 Profile completion percentage is computed by the backend
 (`PhotographerCompletionService`). If you change which fields the UI collects, check that
