@@ -35,11 +35,7 @@ export interface RouteRule {
   any: string[];
   /** When true, ONLY org owners can enter this route — invited team
    *  members are bounced no matter what permissions their role
-   *  grants. Used for the /user/team/* surfaces because team
-   *  management is structurally an owner action; even if an owner
-   *  seeded a role with users.view / roles.view, members of that
-   *  role still shouldn't be able to invite new members or edit
-   *  the org's roles. */
+   *  grants. */
   ownerOnly?: boolean;
 }
 
@@ -75,15 +71,6 @@ export const ROUTE_RULES: RouteRule[] = [
   { pattern: '/user/event-coordinator/preferences',    any: ['settings.manage'] },
 
   // ─── Team — owner-only ──────────────────────────────────────────
-  // Team management (inviting members, editing roles, viewing the
-  // permission matrix) is reserved for the organisation owner.
-  // Invited team members are bounced to /user/not-authorized even
-  // when their role's permissions seem to allow it, so seed quirks
-  // (e.g. a default Videographer role granting users.view) can't
-  // accidentally surface the Team UI for a non-owner.
-  { pattern: '/user/team/users',       any: [], ownerOnly: true },
-  { pattern: '/user/team/roles',       any: [], ownerOnly: true },
-  { pattern: '/user/team/permissions', any: [], ownerOnly: true },
 ];
 
 /**
