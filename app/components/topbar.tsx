@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
@@ -45,20 +45,13 @@ interface TopbarProps {
 const roleLabel = (r: string) => r === 'photographer' ? 'Photographer'
   : r === 'admin' ? 'Admin'
   : r === 'event-coordinator' ? 'Event Coordinator'
-  : r === 'user' ? 'User'
   : 'Client';
 
 export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const { actualTheme, setTheme, colors } = useTheme();
   const { user, logout, refreshUserProfile } = useDashboardAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  // The consumer `User` section reuses the shared client page components,
-  // which hard-code userRole="client". Derive the real role from the path so
-  // the title/badge/links say "User" and consumer-irrelevant items (Wallet,
-  // KYC/withdrawals) are hidden. API bases still fall through to 'customer'.
-  const role = pathname && pathname.includes('/user/user') ? 'user' : userRole;
-  const isConsumer = role === 'user';
+  const role = userRole;
   const { currency, setCurrency, formatPrice, currencies } = useCurrency();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -732,7 +725,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                     <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Profile</span>
                   </Link>
                   {/* Consumers have no wallet (no earnings). */}
-                  {role !== 'admin' && !isConsumer && (
+                  {role !== 'admin' && (
                     <Link href={`/user/${role}/wallet`} onClick={() => setIsDropdownOpen(false)}
                       className="ck-row" style={{ textDecoration: 'none', color: 'var(--ck-text)' }}>
                       <i className="bi bi-wallet2" style={{ fontSize: 16, marginRight: 10, color: 'var(--ck-text-soft)' }} />
@@ -835,7 +828,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         </div>
       )}
 
-      {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && !isConsumer && user.customerType !== 'Viewer' && !pendingPaymentWarning && (() => {
+      {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && user.customerType !== 'Viewer' && !pendingPaymentWarning && (() => {
         const isPending = user.kycStatus === 'PENDING';
         const isRejected = user.kycStatus === 'REJECTED';
         const cfg = isRejected
