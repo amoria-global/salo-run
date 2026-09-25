@@ -71,6 +71,15 @@ describe('the workflow', () => {
     expect(API).toMatch(/\/joined\/\$\{albumId\}\/submissions/);
   });
 
+  it('one link admits any number of photographers, and cancelling it is separate from removing someone', () => {
+    const PARTS = code('app/components/collab/parts.tsx');
+    expect(PARTS).toMatch(/Send it to as many photographers as you like/);
+    expect(API).toMatch(/\/links\/\$\{inviteId\}/);
+    expect(API).toMatch(/\/members\/\$\{membershipId\}/);
+    expect(OWNER).toMatch(/cancelInvite\(inv\.id\)/);
+    expect(OWNER).toMatch(/removeCollaborator\(removing\.membershipId\)/);
+  });
+
   it('the owner approves or rejects, with an optional note on rejection', () => {
     expect(OWNER).toMatch(/decide\(Array\.from\(selected\), 'APPROVE'\)/);
     expect(OWNER).toMatch(/decide\(rejecting, 'REJECT', note\)/);

@@ -14,8 +14,8 @@ import { AlbumCover, PersonChip } from '@/app/components/collab/parts';
 import { acceptInvite, previewInvite, type InvitePreview } from '@/app/lib/APIs/collab';
 
 const BLOCKED: Record<string, { icon: string; title: string; body: string }> = {
-  OWNER: { icon: 'bi-person-check', title: 'This is your own album', body: 'Send this link to the photographer you want to invite. It works for one person.' },
-  USED: { icon: 'bi-link-45deg', title: 'This link was already used', body: 'Each invite link admits one photographer. Ask the album owner for a new one.' },
+  OWNER: { icon: 'bi-person-check', title: 'This is your own album', body: 'Send this link to the photographers you want to invite. Any number of them can join with it.' },
+  REMOVED: { icon: 'bi-person-dash', title: 'You were removed from this album', body: 'The album owner removed you after this link was made. Ask them for a new link to rejoin.' },
   REVOKED: { icon: 'bi-slash-circle', title: 'This link was cancelled', body: 'The album owner cancelled it. Ask them for a new one if you should still join.' },
   EXPIRED: { icon: 'bi-clock', title: 'This link has expired', body: 'Invite links last 14 days. Ask the album owner for a new one.' },
 };

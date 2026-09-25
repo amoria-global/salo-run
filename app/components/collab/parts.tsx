@@ -123,7 +123,7 @@ export function InviteModal({ albumId, albumTitle, isOpen, onClose, onCreated }:
       size="md"
       title={invite ? 'Your invite link is ready' : 'Invite a photographer'}
       description={invite
-        ? 'Send it to one photographer. It works once and expires in 14 days.'
+        ? 'Send it to as many photographers as you like. Anyone with it can join until it expires in 14 days or you cancel it.'
         : `They will be able to submit photos to "${albumTitle}". Nothing is added until you approve it.`}
       footer={invite
         ? <Button onClick={onClose}>Done</Button>
@@ -139,7 +139,7 @@ export function InviteModal({ albumId, albumTitle, isOpen, onClose, onCreated }:
             <CopyButton text={invite.link} />
           </div>
           <p className="text-xs text-[var(--ck-text-soft)]">
-            Share it in a message or email. If it reaches the wrong person, cancel it from the Collaborators tab.
+            Share it in a group chat, a message or an email. If it reaches the wrong people, cancel it from the Collaborators tab; anyone who already joined stays until you remove them.
           </p>
         </div>
       ) : (
@@ -152,7 +152,7 @@ export function InviteModal({ albumId, albumTitle, isOpen, onClose, onCreated }:
             value={note}
             maxLength={255}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="e.g. Jean, second shooter"
+            placeholder="e.g. Wedding crew, second shooters"
             className="w-full rounded-xl border border-[var(--ck-stroke)] bg-[var(--ck-surface)] px-3.5 py-2.5 text-sm text-[var(--ck-text)] outline-none focus:border-[#083A85] focus:ring-2 focus:ring-[#083A85]/20"
           />
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
