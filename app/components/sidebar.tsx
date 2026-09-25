@@ -30,16 +30,6 @@ interface NavigationItem {
   ownerOnly?: boolean;
 }
 
-// Single Team entry-point. The /user/team layout already renders an
-// internal tab strip for Users / Roles / Permissions, so duplicating
-// those as separate sidebar items would be redundant. Owner-only —
-// invited team members never see the link in their sidebar, even if
-// the default role they were assigned was seeded with users.view /
-// roles.view.
-const TEAM_ITEMS: NavigationItem[] = [
-  { name: "Team", href: "/user/team/users", icon: "bi-people-fill", group: 'Team', ownerOnly: true },
-];
-
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   photographer: [
     { name: "Home", href: "/user/photographer/dashboard", icon: "bi-house-door", group: 'Overview' },
@@ -50,7 +40,9 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Wallet", href: "/user/photographer/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Transactions", href: "/user/photographer/transaction", icon: "bi-arrow-left-right", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/photographer/donate", icon: "bi-heart", group: 'Money' },
-    ...TEAM_ITEMS,
+    // Album collaboration with fellow photographers. Photographers only:
+    // clients and coordinators have no albums to collaborate on.
+    { name: "Collaborate", href: "/user/photographer/collaborate", icon: "bi-people-fill", group: 'Work' },
   ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house-door", group: 'Overview' },
@@ -63,7 +55,6 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card", group: 'Money', requires: ['payments.view'] },
     { name: "Wallet", href: "/user/client/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/client/donate", icon: "bi-heart", group: 'Money' },
-    ...TEAM_ITEMS,
   ],
   "event-coordinator": [
     { name: "Home", href: "/user/event-coordinator/home", icon: "bi-house-door", group: 'Overview' },
@@ -76,7 +67,6 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Payments", href: "/user/event-coordinator/payments", icon: "bi-credit-card", group: 'Money', requires: ['payments.view'] },
     { name: "Wallet", href: "/user/event-coordinator/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/event-coordinator/donate", icon: "bi-heart", group: 'Money' },
-    ...TEAM_ITEMS,
   ],
   admin: [
     { name: "Wallets", href: "/user/admin/wallets", icon: "bi-wallet2", group: 'Admin' },
@@ -121,9 +111,9 @@ const roleFromCustomerType = (customerType: string | null | undefined): UserRole
 
 // Resolve which role's nav to render. URL path is the primary signal
 // for role-specific sections (/user/photographer, /user/admin, …) but
-// shared sections (/user/team, /user/not-authorized, /user/auth) live
+// shared sections (/user/not-authorized, /user/auth) live
 // outside any role bucket - for those we fall back to the authenticated
-// user's customerType so a photographer browsing /user/team doesn't see
+// user's customerType so a photographer on a shared page doesn't see
 // the client sidebar wired with /user/client/* links.
 const detectRole = (pathname: string | null, customerType: string | null | undefined): UserRole => {
   if (pathname && pathname.includes("/user/admin")) return "admin";

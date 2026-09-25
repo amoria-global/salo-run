@@ -72,7 +72,6 @@ export default function NotAuthorizedPage() {
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 22 }}>
           <Link href="/" style={btnPrimary}>Go home</Link>
-          <Link href="/user/team/users" style={btnSecondary}>Ask an owner</Link>
         </div>
       </section>
     </main>
@@ -82,8 +81,4 @@ export default function NotAuthorizedPage() {
 const btnPrimary: React.CSSProperties = {
   padding: '9px 18px', fontSize: 13.5, fontWeight: 600, borderRadius: 8,
   background: '#F20C8F', color: '#fff', textDecoration: 'none',
-};
-const btnSecondary: React.CSSProperties = {
-  padding: '9px 18px', fontSize: 13.5, fontWeight: 600, borderRadius: 8,
-  background: '#fff', color: '#374151', border: '1px solid #d1d5db', textDecoration: 'none',
 };
