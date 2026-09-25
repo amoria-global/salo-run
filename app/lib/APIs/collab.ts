@@ -12,7 +12,7 @@ import { dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 
 export type SubmissionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-export type InviteState = 'OPEN' | 'OWNER' | 'ALREADY_MEMBER' | 'USED' | 'REVOKED' | 'EXPIRED';
+export type InviteState = 'OPEN' | 'OWNER' | 'ALREADY_MEMBER' | 'REMOVED' | 'REVOKED' | 'EXPIRED';
 
 export interface Person {
   id: string;
@@ -47,6 +47,8 @@ export interface Invite {
   note?: string | null;
   expiresAt: string;
   createdAt?: string | null;
+  /** Photographers who joined through this link and are still collaborating. */
+  joinedCount: number;
 }
 
 export interface Collaborator extends Person {
@@ -130,9 +132,14 @@ export async function createInvite(albumId: string, note?: string): Promise<Invi
   return data.invite;
 }
 
-/** Cancels an unused invite link or removes a collaborator. */
-export async function revokeMembership(membershipId: string): Promise<void> {
+/** Removes a collaborator from the album. */
+export async function removeCollaborator(membershipId: string): Promise<void> {
   await unwrap(await dashboardAuthFetch(`${base()}/members/${membershipId}`, { method: 'DELETE' }));
+}
+
+/** Cancels an invite link. Photographers who already joined through it stay. */
+export async function cancelInvite(inviteId: string): Promise<void> {
+  await unwrap(await dashboardAuthFetch(`${base()}/links/${inviteId}`, { method: 'DELETE' }));
 }
 
 export async function reviewSubmissions(

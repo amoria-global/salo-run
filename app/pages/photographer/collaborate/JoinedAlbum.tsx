@@ -20,7 +20,10 @@ import {
 type Filter = 'ALL' | SubmissionStatus;
 type QueueItem = { key: string; file: File; state: 'waiting' | 'uploading' | 'done' | 'failed'; error?: string };
 
-const MAX_BYTES = 25 * 1024 * 1024;
+// The server's per-file limit (spring.servlet.multipart.max-file-size).
+const MAX_BYTES = 20 * 1024 * 1024;
+// What the backend accepts for a submission; browsers show all three.
+const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const PARALLEL = 3;
 
 export default function JoinedAlbum({ albumId }: { albumId: string }) {
@@ -51,8 +54,8 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
   const addFiles = async (files: FileList | File[]) => {
     const items: QueueItem[] = Array.from(files).map((file, i) => {
       const key = `${Date.now()}-${i}-${file.name}`;
-      if (!file.type.startsWith('image/')) return { key, file, state: 'failed', error: 'Not a photo' };
-      if (file.size > MAX_BYTES) return { key, file, state: 'failed', error: 'Larger than 25 MB' };
+      if (!ACCEPTED.includes(file.type)) return { key, file, state: 'failed', error: 'Only JPEG, PNG or WebP' };
+      if (file.size > MAX_BYTES) return { key, file, state: 'failed', error: 'Larger than 20 MB' };
       return { key, file, state: 'waiting' };
     });
     setQueue((q) => [...items, ...q]);
@@ -163,9 +166,9 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
           <i className="bi bi-cloud-arrow-up" aria-hidden />
         </div>
         <p className="text-base font-semibold text-[var(--ck-text)]">Drop photos here to submit them</p>
-        <p className="mb-4 text-sm text-[var(--ck-text-soft)]">JPEG, PNG, WebP or HEIC, up to 25 MB each. {owner.name} decides what goes in.</p>
+        <p className="mb-4 text-sm text-[var(--ck-text-soft)]">Full quality. JPEG, PNG or WebP, up to 20 MB each, at least Full HD. {owner.name} decides what goes in.</p>
         <Button onClick={() => inputRef.current?.click()} iconLeft={<i className="bi bi-plus-lg" aria-hidden />}>Choose photos</Button>
-        <input ref={inputRef} type="file" accept="image/*" multiple className="sr-only" aria-label="Choose photos to submit"
+        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" aria-label="Choose photos to submit"
           onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ''; }} />
 
         {queue.length > 0 && (

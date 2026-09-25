@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { Avatar, Button, Card, EmptyState, Modal, Skeleton, Tabs } from '@/app/components/ui';
 import { AlbumCover, CopyButton, InviteModal, PersonChip, StatusBadge, daysLeft, timeAgo } from '@/app/components/collab/parts';
 import {
-  getOwnedAlbum, reviewSubmissions, revokeMembership,
+  cancelInvite, getOwnedAlbum, removeCollaborator, reviewSubmissions,
   type Collaborator, type Invite, type OwnedAlbumDetail, type Submission,
 } from '@/app/lib/APIs/collab';
 
@@ -83,10 +83,10 @@ export default function OwnerAlbum({ albumId }: { albumId: string }) {
     }
   };
 
-  const revoke = async (membershipId: string, message: string) => {
+  const revoke = async (action: () => Promise<void>, message: string) => {
     setBusy(true); setNotice(null);
     try {
-      await revokeMembership(membershipId);
+      await action();
       setNotice({ tone: 'ok', text: message });
       setRemoving(null);
       await load();
@@ -216,14 +216,14 @@ export default function OwnerAlbum({ albumId }: { albumId: string }) {
           </section>
 
           <section aria-labelledby="links-h">
-            <h2 id="links-h" className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--ck-text-soft)]">Invite links not used yet</h2>
+            <h2 id="links-h" className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--ck-text-soft)]">Open invite links</h2>
             {invites.length === 0 ? (
-              <p className="text-sm text-[var(--ck-text-soft)]">None. Each link works for one photographer, so create one per person.</p>
+              <p className="text-sm text-[var(--ck-text-soft)]">None. One link can bring in as many photographers as you send it to.</p>
             ) : (
               <Card padding={0}>
                 <ul className="divide-y divide-[var(--ck-stroke-soft)]">
                   {invites.map((inv) => <InviteRow key={inv.id} invite={inv} busy={busy}
-                    onCancel={() => revoke(inv.id, 'Invite link cancelled.')} />)}
+                    onCancel={() => revoke(() => cancelInvite(inv.id), 'Invite link cancelled. Photographers who already joined stay.')} />)}
                 </ul>
               </Card>
             )}
@@ -282,11 +282,11 @@ export default function OwnerAlbum({ albumId }: { albumId: string }) {
 
       <Modal isOpen={!!removing} onClose={() => setRemoving(null)} size="sm"
         title={removing ? `Remove ${removing.name}?` : ''}
-        description="They will no longer be able to submit photos to this album. Photos they already submitted stay in your review queue."
+        description="They will no longer be able to submit photos to this album. Photos they already submitted stay in your review queue. To bring them back, send them a new link."
         footer={<>
           <Button variant="ghost" onClick={() => setRemoving(null)}>Keep</Button>
           <Button variant="danger" loading={busy}
-            onClick={() => removing && revoke(removing.membershipId, `${removing.name} was removed from this album.`)}>Remove</Button>
+            onClick={() => removing && revoke(() => removeCollaborator(removing.membershipId), `${removing.name} was removed from this album.`)}>Remove</Button>
         </>} />
     </Shell>
   );
@@ -333,7 +333,9 @@ function InviteRow({ invite, busy, onCancel }: { invite: Invite; busy: boolean; 
     <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-[var(--ck-text)]">{invite.note || 'Invite link'}</p>
-        <p className="text-xs text-[var(--ck-text-soft)]">Created {timeAgo(invite.createdAt)} · {daysLeft(invite.expiresAt)}</p>
+        <p className="text-xs text-[var(--ck-text-soft)]">
+          {invite.joinedCount} joined · created {timeAgo(invite.createdAt)} · {daysLeft(invite.expiresAt)}
+        </p>
       </div>
       <div className="flex gap-2">
         <CopyButton text={invite.link} />
