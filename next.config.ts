@@ -91,6 +91,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // The User role was merged into Client, and every /user/user page had a
+  // /user/client twin. Old bookmarks and links keep working.
+  async redirects() {
+    return [
+      { source: '/user/user', destination: '/user/client/home', permanent: false },
+      { source: '/user/user/:path*', destination: '/user/client/:path*', permanent: false },
+    ];
+  },
   async headers() {
     return [
       {
