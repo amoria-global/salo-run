@@ -479,7 +479,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
               fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap',
             }}>
               <i className="bi bi-wallet2" style={{ color: 'var(--ck-blue)', fontSize: 14 }} />
-              <span>${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span>{formatPrice(walletBalance)}</span>
               {walletStatus === 'SUSPENDED' && (
                 <span className="ck-pill ck-status-error" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>SUSPENDED</span>
               )}
@@ -802,7 +802,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                     date: p.createdAt, eventName: p.eventTitle || pendingPaymentWarning.firstEvent,
                     eventType: p.paymentType || '', photographerName: p.photographerName || '',
                     photographerImage: p.photographerImage || '', method: '',
-                    amount: `${p.currencyAbbreviation || ''} ${p.amount || 0}`,
+                    amount: formatPrice(p.amount || 0, p.currencyAbbreviation || undefined),
                     amountNum: p.amount || 0, paidAmount: p.paidAmount || 0,
                     status: (p.status?.toLowerCase() || 'pending') as any,
                     invoiceNumber: `INV-${String(p.id).substring(0, 8).toUpperCase()}`,

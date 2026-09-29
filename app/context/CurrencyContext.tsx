@@ -169,6 +169,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         const fromInfo = currencies.find((c) => c.code === fromCurrency);
         if (fromInfo && fromInfo.rate) {
           amountInUSD = amount / fromInfo.rate;
+        } else {
+          // No rate for this currency: show it as it is rather than relabel it as the selected one.
+          return `${fromCurrency} ${amount.toLocaleString("en-US")}`;
         }
       }
       const info = currencies.find((c) => c.code === currency)!;

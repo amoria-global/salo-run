@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { getCurrencies, type CurrencyInfo } from '@/lib/donationApi';
+import { useCurrency } from '@/app/context/CurrencyContext';
 
 const NAVY = '#083A85';
 const PINK = '#F20C8F';
@@ -67,6 +68,7 @@ export default function GeoPricingManager({
   targetId: string;
   name?: string;
 }) {
+  const { formatPrice } = useCurrency();
   const base = useMemo(
     () => `${getApiUrl()}/api/remote/${kind === 'package' ? 'packages' : 'events'}/${targetId}/geo-prices`,
     [kind, targetId],
@@ -165,7 +167,7 @@ export default function GeoPricingManager({
         <div className="px-6 py-5 space-y-5">
           <div className="rounded-xl p-3 text-sm" style={{ background: '#EEF2FB', color: NAVY }}>
             A <b>country</b> price beats a <b>continent</b> price, which beats your{' '}
-            <b>default{defaultPrice != null ? ` (${defaultPrice.toLocaleString()} ${defaultCurrency ?? ''})` : ''}</b>.
+            <b>default{defaultPrice != null ? ` (${formatPrice(defaultPrice, defaultCurrency ?? undefined)})` : ''}</b>.
             Anywhere without a rule pays the default.
           </div>
 
@@ -185,7 +187,7 @@ export default function GeoPricingManager({
                     </span>
                     <span className="flex-1 text-sm font-medium text-slate-800 truncate">{labelFor(r)}</span>
                     <span className="text-sm font-bold" style={{ color: NAVY }}>
-                      {r.price.toLocaleString()} {r.currencyAbbreviation ?? defaultCurrency ?? ''}
+                      {formatPrice(r.price, r.currencyAbbreviation ?? defaultCurrency ?? undefined)}
                     </span>
                     <button onClick={() => remove(r)} className="text-slate-400 hover:text-rose-600 text-sm" aria-label="Remove">🗑</button>
                   </div>
