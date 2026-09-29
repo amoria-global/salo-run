@@ -287,6 +287,10 @@ export function formatWalletMovement(
     title = cat.replace(/_/g, ' ').toLowerCase();
     title = title.charAt(0).toUpperCase() + title.slice(1);
   }
+  // A debit on a photographer's booking balance is a deduction, not earnings.
+  if (role === 'photographer' && cat === 'BALANCE' && direction === 'out') {
+    title = 'Balance deduction';
+  }
 
   // Use description as subtitle when available
   const subtitle = m.description || undefined;
@@ -343,22 +347,24 @@ export function selectWalletStats(
   const status = w.status || 'ACTIVE';
 
   if (role === 'photographer') {
-    // balanceAvailable already = sum of every withdrawable bucket
+    // balanceAvailable = sum of every withdrawable bucket
     // (booking+tips+bonuses+gifts+streamFees+donations+adRevenue+photoPurchase).
-    // The old code re-added five of those buckets on top of it, ~doubling
-    // the figure. "Total earnings" = the true combined balance.
-    const totalEarnings = w.balanceAvailable;
+    // The cards below are that breakdown, so they add up to the hero. A separate
+    // "Total earnings" card just repeated the hero under a misleading name (it is
+    // the withdrawable balance, not lifetime earnings) and left the booking bucket
+    // itself unshown. In escrow and Total withdrawn are NOT part of the hero.
 
     return {
       hero: { label: 'Available to withdraw', value: w.balanceAvailable },
       cards: [
-        { label: 'Total earnings', value: totalEarnings, color: 'green', hidden: false },
+        { label: 'Booking earnings', value: w.balanceBooking, color: 'green', hidden: w.balanceBooking === 0 },
         { label: 'Tips', value: w.balanceTips, color: 'purple', hidden: w.balanceTips === 0 },
         { label: 'Bonuses', value: w.balanceBonuses, color: 'amber', hidden: w.balanceBonuses === 0 },
         { label: 'Stream bonus', value: w.balanceStreamFees, color: 'blue', hidden: w.balanceStreamFees === 0 },
         { label: 'Album sales', value: w.balancePhotoPurchase, color: 'blue', hidden: w.balancePhotoPurchase === 0 },
         { label: 'Gifts', value: w.balanceGifts, color: 'purple', hidden: w.balanceGifts === 0 },
         { label: 'Donations', value: w.balanceDonations, color: 'purple', hidden: w.balanceDonations === 0 },
+        { label: 'Ad revenue', value: w.balanceAdRevenue, color: 'blue', hidden: !w.balanceAdRevenue },
         // Total funds in escrow. The backend aggregates album-delivery-held
         // and photobook-held into a single HELD wallet bucket
         // (heldForDelivery on BalanceResponseDTO), so we display the total
