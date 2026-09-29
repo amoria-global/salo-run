@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { Can, usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl } from '@/lib/api';
+import { useCurrency } from '@/app/context/CurrencyContext';
 
 /**
  * Content-album tab on the photographer events page.
@@ -69,6 +70,7 @@ interface Props {
 }
 
 export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Props) {
+  const { formatPrice } = useCurrency();
   const { hasPermission } = usePermissions();
   const [albums, setAlbums] = useState<ContentAlbumDto[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -395,7 +397,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
                     </div>
                     {(a.pricePerImage != null || a.currencyAbbreviation) && (
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
-                        {a.currencyAbbreviation || ''} {a.pricePerImage} per photo
+                        {a.pricePerImage != null ? formatPrice(a.pricePerImage, a.currencyAbbreviation || undefined) : (a.currencyAbbreviation || '')} per photo
                       </div>
                     )}
                   </div>

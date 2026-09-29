@@ -1917,7 +1917,7 @@ Amount: ${formatPrice(payment.amountNum)}
         photographerName: item.photographerName || 'Unknown',
         photographerImage: item.photographerImage || undefined,
         method: '-',
-        amount: `${item.currencyAbbreviation || '$'}${item.amount}`,
+        amount: formatPrice(Number(item.amount) || 0, item.currencyAbbreviation || undefined),
         amountNum: Number(item.amountInUsd ?? item.amount) || 0,
         paidAmount: Number(item.paidAmountInUsd ?? item.paidAmount) || 0,
         status: mapStatus(item.status),

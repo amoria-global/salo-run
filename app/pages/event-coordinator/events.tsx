@@ -17,6 +17,7 @@ import { StatCard } from '../../components/dashboard/StatCard';
 import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import { isEventPriceInvalid, getMinEventPriceLabel } from '../../components/eventPriceValidation';
+import { useCurrency } from '@/app/context/CurrencyContext';
 
 // Configure localforage for event form data 
 const eventFormStorage = localforage.createInstance({
@@ -345,6 +346,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 
 // Photographers the client has worked with before
 const MyEventsPage = () => {
+  const { formatPrice } = useCurrency();
   const { colors, actualTheme } = useTheme();
   const { token, user } = useDashboardAuth();
   const searchParams = useSearchParams();
@@ -2612,8 +2614,7 @@ const MyEventsPage = () => {
                           {pkg.packageName}
                         </div>
                         <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85', marginBottom: '0.25rem' }}>
-                          {pkg.currencySymbol || ''}{pkg.price.toLocaleString()}
-                          {pkg.currencyAbbreviation && <span style={{ fontWeight: '400', fontSize: '0.75rem', color: colors.textSecondary, marginLeft: '0.25rem' }}>{pkg.currencyAbbreviation}</span>}
+                          {formatPrice(pkg.price, pkg.currencyAbbreviation || undefined)}
                         </div>
                         {pkg.durationHours > 0 && (
                           <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>

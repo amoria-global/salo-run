@@ -377,7 +377,7 @@ const ClientDashboard = () => {
       photographerName: pending.photographerName,
       photographerImage: pending.photographerImage ?? '',
       method: 'card',
-      amount: `$${(pending.amount - pending.paidAmount).toFixed(2)}`,
+      amount: formatPrice(pending.amount - pending.paidAmount),
       amountNum: pending.amount - pending.paidAmount,
       paidAmount: pending.paidAmount,
       status: pending.status === 'partially_paid' ? 'pending' : pending.status,

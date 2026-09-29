@@ -298,7 +298,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
     photographerName: p.photographerName,
     photographerImage: p.photographerImage || '',
     method: '',
-    amount: `${p.currencyAbbreviation} ${p.amount}`,
+    amount: formatPrice(p.amount, p.currencyAbbreviation),
     amountNum: p.amount,
     paidAmount: p.paidAmount,
     status: (p.status?.toLowerCase() || 'pending') as any,
