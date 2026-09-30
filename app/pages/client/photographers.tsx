@@ -824,8 +824,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       setReviewEvents([]);
       setReviewError(null);
 
-      // Show tip prompt modal
-      setShowTipPromptModal(true);
+      // The tip step is off. Its "payment" screen never charged anything: it only
+      // called record-tip, which the backend used to accept and book as a paid tip
+      // for the photographer, and now refuses. A tip must go through a real
+      // gateway checkout before this prompt comes back.
+      setSuccessMessage('Review submitted successfully!');
+      setShowSuccessModal(true);
+      setPendingReviewPhotographer(null);
     } catch (err) {
       console.error('Submit review error:', err);
       setReviewError(err instanceof Error ? err.message : 'Failed to submit review');
