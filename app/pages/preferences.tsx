@@ -2499,29 +2499,31 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               marginBottom: '1.25rem'
             }}>
               {([
+                { type: 'momo' as const, label: 'Mobile Money', description: 'MTN or Airtel Money', image: '/momo.jpeg' },
                 { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Withdraw via MTN Mobile Money', image: '/mtn.png' },
                 { type: 'airtel' as const, label: 'Airtel Money', description: 'Withdraw via Airtel Money', image: '/airtel.png' },
                 { type: 'bank' as const, label: 'Bank Transfer', description: 'Withdraw to a Rwandan bank account', image: '' }
-              ]).map((option) => (
+              ]).filter((option) => (option.type !== 'mtn' && option.type !== 'airtel') || paymentType === 'mtn' || paymentType === 'airtel').map((option) => (
                 <div
                   key={option.type}
                   className="mobile-payment-option"
-                  onClick={() => setPaymentType(option.type)}
+                  onClick={() => { if (option.type === 'momo') { if (paymentType !== 'mtn' && paymentType !== 'airtel') setPaymentType('mtn'); } else setPaymentType(option.type); }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.85rem',
+                    marginLeft: option.type === 'mtn' || option.type === 'airtel' ? 18 : 0,
                     padding: '0.85rem 0.95rem',
-                    border: `1px solid ${paymentType === option.type ? 'rgba(8,58,133,0.45)' : colors.borderPrimary}`,
+                    border: `1px solid ${(option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? 'rgba(8,58,133,0.45)' : colors.borderPrimary}`,
                     borderRadius: 12,
                     cursor: 'pointer',
-                    background: paymentType === option.type
+                    background: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type)
                       ? (actualTheme === 'dark'
                         ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
                         : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)')
                       : colors.bgCard,
                     transition: 'all 0.18s',
-                    boxShadow: paymentType === option.type ? '0 6px 14px rgba(8,58,133,0.14)' : 'none',
+                    boxShadow: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? '0 6px 14px rgba(8,58,133,0.14)' : 'none',
                   }}
                 >
                   <div className="mobile-payment-option-icon" style={{
@@ -2569,14 +2571,14 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     width: 20,
                     height: 20,
                     borderRadius: '50%',
-                    background: paymentType === option.type ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)' : 'transparent',
-                    border: paymentType === option.type ? 'none' : `1.5px solid ${colors.borderPrimary}`,
+                    background: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)' : 'transparent',
+                    border: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? 'none' : `1.5px solid ${colors.borderPrimary}`,
                     flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: paymentType === option.type ? '0 3px 8px rgba(242,12,143,0.30)' : 'none',
+                    boxShadow: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? '0 3px 8px rgba(242,12,143,0.30)' : 'none',
                     transition: 'all 0.18s',
                   }}>
-                    {paymentType === option.type && <i className="bi bi-check2" style={{ color: 'white', fontSize: 11, fontWeight: 700 }} />}
+                    {(option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) && <i className="bi bi-check2" style={{ color: 'white', fontSize: 11, fontWeight: 700 }} />}
                   </div>
                 </div>
               ))}

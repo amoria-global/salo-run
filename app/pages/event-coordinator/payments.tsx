@@ -2880,22 +2880,25 @@ Amount: ${formatPrice(payment.amountNum)}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.25rem' }}>
             {([
+              { id: 'momo',   title: 'Mobile Money',        subtitle: 'MTN or Airtel Money',                   logo: { src: '/momo.jpeg' }, rwandaRequired: true },
               { id: 'mtn',    title: 'MTN Mobile Money',    subtitle: 'Receive payments via MTN MoMo',         logo: { src: '/mtn.png' },    rwandaRequired: true },
               { id: 'airtel', title: 'Airtel Mobile Money', subtitle: 'Receive payments via Airtel Money',     logo: { src: '/airtel.png' }, rwandaRequired: true },
               { id: 'bank',   title: 'Bank Transfer',       subtitle: 'Receive payments to your bank account', logo: { icon: 'bi-bank2' },   rwandaRequired: false },
-            ] as const).map((m) => {
-              const isSelected = selectedStreamFeePaymentMethod === m.id;
-              const showRwandaWarning = isRwanda && m.rwandaRequired && !hasMobileMoneySelected;
+            ] as const).filter((m) => (m.id !== 'mtn' && m.id !== 'airtel') || (selectedStreamFeePaymentMethod === 'mtn' || selectedStreamFeePaymentMethod === 'airtel')).map((m) => {
+              const isNetwork = m.id === 'mtn' || m.id === 'airtel';
+              const isSelected = m.id === 'momo' ? (selectedStreamFeePaymentMethod === 'mtn' || selectedStreamFeePaymentMethod === 'airtel') : selectedStreamFeePaymentMethod === m.id;
+              const showRwandaWarning = isRwanda && m.rwandaRequired && !isNetwork && !hasMobileMoneySelected;
               return (
                 <div
                   key={m.id}
-                  onClick={() => { setSelectedStreamFeePaymentMethod(m.id); setValidationError(null); }}
+                  onClick={() => { if (m.id === 'momo') { if (!isSelected) setSelectedStreamFeePaymentMethod('mtn'); } else setSelectedStreamFeePaymentMethod(m.id); setValidationError(null); }}
                   style={{
                     position: 'relative',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.85rem',
                     padding: '0.85rem 0.95rem',
+                    marginLeft: isNetwork ? 18 : 0,
                     border: `1.5px solid ${isSelected ? '#F20C8F' : (showRwandaWarning ? '#F59E0B' : colors.borderPrimary)}`,
                     borderRadius: 14,
                     cursor: 'pointer',
@@ -2933,7 +2936,7 @@ Amount: ${formatPrice(payment.amountNum)}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>{m.title}</span>
-                      {isRwanda && m.rwandaRequired && (
+                      {isRwanda && m.rwandaRequired && !isNetwork && (
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: 3,
                           fontSize: '0.6rem', fontWeight: 700,
