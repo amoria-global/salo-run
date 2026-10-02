@@ -3233,21 +3233,24 @@ Amount: ${formatPrice(payment.amountNum)}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.25rem' }}>
             {([
+              { id: 'momo',   title: 'Mobile Money',        subtitle: 'MTN or Airtel Money',                logo: { src: '/momo.jpeg' } },
               { id: 'mtn',    title: 'MTN Mobile Money',    subtitle: 'Receive gifts via MTN MoMo',         logo: { src: '/mtn.png' } },
               { id: 'airtel', title: 'Airtel Mobile Money', subtitle: 'Receive gifts via Airtel Money',     logo: { src: '/airtel.png' } },
               { id: 'bank',   title: 'Bank Transfer',       subtitle: 'Receive gifts to your bank account', logo: { icon: 'bi-bank2' } },
-            ] as const).map((m) => {
-              const isSelected = selectedGiftPaymentMethod === m.id;
+            ] as const).filter((m) => (m.id !== 'mtn' && m.id !== 'airtel') || (selectedGiftPaymentMethod === 'mtn' || selectedGiftPaymentMethod === 'airtel')).map((m) => {
+              const isNetwork = m.id === 'mtn' || m.id === 'airtel';
+              const isSelected = m.id === 'momo' ? (selectedGiftPaymentMethod === 'mtn' || selectedGiftPaymentMethod === 'airtel') : selectedGiftPaymentMethod === m.id;
               return (
                 <div
                   key={m.id}
-                  onClick={() => { setSelectedGiftPaymentMethod(m.id); setValidationError(null); }}
+                  onClick={() => { if (m.id === 'momo') { if (!isSelected) setSelectedGiftPaymentMethod('mtn'); } else setSelectedGiftPaymentMethod(m.id); setValidationError(null); }}
                   style={{
                     position: 'relative',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.85rem',
                     padding: '0.85rem 0.95rem',
+                    marginLeft: isNetwork ? 18 : 0,
                     border: `1.5px solid ${isSelected ? '#F20C8F' : colors.borderPrimary}`,
                     borderRadius: 14,
                     cursor: 'pointer',
