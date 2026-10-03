@@ -18,7 +18,29 @@ import {
 } from '@/app/lib/APIs/collab';
 
 type Filter = 'ALL' | SubmissionStatus;
-type QueueItem = { key: string; file: File; state: 'waiting' | 'uploading' | 'done' | 'failed'; error?: string };
+// 'staged' = chosen but not yet sent. Nothing leaves the browser until the
+// collaborator presses Submit, so the owner never sees a photo by accident.
+type QueueItem = { key: string; file: File; state: 'staged' | 'waiting' | 'uploading' | 'done' | 'failed'; error?: string };
+
+/** Local preview of a staged photo; the object URL is released on unmount. */
+function StagedTile({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const u = URL.createObjectURL(file);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+  return (
+    <div className="relative aspect-square overflow-hidden rounded-lg border border-[var(--ck-stroke)] bg-[var(--ck-surface-muted)]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {url && <img src={url} alt={file.name} className="h-full w-full object-cover" />}
+      <button type="button" onClick={onRemove} aria-label={`Remove ${file.name}`}
+        className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-white hover:bg-black">
+        <i className="bi bi-x-lg" aria-hidden />
+      </button>
+    </div>
+  );
+}
 
 // The server's per-file limit (spring.servlet.multipart.max-file-size).
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -110,16 +132,24 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
   const setItem = (key: string, patch: Partial<QueueItem>) =>
     setQueue((q) => q.map((it) => (it.key === key ? { ...it, ...patch } : it)));
 
-  const addFiles = async (files: FileList | File[]) => {
+  const addFiles = (files: FileList | File[]) => {
     const items: QueueItem[] = Array.from(files).map((file, i) => {
       const key = `${Date.now()}-${i}-${file.name}`;
       if (!ACCEPTED.includes(file.type)) return { key, file, state: 'failed', error: 'Only JPEG, PNG or WebP' };
       if (file.size > MAX_BYTES) return { key, file, state: 'failed', error: 'Larger than 20 MB' };
-      return { key, file, state: 'waiting' };
+      return { key, file, state: 'staged' };
     });
+    // Stage only. Nothing is sent to the owner until they press Submit.
     setQueue((q) => [...items, ...q]);
+  };
 
-    const todo = items.filter((it) => it.state === 'waiting');
+  const removeStaged = (key: string) => setQueue((q) => q.filter((it) => it.key !== key));
+
+  const submitStaged = async () => {
+    const todo = queue.filter((it) => it.state === 'staged');
+    if (todo.length === 0) return;
+    const keys = new Set(todo.map((it) => it.key));
+    setQueue((q) => q.map((it) => (keys.has(it.key) ? { ...it, state: 'waiting' } : it)));
     let next = 0;
     const worker = async () => {
       while (next < todo.length) {
@@ -134,7 +164,7 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
       }
     };
     await Promise.all(Array.from({ length: Math.min(PARALLEL, todo.length) }, worker));
-    if (todo.length > 0) await load();
+    await load();
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -170,6 +200,9 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
   const uploading = queue.filter((q) => q.state === 'uploading' || q.state === 'waiting').length;
   const done = queue.filter((q) => q.state === 'done').length;
   const failed = queue.filter((q) => q.state === 'failed');
+  const staged = queue.filter((q) => q.state === 'staged');
+  // Everything the collaborator has actually sent (or tried to send).
+  const sent = queue.filter((q) => q.state !== 'staged');
 
   if (error && !data) {
     return (
@@ -224,36 +257,67 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#083A85]/10 text-xl text-[#083A85]">
           <i className="bi bi-cloud-arrow-up" aria-hidden />
         </div>
-        <p className="text-base font-semibold text-[var(--ck-text)]">Drop photos here to submit them</p>
-        <p className="mb-4 text-sm text-[var(--ck-text-soft)]">Full quality. JPEG, PNG or WebP, up to 20 MB each, at least Full HD. {owner.name} decides what goes in.</p>
+        <p className="text-base font-semibold text-[var(--ck-text)]">Drop photos here to add them</p>
+        <p className="mb-4 text-sm text-[var(--ck-text-soft)]">Full quality. JPEG, PNG or WebP, up to 20 MB each, at least Full HD. Photos are only sent to {owner.name} when you press Submit.</p>
         <Button onClick={() => inputRef.current?.click()} iconLeft={<i className="bi bi-plus-lg" aria-hidden />}>Choose photos</Button>
         <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" aria-label="Choose photos to submit"
           onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ''; }} />
 
         {queue.length > 0 && (
-          <div className="mx-auto mt-6 max-w-lg text-left" aria-live="polite">
-            <div className="mb-2 flex items-center justify-between text-sm font-medium text-[var(--ck-text)]">
-              <span>
-                {uploading > 0 ? `Uploading ${uploading} photo${uploading === 1 ? '' : 's'}…` : `${done} submitted`}
-                {failed.length > 0 && <span className="ml-1.5 font-semibold text-red-600">· {failed.length} failed</span>}
-              </span>
-              {uploading === 0 && (
-                <button
-                  type="button"
-                  className="text-xs font-medium text-[var(--ck-text-soft)] underline transition hover:text-[var(--ck-text)] focus:outline-none"
-                  onClick={() => setQueue([])}
-                >
-                  Clear all
-                </button>
-              )}
-            </div>
+          <div className="mx-auto mt-6 max-w-2xl text-left" aria-live="polite">
+            {staged.length > 0 && (
+              <div className="mb-5 rounded-xl border border-[var(--ck-stroke)] bg-[var(--ck-surface-soft)] p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-[var(--ck-text)]">
+                    {staged.length} photo{staged.length === 1 ? '' : 's'} ready to submit
+                  </p>
+                  <button type="button" onClick={() => setQueue((q) => q.filter((it) => it.state !== 'staged'))}
+                    disabled={uploading > 0}
+                    className="text-xs font-medium text-[var(--ck-text-soft)] underline hover:text-[var(--ck-text)] disabled:opacity-50">
+                    Remove all
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                  {staged.map((it) => (
+                    <StagedTile key={it.key} file={it.file} onRemove={() => removeStaged(it.key)} />
+                  ))}
+                </div>
+                <div className="mt-4 flex flex-col items-center gap-2">
+                  <Button onClick={submitStaged} disabled={uploading > 0}
+                    iconLeft={<i className="bi bi-send" aria-hidden />}>
+                    Submit {staged.length} photo{staged.length === 1 ? '' : 's'} to {owner.name}
+                  </Button>
+                  <p className="text-xs text-[var(--ck-text-soft)]">They stay with you until you press Submit.</p>
+                </div>
+              </div>
+            )}
 
-            <div className="h-2 overflow-hidden rounded-full bg-[var(--ck-surface-muted)]">
-              <div
-                className="h-full rounded-full bg-[#083A85] transition-all duration-300"
-                style={{ width: `${Math.round(((done + failed.length) / queue.length) * 100)}%` }}
-              />
-            </div>
+            {sent.length > 0 && (
+              <>
+                <div className="mb-2 flex items-center justify-between text-sm font-medium text-[var(--ck-text)]">
+                  <span>
+                    {uploading > 0 ? `Uploading ${uploading} photo${uploading === 1 ? '' : 's'}…` : `${done} submitted`}
+                    {failed.length > 0 && <span className="ml-1.5 font-semibold text-red-600">· {failed.length} failed</span>}
+                  </span>
+                  {uploading === 0 && (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-[var(--ck-text-soft)] underline transition hover:text-[var(--ck-text)] focus:outline-none"
+                      onClick={() => setQueue((q) => q.filter((it) => it.state === 'staged'))}
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--ck-surface-muted)]">
+                  <div
+                    className="h-full rounded-full bg-[#083A85] transition-all duration-300"
+                    style={{ width: `${Math.round(((done + failed.length) / sent.length) * 100)}%` }}
+                  />
+                </div>
+              </>
+            )}
 
             {failed.length > 0 && (
               <div className="ck-err-banner mt-4" role="alert">
