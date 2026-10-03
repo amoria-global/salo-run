@@ -26,6 +26,62 @@ const MAX_BYTES = 20 * 1024 * 1024;
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const PARALLEL = 3;
 
+interface FormattedError {
+  title: string;
+  badge?: string;
+  detail: string;
+}
+
+function formatUploadError(filename: string, error?: string): FormattedError {
+  if (!error) {
+    return {
+      title: 'Upload failed',
+      detail: 'An unexpected error occurred while uploading. Please try again.',
+    };
+  }
+
+  // Low-quality / low-resolution image rejection from ImageQualityService
+  if (error.toLowerCase().includes('low-quality') || error.toLowerCase().includes('is only')) {
+    const dimMatch = error.match(/is only (\d+x\d+)/i) || error.match(/\((\d+x\d+)\)/);
+    const dim = dimMatch ? dimMatch[1].replace('x', ' × ') : null;
+
+    const reqMatch = error.match(/Photos must be at least ([^.]+)/i);
+    const requirement = reqMatch ? reqMatch[1].trim() : 'at least Full HD (1920 × 1080)';
+
+    return {
+      title: 'Resolution too low',
+      badge: dim ? `${dim} px` : 'Low quality',
+      detail: `Photo is below the album quality requirement (${requirement}). Please upload the full-resolution original.`,
+    };
+  }
+
+  if (error.includes('Larger than 20 MB')) {
+    return {
+      title: 'File too large',
+      badge: '> 20 MB',
+      detail: 'The file exceeds the 20 MB size limit.',
+    };
+  }
+
+  if (error.includes('Only JPEG, PNG or WebP')) {
+    return {
+      title: 'Unsupported format',
+      badge: 'Invalid format',
+      detail: 'Only JPEG, PNG, or WebP images are supported.',
+    };
+  }
+
+  let clean = error;
+  if (clean.startsWith(`${filename}:`)) {
+    clean = clean.slice(filename.length + 1).trim();
+  }
+
+  return {
+    title: 'Submission rejected',
+    detail: clean,
+  };
+}
+
 export default function JoinedAlbum({ albumId }: { albumId: string }) {
   const router = useRouter();
   const [data, setData] = useState<JoinedAlbumDetail | null>(null);
@@ -172,22 +228,80 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
           onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ''; }} />
 
         {queue.length > 0 && (
-          <div className="mx-auto mt-5 max-w-md text-left" aria-live="polite">
-            <p className="mb-2 text-sm font-medium text-[var(--ck-text)]">
-              {uploading > 0 ? `Uploading ${uploading} photo${uploading === 1 ? '' : 's'}…` : `${done} submitted`}
-              {failed.length > 0 && <span className="text-red-600"> · {failed.length} failed</span>}
-            </p>
-            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--ck-surface-muted)]">
-              <div className="h-full rounded-full bg-[#083A85] transition-all"
-                style={{ width: `${Math.round(((done + failed.length) / queue.length) * 100)}%` }} />
+          <div className="mx-auto mt-6 max-w-lg text-left" aria-live="polite">
+            <div className="mb-2 flex items-center justify-between text-sm font-medium text-[var(--ck-text)]">
+              <span>
+                {uploading > 0 ? `Uploading ${uploading} photo${uploading === 1 ? '' : 's'}…` : `${done} submitted`}
+                {failed.length > 0 && <span className="ml-1.5 font-semibold text-red-600">· {failed.length} failed</span>}
+              </span>
+              {uploading === 0 && (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-[var(--ck-text-soft)] underline transition hover:text-[var(--ck-text)] focus:outline-none"
+                  onClick={() => setQueue([])}
+                >
+                  Clear all
+                </button>
+              )}
             </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--ck-surface-muted)]">
+              <div
+                className="h-full rounded-full bg-[#083A85] transition-all duration-300"
+                style={{ width: `${Math.round(((done + failed.length) / queue.length) * 100)}%` }}
+              />
+            </div>
+
             {failed.length > 0 && (
-              <ul className="mt-2 max-h-28 space-y-1 overflow-auto text-xs text-red-600">
-                {failed.map((f) => <li key={f.key} className="truncate">{f.file.name}: {f.error}</li>)}
-              </ul>
-            )}
-            {uploading === 0 && (
-              <button className="mt-2 text-xs font-medium text-[var(--ck-text-soft)] underline" onClick={() => setQueue([])}>Clear</button>
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50/80 p-3.5 shadow-sm dark:border-red-900/60 dark:bg-red-950/30">
+                <div className="flex items-center justify-between gap-2 border-b border-red-200/70 pb-2.5 dark:border-red-900/60">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-300">
+                      <i className="bi bi-exclamation-triangle-fill text-xs" aria-hidden />
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-red-800 dark:text-red-200">
+                      {failed.length} {failed.length === 1 ? 'image' : 'images'} rejected
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setQueue((q) => q.filter((it) => it.state !== 'failed'))}
+                    className="text-xs font-medium text-red-700 underline focus:outline-none hover:text-red-900 dark:text-red-300 dark:hover:text-red-100"
+                  >
+                    Dismiss errors
+                  </button>
+                </div>
+
+                <div className="mt-2.5 max-h-60 space-y-2 overflow-y-auto pr-1">
+                  {failed.map((f) => {
+                    const parsed = formatUploadError(f.file.name, f.error);
+                    return (
+                      <div
+                        key={f.key}
+                        className="rounded-lg border border-red-200/60 bg-white/90 p-2.5 text-xs shadow-xs dark:border-red-900/40 dark:bg-black/30"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <i className="bi bi-file-earmark-image shrink-0 text-red-500" aria-hidden />
+                            <span className="truncate font-semibold text-[var(--ck-text)]" title={f.file.name}>
+                              {f.file.name}
+                            </span>
+                          </div>
+                          {parsed.badge && (
+                            <span className="inline-flex shrink-0 items-center rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-semibold text-red-800 dark:bg-red-900/60 dark:text-red-200">
+                              {parsed.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 leading-normal text-[var(--ck-text-soft)]">
+                          <span className="font-medium text-red-700 dark:text-red-400">{parsed.title}: </span>
+                          {parsed.detail}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         )}
