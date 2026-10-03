@@ -216,7 +216,24 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
             <Card key={s.id} padding={0} className="overflow-hidden">
               <div className="aspect-square bg-[var(--ck-surface-muted)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {s.imageUrl && <img src={s.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />}
+                {(s.thumbnailUrl || s.imageUrl) && (
+                  <img
+                    src={s.thumbnailUrl || s.imageUrl!}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      const currentSrc = target.src;
+                      if (currentSrc.includes('/gallery/images/')) {
+                        const fallbackThumb = currentSrc.replace('/gallery/images/', '/gallery/thumbs/').replace(/\.[^.]+$/, '.jpg');
+                        if (target.src !== fallbackThumb) {
+                          target.src = fallbackThumb;
+                        }
+                      }
+                    }}
+                  />
+                )}
               </div>
               <div className="space-y-1.5 p-3">
                 <StatusBadge status={s.status} />
