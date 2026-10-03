@@ -244,7 +244,24 @@ export default function OwnerAlbum({ albumId }: { albumId: string }) {
                 <button className="block aspect-square w-full bg-[var(--ck-surface-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85]"
                   onClick={() => setPreview(s)} aria-label={`Open photo from ${s.collaborator.name}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {s.imageUrl && <img src={s.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />}
+                  {(s.thumbnailUrl || s.imageUrl) && (
+                    <img
+                      src={s.thumbnailUrl || s.imageUrl!}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const currentSrc = target.src;
+                        if (currentSrc.includes('/gallery/images/')) {
+                          const fallbackThumb = currentSrc.replace('/gallery/images/', '/gallery/thumbs/').replace(/\.[^.]+$/, '.jpg');
+                          if (target.src !== fallbackThumb) {
+                            target.src = fallbackThumb;
+                          }
+                        }
+                      }}
+                    />
+                  )}
                 </button>
                 <div className="space-y-1.5 p-3">
                   <StatusBadge status={s.status} />
@@ -270,7 +287,23 @@ export default function OwnerAlbum({ albumId }: { albumId: string }) {
         {preview && (
           <div className="space-y-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            {preview.imageUrl && <img src={preview.imageUrl} alt="" className="max-h-[65vh] w-full rounded-xl bg-black/5 object-contain" />}
+            {(preview.thumbnailUrl || preview.imageUrl) && (
+              <img
+                src={preview.thumbnailUrl || preview.imageUrl!}
+                alt=""
+                className="max-h-[65vh] w-full rounded-xl bg-black/5 object-contain"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  const currentSrc = target.src;
+                  if (currentSrc.includes('/gallery/images/')) {
+                    const fallbackThumb = currentSrc.replace('/gallery/images/', '/gallery/thumbs/').replace(/\.[^.]+$/, '.jpg');
+                    if (target.src !== fallbackThumb) {
+                      target.src = fallbackThumb;
+                    }
+                  }
+                }}
+              />
+            )}
             {preview.status !== 'PENDING' && <StatusBadge status={preview.status} />}
             {preview.reviewNote && <p className="text-sm text-[var(--ck-text-soft)]">Your note: {preview.reviewNote}</p>}
           </div>
@@ -313,7 +346,24 @@ function ReviewTile({ submission, selected, onToggle, onOpen }: {
       <button onClick={onOpen} className="block aspect-square w-full bg-[var(--ck-surface-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#083A85]"
         aria-label={`Open photo from ${submission.collaborator.name}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {submission.imageUrl && <img src={submission.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />}
+        {(submission.thumbnailUrl || submission.imageUrl) && (
+          <img
+            src={submission.thumbnailUrl || submission.imageUrl!}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.currentTarget;
+              const currentSrc = target.src;
+              if (currentSrc.includes('/gallery/images/')) {
+                const fallbackThumb = currentSrc.replace('/gallery/images/', '/gallery/thumbs/').replace(/\.[^.]+$/, '.jpg');
+                if (target.src !== fallbackThumb) {
+                  target.src = fallbackThumb;
+                }
+              }
+            }}
+          />
+        )}
       </button>
       <label className="absolute left-2.5 top-2.5 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg bg-white/90 shadow-sm">
         <span className="sr-only">Select photo</span>

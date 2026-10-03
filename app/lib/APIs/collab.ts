@@ -60,6 +60,8 @@ export interface Submission {
   id: string;
   albumId: string;
   imageUrl: string | null;
+  thumbnailUrl?: string | null;
+  originalUrl?: string | null;
   caption?: string | null;
   status: SubmissionStatus;
   reviewNote?: string | null;
