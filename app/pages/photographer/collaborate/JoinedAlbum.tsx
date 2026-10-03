@@ -45,13 +45,16 @@ function formatUploadError(filename: string, error?: string): FormattedError {
     const dimMatch = error.match(/is only (\d+x\d+)/i) || error.match(/\((\d+x\d+)\)/);
     const dim = dimMatch ? dimMatch[1].replace('x', ' × ') : null;
 
-    const reqMatch = error.match(/Photos must be at least ([^.]+)/i);
-    const requirement = reqMatch ? reqMatch[1].trim() : 'at least Full HD (1920 × 1080)';
+    let guidance = 'Photos must be at least Full HD (1920 × 1080). Please upload the full-resolution original.';
+    const guideMatch = error.match(/((?:Photos|Every photo) must be at least .+$)/i);
+    if (guideMatch) {
+      guidance = guideMatch[1].trim();
+    }
 
     return {
       title: 'Resolution too low',
-      badge: dim ? `${dim} px` : 'Low quality',
-      detail: `Photo is below the album quality requirement (${requirement}). Please upload the full-resolution original.`,
+      badge: dim ? `${dim} px` : 'Low resolution',
+      detail: guidance,
     };
   }
 
@@ -59,7 +62,7 @@ function formatUploadError(filename: string, error?: string): FormattedError {
     return {
       title: 'File too large',
       badge: '> 20 MB',
-      detail: 'The file exceeds the 20 MB size limit.',
+      detail: 'The file exceeds the 20 MB size limit. Please select a photo under 20 MB.',
     };
   }
 
@@ -253,49 +256,49 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
             </div>
 
             {failed.length > 0 && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50/80 p-3.5 shadow-sm dark:border-red-900/60 dark:bg-red-950/30">
-                <div className="flex items-center justify-between gap-2 border-b border-red-200/70 pb-2.5 dark:border-red-900/60">
+              <div className="mt-4 rounded-xl border-2 border-red-300 bg-red-50/90 p-4 shadow-sm dark:border-red-700/80 dark:bg-[#201518]">
+                <div className="flex items-center justify-between gap-2 border-b border-red-200 pb-3 dark:border-red-800/80">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-300">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-600 text-white shadow-xs">
                       <i className="bi bi-exclamation-triangle-fill text-xs" aria-hidden />
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-red-800 dark:text-red-200">
+                    <span className="text-xs font-bold uppercase tracking-wider text-red-900 dark:text-red-100">
                       {failed.length} {failed.length === 1 ? 'image' : 'images'} rejected
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setQueue((q) => q.filter((it) => it.state !== 'failed'))}
-                    className="text-xs font-medium text-red-700 underline focus:outline-none hover:text-red-900 dark:text-red-300 dark:hover:text-red-100"
+                    className="rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-semibold text-red-800 shadow-2xs transition hover:bg-red-50 focus:outline-none dark:border-red-700 dark:bg-[#2A1B20] dark:text-red-100 dark:hover:bg-red-900/60"
                   >
                     Dismiss errors
                   </button>
                 </div>
 
-                <div className="mt-2.5 max-h-60 space-y-2 overflow-y-auto pr-1">
+                <div className="mt-3 max-h-64 space-y-2.5 overflow-y-auto pr-1">
                   {failed.map((f) => {
                     const parsed = formatUploadError(f.file.name, f.error);
                     return (
                       <div
                         key={f.key}
-                        className="rounded-lg border border-red-200/60 bg-white/90 p-2.5 text-xs shadow-xs dark:border-red-900/40 dark:bg-black/30"
+                        className="rounded-lg border border-red-200 bg-white p-3 text-xs shadow-2xs dark:border-red-800/80 dark:bg-[#1A202C]"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-1.5">
-                            <i className="bi bi-file-earmark-image shrink-0 text-red-500" aria-hidden />
-                            <span className="truncate font-semibold text-[var(--ck-text)]" title={f.file.name}>
+                            <i className="bi bi-file-earmark-x-fill shrink-0 text-sm text-red-600 dark:text-red-400" aria-hidden />
+                            <span className="truncate text-sm font-bold text-[var(--ck-text)]" title={f.file.name}>
                               {f.file.name}
                             </span>
                           </div>
                           {parsed.badge && (
-                            <span className="inline-flex shrink-0 items-center rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-semibold text-red-800 dark:bg-red-900/60 dark:text-red-200">
+                            <span className="inline-flex shrink-0 items-center rounded-full border border-red-200 bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
                               {parsed.badge}
                             </span>
                           )}
                         </div>
-                        <p className="mt-1 leading-normal text-[var(--ck-text-soft)]">
-                          <span className="font-medium text-red-700 dark:text-red-400">{parsed.title}: </span>
-                          {parsed.detail}
+                        <p className="mt-1.5 leading-relaxed text-[var(--ck-text)]">
+                          <span className="font-bold text-red-700 dark:text-red-400">{parsed.title}: </span>
+                          <span>{parsed.detail}</span>
                         </p>
                       </div>
                     );
