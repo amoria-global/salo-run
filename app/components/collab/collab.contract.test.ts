@@ -71,6 +71,14 @@ describe('the workflow', () => {
     expect(API).toMatch(/\/joined\/\$\{albumId\}\/submissions/);
   });
 
+  it('choosing photos only stages them; nothing uploads until the collaborator presses Submit', () => {
+    const addFiles = JOINED.slice(JOINED.indexOf('const addFiles'), JOINED.indexOf('const removeStaged'));
+    expect(addFiles.length).toBeGreaterThan(0);
+    expect(addFiles).not.toMatch(/submitPhoto/);
+    expect(addFiles).toMatch(/state: 'staged'/);
+    expect(JOINED).toMatch(/onClick=\{submitStaged\}/);
+  });
+
   it('one link admits any number of photographers, and cancelling it is separate from removing someone', () => {
     const PARTS = code('app/components/collab/parts.tsx');
     expect(PARTS).toMatch(/Send it to as many photographers as you like/);
