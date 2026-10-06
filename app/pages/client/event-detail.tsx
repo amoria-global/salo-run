@@ -15,6 +15,8 @@ import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import PayNowModal from '@/app/components/UnlockModal';
 import type { Payment } from '@/app/components/UnlockModal';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
+import CandidatesShortlistModal from '@/app/components/hybrid/CandidatesShortlistModal';
+import { convertToHybrid } from '@/app/lib/hybridBooking';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -138,6 +140,10 @@ interface EventData {
   eventVisibility: string;
   hasLiveStream: boolean;
   bookingProgress: ProgressStage[];
+  eventStatus?: string | null;
+  eventDate?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface ProgressStage {
@@ -286,6 +292,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
   const [declineReason, setDeclineReason] = useState('');
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [showCandidatesModal, setShowCandidatesModal] = useState(false);
   const [selectedPayNowPayment, setSelectedPayNowPayment] = useState<Payment | null>(null);
 
   const convertToPayNowPayment = (p: PaymentData): Payment => ({
@@ -343,7 +350,11 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         description: data.description || '',
         eventType: data.eventType || data.type || '',
         category: data.category || '',
-        status: data.status || 'UPCOMING',
+        status: data.eventStatus || data.status || 'UPCOMING',
+        eventStatus: data.eventStatus || data.status || null,
+        eventDate: data.eventDate || data.date || '',
+        latitude: typeof data.latitude === 'number' ? data.latitude : null,
+        longitude: typeof data.longitude === 'number' ? data.longitude : null,
         date: data.date || data.eventDate || '',
         time: data.time || data.startTime || '',
         endTime: data.endTime || '',
@@ -1288,9 +1299,121 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   )}
                 </div>
               </div>
+            ) : (event.eventStatus === 'HYBRID_TIMEOUT' || event.status === 'HYBRID_TIMEOUT') ? (
+              <div>
+                <div style={{
+                  padding: '1.25rem',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.05) 100%)',
+                  border: '1.5px solid rgba(245, 158, 11, 0.35)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Matching Window Concluded (0 Accepted)
+                    </span>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
+                  </div>
+                  <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0 0 14px', lineHeight: 1.5 }}>
+                    The 24-hour matching window has concluded without an accepted photographer. You can instantly switch to Direct Booking to browse and select available creators nearby on our interactive radar map.
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <Link
+                      href={`/photographers?lat=${event.latitude ?? -1.9536}&lng=${event.longitude ?? 30.0606}&eventDate=${encodeURIComponent(event.eventDate || event.date || '')}`}
+                      style={{
+                        padding: '0.6rem 1.1rem',
+                        borderRadius: '9px',
+                        background: 'linear-gradient(135deg, #083A85 0%, #1D4ED8 100%)',
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: '0.82rem',
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 10px rgba(8,58,133,0.20)',
+                      }}
+                    >
+                      <i className="bi bi-geo-alt-fill" /> Browse Nearby Photographers
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={actionLoading === 'retry-hybrid'}
+                      onClick={async () => {
+                        setActionLoading('retry-hybrid');
+                        try {
+                          await convertToHybrid(eventId);
+                          platformAlert.success('Matching reactivated! Your brief has been broadcast to local creators.');
+                          fetchEvent();
+                        } catch (err: any) {
+                          platformAlert.error(err?.message || 'Could not retry matching');
+                        } finally {
+                          setActionLoading(null);
+                        }
+                      }}
+                      style={{
+                        padding: '0.6rem 1rem',
+                        borderRadius: '9px',
+                        border: `1px solid ${colors.borderPrimary}`,
+                        backgroundColor: colors.bgTertiary,
+                        color: colors.textPrimary,
+                        fontWeight: 700,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      {actionLoading === 'retry-hybrid' ? (
+                        <><i className="bi bi-arrow-clockwise" style={{ animation: 'spin 0.9s linear infinite' }} /> Reactivating...</>
+                      ) : (
+                        <><i className="bi bi-arrow-repeat" /> Retry Matching</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
             ) : (
-              <div style={{ color: colors.textSecondary, fontSize: '0.85rem' }}>
-                No photographer assigned
+              <div>
+                <div style={{ color: colors.textSecondary, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                  No photographer assigned yet
+                </div>
+                <div style={{
+                  padding: '1rem',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.06) 100%)',
+                  border: '1.5px solid rgba(8,58,133,0.15)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#083A85', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Photographer Matching Active
+                    </span>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                  </div>
+                  <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '0 0 10px', lineHeight: 1.4 }}>
+                    Local photographers are reviewing your brief.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowCandidatesModal(true)}
+                    style={{
+                      padding: '0.55rem 1rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #083A85 0%, #1D4ED8 100%)',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 10px rgba(8,58,133,0.20)',
+                    }}
+                  >
+                    <i className="bi bi-people-fill" /> View Candidates & Select
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -2265,6 +2388,21 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         onClose={() => { setShowPayNowModal(false); setSelectedPayNowPayment(null); }}
         payment={selectedPayNowPayment}
         onPaymentSuccess={() => { setShowPayNowModal(false); setSelectedPayNowPayment(null); fetchEvent(); }}
+      />
+
+      <CandidatesShortlistModal
+        isOpen={showCandidatesModal}
+        onClose={() => setShowCandidatesModal(false)}
+        eventId={eventId}
+        eventTitle={event?.title || 'Your Event'}
+        eventStatus={event?.eventStatus || event?.status || undefined}
+        latitude={event?.latitude}
+        longitude={event?.longitude}
+        eventDate={event?.eventDate || event?.date}
+        onPhotographerSelected={() => {
+          setShowCandidatesModal(false);
+          fetchEvent();
+        }}
       />
     </div>
   );
