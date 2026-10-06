@@ -33,6 +33,7 @@ export interface MatchPreviewResult {
 
 export interface PhotographerOpportunity {
   opportunityId: string;
+  candidateId?: string;
   eventId: string;
   eventTitle: string;
   eventType: string;
@@ -46,7 +47,9 @@ export interface PhotographerOpportunity {
   maxBudget: number;
   currency?: string;
   expiresAt: string;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+  invitedAt?: string;
+  candidateExpiresAt?: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | string;
   clientName: string;
   clientAvatar?: string;
   matchReasons: string[];
@@ -151,32 +154,38 @@ export async function getPhotographerOpportunities(): Promise<PhotographerOpport
   }
 
   const data = await res.json();
-  const items = Array.isArray(data) ? data : (data.opportunities || data.items || []);
-  return items.map((item: any) => ({
-    opportunityId: String(item.id || item.opportunityId),
-    eventId: String(item.eventId),
-    eventTitle: item.eventTitle || item.title || 'Private Event Brief',
-    eventType: item.eventType || item.category || 'Celebration',
-    eventDate: item.eventDate || item.date || '',
-    startTime: item.startTime || item.time || '',
-    endTime: item.endTime,
-    venue: item.venue || item.venueName || item.location || 'Venue TBA',
-    city: item.city || 'Kigali',
-    distanceKm: Number(item.distanceKm ?? item.distance ?? 0),
-    minBudget: Number(item.minBudget ?? 0),
-    maxBudget: Number(item.maxBudget ?? item.budget ?? 0),
-    currency: item.currency || 'RWF',
-    expiresAt: item.expiresAt || new Date(Date.now() + 86400000).toISOString(),
-    status: item.status || 'PENDING',
-    clientName: item.clientName || 'Connekyt Client',
-    clientAvatar: item.clientAvatar || item.clientPhoto,
-    matchReasons: item.matchReasons || [
-      'Available on event date',
-      'Matches your coverage area',
-      'Budget compatible with rates',
-      'Instagram profile eligible',
-    ],
-  }));
+  const items = Array.isArray(data) ? data : (data.data || data.opportunities || data.items || []);
+  return items.map((item: any) => {
+    const oppId = String(item.candidateId || item.id || item.opportunityId);
+    return {
+      opportunityId: oppId,
+      candidateId: item.candidateId ? String(item.candidateId) : oppId,
+      eventId: String(item.eventId),
+      eventTitle: item.eventTitle || item.title || 'Private Event Brief',
+      eventType: item.eventType || item.category || 'Celebration',
+      eventDate: item.eventDate || item.date || '',
+      startTime: item.startTime || item.time || '',
+      endTime: item.endTime,
+      venue: item.venue || item.venueName || item.location || 'Venue TBA',
+      city: item.city || 'Kigali',
+      distanceKm: Number(item.distanceKm ?? item.distance ?? 0),
+      minBudget: Number(item.minBudget ?? 0),
+      maxBudget: Number(item.maxBudget ?? item.budget ?? 0),
+      currency: item.currency || 'RWF',
+      expiresAt: item.expiresAt || new Date(Date.now() + 86400000).toISOString(),
+      invitedAt: item.invitedAt,
+      candidateExpiresAt: item.candidateExpiresAt || (item.invitedAt ? new Date(new Date(item.invitedAt).getTime() + 15 * 60000).toISOString() : item.expiresAt),
+      status: item.status || 'PENDING',
+      clientName: item.clientName || 'Connekyt Client',
+      clientAvatar: item.clientAvatar || item.clientPhoto,
+      matchReasons: item.matchReasons || [
+        'Available on event date',
+        'Matches your coverage area',
+        'Budget compatible with rates',
+        'Instagram profile eligible',
+      ],
+    };
+  });
 }
 
 /**
