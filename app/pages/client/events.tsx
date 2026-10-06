@@ -242,6 +242,9 @@ interface Event {
   completionStatus?: string;
   albumDelivered?: boolean;
   createdAt: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  eventDate?: string | null;
 }
 
 // Tag Icon
@@ -847,6 +850,9 @@ const MyEventsPage = () => {
             })(),
             completionStatus: (evt.completionStatus as string) || undefined,
             createdAt: (evt.createdAt as string) || '',
+            latitude: (evt.latitude as number) ?? null,
+            longitude: (evt.longitude as number) ?? null,
+            eventDate: (evt.eventDate as string) || (evt.date as string) || null,
           };
         });
 
@@ -1628,6 +1634,12 @@ const MyEventsPage = () => {
 
   const getStatusBadgeStyle = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'matches_awaiting_selection':
+        return { background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(124,58,237,0.30)' };
+      case 'hybrid_matching':
+        return { background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(2,132,199,0.30)' };
+      case 'hybrid_timeout':
+        return { background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(217,119,6,0.30)' };
       case 'upcoming':
       case 'awaiting_review':
         return { background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(245,158,11,0.30)' };
@@ -1652,7 +1664,7 @@ const MyEventsPage = () => {
 
     const statusLower = event.status.toLowerCase();
     if (activeTab === 'upcoming') {
-      return matchesSearch && (statusLower === 'upcoming' || statusLower === 'ongoing' || statusLower === 'live' || statusLower === 'paused');
+      return matchesSearch && (statusLower === 'upcoming' || statusLower === 'ongoing' || statusLower === 'live' || statusLower === 'paused' || statusLower === 'matches_awaiting_selection' || statusLower === 'hybrid_matching' || statusLower === 'hybrid_timeout' || statusLower === 'unassigned' || statusLower === 'booked' || statusLower === 'pending');
     } else if (activeTab === 'published') {
       return matchesSearch && statusLower === 'published';
     } else if (activeTab === 'past') {
@@ -1663,7 +1675,7 @@ const MyEventsPage = () => {
 
   const upcomingCount = events.filter(e => {
     const s = e.status.toLowerCase();
-    return s === 'upcoming' || s === 'ongoing' || s === 'live' || s === 'paused';
+    return s === 'upcoming' || s === 'ongoing' || s === 'live' || s === 'paused' || s === 'matches_awaiting_selection' || s === 'hybrid_matching' || s === 'hybrid_timeout' || s === 'unassigned' || s === 'booked' || s === 'pending';
   }).length;
   const publishedCount = events.filter(e => e.status.toLowerCase() === 'published').length;
   const completedCount = events.filter(e => {
@@ -2047,9 +2059,35 @@ const MyEventsPage = () => {
                             </button>
                           </>
                         )}
-                        {(!event.photographerId || event.bookingMode === 'HYBRID' || (event.status as string) === 'PUBLISHED_PENDING_ASSIGNMENT') && (
-                          <button onClick={() => setCandidateModalEvent(event)} title="View candidate photographers" style={{ flex: 1.4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'rgba(8,58,133,0.12)', color: '#083A85', border: '1px solid rgba(8,58,133,0.25)', borderRadius: 9, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-                            <i className="bi bi-people" style={{ fontSize: 13 }} /> Candidates
+                        {(!event.photographerId || event.bookingMode === 'HYBRID' || (event.status as string) === 'PUBLISHED_PENDING_ASSIGNMENT' || (event.status as string) === 'MATCHES_AWAITING_SELECTION') && (
+                          <button
+                            onClick={() => setCandidateModalEvent(event)}
+                            title={(event.status as string) === 'MATCHES_AWAITING_SELECTION' ? 'Select from approved candidates' : 'View candidate photographers'}
+                            style={{
+                              flex: 1.4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 5,
+                              padding: '0.5rem 0.6rem',
+                              background: (event.status as string) === 'MATCHES_AWAITING_SELECTION'
+                                ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+                                : 'rgba(8,58,133,0.12)',
+                              color: (event.status as string) === 'MATCHES_AWAITING_SELECTION' ? '#ffffff' : '#083A85',
+                              border: (event.status as string) === 'MATCHES_AWAITING_SELECTION'
+                                ? '1px solid rgba(124,58,237,0.30)'
+                                : '1px solid rgba(8,58,133,0.25)',
+                              borderRadius: 9,
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              boxShadow: (event.status as string) === 'MATCHES_AWAITING_SELECTION'
+                                ? '0 4px 10px rgba(124,58,237,0.25)'
+                                : 'none',
+                            }}
+                          >
+                            <i className="bi bi-people-fill" style={{ fontSize: 13 }} />
+                            {(event.status as string) === 'MATCHES_AWAITING_SELECTION' ? 'Select Creator' : 'Candidates'}
                           </button>
                         )}
                         {isEventDeletable(event) && (
@@ -4169,6 +4207,10 @@ const MyEventsPage = () => {
           onClose={() => setCandidateModalEvent(null)}
           eventId={candidateModalEvent.id}
           eventTitle={candidateModalEvent.title}
+          eventStatus={candidateModalEvent.status}
+          latitude={candidateModalEvent.latitude}
+          longitude={candidateModalEvent.longitude}
+          eventDate={candidateModalEvent.eventDate || candidateModalEvent.date}
           onPhotographerSelected={() => {
             setCandidateModalEvent(null);
             fetchMyEvents();

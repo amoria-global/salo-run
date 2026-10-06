@@ -53,6 +53,7 @@ export interface PhotographerOpportunity {
 }
 
 export interface CandidateSummary {
+  candidateId?: string;
   photographerId: string;
   photographerName: string;
   profilePicture?: string;
@@ -70,18 +71,23 @@ export interface CandidateSummary {
 }
 
 export interface SelectPhotographerPayload {
+  candidateId?: string;
   photographerId: string;
   packageId?: string;
+  escrowPercentage?: number;
+  notes?: string;
 }
 
 export interface SelectPhotographerResult {
   success: boolean;
   bookingId?: string;
+  declarationId?: string;
   eventId: string;
   status: string;
   requiresPayment: boolean;
   depositAmount?: number;
   currency?: string;
+  escrowPercentage?: number;
 }
 
 /**
@@ -216,9 +222,11 @@ export async function getEventCandidates(eventId: string): Promise<CandidateSumm
     return [];
   }
 
-  const data = await res.json();
+  const raw = await res.json();
+  const data = raw.data || raw;
   const items = Array.isArray(data) ? data : (data.candidates || data.items || []);
   return items.map((c: any) => ({
+    candidateId: c.candidateId ? String(c.candidateId) : (c.id ? String(c.id) : undefined),
     photographerId: String(c.photographerId || c.id),
     photographerName: c.photographerName || c.name || 'Photographer',
     profilePicture: c.profilePicture || c.image || c.avatar,
@@ -263,15 +271,18 @@ export async function selectEventPhotographer(
     throw new Error(errText || 'Failed to select photographer');
   }
 
-  const data = await res.json();
+  const raw = await res.json();
+  const data = raw.data || raw;
   return {
     success: true,
     bookingId: data.bookingId,
+    declarationId: data.declarationId,
     eventId: data.eventId || eventId,
-    status: data.status || 'ASSIGNED_PENDING_PAYMENT',
+    status: data.status || 'BOOKED',
     requiresPayment: data.requiresPayment !== false,
     depositAmount: data.depositAmount,
     currency: data.currency || 'RWF',
+    escrowPercentage: data.escrowPercentage ?? 50,
   };
 }
 
