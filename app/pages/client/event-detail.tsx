@@ -218,6 +218,12 @@ function getStatusColor(status: string): string {
     case 'ACTIVE':
     case 'LIVE':
       return '#3B82F6';
+    case 'MATCHES_AWAITING_SELECTION':
+      return '#7C3AED';
+    case 'HYBRID_MATCHING':
+      return '#0284C7';
+    case 'HYBRID_TIMEOUT':
+      return '#D97706';
     case 'PENDING':
     case 'PARTIAL':
     case 'PARTIALLY_PAID':
@@ -240,6 +246,9 @@ function getStatusLabel(status: string): string {
     case 'UPCOMING': return 'Upcoming';
     case 'ACTIVE': return 'Active';
     case 'LIVE': return 'Live';
+    case 'MATCHES_AWAITING_SELECTION': return 'Candidates Ready';
+    case 'HYBRID_MATCHING': return 'Matching Active';
+    case 'HYBRID_TIMEOUT': return 'Match Timeout';
     case 'PENDING': return 'Pending';
     case 'PARTIAL': return 'Partially Paid';
     case 'PARTIALLY_PAID': return 'Partially Paid';
@@ -1342,10 +1351,10 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                         setActionLoading('retry-hybrid');
                         try {
                           await convertToHybrid(eventId);
-                          platformAlert.success('Matching reactivated! Your brief has been broadcast to local creators.');
+                          platformAlert('Matching reactivated! Your brief has been broadcast to local creators.', { tone: 'success' });
                           fetchEvent();
                         } catch (err: any) {
-                          platformAlert.error(err?.message || 'Could not retry matching');
+                          platformAlert(err?.message || 'Could not retry matching', { tone: 'danger' });
                         } finally {
                           setActionLoading(null);
                         }
@@ -1371,6 +1380,51 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                       )}
                     </button>
                   </div>
+                </div>
+              </div>
+            ) : (event.eventStatus === 'MATCHES_AWAITING_SELECTION' || event.status === 'MATCHES_AWAITING_SELECTION') ? (
+              <div>
+                <div style={{ color: colors.textSecondary, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                  Selection Required
+                </div>
+                <div style={{
+                  padding: '1.25rem',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(8, 58, 133, 0.06) 100%)',
+                  border: '1.5px solid rgba(124, 58, 237, 0.30)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Candidates Ready
+                    </span>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                  </div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 4px' }}>
+                    Matching Complete — Select Your Creator 🎯
+                  </h4>
+                  <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '0 0 14px', lineHeight: 1.5 }}>
+                    Verified local creators have accepted your event brief. Compare their match tiers, reviews, ratings, and proposed rates to confirm your photographer and lock your date.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowCandidatesModal(true)}
+                    style={{
+                      padding: '0.65rem 1.25rem',
+                      borderRadius: '9px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #7C3AED 0%, #083A85 100%)',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(124, 58, 237, 0.28)',
+                    }}
+                  >
+                    <i className="bi bi-people-fill" /> Review Candidates & Confirm
+                  </button>
                 </div>
               </div>
             ) : (
@@ -2399,8 +2453,27 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         latitude={event?.latitude}
         longitude={event?.longitude}
         eventDate={event?.eventDate || event?.date}
-        onPhotographerSelected={() => {
+        onPhotographerSelected={(_photographerId, result, candidate) => {
           setShowCandidatesModal(false);
+          if (result?.declarationId && result?.depositAmount) {
+            setSelectedPayNowPayment({
+              id: 0,
+              declarationId: String(result.declarationId),
+              eventId: eventId,
+              date: new Date().toISOString(),
+              eventName: event?.title || 'Your Event',
+              eventType: 'BOOKING_DEPOSIT',
+              photographerName: candidate?.photographerName || 'Selected Photographer',
+              photographerImage: candidate?.profilePicture || '',
+              method: '',
+              amount: formatPrice(result.depositAmount, result.currency || 'RWF'),
+              amountNum: result.depositAmount,
+              paidAmount: 0,
+              status: 'pending' as any,
+              invoiceNumber: `INV-${String(result.declarationId).substring(0, 8).toUpperCase()}`,
+            });
+            setShowPayNowModal(true);
+          }
           fetchEvent();
         }}
       />

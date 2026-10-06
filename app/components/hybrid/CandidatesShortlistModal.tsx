@@ -14,7 +14,7 @@ interface CandidatesShortlistModalProps {
   latitude?: number | null;
   longitude?: number | null;
   eventDate?: string | null;
-  onPhotographerSelected: (photographerId: string, result: any) => void;
+  onPhotographerSelected: (photographerId: string, result: any, candidate?: CandidateSummary) => void;
 }
 
 export default function CandidatesShortlistModal({
@@ -62,10 +62,12 @@ export default function CandidatesShortlistModal({
     setStatusNotice(null);
     try {
       const result = await selectEventPhotographer(eventId, {
+        candidateId: candidate.candidateId,
         photographerId: candidate.photographerId,
         packageId: candidate.proposedPackageId,
+        escrowPercentage: 50,
       });
-      onPhotographerSelected(candidate.photographerId, result);
+      onPhotographerSelected(candidate.photographerId, result, candidate);
     } catch (e: any) {
       if (e.code === 'NO_LONGER_AVAILABLE') {
         setStatusNotice({
@@ -152,8 +154,8 @@ export default function CandidatesShortlistModal({
               >
                 Candidate Shortlist
               </span>
-              <span style={{ fontSize: '0.8rem', color: '#10B981', fontWeight: 700 }}>
-                • Live Matching Active
+              <span style={{ fontSize: '0.8rem', color: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? '#7C3AED' : '#10B981', fontWeight: 700 }}>
+                {eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? '• Ready for Selection' : '• Live Matching Active'}
               </span>
             </div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#083A85', margin: 0 }}>
@@ -278,6 +280,51 @@ export default function CandidatesShortlistModal({
             )
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div
+                style={{
+                  padding: '0.85rem 1.1rem',
+                  borderRadius: '12px',
+                  background: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION'
+                    ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(8, 58, 133, 0.06) 100%)'
+                    : 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(8, 58, 133, 0.06) 100%)',
+                  border: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION'
+                    ? '1px solid rgba(124, 58, 237, 0.20)'
+                    : '1px solid rgba(16, 185, 129, 0.20)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    background: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? '#EDE9FE' : '#D1FAE5',
+                    color: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? '#7C3AED' : '#047857',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                    flexShrink: 0,
+                  }}
+                >
+                  <i className={eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? 'bi bi-check-circle-fill' : 'bi bi-shield-check'} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
+                    {eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION'
+                      ? 'Matching Window Concluded: Select Your Preferred Creator'
+                      : '100% Escrow Protected Booking'}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748B', lineHeight: 1.35 }}>
+                    {eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION'
+                      ? 'Review the verified creators who accepted your brief. Selecting a photographer locks their calendar and establishes your 50% deposit escrow.'
+                      : 'Your 50% booking deposit remains safely held in escrow until you approve the final gallery delivery.'}
+                  </div>
+                </div>
+              </div>
+
               {candidates.map((candidate) => {
                 const tier = tierBadgeStyle(candidate.recommendationTier);
                 const avatar = normalizeImageUrl(candidate.profilePicture);
