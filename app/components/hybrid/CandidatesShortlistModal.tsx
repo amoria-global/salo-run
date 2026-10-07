@@ -38,8 +38,9 @@ export default function CandidatesShortlistModal({
     try {
       const data = await getEventCandidates(eventId);
       setCandidates(data);
-    } catch {
-      // Keep existing candidates on error
+    } catch (e: any) {
+      // Keep what's on screen, but say the list couldn't be refreshed.
+      setStatusNotice({ type: 'error', message: e?.message || 'Could not load candidates.' });
     } finally {
       setLoading(false);
     }
@@ -64,7 +65,6 @@ export default function CandidatesShortlistModal({
       const result = await selectEventPhotographer(eventId, {
         candidateId: candidate.candidateId,
         photographerId: candidate.photographerId,
-        packageId: candidate.proposedPackageId,
         escrowPercentage: 50,
       });
       onPhotographerSelected(candidate.photographerId, result, candidate);
@@ -72,7 +72,7 @@ export default function CandidatesShortlistModal({
       if (e.code === 'NO_LONGER_AVAILABLE') {
         setStatusNotice({
           type: 'error',
-          message: 'This photographer was just booked by another client. The list of available candidates has been refreshed.',
+          message: e.message,
         });
         fetchCandidates();
       } else {
@@ -88,12 +88,12 @@ export default function CandidatesShortlistModal({
 
   const tierBadgeStyle = (tier: string) => {
     if (tier === 'HIGH') {
-      return { bg: '#ECFDF5', fg: '#047857', border: '#A7F3D0', label: 'HIGH MATCH (80-100%)' };
+      return { bg: '#ECFDF5', fg: '#047857', border: '#A7F3D0', label: 'HIGH MATCH' };
     }
     if (tier === 'MEDIUM') {
-      return { bg: '#EFF6FF', fg: '#1D4ED8', border: '#BFDBFE', label: 'GOOD MATCH (60-79%)' };
+      return { bg: '#EFF6FF', fg: '#1D4ED8', border: '#BFDBFE', label: 'GOOD MATCH' };
     }
-    return { bg: '#F5F3FF', fg: '#6D28D9', border: '#DDD6FE', label: 'ELIGIBLE (40-59%)' };
+    return { bg: '#F5F3FF', fg: '#6D28D9', border: '#DDD6FE', label: 'ELIGIBLE' };
   };
 
   return (
@@ -390,9 +390,9 @@ export default function CandidatesShortlistModal({
                           <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>
                             {candidate.photographerName}
                           </span>
-                          {candidate.verifiedInstagram && (
+                          {candidate.instagramHandle && (
                             <span
-                              title="Verified Instagram Portfolio"
+                              title={`Instagram @${candidate.instagramHandle}`}
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -405,7 +405,7 @@ export default function CandidatesShortlistModal({
                                 borderRadius: '4px',
                               }}
                             >
-                              <i className="bi bi-instagram" /> Verified
+                              <i className="bi bi-instagram" /> @{candidate.instagramHandle}
                             </span>
                           )}
                         </div>
@@ -431,9 +431,17 @@ export default function CandidatesShortlistModal({
 
                         {/* Meta: distance & rating */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', color: '#64748B' }}>
-                          <span>★ {(candidate.rating ?? 5.0).toFixed(1)} ({candidate.reviewCount || 12} reviews)</span>
-                          <span>•</span>
-                          <span>{(candidate.distanceKm ?? 0) > 0 ? `${(candidate.distanceKm ?? 0).toFixed(1)} km away` : 'In your city'}</span>
+                          <span>
+                            {candidate.reviewCount
+                              ? `★ ${(candidate.rating ?? 0).toFixed(1)} (${candidate.reviewCount} review${candidate.reviewCount === 1 ? '' : 's'})`
+                              : 'No reviews yet'}
+                          </span>
+                          {candidate.distanceKm !== undefined && (
+                            <>
+                              <span>•</span>
+                              <span>{`${candidate.distanceKm.toFixed(1)} km away`}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -441,9 +449,9 @@ export default function CandidatesShortlistModal({
                     {/* Right: Price & CTA */}
                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                       <div>
-                        <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', fontWeight: 600 }}>Proposed Rate</span>
+                        <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', fontWeight: 600 }}>Typical Rate</span>
                         <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#083A85' }}>
-                          {candidate.price ? `${candidate.price.toLocaleString()} ${candidate.currency}` : 'Within Budget'}
+                          {candidate.typicalPriceRange ?? '—'}
                         </span>
                       </div>
 

@@ -106,8 +106,9 @@ export default function PhotographerOpportunitiesView() {
     try {
       const data = await getPhotographerOpportunities();
       setOpportunities(data.filter((o) => o.status === 'PENDING' || o.status === 'INVITED'));
-    } catch {
-      // Keep existing list on error
+    } catch (e: any) {
+      // Keep what's on screen, but say the list couldn't be refreshed.
+      setNotice({ type: 'error', message: e?.message || 'Could not load opportunities.' });
     } finally {
       setLoading(false);
     }
@@ -370,7 +371,10 @@ export default function PhotographerOpportunitiesView() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <i className="bi bi-geo-alt" style={{ color: '#083A85' }} />
-                      <span>{opp.venue}, {opp.city} ({opp.distanceKm > 0 ? `${opp.distanceKm.toFixed(1)} km away` : 'Same city'})</span>
+                      <span>
+                        {[opp.venue, opp.city].filter(Boolean).join(', ') || 'Location shared after booking'}
+                        {opp.distanceKm !== undefined ? ` (${opp.distanceKm.toFixed(1)} km away)` : ''}
+                      </span>
                     </div>
                   </div>
 
@@ -390,7 +394,9 @@ export default function PhotographerOpportunitiesView() {
                       Client Budget
                     </span>
                     <span style={{ fontSize: '1rem', fontWeight: 900, color: '#083A85' }}>
-                      {opp.minBudget.toLocaleString()} - {opp.maxBudget.toLocaleString()} {opp.currency || 'RWF'}
+                      {opp.minBudget !== undefined && opp.maxBudget !== undefined
+                        ? `${opp.minBudget.toLocaleString()} - ${opp.maxBudget.toLocaleString()} ${opp.currency || 'RWF'}`
+                        : 'Open budget'}
                     </span>
                   </div>
 

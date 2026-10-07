@@ -47,6 +47,36 @@ describe('Hybrid Booking Web Suite', () => {
     expect(apiCode).toContain('NO_LONGER_AVAILABLE');
   });
 
+  it('every hybrid call goes to a route the backend has, under /api/remote', () => {
+    // The proxy only forwards api/remote/ paths; these calls once used
+    // `${base}/events/...` and every one was refused with a 403.
+    const contract = JSON.parse(readFileSync(CONTRACT_PATH, 'utf8'));
+    const templates = (contract.routes || []).map((r: any) => ({
+      method: r.method,
+      regex: new RegExp('^' + r.path.split(/\{[^}]*\}/).map((x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/]+') + '$'),
+    }));
+    const src = readFileSync(API_CODE_PATH, 'utf8');
+    const calls: string[] = [];
+    const re = /\bcall(?:<.*?>)?\(\s*[`'"]([^`'"]+)[`'"],\s*\{\s*method:\s*'([A-Z]+)'/g;
+    for (let m = re.exec(src); m; m = re.exec(src)) {
+      calls.push(`${m[2]} /api/remote${m[1].replace(/\$\{[^}]*\}/g, 'X')}`);
+    }
+    // The prefix added above has to be the one the module actually sends.
+    expect(src).toContain('`${getApiUrl()}/api/remote${path}`');
+    expect(calls.length).toBeGreaterThanOrEqual(9);
+    const missing = calls.filter((c) => {
+      const [method, path] = c.split(' ');
+      return !templates.some((t: any) => (t.method === method || t.method === 'ANY') && t.regex.test(path));
+    });
+    expect(missing).toEqual([]);
+  });
+
+  it('the hybrid wizard creates its event through the proxy-allowed booking route', () => {
+    const wizard = readFileSync(path.join(ROOT, 'app/components/hybrid/HybridEventWizardModal.tsx'), 'utf8');
+    expect(wizard).toContain('/api/remote/customer/events/book');
+    expect(wizard).not.toMatch(/\$\{base\}\/events[`'"]/);
+  });
+
   it('hybrid web components exist', () => {
     expect(existsSync(path.join(ROOT, 'app/components/hybrid/BookingModeSelectorModal.tsx'))).toBe(true);
     expect(existsSync(path.join(ROOT, 'app/components/hybrid/HybridEventWizardModal.tsx'))).toBe(true);
