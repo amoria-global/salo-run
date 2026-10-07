@@ -51,14 +51,18 @@ const DEFAULT_CURRENCIES: CurrencyInfo[] = [
 ];
 
 import { getApiUrl } from '@/lib/api';
+import { useDashboardAuth, dashboardAuthFetch } from '../providers/AuthProvider';
 
 const STORAGE_KEY = "connekt-currency";
+// Shared with the mobile app: the account keeps the choice so both surfaces agree.
+const ACCOUNT_PATH = "/api/remote/customer/profile/display-currency";
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>("USD");
   const [currencies, setCurrencies] = useState<CurrencyInfo[]>(DEFAULT_CURRENCIES);
+  const { isAuthenticated } = useDashboardAuth();
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -116,10 +120,47 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     fetchRates();
   }, []);
 
+  const saveToAccount = useCallback(async (code: CurrencyCode) => {
+    try {
+      await dashboardAuthFetch(`${getApiUrl()}${ACCOUNT_PATH}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currency: code }),
+      });
+    } catch {
+      // Offline: the browser keeps the choice and the next sign-in retries.
+    }
+  }, []);
+
+  // Signed in: the account's saved currency wins; if it has none yet, save this browser's choice to it.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    (async () => {
+      try {
+        const res = await dashboardAuthFetch(`${getApiUrl()}${ACCOUNT_PATH}`);
+        const result = await res.json();
+        if (!res.ok || result?.action !== 1) return;
+        const remote = result?.data?.currency;
+        if (remote && DEFAULT_CURRENCIES.some((c) => c.code === remote)) {
+          setCurrencyState(remote as CurrencyCode);
+          localStorage.setItem(STORAGE_KEY, remote);
+        } else {
+          const local = localStorage.getItem(STORAGE_KEY);
+          if (local && DEFAULT_CURRENCIES.some((c) => c.code === local)) {
+            saveToAccount(local as CurrencyCode);
+          }
+        }
+      } catch {
+        // Keep the browser's choice.
+      }
+    })();
+  }, [isAuthenticated, saveToAccount]);
+
   const setCurrency = useCallback((code: CurrencyCode) => {
     setCurrencyState(code);
     localStorage.setItem(STORAGE_KEY, code);
-  }, []);
+    if (isAuthenticated) saveToAccount(code);
+  }, [isAuthenticated, saveToAccount]);
 
   const formatPrice = useCallback(
     (amount: number, fromCurrency?: string) => {
@@ -128,6 +169,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         const fromInfo = currencies.find((c) => c.code === fromCurrency);
         if (fromInfo && fromInfo.rate) {
           amountInUSD = amount / fromInfo.rate;
+        } else {
+          // No rate for this currency: show it as it is rather than relabel it as the selected one.
+          return `${fromCurrency} ${amount.toLocaleString("en-US")}`;
         }
       }
       const info = currencies.find((c) => c.code === currency)!;

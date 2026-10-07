@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { dashboardAuthFetch } from '../providers/AuthProvider';
+import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 
 interface KycVerificationModalProps {
@@ -35,13 +35,29 @@ type WizardStep = 1 | 2 | 3 | 4;
 const WIZARD_LABELS = ['Personal Info', 'Selfie', 'Government ID', 'Review'];
 const KYC_DRAFT_KEY = 'kyc_draft_v1';
 
+function getAgeFromDob(dobString: string): number | null {
+  if (!dobString) return null;
+  const birth = new Date(`${dobString}T00:00:00`);
+  if (Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 export default function KycVerificationModal({ isOpen, onClose, onSuccess, colors, actualTheme }: KycVerificationModalProps) {
+  const { user } = useDashboardAuth();
   const [step, setStep] = useState<'form' | 'uploading' | 'success' | 'failed'>('form');
   const [wizardStep, setWizardStep] = useState<WizardStep>(1);
   const [error, setError] = useState('');
 
   const [fullLegalName, setFullLegalName] = useState('');
   const [gender, setGender] = useState('');
+  const [dob, setDob] = useState('');
+  const [phone, setPhone] = useState('');
   const [locationAddress, setLocationAddress] = useState('');
   const [selfiePhoto, setSelfiePhoto] = useState<File | null>(null);
   const [selfiePreview, setSelfiePreview] = useState('');
@@ -215,6 +231,8 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     reviewComment?: string;
     fullLegalName?: string;
     gender?: string;
+    dob?: string;
+    phone?: string;
     locationAddress?: string;
   } | null>(null);
 
@@ -669,6 +687,8 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
         const d = JSON.parse(raw);
         if (d.fullLegalName) setFullLegalName(d.fullLegalName);
         if (d.gender) setGender(d.gender);
+        if (d.dob) setDob(d.dob);
+        if (d.phone) setPhone(d.phone);
         if (d.locationAddress) setLocationAddress(d.locationAddress);
         if (d.documentType) setDocumentType(d.documentType);
         if (typeof d.wizardStep === 'number' && d.wizardStep >= 1 && d.wizardStep <= 4) {
@@ -685,6 +705,8 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       setWizardStep(1);
       setFullLegalName('');
       setGender('');
+      setDob('');
+      setPhone(user?.phone || '');
       setLocationAddress('');
       setDocumentType('');
     }
@@ -700,6 +722,8 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
             reviewComment: sub.reviewComment,
             fullLegalName: sub.fullLegalName,
             gender: sub.gender,
+            dob: sub.dob,
+            phone: sub.phone,
             locationAddress: sub.locationAddress,
           });
           // Server rejection data overrides a local draft. the user needs
@@ -707,7 +731,11 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
           if (sub.status === 'REJECTED') {
             setFullLegalName(sub.fullLegalName || '');
             setGender(sub.gender || '');
+            setDob(sub.dob || '');
+            setPhone(sub.phone || user?.phone || '');
             setLocationAddress(sub.locationAddress || '');
+          } else if (sub.phone && !phone) {
+            setPhone(sub.phone);
           }
         }
       })
@@ -719,10 +747,10 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     if (!isOpen) return;
     try {
       localStorage.setItem(KYC_DRAFT_KEY, JSON.stringify({
-        fullLegalName, gender, locationAddress, documentType, wizardStep,
+        fullLegalName, gender, dob, phone, locationAddress, documentType, wizardStep,
       }));
     } catch { /* quota or private mode. ignore */ }
-  }, [isOpen, fullLegalName, gender, locationAddress, documentType, wizardStep]);
+  }, [isOpen, fullLegalName, gender, dob, phone, locationAddress, documentType, wizardStep]);
 
   useEffect(() => {
     if (wizardStep !== 2 && cameraMode === 'live') stopCamera();
@@ -1090,6 +1118,10 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   const handleSubmit = async () => {
     if (!fullLegalName.trim()) { setError('Full legal name is required'); return; }
     if (!gender) { setError('Gender is required'); return; }
+    if (!dob) { setError('Date of birth is required'); return; }
+    const age = getAgeFromDob(dob);
+    if (age === null || age < 18) { setError('You must be at least 18 years old to complete verification'); return; }
+    if (!phone.trim()) { setError('Phone number is required'); return; }
     if (!selfiePhoto) { setError('Selfie photo is required'); return; }
     if (!documentType) { setError('Document type is required'); return; }
     if (!govIdFront) { setError('Government ID front is required'); return; }
@@ -1105,6 +1137,8 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       const formData = new FormData();
       formData.append('fullLegalName', fullLegalName.trim());
       formData.append('gender', gender);
+      if (dob.trim()) formData.append('dob', dob.trim());
+      if (phone.trim()) formData.append('phone', phone.trim());
       if (locationAddress.trim()) formData.append('locationAddress', locationAddress.trim());
       formData.append('documentType', documentType);
       if (challengeTokenRef.current) {
@@ -1146,7 +1180,12 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   };
 
   const isStepValid = (s: WizardStep): boolean => {
-    if (s === 1) return !!fullLegalName.trim() && !!gender;
+    if (s === 1) {
+      if (!fullLegalName.trim() || !gender || !dob || !phone.trim()) return false;
+      const age = getAgeFromDob(dob);
+      if (age === null || age < 18) return false;
+      return true;
+    }
     if (s === 2) return !!selfiePhoto;
     if (s === 3) {
       if (!documentType || !govIdFront) return false;
@@ -1171,7 +1210,17 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
 
   const handleNext = () => {
     if (!isStepValid(wizardStep)) {
-      if (wizardStep === 1) setError('Full legal name and gender are required');
+      if (wizardStep === 1) {
+        if (!fullLegalName.trim()) setError('Full legal name is required');
+        else if (!gender) setError('Gender is required');
+        else if (!dob) setError('Date of birth is required');
+        else {
+          const age = getAgeFromDob(dob);
+          if (age === null || age < 18) setError('You must be at least 18 years old to complete verification');
+          else if (!phone.trim()) setError('Phone number is required');
+          else setError('Please complete all required fields');
+        }
+      }
       else if (wizardStep === 2) setError('Selfie photo is required');
       else if (wizardStep === 3) setError('Government ID document is required');
       return;
@@ -1574,6 +1623,29 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                       <option value="Female">Female</option>
                       <option value="Other">Other</option>
                     </select>
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <label htmlFor="kyc-dob" style={labelStyle}>Date of Birth *</label>
+                      <span style={{ fontSize: '0.72rem', color: colors.textSecondary }}>Must be 18+</span>
+                    </div>
+                    <input id="kyc-dob" name="dob" required type="date"
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                      value={dob} onChange={e => setDob(e.target.value)} style={inputStyle}
+                      onFocus={e => { e.currentTarget.style.borderColor = '#083A85'; }}
+                      onBlur={e => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label htmlFor="kyc-phone" style={labelStyle}>Phone Number *</label>
+                    <input id="kyc-phone" name="phone" required autoComplete="tel"
+                      type="tel" placeholder="+250 788 123 456" value={phone}
+                      onChange={e => setPhone(e.target.value)} style={inputStyle}
+                      onFocus={e => { e.currentTarget.style.borderColor = '#083A85'; }}
+                      onBlur={e => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                    />
                   </div>
 
                   <div style={{ marginBottom: '0.5rem' }}>
@@ -2176,6 +2248,18 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                       <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Gender</span>
                       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{gender}</span>
                     </div>
+                    {dob && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Date of Birth</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{dob}</span>
+                      </div>
+                    )}
+                    {phone && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Phone Number</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{phone}</span>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Document Type</span>
                       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>

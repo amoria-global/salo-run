@@ -315,7 +315,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               {CATEGORIES.map((cat, i) => (
-                <button key={i} onClick={() => setActiveCategory(i)} style={{
+                <button key={i} data-ck-shape="card" onClick={() => setActiveCategory(i)} style={{
                   padding: '14px 12px', borderRadius: '12px', border: `2px solid ${activeCategory === i ? accent : colors.borderPrimary}`,
                   background: activeCategory === i ? (actualTheme === 'dark' ? `${accent}15` : `${accent}08`) : colors.bgCard,
                   cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',

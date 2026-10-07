@@ -16,6 +16,11 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { StatCard } from '../../components/dashboard/StatCard';
 import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
 import { isEventPriceInvalid, getMinEventPriceLabel } from '../../components/eventPriceValidation';
+import { useCurrency } from '@/app/context/CurrencyContext';
+import BookingModeSelectorModal from '../../components/hybrid/BookingModeSelectorModal';
+import HybridEventWizardModal from '../../components/hybrid/HybridEventWizardModal';
+import CandidatesShortlistModal from '../../components/hybrid/CandidatesShortlistModal';
+import { convertToHybrid } from '@/app/lib/hybridBooking';
 
 function parseTimeToApiString(timeStr: string): string {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -227,6 +232,7 @@ interface Event {
   tags: string[];
   hasPhotographer: boolean;
   bookingStatus?: string;
+  bookingMode?: string;
   photographerId?: string;
   photographerName?: string;
   photographerImage?: string;
@@ -236,6 +242,9 @@ interface Event {
   completionStatus?: string;
   albumDelivered?: boolean;
   createdAt: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  eventDate?: string | null;
 }
 
 // Tag Icon
@@ -321,6 +330,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 
 // Photographers the client has worked with before
 const MyEventsPage = () => {
+  const { formatPrice } = useCurrency();
   const { colors, actualTheme } = useTheme();
   const { token, user } = useDashboardAuth();
   const searchParams = useSearchParams();
@@ -470,6 +480,31 @@ const MyEventsPage = () => {
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [packagesError, setPackagesError] = useState<string | null>(null);
   const [createEscrowPercentage, setCreateEscrowPercentage] = useState<number>(50);
+
+  // Hybrid booking state
+  const [showBookingModeSelector, setShowBookingModeSelector] = useState(false);
+  const [showHybridWizard, setShowHybridWizard] = useState(false);
+  const [candidateModalEvent, setCandidateModalEvent] = useState<Event | null>(null);
+  const [convertingHybridId, setConvertingHybridId] = useState<string | null>(null);
+
+  const handleConvertToHybrid = async (ev: Event) => {
+    setConvertingHybridId(ev.id);
+    try {
+      await convertToHybrid(ev.id);
+      platformAlert('Your event brief has been broadcast to verified local photographers.', {
+        title: 'Hybrid Matching Active',
+        tone: 'success',
+      });
+      fetchMyEvents();
+    } catch (e: any) {
+      platformAlert(e.message || 'Could not broadcast event to photographers.', {
+        title: 'Error',
+        tone: 'danger',
+      });
+    } finally {
+      setConvertingHybridId(null);
+    }
+  };
 
   // Completion confirmation modal
   const [completionModalEvent, setCompletionModalEvent] = useState<Event | null>(null);
@@ -680,7 +715,6 @@ const MyEventsPage = () => {
       window.history.replaceState({}, '', url.pathname + (url.search !== '?' ? url.search : ''));
     }, 500);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Clear saved draft from IndexedDB
@@ -816,6 +850,9 @@ const MyEventsPage = () => {
             })(),
             completionStatus: (evt.completionStatus as string) || undefined,
             createdAt: (evt.createdAt as string) || '',
+            latitude: (evt.latitude as number) ?? null,
+            longitude: (evt.longitude as number) ?? null,
+            eventDate: (evt.eventDate as string) || (evt.date as string) || null,
           };
         });
 
@@ -1597,6 +1634,12 @@ const MyEventsPage = () => {
 
   const getStatusBadgeStyle = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'matches_awaiting_selection':
+        return { background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(124,58,237,0.30)' };
+      case 'hybrid_matching':
+        return { background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(2,132,199,0.30)' };
+      case 'hybrid_timeout':
+        return { background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(217,119,6,0.30)' };
       case 'upcoming':
       case 'awaiting_review':
         return { background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(245,158,11,0.30)' };
@@ -1621,7 +1664,7 @@ const MyEventsPage = () => {
 
     const statusLower = event.status.toLowerCase();
     if (activeTab === 'upcoming') {
-      return matchesSearch && (statusLower === 'upcoming' || statusLower === 'ongoing' || statusLower === 'live' || statusLower === 'paused');
+      return matchesSearch && (statusLower === 'upcoming' || statusLower === 'ongoing' || statusLower === 'live' || statusLower === 'paused' || statusLower === 'matches_awaiting_selection' || statusLower === 'hybrid_matching' || statusLower === 'hybrid_timeout' || statusLower === 'unassigned' || statusLower === 'booked' || statusLower === 'pending');
     } else if (activeTab === 'published') {
       return matchesSearch && statusLower === 'published';
     } else if (activeTab === 'past') {
@@ -1632,7 +1675,7 @@ const MyEventsPage = () => {
 
   const upcomingCount = events.filter(e => {
     const s = e.status.toLowerCase();
-    return s === 'upcoming' || s === 'ongoing' || s === 'live' || s === 'paused';
+    return s === 'upcoming' || s === 'ongoing' || s === 'live' || s === 'paused' || s === 'matches_awaiting_selection' || s === 'hybrid_matching' || s === 'hybrid_timeout' || s === 'unassigned' || s === 'booked' || s === 'pending';
   }).length;
   const publishedCount = events.filter(e => e.status.toLowerCase() === 'published').length;
   const completedCount = events.filter(e => {
@@ -1799,7 +1842,7 @@ const MyEventsPage = () => {
                 Create and manage your events.
               </p>
             </div>
-            <button onClick={() => setShowCreateModal(true)} className="ck-btn ck-btn-primary mobile-create-btn">
+            <button onClick={() => setShowBookingModeSelector(true)} className="ck-btn ck-btn-primary mobile-create-btn">
               <i className="bi bi-plus-lg" /> Create event
             </button>
           </header>
@@ -1908,7 +1951,7 @@ const MyEventsPage = () => {
             <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
               <p style={{ fontSize: '1rem', color: colors.textSecondary }}>No events found.</p>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => setShowBookingModeSelector(true)}
                 style={{
                   marginTop: '1rem',
                   display: 'inline-flex',
@@ -2007,8 +2050,44 @@ const MyEventsPage = () => {
                           <EditIcon />
                         </button>
                         {event.bookingStatus?.toUpperCase() === 'REJECTED' && (
-                          <button onClick={() => setRebookEvent(event)} title="Rebook another photographer" style={{ flex: 1.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '-0.005em', boxShadow: '0 4px 10px rgba(8,58,133,0.30)', transition: 'transform 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
-                          <i className="bi bi-arrow-repeat" style={{ fontSize: 13 }} /> Rebook
+                          <>
+                            <button onClick={() => setRebookEvent(event)} title="Rebook another photographer" style={{ flex: 1.4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'linear-gradient(135deg, #083A85 0%, #1D4ED8 100%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '-0.005em', boxShadow: '0 4px 10px rgba(8,58,133,0.30)', transition: 'transform 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+                              <i className="bi bi-arrow-repeat" style={{ fontSize: 13 }} /> Rebook
+                            </button>
+                            <button onClick={() => handleConvertToHybrid(event)} disabled={convertingHybridId === event.id} title="Broadcast to nearby photographers (Hybrid)" style={{ flex: 1.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'linear-gradient(135deg, #F20C8F 0%, #083A85 130%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: convertingHybridId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '-0.005em', boxShadow: '0 4px 10px rgba(242,12,143,0.30)', transition: 'transform 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+                              {convertingHybridId === event.id ? <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#fff' }} /> : <><i className="bi bi-broadcast" style={{ fontSize: 13 }} /> Match Nearby</>}
+                            </button>
+                          </>
+                        )}
+                        {(!event.photographerId || event.bookingMode === 'HYBRID' || (event.status as string) === 'PUBLISHED_PENDING_ASSIGNMENT' || (event.status as string) === 'MATCHES_AWAITING_SELECTION') && (
+                          <button
+                            onClick={() => setCandidateModalEvent(event)}
+                            title={(event.status as string) === 'MATCHES_AWAITING_SELECTION' ? 'Select from approved candidates' : 'View candidate photographers'}
+                            style={{
+                              flex: 1.4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 5,
+                              padding: '0.5rem 0.6rem',
+                              background: (event.status as string) === 'MATCHES_AWAITING_SELECTION'
+                                ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)'
+                                : 'rgba(8,58,133,0.12)',
+                              color: (event.status as string) === 'MATCHES_AWAITING_SELECTION' ? '#ffffff' : '#083A85',
+                              border: (event.status as string) === 'MATCHES_AWAITING_SELECTION'
+                                ? '1px solid rgba(124,58,237,0.30)'
+                                : '1px solid rgba(8,58,133,0.25)',
+                              borderRadius: 9,
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              boxShadow: (event.status as string) === 'MATCHES_AWAITING_SELECTION'
+                                ? '0 4px 10px rgba(124,58,237,0.25)'
+                                : 'none',
+                            }}
+                          >
+                            <i className="bi bi-people-fill" style={{ fontSize: 13 }} />
+                            {(event.status as string) === 'MATCHES_AWAITING_SELECTION' ? 'Select Creator' : 'Candidates'}
                           </button>
                         )}
                         {isEventDeletable(event) && (
@@ -2536,9 +2615,13 @@ const MyEventsPage = () => {
               }}>Optional</span>
             </div>
 
-            {/* Three assignment option buttons */}
+            {/* Assignment option buttons */}
             {photographerAssignMode === 'none' && !createPhotographerId && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <button type="button" onClick={() => { setShowCreateModal(false); setShowHybridWizard(true); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: '2px solid rgba(242,12,143,0.35)', borderRadius: '0.5rem', background: 'linear-gradient(135deg, rgba(242,12,143,0.04) 0%, rgba(8,58,133,0.04) 100%)', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', textAlign: 'left' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="2" stroke="#F20C8F" strokeWidth="2"/><path d="M16.24 7.76C17.5 9.02 18.25 10.7 18.25 12.5C18.25 14.3 17.5 15.98 16.24 17.24" stroke="#F20C8F" strokeWidth="2" strokeLinecap="round"/><path d="M7.76 16.24C6.5 14.98 5.75 13.3 5.75 11.5C5.75 9.7 6.5 8.02 7.76 6.76" stroke="#F20C8F" strokeWidth="2" strokeLinecap="round"/></svg>
+                  Let Connekyt match verified nearby photographers (Hybrid • Recommended)
+                </button>
                 <button type="button" onClick={() => setPhotographerAssignMode('existing')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   Assign an existing Photographer you worked with before
@@ -2700,8 +2783,7 @@ const MyEventsPage = () => {
                           {pkg.packageName}
                         </div>
                         <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85', marginBottom: '0.25rem' }}>
-                          {pkg.currencySymbol || ''}{pkg.price.toLocaleString()}
-                          {pkg.currencyAbbreviation && <span style={{ fontWeight: '400', fontSize: '0.75rem', color: colors.textSecondary, marginLeft: '0.25rem' }}>{pkg.currencyAbbreviation}</span>}
+                          {formatPrice(pkg.price, pkg.currencyAbbreviation || undefined)}
                         </div>
                         {pkg.durationHours > 0 && (
                           <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
@@ -4091,6 +4173,49 @@ const MyEventsPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      <BookingModeSelectorModal
+        isOpen={showBookingModeSelector}
+        onClose={() => setShowBookingModeSelector(false)}
+        onSelectDirect={() => {
+          setShowBookingModeSelector(false);
+          setShowCreateModal(true);
+        }}
+        onSelectHybrid={() => {
+          setShowBookingModeSelector(false);
+          setShowHybridWizard(true);
+        }}
+      />
+
+      <HybridEventWizardModal
+        isOpen={showHybridWizard}
+        onClose={() => setShowHybridWizard(false)}
+        onSuccess={() => {
+          setShowHybridWizard(false);
+          fetchMyEvents();
+          platformAlert('Your hybrid event has been published. Matching photographers will receive alerts.', {
+            title: 'Event Brief Published',
+            tone: 'success',
+          });
+        }}
+      />
+
+      {candidateModalEvent && (
+        <CandidatesShortlistModal
+          isOpen={!!candidateModalEvent}
+          onClose={() => setCandidateModalEvent(null)}
+          eventId={candidateModalEvent.id}
+          eventTitle={candidateModalEvent.title}
+          eventStatus={candidateModalEvent.status}
+          latitude={candidateModalEvent.latitude}
+          longitude={candidateModalEvent.longitude}
+          eventDate={candidateModalEvent.eventDate || candidateModalEvent.date}
+          onPhotographerSelected={() => {
+            setCandidateModalEvent(null);
+            fetchMyEvents();
+          }}
+        />
       )}
 
       <style jsx global>{`
