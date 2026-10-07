@@ -987,7 +987,7 @@ const PhotographerEventsPage = () => {
               let hlsUrl = '';
               let streamType = '';
               try {
-                const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${event.id}`);
+                const pubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/public/events/${event.id}`);
                 if (pubRes.ok) {
                   const pubData = await pubRes.json();
                   hlsUrl = pubData.data?.hlsManifestUrl || '';
@@ -1242,7 +1242,7 @@ const PhotographerEventsPage = () => {
             let pubStreamType = '';
             let pubWhepUrl = '';
             try {
-              const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${eventId}`);
+              const pubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/public/events/${eventId}`);
               if (pubRes.ok) {
                 const pubData = await pubRes.json();
                 pubStreamType = pubData.data?.streamType || '';
