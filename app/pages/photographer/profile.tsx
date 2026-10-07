@@ -2482,7 +2482,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           }}>
             <i className="bi bi-eye" />
             <span>
-              <strong>View-only:</strong> you don't have the <code style={{
+              <strong>View-only:</strong> you don&apos;t have the <code style={{
                 background: '#fde68a', padding: '1px 6px', borderRadius: 4, fontSize: 12,
               }}>profile.edit</code> permission. Ask an organization owner to grant it if you need to make changes.
             </span>

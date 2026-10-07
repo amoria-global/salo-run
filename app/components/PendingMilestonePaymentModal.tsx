@@ -46,7 +46,7 @@ type Step =
  * when the user was already on that page.
  */
 export default function PendingMilestonePaymentModal({ isOpen, onClose }: PendingMilestonePaymentModalProps) {
-  const { currencyId } = useCurrency();
+  const { currencyId, formatPrice } = useCurrency();
   const { actualTheme } = useTheme();
   const [pendingPayments, setPendingPayments] = useState<PendingDeclaration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,7 +185,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
         borderRadius: 12, padding: 16,
       }}>
         <Row label="Event" value={firstPayment.eventName} />
-        <Row label="Amount due" value={`${firstPayment.currency} ${firstPayment.amount.toLocaleString()}`}
+        <Row label="Amount due" value={formatPrice(firstPayment.amount, firstPayment.currency)}
           valueStyle={{ color: isOverdue ? '#DC2626' : '#F59E0B', fontSize: '1.05rem', fontWeight: 800 }} />
         <Row label="Milestone"
           value={`${firstPayment.milestoneSequence === 1 ? 'First payment' : 'Second payment'} (${firstPayment.escrowPercentage}%)`}
@@ -207,7 +207,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
   const renderMethodPicker = () => (
     <div>
       <p style={{ margin: '0 0 14px', fontSize: '0.9rem', color: 'var(--ck-text-soft)' }}>
-        Choose how you want to pay <strong>{firstPayment.currency} {firstPayment.amount.toLocaleString()}</strong>:
+        Choose how you want to pay <strong>{formatPrice(firstPayment.amount, firstPayment.currency)}</strong>:
       </p>
       <PaymentMethodPicker
         country={payCountry}

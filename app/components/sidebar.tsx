@@ -10,7 +10,7 @@ import { getApiUrl } from '@/lib/api';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 
-type UserRole = "photographer" | "client" | "event-coordinator" | "admin" | "user";
+type UserRole = "photographer" | "client" | "event-coordinator" | "admin";
 
 interface NavigationItem {
   name: string;
@@ -30,16 +30,6 @@ interface NavigationItem {
   ownerOnly?: boolean;
 }
 
-// Single Team entry-point. The /user/team layout already renders an
-// internal tab strip for Users / Roles / Permissions, so duplicating
-// those as separate sidebar items would be redundant. Owner-only —
-// invited team members never see the link in their sidebar, even if
-// the default role they were assigned was seeded with users.view /
-// roles.view.
-const TEAM_ITEMS: NavigationItem[] = [
-  { name: "Team", href: "/user/team/users", icon: "bi-people-fill", group: 'Team', ownerOnly: true },
-];
-
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   photographer: [
     { name: "Home", href: "/user/photographer/dashboard", icon: "bi-house-door", group: 'Overview' },
@@ -50,7 +40,9 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Wallet", href: "/user/photographer/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Transactions", href: "/user/photographer/transaction", icon: "bi-arrow-left-right", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/photographer/donate", icon: "bi-heart", group: 'Money' },
-    ...TEAM_ITEMS,
+    // Album collaboration with fellow photographers. Photographers only:
+    // clients and coordinators have no albums to collaborate on.
+    { name: "Collaborate", href: "/user/photographer/collaborate", icon: "bi-people-fill", group: 'Work' },
   ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house-door", group: 'Overview' },
@@ -63,7 +55,6 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card", group: 'Money', requires: ['payments.view'] },
     { name: "Wallet", href: "/user/client/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/client/donate", icon: "bi-heart", group: 'Money' },
-    ...TEAM_ITEMS,
   ],
   "event-coordinator": [
     { name: "Home", href: "/user/event-coordinator/home", icon: "bi-house-door", group: 'Overview' },
@@ -76,22 +67,9 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Payments", href: "/user/event-coordinator/payments", icon: "bi-credit-card", group: 'Money', requires: ['payments.view'] },
     { name: "Wallet", href: "/user/event-coordinator/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/event-coordinator/donate", icon: "bi-heart", group: 'Money' },
-    ...TEAM_ITEMS,
   ],
   admin: [
     { name: "Wallets", href: "/user/admin/wallets", icon: "bi-wallet2", group: 'Admin' },
-  ],
-  // Consumer `User` role — buys streams/photos, books photographers, pays.
-  // No wallet (no earnings), no team, no inbox, no event creation.
-  user: [
-    { name: "Home", href: "/user/user/home", icon: "bi-house-door", group: 'Overview' },
-    { name: "Notifications", href: "/user/user/notifications", icon: "bi-bell", group: 'Overview' },
-    { name: "My Bookings", href: "/user/user/events", icon: "bi-calendar-event", group: 'Watch' },
-    { name: "Streams", href: "/user/user/streams", icon: "bi-broadcast", group: 'Watch' },
-    { name: "My Photos", href: "/user/user/gallery", icon: "bi-image", group: 'Watch' },
-    { name: "Photographers", href: "/user/user/photographers", icon: "bi-camera", group: 'Discover' },
-    { name: "Payments", href: "/user/user/payments", icon: "bi-credit-card", group: 'Money' },
-    { name: "Donate", href: "/user/user/donate", icon: "bi-heart", group: 'Money' },
   ],
 };
 
@@ -114,12 +92,6 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
     ];
   } else if (role === "admin") {
     return [{ name: "Logout", href: "/", icon: "bi-box-arrow-right" }];
-  } else if (role === "user") {
-    return [
-      { name: "Profile", href: "/user/user/profile", icon: "bi-person" },
-      { name: "Preferences", href: "/user/user/preferences", icon: "bi-sliders" },
-      { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
-    ];
   }
   return [
     { name: "Profile", href: "/user/client/profile", icon: "bi-person" },
@@ -132,23 +104,21 @@ const roleFromCustomerType = (customerType: string | null | undefined): UserRole
   const t = (customerType || '').toUpperCase();
   if (t === 'PHOTOGRAPHER' || t === 'VIDEOGRAPHER') return 'photographer';
   if (t === 'EVENT_COORDINATOR') return 'event-coordinator';
-  if (t === 'CLIENT' || t === 'INDIVIDUAL') return 'client';
-  // Consumer role gets its own dedicated dashboard section (/user/user/*).
-  if (t === 'USER') return 'user';
+  // USER was merged into Client; a session minted before that still says USER.
+  if (t === 'CLIENT' || t === 'INDIVIDUAL' || t === 'USER') return 'client';
   return null;
 };
 
 // Resolve which role's nav to render. URL path is the primary signal
 // for role-specific sections (/user/photographer, /user/admin, …) but
-// shared sections (/user/team, /user/not-authorized, /user/auth) live
+// shared sections (/user/not-authorized, /user/auth) live
 // outside any role bucket - for those we fall back to the authenticated
-// user's customerType so a photographer browsing /user/team doesn't see
+// user's customerType so a photographer on a shared page doesn't see
 // the client sidebar wired with /user/client/* links.
 const detectRole = (pathname: string | null, customerType: string | null | undefined): UserRole => {
   if (pathname && pathname.includes("/user/admin")) return "admin";
   if (pathname && pathname.includes("/user/photographer")) return "photographer";
   if (pathname && pathname.includes("/user/event-coordinator")) return "event-coordinator";
-  if (pathname && pathname.includes("/user/user")) return "user";
   if (pathname && pathname.includes("/user/client")) return "client";
   return roleFromCustomerType(customerType) ?? "client";
 };

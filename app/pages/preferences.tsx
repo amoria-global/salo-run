@@ -469,7 +469,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         setTotpEnabled(false);
         setShowDisableConfirm(false);
         setDisableCode(['', '', '', '', '', '']);
-        setTotpMessage('Two-factor authentication disabled');
+        setTotpMessage(result.message || 'Two-factor authentication disabled. Withdrawals are paused until you turn it back on.');
         setTotpMessageType('success');
         updateUser({ twoFactorEnabled: false });
       } else {
@@ -1006,6 +1006,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 {themeOptions.map((option) => (
                   <button
                     key={option.mode}
+                    data-ck-shape="card"
                     onClick={() => {
                       setTheme(option.mode);
                       savePreference('theme', option.mode);
@@ -1894,7 +1895,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     Two-factor authentication
                   </h2>
                   <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
-                    Add an extra layer of security by requiring a code from your authenticator app when signing in.
+                    Add an extra layer of security by requiring a code from your authenticator app when signing in. It is required to withdraw funds.
                   </p>
                 </div>
               </div>
@@ -1916,7 +1917,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   }} />
                   <i className="bi bi-exclamation-triangle-fill" style={{ color: '#D97706', fontSize: 16, marginTop: 1, flexShrink: 0 }} />
                   <p style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', margin: 0, lineHeight: 1.5 }}>
-                    Two-factor authentication is required for accounts with a balance. Please set it up to continue using your dashboard.
+                    Your wallet has funds. Turn on two-factor authentication to withdraw them.
                   </p>
                 </div>
               )}
@@ -1979,17 +1980,14 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               {/* Enabled state: show disable button */}
               {totpStep === 'idle' && totpEnabled && !showDisableConfirm && (
                 <button
-                  onClick={() => { if (!totpRequired) { setShowDisableConfirm(true); setDisableCode(['', '', '', '', '', '']); } }}
-                  disabled={totpRequired}
-                  title={totpRequired ? 'Cannot disable while your account has a balance' : ''}
+                  onClick={() => { setShowDisableConfirm(true); setDisableCode(['', '', '', '', '', '']); }}
                   style={{
                     padding: '0.6rem 1.2rem', borderRadius: 10,
                     background: 'transparent',
-                    color: totpRequired ? colors.textSecondary : '#DC2626',
-                    border: `1px solid ${totpRequired ? colors.borderPrimary : '#DC2626'}`,
+                    color: '#DC2626',
+                    border: '1px solid #DC2626',
                     fontWeight: 600, fontSize: '0.85rem',
-                    cursor: totpRequired ? 'not-allowed' : 'pointer',
-                    opacity: totpRequired ? 0.5 : 1, transition: 'all 0.18s',
+                    cursor: 'pointer', transition: 'all 0.18s',
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                   }}
                 >
@@ -2001,6 +1999,27 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               {/* Disable confirmation: enter TOTP code to disable */}
               {showDisableConfirm && (
                 <div style={{ marginTop: '0.5rem' }}>
+                  {/* Withdrawal warning: 2FA is what unlocks withdrawals */}
+                  <div role="alert" style={{
+                    position: 'relative', overflow: 'hidden',
+                    padding: '0.85rem 1rem 0.85rem 1.1rem',
+                    borderRadius: 11, marginBottom: '1rem',
+                    background: actualTheme === 'dark' ? 'rgba(220,38,38,0.12)' : '#FEF2F2',
+                    border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : '#FECACA'}`,
+                    display: 'flex', alignItems: 'flex-start', gap: 10,
+                  }}>
+                    <span aria-hidden style={{
+                      position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                      background: 'linear-gradient(180deg, #DC2626 0%, #F20C8F 130%)',
+                    }} />
+                    <i className="bi bi-wallet2" aria-hidden style={{ color: '#DC2626', fontSize: 16, marginTop: 1, flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', lineHeight: 1.5 }}>
+                      <strong style={{ display: 'block', marginBottom: 2 }}>Disabling 2FA will disable withdrawals</strong>
+                      {totpRequired
+                        ? 'Your wallet has funds. Two-factor authentication protects them, so you will not be able to withdraw until you turn it back on. Your balance stays safe in your wallet.'
+                        : 'Two-factor authentication protects the money in your wallet. While it is off, you will not be able to withdraw any funds you earn.'}
+                    </div>
+                  </div>
                   <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
                     Enter a code from your authenticator app to disable 2FA:
                   </p>
@@ -2265,6 +2284,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   return (
                     <button
                       key={option.value}
+                      data-ck-shape="card"
                       onClick={() => !isDisabled && saveVerificationMethod(option.value)}
                       disabled={isDisabled}
                       style={{
@@ -2479,29 +2499,31 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               marginBottom: '1.25rem'
             }}>
               {([
+                { type: 'momo' as const, label: 'Mobile Money', description: 'MTN or Airtel Money', image: '/momo.jpeg' },
                 { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Withdraw via MTN Mobile Money', image: '/mtn.png' },
                 { type: 'airtel' as const, label: 'Airtel Money', description: 'Withdraw via Airtel Money', image: '/airtel.png' },
                 { type: 'bank' as const, label: 'Bank Transfer', description: 'Withdraw to a Rwandan bank account', image: '' }
-              ]).map((option) => (
+              ]).filter((option) => (option.type !== 'mtn' && option.type !== 'airtel') || paymentType === 'mtn' || paymentType === 'airtel').map((option) => (
                 <div
                   key={option.type}
                   className="mobile-payment-option"
-                  onClick={() => setPaymentType(option.type)}
+                  onClick={() => { if (option.type === 'momo') { if (paymentType !== 'mtn' && paymentType !== 'airtel') setPaymentType('mtn'); } else setPaymentType(option.type); }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.85rem',
+                    marginLeft: option.type === 'mtn' || option.type === 'airtel' ? 18 : 0,
                     padding: '0.85rem 0.95rem',
-                    border: `1px solid ${paymentType === option.type ? 'rgba(8,58,133,0.45)' : colors.borderPrimary}`,
+                    border: `1px solid ${(option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? 'rgba(8,58,133,0.45)' : colors.borderPrimary}`,
                     borderRadius: 12,
                     cursor: 'pointer',
-                    background: paymentType === option.type
+                    background: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type)
                       ? (actualTheme === 'dark'
                         ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
                         : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)')
                       : colors.bgCard,
                     transition: 'all 0.18s',
-                    boxShadow: paymentType === option.type ? '0 6px 14px rgba(8,58,133,0.14)' : 'none',
+                    boxShadow: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? '0 6px 14px rgba(8,58,133,0.14)' : 'none',
                   }}
                 >
                   <div className="mobile-payment-option-icon" style={{
@@ -2549,14 +2571,14 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     width: 20,
                     height: 20,
                     borderRadius: '50%',
-                    background: paymentType === option.type ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)' : 'transparent',
-                    border: paymentType === option.type ? 'none' : `1.5px solid ${colors.borderPrimary}`,
+                    background: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)' : 'transparent',
+                    border: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? 'none' : `1.5px solid ${colors.borderPrimary}`,
                     flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: paymentType === option.type ? '0 3px 8px rgba(242,12,143,0.30)' : 'none',
+                    boxShadow: (option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) ? '0 3px 8px rgba(242,12,143,0.30)' : 'none',
                     transition: 'all 0.18s',
                   }}>
-                    {paymentType === option.type && <i className="bi bi-check2" style={{ color: 'white', fontSize: 11, fontWeight: 700 }} />}
+                    {(option.type === 'momo' ? (paymentType === 'mtn' || paymentType === 'airtel') : paymentType === option.type) && <i className="bi bi-check2" style={{ color: 'white', fontSize: 11, fontWeight: 700 }} />}
                   </div>
                 </div>
               ))}
@@ -2753,7 +2775,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       cursor: 'pointer',
                     }}
                   >
-                    Use "{xentriPayName}"
+                    Use &quot;{xentriPayName}&quot;
                   </button>
                 </div>
               </div>

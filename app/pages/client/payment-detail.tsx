@@ -305,7 +305,7 @@ const PaymentDetailPage: React.FC<PaymentDetailPageProps> = ({ userRole }) => {
     photographerName: payment.photographerName,
     photographerImage: payment.photographerImage || '',
     method: '',
-    amount: `${payment.currencyAbbreviation} ${payment.amount}`,
+    amount: formatPrice(payment.amount, payment.currencyAbbreviation),
     amountNum: payment.amount,
     paidAmount: payment.paidAmount,
     status: payment.status?.toLowerCase() as any,
@@ -594,7 +594,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                     {formatPrice(payment.amountInUsd)}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                    {payment.currencyAbbreviation} {payment.amount.toLocaleString()}
+                    {formatPrice(payment.amount, payment.currencyAbbreviation)}
                   </div>
                 </div>
 

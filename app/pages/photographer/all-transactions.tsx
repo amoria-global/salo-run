@@ -41,15 +41,7 @@ const AllTransactions = () => {
   const formatRowAmount = (amount: number, ccy?: string): string => {
     const safeAmount = typeof amount === 'number' ? amount : 0;
     if (!ccy) return formatPrice(safeAmount);
-    // Currency symbol map mirroring CurrencyContext.formatPrice.
-    const decimals = ccy === 'USD' || ccy === 'EUR' ? 2 : 0;
-    const formatted = safeAmount.toLocaleString('en-US', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-    if (ccy === 'USD') return `$${formatted}`;
-    if (ccy === 'EUR') return `€${formatted}`;
-    return `${ccy} ${formatted}`;
+    return formatPrice(safeAmount, ccy);
   };
   const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);

@@ -20,6 +20,7 @@ import FreeAlbumForm from '../../components/FreeAlbumForm';
 import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 import ContentAlbumsTab from './ContentAlbumsTab';
 import LiveChatPreviewDrawer from '../../components/LiveChatPreviewDrawer';
+import PhotographerOpportunitiesView from '../../components/hybrid/PhotographerOpportunitiesView';
 
 const CURRENCY_FLAG_MAP: Record<string, string> = {
   USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
@@ -416,18 +417,18 @@ const PhotographerEventsPage = () => {
   // every card so we never mount two pollers.
   const [chatPreview, setChatPreview] = useState<{ id: string; title: string } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'events' | 'albums' | 'photobooks' | 'content'>(() => {
+  const [activeTab, setActiveTab] = useState<'events' | 'opportunities' | 'albums' | 'photobooks' | 'content'>(() => {
     if (typeof window !== 'undefined') {
       // Query param takes priority (e.g. from notification click)
       const params = new URLSearchParams(window.location.search);
       const qTab = params.get('tab');
-      if (qTab === 'albums' || qTab === 'photobooks' || qTab === 'events' || qTab === 'content') {
+      if (qTab === 'opportunities' || qTab === 'albums' || qTab === 'photobooks' || qTab === 'events' || qTab === 'content') {
         window.history.replaceState({}, '', window.location.pathname);
         return qTab;
       }
       // Otherwise restore from localStorage
       const saved = localStorage.getItem('connekt_events_tab');
-      if (saved === 'events' || saved === 'albums' || saved === 'photobooks' || saved === 'content') return saved;
+      if (saved === 'events' || saved === 'opportunities' || saved === 'albums' || saved === 'photobooks' || saved === 'content') return saved;
     }
     return 'events';
   });
@@ -2026,6 +2027,9 @@ const PhotographerEventsPage = () => {
                   <button onClick={() => setActiveTab('events')} role="tab" aria-selected={activeTab === 'events'} style={viewToggleBtnStyle(activeTab === 'events')}>
                     <i className="bi bi-calendar-event" style={{ fontSize: 15 }} /> Events
                   </button>
+                  <button onClick={() => setActiveTab('opportunities')} role="tab" aria-selected={activeTab === 'opportunities'} style={viewToggleBtnStyle(activeTab === 'opportunities')}>
+                    <i className="bi bi-broadcast" style={{ fontSize: 15 }} /> Opportunities
+                  </button>
                   <button onClick={() => setActiveTab('albums')} role="tab" aria-selected={activeTab === 'albums'} style={viewToggleBtnStyle(activeTab === 'albums')}>
                     <i className="bi bi-images" style={{ fontSize: 15 }} /> Albums
                   </button>
@@ -3360,6 +3364,13 @@ const PhotographerEventsPage = () => {
                 currencies={currencies as any}
                 defaultCurrencyId={paidAlbumCurrencyId}
               />
+            )}
+
+            {/* ==================== OPPORTUNITIES TAB ==================== */}
+            {activeTab === 'opportunities' && (
+              <div style={{ marginTop: '1.25rem' }}>
+                <PhotographerOpportunitiesView />
+              </div>
             )}
           </div>
         </div>

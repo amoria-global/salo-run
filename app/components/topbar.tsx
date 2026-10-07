@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
@@ -45,20 +45,13 @@ interface TopbarProps {
 const roleLabel = (r: string) => r === 'photographer' ? 'Photographer'
   : r === 'admin' ? 'Admin'
   : r === 'event-coordinator' ? 'Event Coordinator'
-  : r === 'user' ? 'User'
   : 'Client';
 
 export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const { actualTheme, setTheme, colors } = useTheme();
   const { user, logout, refreshUserProfile } = useDashboardAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  // The consumer `User` section reuses the shared client page components,
-  // which hard-code userRole="client". Derive the real role from the path so
-  // the title/badge/links say "User" and consumer-irrelevant items (Wallet,
-  // KYC/withdrawals) are hidden. API bases still fall through to 'customer'.
-  const role = pathname && pathname.includes('/user/user') ? 'user' : userRole;
-  const isConsumer = role === 'user';
+  const role = userRole;
   const { currency, setCurrency, formatPrice, currencies } = useCurrency();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -486,7 +479,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
               fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap',
             }}>
               <i className="bi bi-wallet2" style={{ color: 'var(--ck-blue)', fontSize: 14 }} />
-              <span>${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span>{formatPrice(walletBalance)}</span>
               {walletStatus === 'SUSPENDED' && (
                 <span className="ck-pill ck-status-error" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>SUSPENDED</span>
               )}
@@ -625,7 +618,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                   {notifications.length === 0 ? (
                     <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ck-text-soft)' }}>
                       <i className="bi bi-bell-slash" style={{ fontSize: 26, color: 'var(--ck-text-muted)', display: 'block', marginBottom: 8 }} />
-                      <div style={{ fontSize: '0.88rem' }}>You're all caught up</div>
+                      <div style={{ fontSize: '0.88rem' }}>You&apos;re all caught up</div>
                     </div>
                   ) : (
                     notifications.map((notification) => {
@@ -732,7 +725,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                     <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Profile</span>
                   </Link>
                   {/* Consumers have no wallet (no earnings). */}
-                  {role !== 'admin' && !isConsumer && (
+                  {role !== 'admin' && (
                     <Link href={`/user/${role}/wallet`} onClick={() => setIsDropdownOpen(false)}
                       className="ck-row" style={{ textDecoration: 'none', color: 'var(--ck-text)' }}>
                       <i className="bi bi-wallet2" style={{ fontSize: 16, marginRight: 10, color: 'var(--ck-text-soft)' }} />
@@ -809,7 +802,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                     date: p.createdAt, eventName: p.eventTitle || pendingPaymentWarning.firstEvent,
                     eventType: p.paymentType || '', photographerName: p.photographerName || '',
                     photographerImage: p.photographerImage || '', method: '',
-                    amount: `${p.currencyAbbreviation || ''} ${p.amount || 0}`,
+                    amount: formatPrice(p.amount || 0, p.currencyAbbreviation || undefined),
                     amountNum: p.amount || 0, paidAmount: p.paidAmount || 0,
                     status: (p.status?.toLowerCase() || 'pending') as any,
                     invoiceNumber: `INV-${String(p.id).substring(0, 8).toUpperCase()}`,
@@ -835,7 +828,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         </div>
       )}
 
-      {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && !isConsumer && user.customerType !== 'Viewer' && !pendingPaymentWarning && (() => {
+      {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && user.customerType !== 'Viewer' && !pendingPaymentWarning && (() => {
         const isPending = user.kycStatus === 'PENDING';
         const isRejected = user.kycStatus === 'REJECTED';
         const cfg = isRejected

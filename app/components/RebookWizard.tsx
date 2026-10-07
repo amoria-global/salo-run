@@ -352,7 +352,7 @@ export default function RebookWizard({ open, onClose, eventId, eventTitle, color
                     const active = (chosenPkg?.id ?? '') === k.id;
                     const isRec = selectedRec?.recommendedPackageId === k.id;
                     return (
-                      <button key={k.id} onClick={() => setPkgId(k.id)} style={{
+                      <button key={k.id} data-ck-shape="card" onClick={() => setPkgId(k.id)} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
                         padding: '0.7rem 0.85rem', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
                         background: active ? (isDark ? 'rgba(8,58,133,0.22)' : 'rgba(8,58,133,0.05)') : c.bgCard,

@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
     : raw;
   let route = '/'; // default to role selection
   if (customerType === 'photographer') route = '/user/photographer/dashboard';
-  else if (customerType === 'client') route = '/user/client/home';
+  // 'user' was merged into client; old links still carry it.
+  else if (customerType === 'client' || customerType === 'user') route = '/user/client/home';
   else if (customerType === 'event-coordinator') route = '/user/event-coordinator/home';
   const dashboardUrl = new URL(route, request.url);
   const response = NextResponse.redirect(dashboardUrl);

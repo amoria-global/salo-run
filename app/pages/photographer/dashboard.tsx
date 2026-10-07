@@ -1206,7 +1206,7 @@ const PhotographerDashboard = () => {
           </svg>
           <span>
             Comparing with <strong>{selectedPlan.name}</strong>. Stat cards show progress bars toward your targets.
-            The performance chart overlays target values alongside actual data. Switch plans or click <strong>"Exit Comparison"</strong> when done.
+            The performance chart overlays target values alongside actual data. Switch plans or click <strong>&quot;Exit Comparison&quot;</strong> when done.
           </span>
         </div>
       )}
