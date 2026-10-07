@@ -10,6 +10,7 @@ import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import EventConfirmModal from '../../components/EventConfirmModal';
+import EventQrWizard from '../../components/EventQrWizard';
 import RebookWizard from '../../components/RebookWizard';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -771,6 +772,7 @@ const MyEventsPage = () => {
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [publishingEventId, setPublishingEventId] = useState<string | null>(null);
   const [unpublishingEventId, setUnpublishingEventId] = useState<string | null>(null);
+  const [qrEvent, setQrEvent] = useState<{ id: string; title: string; justPublished: boolean } | null>(null);
   const [publishConfirmEvent, setPublishConfirmEvent] = useState<Event | null>(null);
   const [unpublishConfirmEvent, setUnpublishConfirmEvent] = useState<Event | null>(null);
   // Surfaced when the backend rejects an unpublish because the event is
@@ -910,6 +912,7 @@ const MyEventsPage = () => {
           evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus, isPublished: true } : evt
         ));
         if (activeTab === 'upcoming') setActiveTab('all');
+        setQrEvent({ id: eventId, title: events.find(e => e.id === eventId)?.title ?? 'Your event', justPublished: true });
       } else {
         const data = await res.json().catch(() => ({}));
         platformAlert(data.message || 'Failed to publish event. Please try again.');
@@ -1912,6 +1915,15 @@ const MyEventsPage = () => {
                         )}
                         {event.status.toUpperCase() !== 'COMPLETED' && (
                           (event.isPublished || event.status.toUpperCase() === 'PUBLISHED' || event.status.toUpperCase() === 'ONGOING') ? (
+                            <>
+                            {(event.isPublished || event.status.toUpperCase() === 'PUBLISHED') && (
+                              <button
+                                onClick={() => setQrEvent({ id: event.id, title: event.title, justPublished: false })}
+                                style={{ padding: '0.45rem 0.9rem', display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: 'transparent', color: colors.textPrimary, border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                <i className="bi bi-qr-code" style={{ fontSize: 12 }} /> QR code
+                              </button>
+                            )}
                             <button onClick={() => {
                               // Short-circuit straight to the block modal when the event is live.
                               // No point asking the coordinator "are you sure?" for an action the
@@ -1931,6 +1943,7 @@ const MyEventsPage = () => {
                                 <><i className="bi bi-eye-slash-fill" style={{ fontSize: 12 }} /> Unpublish</>
                               )}
                             </button>
+                            </>
                           ) : (
                             <button onClick={() => !event.coverImage ? setNoPhotoEvent(event) : !event.hasPhotographer ? setNoPhotographerEvent(event) : (event.bookingStatus && event.bookingStatus.toUpperCase() !== 'ACCEPTED' && event.bookingStatus.toUpperCase() !== 'UNASSIGNED') ? setPendingBookingEvent(event) : setPublishConfirmEvent(event)} disabled={publishingEventId === event.id} style={{ flex: 1.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 9, cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 700, opacity: publishingEventId === event.id ? 0.7 : 1, boxShadow: '0 4px 10px rgba(16,185,129,0.30)', letterSpacing: '-0.005em', transition: 'transform 0.15s' }} onMouseEnter={(e) => { if (publishingEventId !== event.id) e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}>
                               {publishingEventId === event.id ? (
@@ -3458,6 +3471,17 @@ const MyEventsPage = () => {
           colors={colors}
           actualTheme={actualTheme}
           onSuccess={() => { fetchMyEvents(); }}
+        />
+      )}
+
+      {qrEvent && (
+        <EventQrWizard
+          open
+          onClose={() => setQrEvent(null)}
+          eventId={qrEvent.id}
+          eventTitle={qrEvent.title}
+          published
+          justPublished={qrEvent.justPublished}
         />
       )}
 

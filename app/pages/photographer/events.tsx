@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import EventConfirmModal from '../../components/EventConfirmModal';
+import EventQrWizard from '../../components/EventQrWizard';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
@@ -449,6 +450,7 @@ const PhotographerEventsPage = () => {
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
   const [showStreamPreview, setShowStreamPreview] = useState(false);
   const [showUnpublishedModal, setShowUnpublishedModal] = useState(false);
+  const [qrEvent, setQrEvent] = useState<{ id: string; title: string } | null>(null);
   const [streamConfigs, setStreamConfigs] = useState<Record<string, StreamConfig>>({});
   const [copiedField, setCopiedField] = useState('');
   const [markCompleteTarget, setMarkCompleteTarget] = useState<AssignedEvent | null>(null);
@@ -2320,6 +2322,19 @@ const PhotographerEventsPage = () => {
                                 </>
                               ) : (
                                 <>
+                                  {event.isPublished && event.bookingStatus?.toUpperCase() === 'ACCEPTED' && (
+                                    <button
+                                      onClick={() => setQrEvent({ id: event.id, title: event.title })}
+                                      style={{
+                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                                        padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
+                                        background: 'transparent', color: 'inherit', border: '1px solid currentColor',
+                                        borderRadius: 9, cursor: 'pointer',
+                                      }}
+                                    >
+                                      <i className="bi bi-qr-code" style={{ fontSize: 11 }} /> QR code
+                                    </button>
+                                  )}
                                   {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
                                     <button onClick={() => {
                                       setSelectedEvent(event);
@@ -3549,6 +3564,16 @@ const PhotographerEventsPage = () => {
       )}
 
       {/* Unpublished Event Modal */}
+      {qrEvent && (
+        <EventQrWizard
+          open
+          onClose={() => setQrEvent(null)}
+          eventId={qrEvent.id}
+          eventTitle={qrEvent.title}
+          published
+        />
+      )}
+
       {showUnpublishedModal && selectedEvent && (
         <EventConfirmModal
           tone="warning"
