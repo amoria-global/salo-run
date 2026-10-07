@@ -39,6 +39,15 @@ export function getEventShareLink(eventId: string, hostId?: string): string {
   return hostId ? `${base}?hostId=${hostId}` : base;
 }
 
+/**
+ * Link encoded in an event's QR code. The landing app 301s the legacy
+ * view-event path to the canonical slug page and keeps `src=qr`, which turns
+ * on the install-the-app gate for phones. Only published events resolve.
+ */
+export function getEventQrLink(eventId: string): string {
+  return `${getLandingUrl()}/user/events/view-event?id=${encodeURIComponent(eventId)}&src=qr`;
+}
+
 /** Build a gallery share link on the landing app */
 export function getGalleryShareLink(albumId: string): string {
   return `${getLandingUrl()}/gallery/${albumId}`;

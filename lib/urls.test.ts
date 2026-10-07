@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getLandingUrl, getAppUrl, getLoginUrl, getEventShareLink, getGalleryShareLink } from './urls';
+import { getLandingUrl, getAppUrl, getLoginUrl, getEventShareLink, getGalleryShareLink, getEventQrLink } from './urls';
 
 /**
  * The first test in this repo (CONN-TEST-2).
@@ -84,5 +84,15 @@ describe('share links', () => {
 
   it('builds a gallery link', () => {
     expect(getGalleryShareLink('a7')).toBe('https://connekyt.com/gallery/a7');
+  });
+});
+
+describe('getEventQrLink', () => {
+  it('points at the landing view-event path and flags the visit as a QR scan', () => {
+    expect(getEventQrLink('evt-1')).toBe('https://connekyt.com/user/events/view-event?id=evt-1&src=qr');
+  });
+
+  it('encodes the id so an odd value cannot break out of the query', () => {
+    expect(getEventQrLink('a&b=c')).toBe('https://connekyt.com/user/events/view-event?id=a%26b%3Dc&src=qr');
   });
 });
