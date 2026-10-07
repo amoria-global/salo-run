@@ -273,7 +273,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
           Promise.all(streamList.map((s: any) => fetchChatsForStream(s.eventId))),
           Promise.all(streamList.map(async (s: any) => {
             try {
-              const evtRes = await fetch(`${apiUrl}/api/remote/public/events/${s.eventId}`);
+              const evtRes = await dashboardAuthFetch(`${apiUrl}/api/remote/public/events/${s.eventId}`);
               if (evtRes.ok) {
                 const evtData = await evtRes.json();
                 return evtData.data || null;
