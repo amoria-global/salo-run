@@ -16,6 +16,9 @@ interface HybridEventWizardModalProps {
   onSuccess: (eventId: string) => void;
 }
 
+/** "100000" -> "100,000" for display; empty stays empty. */
+const withCommas = (digits: string) => (digits ? Number(digits).toLocaleString('en-US') : '');
+
 export default function HybridEventWizardModal({
   isOpen,
   onClose,
@@ -589,11 +592,12 @@ export default function HybridEventWizardModal({
                   <div>
                     <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Min Budget</span>
                     <input
-                      type="number"
-                      value={minBudget}
-                      onChange={(e) => setMinBudget(e.target.value)}
+                      type="text"
+                      inputMode="numeric"
+                      // State keeps plain digits; the field shows thousands separators.
+                      value={withCommas(minBudget)}
+                      onChange={(e) => setMinBudget(e.target.value.replace(/\D/g, ''))}
                       placeholder="100,000"
-                      step={10000}
                       style={{
                         width: '100%',
                         padding: '0.75rem 1rem',
@@ -609,11 +613,12 @@ export default function HybridEventWizardModal({
                   <div>
                     <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Max Budget</span>
                     <input
-                      type="number"
-                      value={maxBudget}
-                      onChange={(e) => setMaxBudget(e.target.value)}
+                      type="text"
+                      inputMode="numeric"
+                      // State keeps plain digits; the field shows thousands separators.
+                      value={withCommas(maxBudget)}
+                      onChange={(e) => setMaxBudget(e.target.value.replace(/\D/g, ''))}
                       placeholder="200,000"
-                      step={10000}
                       style={{
                         width: '100%',
                         padding: '0.75rem 1rem',
