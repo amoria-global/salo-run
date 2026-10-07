@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import EventConfirmModal from '../../components/EventConfirmModal';
+import EventQrWizard from '../../components/EventQrWizard';
 import { platformAlert } from '../../components/PlatformAlert';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
@@ -286,6 +287,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
   const shouldHighlight = highlightId != null && highlightId === eventId;
 
   const [event, setEvent] = useState<EventData | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrJustPublished, setQrJustPublished] = useState(false);
   const [payments, setPayments] = useState<PaymentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -617,6 +620,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         throw new Error(errorData.message || `Failed to publish event (${res.status})`);
       }
       await fetchEvent(); // Re-fetch to get updated status
+      setQrJustPublished(true);
+      setQrOpen(true);
     } catch (err) {
       console.error('Publish event error:', err);
       platformAlert(err instanceof Error ? err.message : 'Failed to publish event');
@@ -993,6 +998,18 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
 
                 {/* Publish / Unpublish */}
                 {event.status.toUpperCase() === 'PUBLISHED' ? (
+                  <>
+                  <button
+                    onClick={() => { setQrJustPublished(false); setQrOpen(true); }}
+                    style={{
+                      padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: 6,
+                      backgroundColor: colors.bgCard, color: colors.textPrimary,
+                      border: `1px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+                    }}
+                  >
+                    <i className="bi bi-qr-code" style={{ fontSize: 13 }} /> QR code
+                  </button>
                   <button
                     onClick={handleUnpublish}
                     disabled={actionLoading === 'unpublish'}
@@ -1010,6 +1027,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   >
                     {actionLoading === 'unpublish' ? 'Unpublishing...' : 'Unpublish'}
                   </button>
+                  </>
                 ) : event.status.toUpperCase() !== 'COMPLETED' ? (
                   <button
                     onClick={handlePublish}
@@ -1188,6 +1206,19 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                     >
                       <i className="bi bi-share-fill" style={{ fontSize: 13 }} /> Share
                     </button>
+                    {event.status.toUpperCase() === 'PUBLISHED' && (
+                      <button
+                        onClick={() => { setQrJustPublished(false); setQrOpen(true); }}
+                        style={{
+                          padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: 6,
+                          backgroundColor: colors.bgCard, color: colors.textPrimary,
+                          border: `1px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+                        }}
+                      >
+                        <i className="bi bi-qr-code" style={{ fontSize: 13 }} /> QR code
+                      </button>
+                    )}
                     {event.completionStatus?.toUpperCase() !== 'COMPLETED' && (
                       <button
                         onClick={handleMarkComplete}
@@ -1977,6 +2008,17 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       {/* Confirmation Modals */}
 
       {/* Delete Confirmation */}
+      {event && (
+        <EventQrWizard
+          open={qrOpen}
+          onClose={() => setQrOpen(false)}
+          eventId={event.id}
+          eventTitle={event.title}
+          published={event.status.toUpperCase() === 'PUBLISHED'}
+          justPublished={qrJustPublished}
+        />
+      )}
+
       {showDeleteConfirm && (
         <EventConfirmModal
           tone="danger"
