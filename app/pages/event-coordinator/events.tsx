@@ -1239,10 +1239,17 @@ const MyEventsPage = () => {
         try {
           const photoForm = new FormData();
           photoForm.append('file', editBannerImageFile);
-          await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${editEvent.id}/photo`, {
+          const photoRes = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${editEvent.id}/photo`, {
             method: 'POST',
             body: photoForm,
           });
+          const photoJson = await photoRes.json().catch(() => null);
+          if (!photoRes.ok || photoJson?.action === 0) {
+            platformAlert(photoJson?.message || 'The event was saved but its photo could not be uploaded. Please try again.', {
+              title: 'Event photo not saved',
+              tone: 'danger',
+            });
+          }
         } catch (photoErr) {
           console.error('Failed to upload event photo:', photoErr);
         }
@@ -1478,10 +1485,17 @@ const MyEventsPage = () => {
               try {
                 const photoForm = new FormData();
                 photoForm.append('file', createBannerImageFile);
-                await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${newEventId}/photo`, {
+                const photoRes = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${newEventId}/photo`, {
                   method: 'POST',
                   body: photoForm,
                 });
+                const photoJson = await photoRes.json().catch(() => null);
+                if (!photoRes.ok || photoJson?.action === 0) {
+                  platformAlert(photoJson?.message || 'The event was saved but its photo could not be uploaded. Please try again.', {
+                    title: 'Event photo not saved',
+                    tone: 'danger',
+                  });
+                }
               } catch (photoErr) {
                 console.error('Failed to upload event photo:', photoErr);
               }
