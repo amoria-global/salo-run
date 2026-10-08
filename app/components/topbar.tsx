@@ -12,6 +12,14 @@ import type { Payment } from './UnlockModal';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import KycVerificationModal from './KycVerificationModal';
+import {
+  desktopAlertPermission,
+  freshUnread,
+  playAlert,
+  requestDesktopAlerts,
+  showDesktopAlert,
+  strongestAlert,
+} from '@/app/lib/notificationAlerts';
 
 interface NotificationItem {
   id: string;
@@ -88,6 +96,11 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  // Notification ids from the previous poll; null until the first one, so the
+  // backlog on page load doesn't ring.
+  const seenNotifIdsRef = useRef<Set<string> | null>(null);
+  const [desktopAlerts, setDesktopAlerts] = useState<NotificationPermission | 'unsupported'>('unsupported');
+  useEffect(() => { setDesktopAlerts(desktopAlertPermission()); }, []);
   const currencyRef = useRef<HTMLDivElement>(null);
   const availabilityRef = useRef<HTMLDivElement>(null);
 
@@ -111,14 +124,22 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         const data = await notifRes.value.json();
         if (data.action === 1 && (Array.isArray(data.data) || data.data?.content)) {
           const items = Array.isArray(data.data) ? data.data : data.data?.content || [];
-          setNotifications(items.map((n: any) => ({
+          const mapped: NotificationItem[] = items.map((n: any) => ({
             id: n.id, type: n.type || 'system',
             title: n.title || '', message: n.message || '',
             time: n.createdAt ? formatTimeAgo(n.createdAt) : '',
             read: n.isRead ?? true,
             actionUrl: n.link || undefined,
             referenceId: n.referenceId || undefined,
-          })));
+          }));
+          // Ring or chime for what arrived since the last poll, and show it
+          // as a desktop notification if the tab is in the background.
+          const fresh = freshUnread(seenNotifIdsRef.current, mapped);
+          seenNotifIdsRef.current = new Set(mapped.map((n) => n.id));
+          const kind = strongestAlert(fresh);
+          if (kind) playAlert(kind);
+          fresh.slice(0, 3).forEach((n) => showDesktopAlert(n, (url) => router.push(url)));
+          setNotifications(mapped);
         }
       }
       if (countRes.status === 'fulfilled' && countRes.value.ok) {
@@ -126,7 +147,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         if (data.action === 1) setUnreadCount(data.data ?? 0);
       }
     } catch { /* silent */ }
-  }, [user, userRole]);
+  }, [user, userRole, router]);
 
   const fetchFinancials = useCallback(async () => {
     if (!user) return;
@@ -606,6 +627,18 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                       </span>
                     )}
                   </div>
+                  {desktopAlerts === 'default' && (
+                    <button
+                      onClick={async () => setDesktopAlerts(await requestDesktopAlerts())}
+                      title="Get a desktop notification and sound for new booking requests, even when this tab is in the background"
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--ck-blue)',
+                        fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      <i className="bi bi-bell" /> Enable desktop alerts
+                    </button>
+                  )}
                   {unreadCount > 0 && (
                     <button onClick={markAllAsRead} style={{
                       background: 'none', border: 'none', color: 'var(--ck-blue)',

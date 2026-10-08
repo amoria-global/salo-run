@@ -1,34 +1,59 @@
 import { getApiUrl } from '@/lib/api';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 
+/**
+ * Hybrid booking calls. Every path goes through the /api/proxy route, which
+ * only forwards paths under api/remote/; these used to call `${base}/events/...`
+ * and every one was refused with a 403 by the proxy. Responses are the
+ * backend's envelope ({ action, message, data }) and a 200 can still be a
+ * failure, so `action` is checked. Nothing here invents a value the backend
+ * didn't send: a failure is thrown, and a missing field stays missing.
+ */
+
 export type PhotographerType = 'FREELANCER' | 'STUDIO' | 'ANY';
 export type LocationCoverage = 'SAME_CITY' | 'NEARBY_CITY' | 'ANY';
 export type RecommendationTier = 'HIGH' | 'MEDIUM' | 'LOW';
 
+/** Field names are the backend's MatchPreviewRequestDTO. */
 export interface MatchPreviewPayload {
   eventDate: string;
-  eventTime: string;
-  durationHours?: number;
+  startTime?: string;
+  endTime?: string;
   city?: string;
   latitude?: number;
   longitude?: number;
-  preferredPhotographerType?: PhotographerType;
+  photographerType?: PhotographerType;
   minBudget?: number;
   maxBudget?: number;
+  currency?: string;
   specialty?: string;
   locationCoverage?: LocationCoverage;
 }
 
 export interface MatchPreviewResult {
   count: number;
-  criteriaMatched?: string[];
-  samplePhotographers?: Array<{
-    id: string;
-    name: string;
-    profilePicture?: string;
-    rating?: number;
-    verifiedInstagram?: boolean;
-  }>;
+  breakdown?: {
+    availableOnDate?: number;
+    withinBudget?: number;
+    typeMatched?: number;
+    instagramEnriched?: number;
+  };
+}
+
+/** Field names are the backend's CreateMatchRequestDTO. */
+export interface MatchRequestPayload {
+  minBudget?: number;
+  maxBudget?: number;
+  currency?: string;
+  photographerType?: PhotographerType;
+  specialty?: string;
+  locationCoverage?: LocationCoverage;
+  expirationHours?: number;
+  instructions?: string;
+  city?: string;
+  venue?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface PhotographerOpportunity {
@@ -36,23 +61,22 @@ export interface PhotographerOpportunity {
   candidateId?: string;
   eventId: string;
   eventTitle: string;
-  eventType: string;
+  eventType?: string;
   eventDate: string;
   startTime: string;
   endTime?: string;
-  venue: string;
-  city: string;
-  distanceKm: number;
-  minBudget: number;
-  maxBudget: number;
+  venue?: string;
+  city?: string;
+  distanceKm?: number;
+  minBudget?: number;
+  maxBudget?: number;
   currency?: string;
-  expiresAt: string;
+  expiresAt?: string;
   invitedAt?: string;
   candidateExpiresAt?: string;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | string;
-  clientName: string;
-  clientAvatar?: string;
+  status: string;
   matchReasons: string[];
+  instructions?: string;
 }
 
 export interface CandidateSummary {
@@ -63,14 +87,12 @@ export interface CandidateSummary {
   rating?: number;
   reviewCount?: number;
   distanceKm?: number;
-  proposedPackageId?: string;
-  proposedPackageName?: string;
-  price?: number;
-  currency?: string;
+  /** The backend sends the photographer's package range as text, e.g. "100,000 - 150,000 RWF". */
+  typicalPriceRange?: string;
   recommendationTier: RecommendationTier;
-  compositeScore?: number;
-  verifiedInstagram?: boolean;
-  approvedAt?: string;
+  rank?: number;
+  instagramHandle?: string;
+  instagramFollowers?: number;
 }
 
 export interface SelectPhotographerPayload {
@@ -82,258 +104,211 @@ export interface SelectPhotographerPayload {
 }
 
 export interface SelectPhotographerResult {
-  success: boolean;
-  bookingId?: string;
-  declarationId?: string;
+  bookingId: string;
+  declarationId: string;
   eventId: string;
-  status: string;
-  requiresPayment: boolean;
   depositAmount?: number;
   currency?: string;
   escrowPercentage?: number;
 }
 
+type Envelope<T> = { action?: number; message?: string; error?: string; data?: T };
+
+/** A refusal the UI can show; `code` is the backend's error code when it sent one. */
+export class HybridApiError extends Error {
+  constructor(message: string, readonly status: number, readonly code?: string) {
+    super(message);
+    this.name = 'HybridApiError';
+  }
+}
+
+const remote = (path: string) => `${getApiUrl()}/api/remote${path}`;
+
+async function call<T>(path: string, init: RequestInit, fallbackMessage: string): Promise<T | undefined> {
+  let res: Response;
+  try {
+    res = await dashboardAuthFetch(remote(path), {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
+    });
+  } catch {
+    throw new HybridApiError('Network error. Check your connection and try again.', 0);
+  }
+  const body = (await res.json().catch(() => null)) as Envelope<T> | null;
+  if (!res.ok || body?.action !== 1) {
+    throw new HybridApiError(body?.message || fallbackMessage, res.status, body?.error);
+  }
+  return body.data;
+}
+
+const num = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== '' ? v : undefined);
+
 /**
- * Live debounced match preview counter (Slide 04)
+ * Live match count for the wizard. The count is the server's, including 0.
  */
 export async function previewMatchCount(payload: MatchPreviewPayload): Promise<MatchPreviewResult> {
-  const base = getApiUrl();
-  const res = await dashboardAuthFetch(`${base}/events/match-preview`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Match preview failed with status ${res.status}`);
-  }
-
-  const data = await res.json();
-  return {
-    count: typeof data.count === 'number' ? data.count : (data.matchesCount ?? 0),
-    criteriaMatched: data.criteriaMatched || ['date', 'coverage', 'budget', 'instagram'],
-    samplePhotographers: data.samplePhotographers || [],
-  };
+  const data = await call<Record<string, unknown>>(
+    '/events/match-preview',
+    { method: 'POST', body: JSON.stringify(payload) },
+    'Could not count matching photographers.',
+  );
+  const count = num(data?.matchCount);
+  if (count === undefined) throw new HybridApiError('Could not count matching photographers.', 500);
+  return { count, breakdown: data?.breakdown as MatchPreviewResult['breakdown'] };
 }
 
 /**
- * Publish hybrid brief and alert eligible photographers (Slide 05)
+ * Publish the brief and alert matching photographers.
  */
 export async function publishMatchRequest(
   eventId: string,
-  payload: Partial<MatchPreviewPayload>
-): Promise<{ success: boolean; eventId: string }> {
-  const base = getApiUrl();
-  const res = await dashboardAuthFetch(`${base}/events/${encodeURIComponent(eventId)}/match-request`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '');
-    throw new Error(errText || `Failed to publish match request (${res.status})`);
-  }
-
-  const data = await res.json().catch(() => ({}));
-  return {
-    success: true,
-    eventId: data.eventId || eventId,
-  };
+  payload: MatchRequestPayload,
+): Promise<{ eventId: string; invitedCount?: number }> {
+  const data = await call<Record<string, unknown>>(
+    `/events/${encodeURIComponent(eventId)}/match-request`,
+    { method: 'POST', body: JSON.stringify(payload) },
+    'Could not post your event to photographers.',
+  );
+  return { eventId, invitedCount: num(data?.invitedCount) };
 }
 
 /**
- * Fetch photographer's open matching opportunities (Slide 07)
+ * The photographer's open opportunities. Throws on failure so the view can
+ * say it couldn't load, rather than showing an empty list.
  */
 export async function getPhotographerOpportunities(): Promise<PhotographerOpportunity[]> {
-  const base = getApiUrl();
-  const res = await dashboardAuthFetch(`${base}/photographer/opportunities`);
-
-  if (!res.ok) {
-    return [];
-  }
-
-  const data = await res.json();
-  const items = Array.isArray(data) ? data : (data.data || data.opportunities || data.items || []);
-  return items.map((item: any) => {
-    const oppId = String(item.candidateId || item.id || item.opportunityId);
+  const data = await call<unknown>('/photographer/opportunities', { method: 'GET' }, 'Could not load opportunities.');
+  const items = Array.isArray(data) ? data : [];
+  return items.map((item: Record<string, unknown>) => {
+    const candidateId = String(item.candidateId ?? '');
     return {
-      opportunityId: oppId,
-      candidateId: item.candidateId ? String(item.candidateId) : oppId,
-      eventId: String(item.eventId),
-      eventTitle: item.eventTitle || item.title || 'Private Event Brief',
-      eventType: item.eventType || item.category || 'Celebration',
-      eventDate: item.eventDate || item.date || '',
-      startTime: item.startTime || item.time || '',
-      endTime: item.endTime,
-      venue: item.venue || item.venueName || item.location || 'Venue TBA',
-      city: item.city || 'Kigali',
-      distanceKm: Number(item.distanceKm ?? item.distance ?? 0),
-      minBudget: Number(item.minBudget ?? 0),
-      maxBudget: Number(item.maxBudget ?? item.budget ?? 0),
-      currency: item.currency || 'RWF',
-      expiresAt: item.expiresAt || new Date(Date.now() + 86400000).toISOString(),
-      invitedAt: item.invitedAt,
-      candidateExpiresAt: item.candidateExpiresAt || (item.invitedAt ? new Date(new Date(item.invitedAt).getTime() + 15 * 60000).toISOString() : item.expiresAt),
-      status: item.status || 'PENDING',
-      clientName: item.clientName || 'Connekyt Client',
-      clientAvatar: item.clientAvatar || item.clientPhoto,
-      matchReasons: item.matchReasons || [
-        'Available on event date',
-        'Matches your coverage area',
-        'Budget compatible with rates',
-        'Instagram profile eligible',
-      ],
+      opportunityId: candidateId,
+      candidateId,
+      eventId: String(item.eventId ?? ''),
+      eventTitle: str(item.eventTitle) ?? 'Event',
+      eventType: str(item.eventType),
+      eventDate: str(item.eventDate) ?? '',
+      startTime: str(item.startTime) ?? '',
+      endTime: str(item.endTime),
+      venue: str(item.venue),
+      city: str(item.city),
+      distanceKm: num(item.distanceKm),
+      minBudget: num(item.minBudget),
+      maxBudget: num(item.maxBudget),
+      currency: str(item.currency),
+      expiresAt: str(item.expiresAt),
+      invitedAt: str(item.invitedAt),
+      candidateExpiresAt: str(item.candidateExpiresAt),
+      status: str(item.status) ?? 'INVITED',
+      matchReasons: Array.isArray(item.matchReasons) ? (item.matchReasons as string[]) : [],
+      instructions: str(item.instructions),
+    };
+  });
+}
+
+/** "I'm Available". Throws 409 NO_LONGER_AVAILABLE once the invite has closed. */
+export async function approveOpportunity(opportunityId: string): Promise<void> {
+  await call(
+    `/opportunities/${encodeURIComponent(opportunityId)}/approve`,
+    { method: 'POST' },
+    'Could not approve this opportunity.',
+  );
+}
+
+export async function rejectOpportunity(opportunityId: string): Promise<void> {
+  await call(
+    `/opportunities/${encodeURIComponent(opportunityId)}/reject`,
+    { method: 'POST' },
+    'Could not decline this opportunity.',
+  );
+}
+
+/**
+ * Approved candidates for the client's event, ranked by the server.
+ */
+export async function getEventCandidates(eventId: string): Promise<CandidateSummary[]> {
+  const data = await call<Record<string, unknown>>(
+    `/events/${encodeURIComponent(eventId)}/candidates`,
+    { method: 'GET' },
+    'Could not load candidates.',
+  );
+  const items = Array.isArray(data?.candidates) ? (data!.candidates as Record<string, unknown>[]) : [];
+  return items.map((c) => {
+    const insta = (c.instagram ?? null) as Record<string, unknown> | null;
+    return {
+      candidateId: str(c.candidateId),
+      photographerId: String(c.photographerId ?? ''),
+      photographerName: str(c.name) ?? 'Photographer',
+      profilePicture: str(c.avatar),
+      rating: num(c.rating),
+      reviewCount: num(c.reviewCount),
+      distanceKm: num(c.distanceKm),
+      typicalPriceRange: str(c.typicalPriceRange),
+      recommendationTier: (str(c.recommendationTier) ?? 'LOW') as RecommendationTier,
+      rank: num(c.rank),
+      instagramHandle: insta ? str(insta.handle) : undefined,
+      instagramFollowers: insta ? num(insta.followersCount) : undefined,
     };
   });
 }
 
 /**
- * Photographer approves opportunity ("I'm Available") (Slide 08)
- */
-export async function approveOpportunity(opportunityId: string): Promise<void> {
-  const base = getApiUrl();
-  const res = await dashboardAuthFetch(`${base}/opportunities/${encodeURIComponent(opportunityId)}/approve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '');
-    throw new Error(errText || 'Failed to approve opportunity');
-  }
-}
-
-/**
- * Photographer declines opportunity (Slide 08)
- */
-export async function rejectOpportunity(opportunityId: string): Promise<void> {
-  const base = getApiUrl();
-  const res = await dashboardAuthFetch(`${base}/opportunities/${encodeURIComponent(opportunityId)}/reject`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '');
-    throw new Error(errText || 'Failed to decline opportunity');
-  }
-}
-
-/**
- * Client fetches approved candidates for a hybrid event (Slide 09)
- */
-export async function getEventCandidates(eventId: string): Promise<CandidateSummary[]> {
-  const base = getApiUrl();
-  const res = await dashboardAuthFetch(`${base}/events/${encodeURIComponent(eventId)}/candidates`);
-
-  if (!res.ok) {
-    return [];
-  }
-
-  const raw = await res.json();
-  const data = raw.data || raw;
-  const items = Array.isArray(data) ? data : (data.candidates || data.items || []);
-  return items.map((c: any) => ({
-    candidateId: c.candidateId ? String(c.candidateId) : (c.id ? String(c.id) : undefined),
-    photographerId: String(c.photographerId || c.id),
-    photographerName: c.photographerName || c.name || 'Photographer',
-    profilePicture: c.profilePicture || c.image || c.avatar,
-    rating: Number(c.rating ?? 5.0),
-    reviewCount: Number(c.reviewCount ?? c.reviewsCount ?? 0),
-    distanceKm: Number(c.distanceKm ?? c.distance ?? 0),
-    proposedPackageId: c.proposedPackageId || c.packageId,
-    proposedPackageName: c.proposedPackageName || c.packageName || 'Full Event Coverage',
-    price: Number(c.price ?? c.packagePrice ?? 0),
-    currency: c.currency || 'RWF',
-    recommendationTier: (c.recommendationTier || 'HIGH') as RecommendationTier,
-    compositeScore: Number(c.compositeScore ?? 90),
-    verifiedInstagram: Boolean(c.verifiedInstagram ?? true),
-    approvedAt: c.approvedAt,
-  }));
-}
-
-/**
- * Client selects candidate photographer with 409 concurrency lock handling (Slide 10)
+ * Select a candidate. Creates the booking and its payment declaration, so it
+ * is sent once and never retried: after a network failure the selection may
+ * already have gone through.
  */
 export async function selectEventPhotographer(
   eventId: string,
-  payload: SelectPhotographerPayload
+  payload: SelectPhotographerPayload,
 ): Promise<SelectPhotographerResult> {
-  const base = getApiUrl();
-  const res = await dashboardAuthFetch(`${base}/events/${encodeURIComponent(eventId)}/select-photographer`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  if (res.status === 409) {
-    const errorData = await res.json().catch(() => ({}));
-    const message = errorData.message || 'This photographer was just booked by another client for this time slot.';
-    const err = new Error(message);
-    (err as any).code = 'NO_LONGER_AVAILABLE';
-    throw err;
+  try {
+    const data = await call<Record<string, unknown>>(
+      `/events/${encodeURIComponent(eventId)}/select-photographer`,
+      { method: 'POST', body: JSON.stringify(payload) },
+      'Could not confirm this photographer.',
+    );
+    return {
+      bookingId: String(data?.bookingId ?? ''),
+      declarationId: String(data?.declarationId ?? ''),
+      eventId,
+      depositAmount: num(data?.depositAmount),
+      currency: str(data?.currency),
+      escrowPercentage: num(data?.escrowPercentage),
+    };
+  } catch (e) {
+    if (e instanceof HybridApiError && (e.status === 409 || e.code === 'NO_LONGER_AVAILABLE')) {
+      throw new HybridApiError(
+        'This photographer is no longer available for your event. Please choose another.',
+        409,
+        'NO_LONGER_AVAILABLE',
+      );
+    }
+    if (e instanceof HybridApiError && e.status === 0) {
+      throw new HybridApiError(
+        "We couldn't confirm whether your selection went through. Refresh the event before selecting again.",
+        0,
+      );
+    }
+    throw e;
   }
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '');
-    throw new Error(errText || 'Failed to select photographer');
-  }
-
-  const raw = await res.json();
-  const data = raw.data || raw;
-  return {
-    success: true,
-    bookingId: data.bookingId,
-    declarationId: data.declarationId,
-    eventId: data.eventId || eventId,
-    status: data.status || 'BOOKED',
-    requiresPayment: data.requiresPayment !== false,
-    depositAmount: data.depositAmount,
-    currency: data.currency || 'RWF',
-    escrowPercentage: data.escrowPercentage ?? 50,
-  };
 }
 
-/**
- * 1-click Direct-to-Hybrid rescue conversion (Slide 22)
- */
-export async function convertToHybrid(
-  eventId: string,
-  payload?: Partial<MatchPreviewPayload>
-): Promise<{ success: boolean }> {
-  const base = getApiUrl();
-  const res = await dashboardAuthFetch(`${base}/events/${encodeURIComponent(eventId)}/convert-to-hybrid`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload || {}),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '');
-    throw new Error(errText || 'Failed to convert event to hybrid matching');
-  }
-
-  return { success: true };
+/** Turn a declined direct booking into a hybrid brief. */
+export async function convertToHybrid(eventId: string): Promise<void> {
+  await call(
+    `/events/${encodeURIComponent(eventId)}/convert-to-hybrid`,
+    { method: 'POST' },
+    'Could not convert this event to hybrid matching.',
+  );
 }
 
-/**
- * 1-click Hybrid-to-Direct rescue conversion
- */
-export async function convertToDirect(
-  eventId: string
-): Promise<{ success: boolean; data?: any }> {
-  const base = getApiUrl();
-  const res = await dashboardAuthFetch(`${base}/events/${encodeURIComponent(eventId)}/convert-to-direct`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '');
-    throw new Error(errText || 'Failed to convert event to direct booking');
-  }
-
-  const json = await res.json().catch(() => ({}));
-  return { success: true, data: json?.data };
+/** Turn a timed-out hybrid event back into direct booking. */
+export async function convertToDirect(eventId: string): Promise<{ data?: Record<string, unknown> }> {
+  const data = await call<Record<string, unknown>>(
+    `/events/${encodeURIComponent(eventId)}/convert-to-direct`,
+    { method: 'POST' },
+    'Could not convert this event to direct booking.',
+  );
+  return { data };
 }
