@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { previewMatchCount, type PhotographerType, type LocationCoverage } from '@/app/lib/hybridBooking';
+import {
+  previewMatchCount,
+  publishMatchRequest,
+  type PhotographerType,
+  type LocationCoverage,
+} from '@/app/lib/hybridBooking';
 import { getApiUrl } from '@/lib/api';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 
@@ -10,6 +15,9 @@ interface HybridEventWizardModalProps {
   onClose: () => void;
   onSuccess: (eventId: string) => void;
 }
+
+/** "100000" -> "100,000" for display; empty stays empty. */
+const withCommas = (digits: string) => (digits ? Number(digits).toLocaleString('en-US') : '');
 
 export default function HybridEventWizardModal({
   isOpen,
@@ -37,6 +45,10 @@ export default function HybridEventWizardModal({
   // Live match state
   const [matchCount, setMatchCount] = useState<number | null>(null);
   const [matchLoading, setMatchLoading] = useState(false);
+  const [matchFailed, setMatchFailed] = useState(false);
+  // Set once the event exists, so retrying a failed publish alerts
+  // photographers for that event instead of creating a second one.
+  const createdEventIdRef = useRef<string | null>(null);
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -51,22 +63,25 @@ export default function HybridEventWizardModal({
     try {
       const res = await previewMatchCount({
         eventDate: date,
-        eventTime: `${startTime}:00`,
-        durationHours: 4,
-        city: city || 'Kigali',
-        preferredPhotographerType: photographerType,
-        minBudget: Number(minBudget) || 50000,
-        maxBudget: Number(maxBudget) || 300000,
+        startTime: `${startTime}:00`,
+        endTime: endTime ? `${endTime}:00` : undefined,
+        city: city.trim() || undefined,
+        photographerType,
+        minBudget: Number(minBudget) || undefined,
+        maxBudget: Number(maxBudget) || undefined,
         specialty: category,
-        locationCoverage: locationCoverage,
+        locationCoverage,
       });
       setMatchCount(res.count);
+      setMatchFailed(false);
     } catch {
-      setMatchCount(8); // graceful fallback preview
+      // Not a count: say it couldn't be counted rather than show a number.
+      setMatchCount(null);
+      setMatchFailed(true);
     } finally {
       setMatchLoading(false);
     }
-  }, [date, startTime, city, photographerType, minBudget, maxBudget, category, locationCoverage]);
+  }, [date, startTime, endTime, city, photographerType, minBudget, maxBudget, category, locationCoverage]);
 
   useEffect(() => {
     if (!isOpen || step !== 2) return;
@@ -114,58 +129,54 @@ export default function HybridEventWizardModal({
     setSubmitting(true);
     setErrorMsg(null);
     try {
-      const base = getApiUrl();
-      const payload = {
-        title,
-        description,
-        category,
-        eventType: category,
-        eventDate: date,
-        date,
-        startTime: `${startTime}:00`,
-        endTime: `${endTime}:00`,
-        venueName,
-        location: `${venueName}, ${city}`,
-        city,
-        country: 'Rwanda',
-        bookingMode: 'HYBRID',
-        status: 'PUBLISHED_PENDING_ASSIGNMENT',
-        preferredPhotographerType: photographerType,
-        minBudget: Number(minBudget) || 100000,
-        maxBudget: Number(maxBudget) || 200000,
-        locationCoverage,
-        eventVisibility: 'PUBLIC',
-      };
-
-      const res = await dashboardAuthFetch(`${base}/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Failed to publish hybrid event');
+      let eventId = createdEventIdRef.current;
+      if (!eventId) {
+        // Same route the client events page uses; the proxy only forwards
+        // api/remote/ paths, and there is no POST /events on the backend.
+        const res = await dashboardAuthFetch(`${getApiUrl()}/api/remote/customer/events/book`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            description,
+            eventType: category,
+            eventDate: date,
+            startTime: `${startTime}:00`,
+            endTime: endTime ? `${endTime}:00` : undefined,
+            location: [venueName, city].filter((x) => x.trim()).join(', '),
+            // Kept off public listings until a photographer is assigned.
+            eventVisibility: 'PRIVATE',
+          }),
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok || body?.action !== 1) {
+          throw new Error(body?.message || 'Could not create your event. Please try again.');
+        }
+        eventId = String(body?.data?.event?.id || body?.data?.eventId || body?.data?.id || '');
+        if (!eventId) throw new Error('Could not create your event. Please try again.');
+        createdEventIdRef.current = eventId;
       }
 
-      const created = await res.json();
-      const eventId = String(created.id || created.eventId);
-
-      // Trigger match-request to alert eligible photographers
-      await dashboardAuthFetch(`${base}/events/${encodeURIComponent(eventId)}/match-request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          preferredPhotographerType: photographerType,
-          minBudget: Number(minBudget) || 100000,
-          maxBudget: Number(maxBudget) || 200000,
+      try {
+        await publishMatchRequest(eventId, {
+          photographerType,
+          minBudget: Number(minBudget) || undefined,
+          maxBudget: Number(maxBudget) || undefined,
+          currency: 'RWF',
           locationCoverage,
           specialty: category,
-        }),
-      }).catch(() => {
-        // Backend auto-triggers matching on HYBRID events, continue safely
-      });
+          city: city.trim() || undefined,
+          venue: venueName.trim() || undefined,
+          expirationHours: 24,
+        });
+      } catch (e: any) {
+        throw new Error(
+          `Your event was saved, but photographers weren't alerted: ${e?.message || 'please try again'}. ` +
+            'Press Post again to retry.',
+        );
+      }
 
+      createdEventIdRef.current = null;
       onSuccess(eventId);
       onClose();
     } catch (e: any) {
@@ -504,7 +515,7 @@ export default function HybridEventWizardModal({
                   </div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
                     <span style={{ fontSize: '2.2rem', fontWeight: 900, color: '#083A85' }}>
-                      {matchLoading ? '...' : (matchCount ?? 0)}
+                      {matchLoading ? '...' : (matchCount ?? '–')}
                     </span>
                     <span style={{ fontSize: '1rem', fontWeight: 700, color: '#475569' }}>
                       photographers currently match
@@ -516,6 +527,11 @@ export default function HybridEventWizardModal({
                     <span>✓ Budget compatible</span>
                     <span>✓ Instagram portfolio eligible</span>
                   </div>
+                  {matchFailed && !matchLoading && (
+                    <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#B45309', fontWeight: 600 }}>
+                      Couldn&apos;t count matching photographers right now. You can still post your event.
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -576,11 +592,12 @@ export default function HybridEventWizardModal({
                   <div>
                     <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Min Budget</span>
                     <input
-                      type="number"
-                      value={minBudget}
-                      onChange={(e) => setMinBudget(e.target.value)}
+                      type="text"
+                      inputMode="numeric"
+                      // State keeps plain digits; the field shows thousands separators.
+                      value={withCommas(minBudget)}
+                      onChange={(e) => setMinBudget(e.target.value.replace(/\D/g, ''))}
                       placeholder="100,000"
-                      step={10000}
                       style={{
                         width: '100%',
                         padding: '0.75rem 1rem',
@@ -596,11 +613,12 @@ export default function HybridEventWizardModal({
                   <div>
                     <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Max Budget</span>
                     <input
-                      type="number"
-                      value={maxBudget}
-                      onChange={(e) => setMaxBudget(e.target.value)}
+                      type="text"
+                      inputMode="numeric"
+                      // State keeps plain digits; the field shows thousands separators.
+                      value={withCommas(maxBudget)}
+                      onChange={(e) => setMaxBudget(e.target.value.replace(/\D/g, ''))}
                       placeholder="200,000"
-                      step={10000}
                       style={{
                         width: '100%',
                         padding: '0.75rem 1rem',
@@ -717,7 +735,9 @@ export default function HybridEventWizardModal({
                 </div>
                 <div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#065F46' }}>
-                    {matchCount ?? 'Multiple'} Verified Photographers will receive your alert
+                    {matchCount !== null
+                      ? `${matchCount} photographer${matchCount === 1 ? '' : 's'} currently match; the best-ranked are alerted first`
+                      : 'Matching photographers will be alerted'}
                   </div>
                   <p style={{ margin: 0, fontSize: '0.78rem', color: '#047857' }}>
                     They will review your date and budget, then approve their availability. You can review candidate portfolios and make your choice with escrow protection.
