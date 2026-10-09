@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useDashboardAuth } from '@/app/providers/AuthProvider';
 import { usePermissions } from '@/app/lib/usePermissions';
 import RouteGuard from '@/app/components/RouteGuard';
+import { MatchingProfilePrompt } from '@/app/components/hybrid/MatchingProfile';
 
 /**
  * Photographer-area layout. Wraps every /user/photographer/** route.
@@ -76,5 +77,17 @@ export default function PhotographerLayout({ children }: { children: React.React
   // bounces restricted team members to /user/not-authorized when the
   // current pathname requires permissions they don't hold. Owners
   // pass every gate; this is pure UX (server still enforces).
-  return <RouteGuard>{children}</RouteGuard>;
+  // Registered photographers are asked once for their Instagram (and city when
+  // their address doesn't say), after their profile is complete.
+  const type = (user?.customerType || '').toUpperCase();
+  const askMatching = !!user && (type === 'PHOTOGRAPHER' || type === 'VIDEOGRAPHER')
+    && user.isTeamMember !== true
+    && (typeof user.completionPercentage !== 'number' || user.completionPercentage >= 100)
+    && !(pathname && pathname.startsWith(PROFILE_PATH));
+  return (
+    <RouteGuard>
+      {children}
+      {askMatching && <MatchingProfilePrompt />}
+    </RouteGuard>
+  );
 }

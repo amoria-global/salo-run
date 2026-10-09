@@ -305,6 +305,12 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [showCandidatesModal, setShowCandidatesModal] = useState(false);
+  // Notifications about answers link here with ?candidates=1.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('candidates') === '1') {
+      setShowCandidatesModal(true);
+    }
+  }, []);
   const [selectedPayNowPayment, setSelectedPayNowPayment] = useState<Payment | null>(null);
 
   const convertToPayNowPayment = (p: PaymentData): Payment => ({
@@ -1339,7 +1345,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   )}
                 </div>
               </div>
-            ) : (event.eventStatus === 'HYBRID_TIMEOUT' || event.status === 'HYBRID_TIMEOUT') ? (
+            ) : (['HYBRID_TIMEOUT', 'MATCHING_FAILED'].includes(String(event.eventStatus || event.status))) ? (
               <div>
                 <div style={{
                   padding: '1.25rem',
@@ -1349,16 +1355,16 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                     <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Matching Window Concluded (0 Accepted)
+                      Matching ended: no photographer said yes
                     </span>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
                   </div>
                   <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0 0 14px', lineHeight: 1.5 }}>
-                    The 24-hour matching window has concluded without an accepted photographer. You can instantly switch to Direct Booking to browse and select available creators nearby on our interactive radar map.
+                    Post My Event didn't find a photographer this time. Post it again (it uses the same requirements), or switch to Find a Photographer and choose one yourself.
                   </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <Link
-                      href={`/photographers?lat=${event.latitude ?? -1.9536}&lng=${event.longitude ?? 30.0606}&eventDate=${encodeURIComponent(event.eventDate || event.date || '')}`}
+                      href={`${userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client'}/photographers?lat=${event.latitude ?? -1.9536}&lng=${event.longitude ?? 30.0606}&eventDate=${encodeURIComponent(event.eventDate || event.date || '')}`}
                       style={{
                         padding: '0.6rem 1.1rem',
                         borderRadius: '9px',
@@ -1373,7 +1379,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                         boxShadow: '0 4px 10px rgba(8,58,133,0.20)',
                       }}
                     >
-                      <i className="bi bi-geo-alt-fill" /> Browse Nearby Photographers
+                      <i className="bi bi-search" /> Find a Photographer
                     </Link>
                     <button
                       type="button"
@@ -1407,7 +1413,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                       {actionLoading === 'retry-hybrid' ? (
                         <><i className="bi bi-arrow-clockwise" style={{ animation: 'spin 0.9s linear infinite' }} /> Reactivating...</>
                       ) : (
-                        <><i className="bi bi-arrow-repeat" /> Retry Matching</>
+                        <><i className="bi bi-broadcast" /> Post again</>
                       )}
                     </button>
                   </div>
@@ -2492,8 +2498,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         eventId={eventId}
         eventTitle={event?.title || 'Your Event'}
         eventStatus={event?.eventStatus || event?.status || undefined}
-        latitude={event?.latitude}
-        longitude={event?.longitude}
+        latitude={event?.latitude ?? undefined}
+        longitude={event?.longitude ?? undefined}
         eventDate={event?.eventDate || event?.date}
         onPhotographerSelected={(_photographerId, result, candidate) => {
           setShowCandidatesModal(false);
