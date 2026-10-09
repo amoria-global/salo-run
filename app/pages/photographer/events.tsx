@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { hasActiveStream } from '../../lib/streamState';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import EventConfirmModal from '../../components/EventConfirmModal';
@@ -315,6 +316,7 @@ interface AssignedEvent {
   packageName: string;
   packageId: string;
   hasLiveStream: boolean;
+  streamStatus?: string;
   isPublished: boolean;
   guestCount: number;
   maxGuests: number;
@@ -826,7 +828,11 @@ const PhotographerEventsPage = () => {
               organizerName: e.organizerName || '',
               packageName: e.packageName || '',
               packageId: e.packageId || '',
-              hasLiveStream: e.hasLiveStream || false,
+              // A stream can exist on an event whose package has no live-stream
+              // flag (free events). Keep the flag for the entitlement, and carry
+              // the real stream state so the card never hides a running stream.
+              hasLiveStream: e.hasLiveStream || hasActiveStream(e.streamStatus) || false,
+              streamStatus: e.streamStatus || '',
               isPublished: e.isPublished === true || e.eventStatus === 'PUBLISHED' || e.isEventPublished === true || false,
               guestCount: e.guestCount || 0,
               maxGuests: e.maxGuests || 0,
