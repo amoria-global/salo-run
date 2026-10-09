@@ -282,6 +282,9 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
   const getNotificationDest = (notification: Notification): string | null => {
     const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
     const refId = notification.referenceId;
+    // Post My Event updates link to the event's candidates; open them there.
+    const cand = (notification as any).actionUrl?.match?.(/^\/events\/([^/]+)\/candidates/);
+    if (cand) return `${base}/events/${cand[1]}?candidates=1`;
     switch (notification.type) {
       case 'booking': case 'photobook':
         return refId ? `${base}/events/${refId}` : `${base}/events`;

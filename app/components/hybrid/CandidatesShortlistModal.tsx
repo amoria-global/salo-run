@@ -1,46 +1,67 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
-import { getEventCandidates, selectEventPhotographer, type CandidateSummary } from '@/app/lib/hybridBooking';
-import { normalizeImageUrl } from '@/lib/api';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTheme } from '@/app/context/ThemeContext';
+import { getLandingUrl } from '@/lib/urls';
+import {
+  budgetLabel,
+  convertToDirect,
+  getCandidatesOverview,
+  getHybridOptions,
+  hhmm,
+  selectEventPhotographer,
+  syncServerClock,
+  TIER_META,
+  type CandidateSummary,
+  type CandidatesOverview,
+  type RecommendationTier,
+} from '@/app/lib/hybridBooking';
+import { CountdownText, HybridStyles, MODE_META, Notice, TierBadge } from './hybridUi';
 
 interface CandidatesShortlistModalProps {
   isOpen: boolean;
   onClose: () => void;
   eventId: string;
-  eventTitle: string;
+  eventTitle?: string;
   eventStatus?: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  eventDate?: string | null;
+  latitude?: number;
+  longitude?: number;
+  eventDate?: string;
   onPhotographerSelected: (photographerId: string, result: any, candidate?: CandidateSummary) => void;
+  /** Open the wizard to post this event again after matching ended. */
+  onRepost?: () => void;
+  /** Matching stopped; continue with Find a Photographer. */
+  onConvertedToDirect?: () => void;
 }
 
-export default function CandidatesShortlistModal({
-  isOpen,
-  onClose,
-  eventId,
-  eventTitle,
-  eventStatus,
-  latitude,
-  longitude,
-  eventDate,
-  onPhotographerSelected,
-}: CandidatesShortlistModalProps) {
-  const [candidates, setCandidates] = useState<CandidateSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectingId, setSelectingId] = useState<string | null>(null);
-  const [statusNotice, setStatusNotice] = useState<{ type: 'error' | 'info'; message: string } | null>(null);
+const TIERS: RecommendationTier[] = ['HIGH', 'MEDIUM', 'LOW'];
 
-  const fetchCandidates = useCallback(async () => {
-    if (!eventId) return;
+/**
+ * The client's view of a posted event: who said yes, grouped by how well
+ * they fit, and the progress of everyone else. Only photographers who
+ * approved are listed. Choosing one is re-checked by the server and creates
+ * the booking; the client picks the first payment (50, 70 or 100%).
+ */
+export default function CandidatesShortlistModal({
+  isOpen, onClose, eventId, eventTitle, onPhotographerSelected, onRepost, onConvertedToDirect,
+}: CandidatesShortlistModalProps) {
+  const { colors } = useTheme();
+  const [data, setData] = useState<CandidatesOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<{ tone: 'error' | 'info'; text: string } | null>(null);
+  const [choosing, setChoosing] = useState<CandidateSummary | null>(null);
+  const [escrow, setEscrow] = useState(50);
+  const [escrowOptions, setEscrowOptions] = useState<number[]>([50, 70, 100]);
+  const [submitting, setSubmitting] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const [booked, setBooked] = useState<{ candidate: CandidateSummary; result: any } | null>(null);
+
+  const load = useCallback(async () => {
     try {
-      const data = await getEventCandidates(eventId);
-      setCandidates(data);
+      const d = await getCandidatesOverview(eventId);
+      setData(d);
     } catch (e: any) {
-      // Keep what's on screen, but say the list couldn't be refreshed.
-      setStatusNotice({ type: 'error', message: e?.message || 'Could not load candidates.' });
+      setNotice({ tone: 'error', text: e?.message || 'Could not load the photographers who answered.' });
     } finally {
       setLoading(false);
     }
@@ -49,481 +70,271 @@ export default function CandidatesShortlistModal({
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
-    fetchCandidates();
-
-    // Auto-refresh candidates list every 12 seconds
-    const interval = setInterval(fetchCandidates, 12000);
-    return () => clearInterval(interval);
-  }, [isOpen, fetchCandidates]);
+    setBooked(null);
+    setChoosing(null);
+    syncServerClock();
+    getHybridOptions().then((o) => setEscrowOptions(o.escrowOptions)).catch(() => {});
+    load();
+    const id = setInterval(load, 12000);
+    return () => clearInterval(id);
+  }, [isOpen, load]);
 
   if (!isOpen) return null;
 
-  const handleSelect = async (candidate: CandidateSummary) => {
-    setSelectingId(candidate.photographerId);
-    setStatusNotice(null);
+  const confirmChoice = async () => {
+    if (!choosing) return;
+    setSubmitting(true);
+    setNotice(null);
     try {
       const result = await selectEventPhotographer(eventId, {
-        candidateId: candidate.candidateId,
-        photographerId: candidate.photographerId,
-        escrowPercentage: 50,
+        candidateId: choosing.candidateId,
+        photographerId: choosing.photographerId,
+        escrowPercentage: escrow,
       });
-      onPhotographerSelected(candidate.photographerId, result, candidate);
+      setBooked({ candidate: choosing, result });
+      setChoosing(null);
     } catch (e: any) {
-      if (e.code === 'NO_LONGER_AVAILABLE') {
-        setStatusNotice({
-          type: 'error',
-          message: e.message,
-        });
-        fetchCandidates();
-      } else {
-        setStatusNotice({
-          type: 'error',
-          message: e.message || 'Could not select photographer. Please try again.',
-        });
-      }
+      setChoosing(null);
+      setNotice({ tone: 'error', text: e?.message || 'Could not confirm this photographer.' });
+      load();
     } finally {
-      setSelectingId(null);
+      setSubmitting(false);
     }
   };
 
-  const tierBadgeStyle = (tier: string) => {
-    if (tier === 'HIGH') {
-      return { bg: '#ECFDF5', fg: '#047857', border: '#A7F3D0', label: 'HIGH MATCH' };
+  const switchToDirect = async () => {
+    setConverting(true);
+    try {
+      await convertToDirect(eventId);
+      onConvertedToDirect?.();
+      onClose();
+    } catch (e: any) {
+      setNotice({ tone: 'error', text: e?.message || 'Could not switch to Find a Photographer.' });
+    } finally {
+      setConverting(false);
     }
-    if (tier === 'MEDIUM') {
-      return { bg: '#EFF6FF', fg: '#1D4ED8', border: '#BFDBFE', label: 'GOOD MATCH' };
-    }
-    return { bg: '#F5F3FF', fg: '#6D28D9', border: '#DDD6FE', label: 'ELIGIBLE' };
   };
 
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(8, 20, 48, 0.70)',
-        backdropFilter: 'blur(8px)',
-        padding: '1.25rem',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '720px',
-          maxHeight: '88vh',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: '#FFFFFF',
-          borderRadius: '24px',
-          boxShadow: '0 25px 60px -15px rgba(8, 58, 133, 0.3)',
-          border: '1px solid rgba(8, 58, 133, 0.14)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '1.5rem 2rem 1.25rem',
-            borderBottom: '1px solid #F1F5F9',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%)',
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  color: '#083A85',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  background: 'rgba(8, 58, 133, 0.08)',
-                  padding: '3px 10px',
-                  borderRadius: '999px',
-                }}
-              >
-                Candidate Shortlist
-              </span>
-              <span style={{ fontSize: '0.8rem', color: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? '#7C3AED' : '#10B981', fontWeight: 700 }}>
-                {eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? '• Ready for Selection' : '• Live Matching Active'}
-              </span>
-            </div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#083A85', margin: 0 }}>
-              {eventTitle || 'Your Event'}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              border: 'none',
-              background: '#F1F5F9',
-              color: '#64748B',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-            }}
-          >
-            ×
-          </button>
+  const title = data?.eventTitle || eventTitle || 'Your event';
+  const candidates = data?.candidates ?? [];
+  const active = data?.matchStatus === 'ACTIVE';
+
+  const CandidateCard = ({ c }: { c: CandidateSummary }) => {
+    const profileUrl = c.slug ? `${getLandingUrl()}/${c.slug}` : null;
+    return (
+      <article style={{ display: 'flex', gap: 14, padding: 14, borderRadius: 16, border: `1px solid ${colors.borderPrimary}`, background: colors.bgCard, flexWrap: 'wrap' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: colors.bgTertiary, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: colors.brandPrimary, fontSize: 20 }}>
+          {c.profilePicture ? <img src={c.profilePicture} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : c.photographerName.charAt(0)}
         </div>
-
-        {/* Notice alert banner */}
-        {statusNotice && (
-          <div
-            style={{
-              margin: '1rem 2rem 0',
-              padding: '0.75rem 1rem',
-              backgroundColor: statusNotice.type === 'error' ? '#FEF2F2' : '#EFF6FF',
-              border: `1px solid ${statusNotice.type === 'error' ? '#F87171' : '#93C5FD'}`,
-              borderRadius: '10px',
-              color: statusNotice.type === 'error' ? '#991B1B' : '#1E40AF',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-            }}
-          >
-            {statusNotice.message}
+        <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: colors.textPrimary }}>{c.photographerName}</h4>
+            <TierBadge tier={c.recommendationTier} />
           </div>
-        )}
-
-        {/* Content list */}
-        <div style={{ padding: '1.5rem 2rem', overflowY: 'auto', flex: 1 }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748B' }}>
-              <div className="ck-spinner" style={{ width: 28, height: 28, borderWidth: 3, margin: '0 auto 12px' }} />
-              <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Loading responding photographers...</div>
-            </div>
-          ) : candidates.length === 0 ? (
-            (eventStatus === 'HYBRID_TIMEOUT' || eventStatus === 'EXPIRED') ? (
-              <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem', color: '#64748B' }}>
-                <div
-                  style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '50%',
-                    background: '#FEF3C7',
-                    color: '#D97706',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '28px',
-                    margin: '0 auto 16px',
-                  }}
-                >
-                  <i className="bi bi-exclamation-circle-fill" />
-                </div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#D97706', margin: '0 0 8px' }}>
-                  Matching Window Concluded
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: '#64748B', maxWidth: '420px', margin: '0 auto 20px', lineHeight: 1.5 }}>
-                  The 24-hour matching window has ended with 0 accepted photographers. You can instantly switch to Direct Booking to browse and select available creators nearby on our map.
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                  <a
-                    href={`/photographers?lat=${latitude ?? -1.9536}&lng=${longitude ?? 30.0606}&eventDate=${encodeURIComponent(eventDate || '')}`}
-                    style={{
-                      padding: '0.65rem 1.25rem',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #083A85 0%, #1D4ED8 100%)',
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      textDecoration: 'none',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <i className="bi bi-geo-alt-fill" /> Browse Nearby Photographers
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: '#64748B' }}>
-                <div
-                  style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '50%',
-                    background: 'rgba(8, 58, 133, 0.06)',
-                    color: '#083A85',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '28px',
-                    margin: '0 auto 16px',
-                  }}
-                >
-                  <i className="bi bi-hourglass-split" />
-                </div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#083A85', margin: '0 0 6px' }}>
-                  Photographers are reviewing your brief
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: '#64748B', maxWidth: '420px', margin: '0 auto', lineHeight: 1.5 }}>
-                  We notified nearby verified photographers. As soon as they confirm their availability, their profiles and proposed rates will appear here in real-time.
-                </p>
-              </div>
-            )
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div
-                style={{
-                  padding: '0.85rem 1.1rem',
-                  borderRadius: '12px',
-                  background: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION'
-                    ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(8, 58, 133, 0.06) 100%)'
-                    : 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(8, 58, 133, 0.06) 100%)',
-                  border: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION'
-                    ? '1px solid rgba(124, 58, 237, 0.20)'
-                    : '1px solid rgba(16, 185, 129, 0.20)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
-              >
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '50%',
-                    background: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? '#EDE9FE' : '#D1FAE5',
-                    color: eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? '#7C3AED' : '#047857',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px',
-                    flexShrink: 0,
-                  }}
-                >
-                  <i className={eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION' ? 'bi bi-check-circle-fill' : 'bi bi-shield-check'} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', marginBottom: '2px' }}>
-                    {eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION'
-                      ? 'Matching Window Concluded: Select Your Preferred Creator'
-                      : '100% Escrow Protected Booking'}
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748B', lineHeight: 1.35 }}>
-                    {eventStatus?.toUpperCase() === 'MATCHES_AWAITING_SELECTION'
-                      ? 'Review the verified creators who accepted your brief. Selecting a photographer locks their calendar and establishes your 50% deposit escrow.'
-                      : 'Your 50% booking deposit remains safely held in escrow until you approve the final gallery delivery.'}
-                  </div>
-                </div>
-              </div>
-
-              {candidates.map((candidate) => {
-                const tier = tierBadgeStyle(candidate.recommendationTier);
-                const avatar = normalizeImageUrl(candidate.profilePicture);
-
-                return (
-                  <div
-                    key={candidate.photographerId}
-                    style={{
-                      border: '1.5px solid #E2E8F0',
-                      borderRadius: '16px',
-                      padding: '1.25rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '1.25rem',
-                      backgroundColor: '#FFFFFF',
-                      transition: 'border-color 0.2s, box-shadow 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#083A85';
-                      e.currentTarget.style.boxShadow = '0 8px 20px -6px rgba(8, 58, 133, 0.12)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#E2E8F0';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    {/* Left: Avatar + Details */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div
-                        style={{
-                          width: '60px',
-                          height: '60px',
-                          borderRadius: '16px',
-                          backgroundColor: '#E2E8F0',
-                          overflow: 'hidden',
-                          position: 'relative',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {avatar ? (
-                          <Image src={avatar} alt={candidate.photographerName} fill style={{ objectFit: 'cover' }} />
-                        ) : (
-                          <div
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 800,
-                              color: '#083A85',
-                              fontSize: '1.2rem',
-                            }}
-                          >
-                            {candidate.photographerName.charAt(0)}
-                          </div>
-                        )}
-                      </div>
-
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                          <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>
-                            {candidate.photographerName}
-                          </span>
-                          {candidate.instagramHandle && (
-                            <span
-                              title={`Instagram @${candidate.instagramHandle}`}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                fontSize: '0.68rem',
-                                fontWeight: 700,
-                                color: '#E1306C',
-                                background: 'rgba(225, 48, 108, 0.08)',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                              }}
-                            >
-                              <i className="bi bi-instagram" /> @{candidate.instagramHandle}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Recommendation Tier Badge */}
-                        <div style={{ marginBottom: '6px' }}>
-                          <span
-                            style={{
-                              fontSize: '0.68rem',
-                              fontWeight: 800,
-                              color: tier.fg,
-                              backgroundColor: tier.bg,
-                              border: `1px solid ${tier.border}`,
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            {tier.label}
-                          </span>
-                        </div>
-
-                        {/* Meta: distance & rating */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', color: '#64748B' }}>
-                          <span>
-                            {candidate.reviewCount
-                              ? `★ ${(candidate.rating ?? 0).toFixed(1)} (${candidate.reviewCount} review${candidate.reviewCount === 1 ? '' : 's'})`
-                              : 'No reviews yet'}
-                          </span>
-                          {candidate.distanceKm !== undefined && (
-                            <>
-                              <span>•</span>
-                              <span>{`${candidate.distanceKm.toFixed(1)} km away`}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Price & CTA */}
-                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                      <div>
-                        <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', fontWeight: 600 }}>Typical Rate</span>
-                        <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#083A85' }}>
-                          {candidate.typicalPriceRange ?? '—'}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSelect(candidate)}
-                        disabled={selectingId === candidate.photographerId}
-                        style={{
-                          padding: '0.6rem 1.25rem',
-                          borderRadius: '10px',
-                          border: 'none',
-                          background: 'linear-gradient(135deg, #083A85 0%, #1D4ED8 100%)',
-                          color: '#FFFFFF',
-                          fontWeight: 800,
-                          fontSize: '0.85rem',
-                          cursor: selectingId === candidate.photographerId ? 'not-allowed' : 'pointer',
-                          boxShadow: '0 4px 10px rgba(8, 58, 133, 0.25)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                        }}
-                      >
-                        {selectingId === candidate.photographerId ? (
-                          <>
-                            <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#fff' }} />
-                            Selecting...
-                          </>
-                        ) : (
-                          <>
-                            Select Photographer
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', fontSize: '0.8rem', color: colors.textSecondary }}>
+            <span><i className={`bi ${c.photographerType === 'STUDIO' ? 'bi-building' : 'bi-person'}`} aria-hidden /> {c.photographerType === 'STUDIO' ? 'Company / Studio' : 'Freelancer / Individual'}</span>
+            {c.distanceLabel && <span><i className="bi bi-geo-alt" aria-hidden /> {c.distanceLabel}</span>}
+            {c.rating != null && c.reviewCount ? <span><i className="bi bi-star-fill" aria-hidden style={{ color: '#F59E0B' }} /> {c.rating.toFixed(1)} ({c.reviewCount} review{c.reviewCount === 1 ? '' : 's'})</span> : <span style={{ color: colors.textTertiary }}>No reviews yet</span>}
+            {c.typicalPriceRange && <span><i className="bi bi-tag" aria-hidden /> {c.typicalPriceRange}</span>}
+            {c.instagramHandle && <span><i className="bi bi-instagram" aria-hidden /> @{c.instagramHandle}</span>}
+          </div>
+          {c.specialties.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+              {c.specialties.slice(0, 4).map((s) => <span key={s} style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 999, background: colors.bgTertiary, color: colors.textSecondary }}>{s}</span>)}
             </div>
           )}
+          {c.about && <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: colors.textTertiary, lineHeight: 1.45 }}>{c.about}</p>}
         </div>
-
-        {/* Footer info */}
-        <div
-          style={{
-            padding: '1rem 2rem',
-            borderTop: '1px solid #F1F5F9',
-            backgroundColor: '#F8FAFC',
-            fontSize: '0.78rem',
-            color: '#64748B',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span>Selection locks photographer availability and prompts milestone deposit escrow.</span>
-          <button
-            onClick={fetchCandidates}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#083A85',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <i className="bi bi-arrow-clockwise" /> Refresh Candidates
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center', minWidth: 140 }}>
+          <button type="button" className="hy-focus" onClick={() => { setEscrow(50); setChoosing(c); }}
+            style={{ padding: '0.6rem 1rem', borderRadius: 10, border: 'none', background: MODE_META.HYBRID.color, color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+            Choose
           </button>
+          {profileUrl && (
+            <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="hy-focus"
+              style={{ textAlign: 'center', padding: '0.5rem 1rem', borderRadius: 10, border: `1.5px solid ${colors.borderPrimary}`, color: colors.textPrimary, fontWeight: 700, fontSize: '0.82rem', textDecoration: 'none' }}>
+              View portfolio <i className="bi bi-box-arrow-up-right" aria-hidden />
+            </a>
+          )}
+        </div>
+      </article>
+    );
+  };
+
+  let body: React.ReactNode;
+  if (loading && !data) {
+    body = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {[0, 1].map((i) => <div key={i} style={{ height: 96, borderRadius: 16, background: colors.bgTertiary, animation: 'hy-pulse 1.2s infinite' }} />)}
+      </div>
+    );
+  } else if (booked) {
+    const pct = booked.result?.escrowPercentage ?? escrow;
+    body = (
+      <div style={{ textAlign: 'center', padding: '16px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <span aria-hidden style={{ width: 64, height: 64, borderRadius: '50%', background: colors.statusSuccessBg, color: colors.statusSuccess, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30 }}>
+          <i className="bi bi-check-lg" />
+        </span>
+        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: colors.textPrimary }}>{booked.candidate.photographerName} is booked</div>
+        <p style={{ margin: 0, maxWidth: 440, color: colors.textSecondary, fontSize: '0.88rem' }}>
+          Pay your {pct}% first payment to confirm it. Connekyt holds the money and releases it to the photographer by the usual milestones.
+          {booked.result?.depositAmount ? <> Amount due: <strong>{Math.round(booked.result.depositAmount).toLocaleString('en-US')} {booked.result.currency || 'RWF'}</strong>.</> : null}
+        </p>
+      </div>
+    );
+  } else if (candidates.length > 0) {
+    body = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {TIERS.filter((t) => candidates.some((c) => c.recommendationTier === t)).map((t) => (
+          <section key={t} aria-label={TIER_META[t].label}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+              <h3 style={{ margin: 0, fontSize: '0.86rem', fontWeight: 800, color: TIER_META[t].color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{TIER_META[t].label}</h3>
+              <span style={{ fontSize: '0.76rem', color: colors.textTertiary }}>{TIER_META[t].hint}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {candidates.filter((c) => c.recommendationTier === t).map((c) => <CandidateCard key={c.candidateId || c.photographerId} c={c} />)}
+            </div>
+          </section>
+        ))}
+        <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textTertiary }}>
+          Groups show how closely each photographer fits your request. They are a recommendation, not a guarantee of quality.
+        </p>
+      </div>
+    );
+  } else if (active) {
+    body = (
+      <div style={{ textAlign: 'center', padding: '24px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <span aria-hidden style={{ width: 60, height: 60, borderRadius: '50%', background: MODE_META.HYBRID.soft, color: MODE_META.HYBRID.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, animation: 'hy-pulse 1.8s infinite' }}>
+          <i className="bi bi-broadcast" />
+        </span>
+        <div style={{ fontWeight: 800, color: colors.textPrimary }}>Waiting for photographers to answer</div>
+        <p style={{ margin: 0, maxWidth: 420, fontSize: '0.86rem', color: colors.textSecondary }}>
+          {data?.pendingCount ?? 0} photographer{data?.pendingCount === 1 ? ' is' : 's are'} deciding now. Anyone who passes is replaced by the next best match. We&apos;ll notify you as soon as someone says yes.
+        </p>
+      </div>
+    );
+  } else {
+    body = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Notice tone="warning" icon="bi-hourglass-bottom">
+          {data?.status === 'MATCHING_FAILED'
+            ? 'Nobody fit this event when it was posted.'
+            : 'Matching ended without a photographer saying yes.'} You can post it again with a wider area or budget, or book one yourself.
+        </Notice>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+          {data?.canRepost && onRepost && (
+            <button type="button" className="hy-focus" onClick={() => { onClose(); onRepost(); }}
+              style={{ padding: 14, borderRadius: 14, border: `2px solid ${MODE_META.HYBRID.color}`, background: MODE_META.HYBRID.soft, color: colors.textPrimary, cursor: 'pointer', textAlign: 'left' }}>
+              <div style={{ fontWeight: 800 }}><i className="bi bi-broadcast" aria-hidden style={{ color: MODE_META.HYBRID.color }} /> Post again</div>
+              <div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>Change the area, budget or type and alert photographers again.</div>
+            </button>
+          )}
+          {data?.canConvertToDirect && (
+            <button type="button" className="hy-focus" onClick={switchToDirect} disabled={converting}
+              style={{ padding: 14, borderRadius: 14, border: `2px solid ${MODE_META.DIRECT.color}`, background: MODE_META.DIRECT.soft, color: colors.textPrimary, cursor: 'pointer', textAlign: 'left' }}>
+              <div style={{ fontWeight: 800 }}><i className="bi bi-search" aria-hidden style={{ color: MODE_META.DIRECT.color }} /> {converting ? 'Switching…' : 'Find a Photographer instead'}</div>
+              <div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>Browse photographers and send a request yourself.</div>
+            </button>
+          )}
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="hy-cands-title"
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.bgOverlay, backdropFilter: 'blur(6px)', padding: 16 }}
+      onClick={onClose}>
+      <HybridStyles />
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 760, maxHeight: '94vh', display: 'flex', flexDirection: 'column', background: colors.bgModal, borderRadius: 22, overflow: 'hidden', border: `1px solid ${colors.borderPrimary}` }}>
+        <header style={{ padding: '1.2rem 1.5rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: MODE_META.HYBRID.color, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                <i className="bi bi-broadcast" aria-hidden /> Post My Event · Photographers who said yes
+              </div>
+              <h2 id="hy-cands-title" style={{ margin: '2px 0 0', fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary }}>{title}</h2>
+              {data && (
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: '2px 12px' }}>
+                  {data.eventDate && <span><i className="bi bi-calendar-event" aria-hidden /> {data.eventDate}{data.startTime ? ` · ${hhmm(data.startTime)}–${hhmm(data.endTime)}` : ''}{data.durationLabel ? ` · ${data.durationLabel}` : ''}</span>}
+                  {(data.venue || data.city) && <span><i className="bi bi-geo-alt" aria-hidden /> {data.city || data.venue}</span>}
+                  {budgetLabel(data.minBudget, data.maxBudget) && <span><i className="bi bi-cash" aria-hidden /> {budgetLabel(data.minBudget, data.maxBudget)}</span>}
+                </div>
+              )}
+            </div>
+            <button type="button" onClick={onClose} aria-label="Close" className="hy-focus"
+              style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: colors.bgTertiary, color: colors.textSecondary, cursor: 'pointer', fontSize: 18, flexShrink: 0 }}>
+              <i className="bi bi-x" aria-hidden />
+            </button>
+          </div>
+          {data && !booked && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              {[
+                [candidates.length, 'said yes', colors.statusSuccess],
+                [data.pendingCount, 'deciding', colors.statusInfo],
+                [data.declinedCount, 'passed', colors.textTertiary],
+                [data.expiredCount + data.noLongerAvailableCount, 'missed it', colors.textTertiary],
+              ].map(([n, l, c]) => (
+                <span key={l as string} style={{ padding: '4px 10px', borderRadius: 999, background: colors.bgTertiary, fontSize: '0.76rem', color: colors.textSecondary }}>
+                  <strong style={{ color: c as string }}>{n as number}</strong> {l as string}
+                </span>
+              ))}
+              {active && data.windowExpiresAt && (
+                <span style={{ padding: '4px 10px', borderRadius: 999, background: MODE_META.HYBRID.soft, fontSize: '0.76rem', color: MODE_META.HYBRID.color, fontWeight: 700 }}>
+                  <i className="bi bi-clock" aria-hidden /> Answers close in <CountdownText to={data.windowExpiresAt} doneText="a moment" />
+                </span>
+              )}
+            </div>
+          )}
+        </header>
+
+        <div style={{ padding: '1.2rem 1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
+          {body}
+        </div>
+
+        {booked && (
+          <footer style={{ padding: '1rem 1.5rem', borderTop: `1px solid ${colors.borderPrimary}`, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button type="button" className="hy-focus" onClick={() => onPhotographerSelected(booked.candidate.photographerId, booked.result, booked.candidate)}
+              style={{ padding: '0.7rem 1.4rem', borderRadius: 12, border: 'none', background: colors.brandPrimary, color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+              Continue to payment <i className="bi bi-arrow-right" aria-hidden />
+            </button>
+          </footer>
+        )}
+      </div>
+
+      {choosing && (
+        <div role="dialog" aria-modal="true" aria-labelledby="hy-choose-title" onClick={(e) => { e.stopPropagation(); if (!submitting) setChoosing(null); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)', padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 440, background: colors.bgModal, borderRadius: 20, padding: 20, border: `1px solid ${colors.borderPrimary}`, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <h3 id="hy-choose-title" style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary }}>Book {choosing.photographerName}?</h3>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: colors.textSecondary }}>
+              We check they are still free for the whole event, then create your booking. How much do you want to pay now?
+            </p>
+            <div role="radiogroup" aria-label="First payment" style={{ display: 'grid', gridTemplateColumns: `repeat(${escrowOptions.length}, 1fr)`, gap: 8 }}>
+              {escrowOptions.map((p) => (
+                <button key={p} type="button" role="radio" aria-checked={escrow === p} onClick={() => setEscrow(p)} className="hy-focus"
+                  style={{ padding: '12px 6px', borderRadius: 12, border: `2px solid ${escrow === p ? colors.brandPrimary : colors.borderPrimary}`, background: escrow === p ? `${colors.brandPrimary}12` : colors.bgCard, cursor: 'pointer', color: colors.textPrimary }}>
+                  <div style={{ fontWeight: 900, fontSize: '1.1rem' }}>{p}%</div>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary }}>{p === 100 ? 'Pay in full' : 'Now, rest later'}</div>
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: '0.76rem', color: colors.textTertiary }}>
+              <i className="bi bi-shield-check" aria-hidden style={{ color: colors.statusSuccess }} /> Held by Connekyt and released by milestones: event day, then delivery.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" className="hy-focus" disabled={submitting} onClick={() => setChoosing(null)}
+                style={{ padding: '0.6rem 1rem', borderRadius: 10, border: `1.5px solid ${colors.borderPrimary}`, background: colors.bgCard, color: colors.textSecondary, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+              <button type="button" className="hy-focus" disabled={submitting} onClick={confirmChoice}
+                style={{ padding: '0.6rem 1.2rem', borderRadius: 10, border: 'none', background: MODE_META.HYBRID.color, color: '#fff', fontWeight: 800, cursor: submitting ? 'wait' : 'pointer' }}>
+                {submitting ? 'Booking…' : `Book and pay ${escrow}%`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

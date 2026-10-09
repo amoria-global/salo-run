@@ -65,7 +65,9 @@ describe('Hybrid Booking Web Suite', () => {
     expect(src).toContain('`${getApiUrl()}/api/remote${path}`');
     expect(calls.length).toBeGreaterThanOrEqual(9);
     const missing = calls.filter((c) => {
-      const [method, path] = c.split(' ');
+      const [method, rawPath] = c.split(' ');
+      // A query string isn't part of the route.
+      const path = rawPath.split('?')[0];
       return !templates.some((t: any) => (t.method === method || t.method === 'ANY') && t.regex.test(path));
     });
     expect(missing).toEqual([]);

@@ -1,5 +1,6 @@
 "use client";
 
+import { MatchingProfileCard } from '../../components/hybrid/MatchingProfile';
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import GeoPricingManager from '@/app/components/GeoPricingManager';
@@ -3683,6 +3684,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
                   <div>
+                    {/* Instagram and base city for Post My Event matching. Saved on its own. */}
+                    <div style={{ marginBottom: '2rem' }}><MatchingProfileCard /></div>
                     {/* Basic Information */}
                     <div style={sectionTitleStyle}>
                       <span>Basic Information</span>
