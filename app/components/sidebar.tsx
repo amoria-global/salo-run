@@ -36,6 +36,8 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Notifications", href: "/user/photographer/notifications", icon: "bi-bell", group: 'Overview' },
     { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots", group: 'Overview', requires: ['messages.view'] },
     { name: "Events", href: "/user/photographer/events", icon: "bi-calendar-event", group: 'Work', requires: ['events.view'] },
+    // Post My Event alerts. Its own entry, so photographers see new ones without digging into Events.
+    { name: "Opportunities", href: "/user/photographer/opportunities", icon: "bi-broadcast", group: 'Work', requires: ['events.view'] },
     { name: "Clients", href: "/user/photographer/clients", icon: "bi-people", group: 'Work', requires: ['bookings.view'] },
     { name: "Wallet", href: "/user/photographer/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Transactions", href: "/user/photographer/transaction", icon: "bi-arrow-left-right", group: 'Money', requires: ['payments.view'] },
@@ -49,9 +51,11 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Notifications", href: "/user/client/notifications", icon: "bi-bell", group: 'Overview' },
     { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots", group: 'Overview', requires: ['messages.view'] },
     { name: "My Events", href: "/user/client/events", icon: "bi-calendar-event", group: 'Work', requires: ['events.view'] },
+    // The two ways to book, named the same as everywhere else.
+    { name: "Post My Event", href: "/user/client/events?post=1", icon: "bi-broadcast", group: 'Book a photographer', requires: ['events.view'] },
+    { name: "Find a Photographer", href: "/user/client/photographers", icon: "bi-search", group: 'Book a photographer', requires: ['bookings.view'] },
     { name: "Streams", href: "/user/client/streams", icon: "bi-broadcast", group: 'Work' },
     { name: "Gallery", href: "/user/client/gallery", icon: "bi-image", group: 'Work' },
-    { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera", group: 'Work', requires: ['bookings.view'] },
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card", group: 'Money', requires: ['payments.view'] },
     { name: "Wallet", href: "/user/client/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/client/donate", icon: "bi-heart", group: 'Money' },
@@ -61,9 +65,10 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Notifications", href: "/user/event-coordinator/notifications", icon: "bi-bell", group: 'Overview' },
     { name: "Inbox", href: "/user/event-coordinator/inbox", icon: "bi-chat-dots", group: 'Overview', requires: ['messages.view'] },
     { name: "My Events", href: "/user/event-coordinator/events", icon: "bi-calendar-event", group: 'Work', requires: ['events.view'] },
+    { name: "Post My Event", href: "/user/event-coordinator/events?post=1", icon: "bi-broadcast", group: 'Book a photographer', requires: ['events.view'] },
+    { name: "Find a Photographer", href: "/user/event-coordinator/photographers", icon: "bi-search", group: 'Book a photographer', requires: ['bookings.view'] },
     { name: "Streams", href: "/user/event-coordinator/streams", icon: "bi-broadcast", group: 'Work' },
     { name: "Gallery", href: "/user/event-coordinator/gallery", icon: "bi-image", group: 'Work' },
-    { name: "Photographers", href: "/user/event-coordinator/photographers", icon: "bi-camera", group: 'Work', requires: ['bookings.view'] },
     { name: "Payments", href: "/user/event-coordinator/payments", icon: "bi-credit-card", group: 'Money', requires: ['payments.view'] },
     { name: "Wallet", href: "/user/event-coordinator/wallet", icon: "bi-wallet2", group: 'Money', requires: ['payments.view'] },
     { name: "Donate", href: "/user/event-coordinator/donate", icon: "bi-heart", group: 'Money' },
@@ -138,6 +143,7 @@ export default function Sidebar() {
 
   const [notificationCount, setNotificationCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
+  const [opportunityCount, setOpportunityCount] = useState(0);
   const lastInboxEventTimeRef = useRef<number>(0);
 
   const fetchBadgeCounts = useCallback(async () => {
@@ -151,6 +157,13 @@ export default function Sidebar() {
         dashboardAuthFetch(`${apiUrl}/api/remote/${notifPrefix}/notifications/unread-count`, { method: 'GET' }),
         dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`, { method: 'GET' }),
       ]);
+      if (currentRole === 'photographer') {
+        // Open Post My Event invites; each has a short response window, so they get their own badge.
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/opportunities/count`, { method: 'GET' })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => { if (d?.action === 1) setOpportunityCount(Number(d.data?.pending) || 0); })
+          .catch(() => {});
+      }
       if (notifRes.ok) {
         const data = await notifRes.json();
         if (data.action === 1) setNotificationCount(data.data ?? 0);
@@ -214,6 +227,7 @@ export default function Sidebar() {
     .map(item => {
       if (item.name === "Notifications") return { ...item, badge: notificationCount };
       if (item.name === "Inbox") return { ...item, badge: messageCount };
+      if (item.name === "Opportunities") return { ...item, badge: opportunityCount };
       return item;
     });
   // Same filters as the main nav for the bottom nav.
@@ -234,7 +248,7 @@ export default function Sidebar() {
   const closeMobile = () => setIsMobileMenuOpen(false);
 
   const renderNavLink = (item: NavigationItem) => {
-    const isActive = pathname === item.href ||
+    const isActive = pathname === item.href.split('?')[0] && !item.href.includes('?') ||
       (item.name === 'Transactions' && pathname === `/user/${currentRole}/all-transactions`);
     const disabled = isNotAccepted;
     const Inner = (
