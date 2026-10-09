@@ -37,6 +37,8 @@ function mapBackendType(backendType: string): NotificationType {
     case 'REVIEW': return 'review';
     case 'BOOKING': case 'EVENT': case 'ASSIGNMENT': return 'event';
     case 'PHOTOBOOK': case 'PHOTOBOOK_RECEIVED': return 'photobook';
+    // Post My Event invites and their outcomes; these used to fall through to 'payment'.
+    case 'OPPORTUNITY': case 'HYBRID_OPPORTUNITY': case 'HYBRID_UPDATE': return 'opportunity';
     default: return 'payment';
   }
 }
@@ -97,7 +99,7 @@ const TrashIcon = () => (
 );
 
 // Notification types specific to photographers
-type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review' | 'event' | 'photobook';
+type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review' | 'event' | 'photobook' | 'opportunity';
 
 interface Notification {
   id: string;
@@ -184,6 +186,8 @@ const Notifications = () => {
         return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB' };
       case 'photobook':
         return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#4A1D6A' : '#F3E8FF', color: actualTheme === 'dark' ? '#D8B4FE' : '#7C3AED' };
+      case 'opportunity':
+        return { icon: <i className="bi bi-broadcast" style={{ fontSize: 20 }} />, bg: actualTheme === 'dark' ? '#5B0A35' : '#FDE7F3', color: '#F20C8F' };
       default:
         return { icon: <BellIcon />, bg: colors.bgTertiary, color: colors.textSecondary };
     }
@@ -250,6 +254,8 @@ const Notifications = () => {
         return refId ? `/user/photographer/events/${refId}` : '/user/photographer/events';
       case 'review':
         return '/user/photographer/clients';
+      case 'opportunity':
+        return refId ? `/user/photographer/opportunities?candidate=${refId}` : '/user/photographer/opportunities';
       default: return null;
     }
   };

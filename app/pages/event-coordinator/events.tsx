@@ -19,6 +19,10 @@ import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@
 import { getPlatformConfig } from '@/lib/platformConfig';
 import { isEventPriceInvalid, getMinEventPriceLabel } from '../../components/eventPriceValidation';
 import { useCurrency } from '@/app/context/CurrencyContext';
+import BookingModeSelectorModal from '../../components/hybrid/BookingModeSelectorModal';
+import HybridEventWizardModal from '../../components/hybrid/HybridEventWizardModal';
+import CandidatesShortlistModal from '../../components/hybrid/CandidatesShortlistModal';
+import { ModeBadge, friendlyEventStatus, isOpenHybrid, modeOf } from '../../components/hybrid/hybridUi';
 
 // Configure localforage for event form data 
 const eventFormStorage = localforage.createInstance({
@@ -253,6 +257,7 @@ interface Event {
   hasPhotographer: boolean;
   bookingStatus?: string;
   photographerId?: string;
+  bookingMode?: string;
   photographerName?: string;
   photographerImage?: string;
   isPublished: boolean;
@@ -354,6 +359,25 @@ const MyEventsPage = () => {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'published' | 'past' | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // Post My Event (hybrid booking), the same flow clients have.
+  const [showBookingModeSelector, setShowBookingModeSelector] = useState(false);
+  const [showHybridWizard, setShowHybridWizard] = useState(false);
+  const [hybridWizardEvent, setHybridWizardEvent] = useState<{ id: string; title?: string; eventDate?: string; startTime?: string; endTime?: string; city?: string; venue?: string } | null>(null);
+  const [candidateModalEvent, setCandidateModalEvent] = useState<Event | null>(null);
+  const openPostWizard = (ev?: Event | null) => {
+    setHybridWizardEvent(ev ? { id: ev.id, title: ev.title, eventDate: ev.date, startTime: ev.time, endTime: ev.endTime, city: ev.location?.city, venue: ev.location?.address } : null);
+    setShowHybridWizard(true);
+  };
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('post') === '1') {
+      openPostWizard(null);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('post');
+      window.history.replaceState({}, '', url.toString());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showEventDetails, setShowEventDetails] = useState<Event | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareEvent, setShareEvent] = useState<Event | null>(null);
@@ -861,6 +885,7 @@ const MyEventsPage = () => {
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
             hasPhotographer: !!(evt.photographerId || (evt.photographer && (evt.photographer as Record<string, unknown>).id)),
             bookingStatus: (evt.bookingStatus as string) || undefined,
+            bookingMode: (evt.bookingMode as string) || undefined,
             photographerId: (evt.photographerId as string) || (evt.photographer && (evt.photographer as Record<string, unknown>).id as string) || undefined,
             photographerName: (evt.photographerName as string) || (evt.photographer ? `${(evt.photographer as Record<string, unknown>).firstName || ''} ${(evt.photographer as Record<string, unknown>).lastName || ''}`.trim() : '') || '',
             photographerImage: (evt.photographerImage as string) || (evt.photographer && (evt.photographer as Record<string, unknown>).profilePicture as string) || '',
@@ -1679,8 +1704,8 @@ const MyEventsPage = () => {
                 Create and manage your events.
               </p>
             </div>
-            <button onClick={() => setShowCreateModal(true)} className="ck-btn ck-btn-primary mobile-create-btn">
-              <i className="bi bi-plus-lg" /> Create event
+            <button onClick={() => setShowBookingModeSelector(true)} className="ck-btn ck-btn-primary mobile-create-btn">
+              <i className="bi bi-plus-lg" /> New event
             </button>
           </header>
 
@@ -1785,7 +1810,7 @@ const MyEventsPage = () => {
                   Retry
                 </button>
                 <button
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => setShowBookingModeSelector(true)}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                     padding: '0.5rem 1.5rem', borderRadius: '0.5rem',
@@ -1802,7 +1827,7 @@ const MyEventsPage = () => {
             <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
               <p style={{ fontSize: '1rem', color: colors.textSecondary }}>No events found.</p>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => setShowBookingModeSelector(true)}
                 style={{
                   marginTop: '1rem',
                   display: 'inline-flex',
@@ -1844,7 +1869,7 @@ const MyEventsPage = () => {
                     <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
                       <div style={{ ...getStatusBadgeStyle(event.status), padding: '4px 10px', borderRadius: 9999, fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid rgba(255,255,255,0.18)' }}>
                         <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#fff', boxShadow: '0 0 0 2px rgba(255,255,255,0.30)' }} />
-                        {event.status.toString().replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+                        {friendlyEventStatus(event.status as string)}
                       </div>
                       <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '4px 10px', borderRadius: 9999, fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.18)' }}>
                         {event.eventType}
@@ -1892,8 +1917,23 @@ const MyEventsPage = () => {
                           </div>
                         )}
                       </div>
+                      {(modeOf(event.bookingMode) === 'HYBRID' || event.photographerId) && (
+                        <div style={{ marginBottom: 6 }}><span style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 999 }}><ModeBadge mode={modeOf(event.bookingMode)} /></span></div>
+                      )}
                       {/* Action buttons. always 4 buttons: Share, Edit, Delete, Publish/Unpublish */}
                       <div className="mobile-event-actions" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        {isOpenHybrid(event.bookingMode, event.status as string, event.photographerId) && (
+                          <button onClick={() => setCandidateModalEvent(event)} title="Photographers who said yes"
+                            style={{ flex: 1.4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'rgba(242,12,143,0.85)', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                            <i className="bi bi-people-fill" style={{ fontSize: 13 }} /> {['MATCHES_AWAITING_SELECTION', 'CANDIDATES_AVAILABLE'].includes(event.status as string) ? 'Choose photographer' : ['HYBRID_TIMEOUT', 'MATCHING_FAILED'].includes(event.status as string) ? 'Matching ended' : 'Answers'}
+                          </button>
+                        )}
+                        {!event.photographerId && modeOf(event.bookingMode) === 'DIRECT' && !['COMPLETED', 'CANCELLED'].includes(String(event.status).toUpperCase()) && (
+                          <button onClick={() => openPostWizard(event)} title="No photographer yet. Post My Event: matching photographers say yes, you pick one."
+                            style={{ flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'rgba(242,12,143,0.85)', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                            <i className="bi bi-broadcast" style={{ fontSize: 13 }} /> Post
+                          </button>
+                        )}
                         <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                           <ShareIcon />
                         </button>
@@ -2080,6 +2120,46 @@ const MyEventsPage = () => {
           </div>
         )}
       </Modal>
+
+      <BookingModeSelectorModal
+        isOpen={showBookingModeSelector}
+        onClose={() => setShowBookingModeSelector(false)}
+        onSelectDirect={() => { setShowBookingModeSelector(false); setShowCreateModal(true); }}
+        onSelectHybrid={() => { setShowBookingModeSelector(false); openPostWizard(null); }}
+      />
+
+      <HybridEventWizardModal
+        isOpen={showHybridWizard}
+        existingEvent={hybridWizardEvent}
+        onClose={() => { setShowHybridWizard(false); setHybridWizardEvent(null); }}
+        onSuccess={(eventId, invited) => {
+          setShowHybridWizard(false);
+          setHybridWizardEvent(null);
+          fetchMyEvents();
+          if (invited) setCandidateModalEvent({ id: eventId } as Event);
+        }}
+      />
+
+      {candidateModalEvent && (
+        <CandidatesShortlistModal
+          isOpen={!!candidateModalEvent}
+          onClose={() => setCandidateModalEvent(null)}
+          eventId={candidateModalEvent.id}
+          eventTitle={candidateModalEvent.title}
+          onPhotographerSelected={() => {
+            const id = candidateModalEvent.id;
+            setCandidateModalEvent(null);
+            // The first payment is made on the event page, as for every booking.
+            window.location.href = `/user/event-coordinator/events/${id}`;
+          }}
+          onRepost={() => openPostWizard(candidateModalEvent)}
+          onConvertedToDirect={() => {
+            setCandidateModalEvent(null);
+            fetchMyEvents();
+            platformAlert('Matching stopped. Edit the event to choose a photographer yourself.', { title: 'Find a Photographer', tone: 'success' });
+          }}
+        />
+      )}
 
       {/* Create Event Modal */}
       <Modal isOpen={showCreateModal} onClose={() => { resetCreateForm(false); setShowCreateModal(false); }} title="Create New Event" maxWidth="700px">
