@@ -16,6 +16,7 @@ import {
   type CandidatesOverview,
   type RecommendationTier,
 } from '@/app/lib/hybridBooking';
+import { isMatchBooked } from '@/app/lib/hybridStatus';
 import { CountdownText, HybridStyles, MODE_META, Notice, TierBadge } from './hybridUi';
 
 interface CandidatesShortlistModalProps {
@@ -199,6 +200,23 @@ export default function CandidatesShortlistModal({
         <p style={{ margin: 0, fontSize: '0.74rem', color: colors.textTertiary }}>
           Groups show how closely each photographer fits your request. They are a recommendation, not a guarantee of quality.
         </p>
+      </div>
+    );
+  } else if (isMatchBooked(data)) {
+    // Someone was chosen: the answers are closed because the event is booked, not because matching failed.
+    body = (
+      <div style={{ textAlign: 'center', padding: '24px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <span aria-hidden style={{ width: 60, height: 60, borderRadius: '50%', background: colors.statusSuccessBg, color: colors.statusSuccess, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+          <i className="bi bi-check-lg" />
+        </span>
+        <div style={{ fontWeight: 800, color: colors.textPrimary }}>A photographer is booked for this event</div>
+        <p style={{ margin: 0, maxWidth: 420, fontSize: '0.86rem', color: colors.textSecondary }}>
+          Answers are closed. The booking and its first payment are on the event page.
+        </p>
+        <button type="button" className="hy-focus" onClick={() => onPhotographerSelected('', null)}
+          style={{ padding: '0.7rem 1.4rem', borderRadius: 12, border: 'none', background: colors.brandPrimary, color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+          Open the event <i className="bi bi-arrow-right" aria-hidden />
+        </button>
       </div>
     );
   } else if (active) {

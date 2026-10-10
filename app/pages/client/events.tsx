@@ -22,7 +22,7 @@ import BookingModeSelectorModal from '../../components/hybrid/BookingModeSelecto
 import HybridEventWizardModal from '../../components/hybrid/HybridEventWizardModal';
 import CandidatesShortlistModal from '../../components/hybrid/CandidatesShortlistModal';
 import { convertToHybrid } from '@/app/lib/hybridBooking';
-import { ModeBadge, friendlyEventStatus, isOpenHybrid, modeOf } from '../../components/hybrid/hybridUi';
+import { ModeBadge, friendlyEventStatus, isOpenHybrid, isUpcomingEventStatus, modeOf } from '../../components/hybrid/hybridUi';
 
 function parseTimeToApiString(timeStr: string): string {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -859,6 +859,8 @@ const MyEventsPage = () => {
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
             hasPhotographer: !!(evt.photographerId || (evt.photographer as Record<string, unknown>)?.id),
             bookingStatus: (evt.bookingStatus as string) || undefined,
+            // Without it every posted event reads as Direct: no answers button, and a "Post" button on an event already posted.
+            bookingMode: (evt.bookingMode as string) || undefined,
             photographerId: (evt.photographerId as string) || ((evt.photographer as Record<string, unknown>)?.id as string) || undefined,
             photographerName: (evt.photographerName as string) || `${((evt.photographer as Record<string, unknown>)?.firstName as string) || ''} ${((evt.photographer as Record<string, unknown>)?.lastName as string) || ''}`.trim() || '',
             photographerImage: (evt.photographerImage as string) || ((evt.photographer as Record<string, unknown>)?.profilePicture as string) || '',
@@ -1671,10 +1673,14 @@ const MyEventsPage = () => {
   const getStatusBadgeStyle = (status: string) => {
     switch (status.toLowerCase()) {
       case 'matches_awaiting_selection':
+      case 'candidates_available':
         return { background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(124,58,237,0.30)' };
       case 'hybrid_matching':
+      case 'matching':
+      case 'published_pending_assignment':
         return { background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(2,132,199,0.30)' };
       case 'hybrid_timeout':
+      case 'matching_failed':
         return { background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(217,119,6,0.30)' };
       case 'upcoming':
       case 'awaiting_review':
@@ -1700,7 +1706,7 @@ const MyEventsPage = () => {
 
     const statusLower = event.status.toLowerCase();
     if (activeTab === 'upcoming') {
-      return matchesSearch && (statusLower === 'upcoming' || statusLower === 'ongoing' || statusLower === 'live' || statusLower === 'paused' || statusLower === 'matches_awaiting_selection' || statusLower === 'hybrid_matching' || statusLower === 'hybrid_timeout' || statusLower === 'unassigned' || statusLower === 'booked' || statusLower === 'pending');
+      return matchesSearch && isUpcomingEventStatus(event.status);
     } else if (activeTab === 'published') {
       return matchesSearch && statusLower === 'published';
     } else if (activeTab === 'past') {
@@ -1709,10 +1715,7 @@ const MyEventsPage = () => {
     return matchesSearch;
   });
 
-  const upcomingCount = events.filter(e => {
-    const s = e.status.toLowerCase();
-    return s === 'upcoming' || s === 'ongoing' || s === 'live' || s === 'paused' || s === 'matches_awaiting_selection' || s === 'hybrid_matching' || s === 'hybrid_timeout' || s === 'unassigned' || s === 'booked' || s === 'pending';
-  }).length;
+  const upcomingCount = events.filter(e => isUpcomingEventStatus(e.status)).length;
   const publishedCount = events.filter(e => e.status.toLowerCase() === 'published').length;
   const completedCount = events.filter(e => {
     const s = e.status.toLowerCase();
