@@ -228,8 +228,10 @@ export default function HybridEventWizardModal({ isOpen, onClose, onSuccess, exi
             startTime: `${startTime}:00`,
             endTime: `${endTime}:00`,
             location: [venue.trim(), city, options?.country].filter(Boolean).join(', '),
-            // Kept off public listings until a photographer is assigned.
-            eventVisibility: 'PRIVATE',
+            // Not PRIVATE: here that means a self-streamed event that must charge at
+            // least 100 RWF, and the backend refused every post. The backend keeps a
+            // posted event off public listings until a photographer is booked.
+            eventVisibility: 'PUBLIC',
           }),
         });
         const body = await res.json().catch(() => null);
