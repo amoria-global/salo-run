@@ -18,6 +18,7 @@ import type { Payment } from '@/app/components/UnlockModal';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import CandidatesShortlistModal from '@/app/components/hybrid/CandidatesShortlistModal';
 import { convertToHybrid } from '@/app/lib/hybridBooking';
+import { friendlyEventStatus, isOpenHybrid } from '@/app/lib/hybridStatus';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -142,6 +143,7 @@ interface EventData {
   hasLiveStream: boolean;
   bookingProgress: ProgressStage[];
   eventStatus?: string | null;
+  bookingMode?: string | null;
   eventDate?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -220,10 +222,14 @@ function getStatusColor(status: string): string {
     case 'LIVE':
       return '#3B82F6';
     case 'MATCHES_AWAITING_SELECTION':
+    case 'CANDIDATES_AVAILABLE':
       return '#7C3AED';
     case 'HYBRID_MATCHING':
+    case 'MATCHING':
+    case 'PUBLISHED_PENDING_ASSIGNMENT':
       return '#0284C7';
     case 'HYBRID_TIMEOUT':
+    case 'MATCHING_FAILED':
       return '#D97706';
     case 'PENDING':
     case 'PARTIAL':
@@ -256,7 +262,8 @@ function getStatusLabel(status: string): string {
     case 'AWAITING_REVIEW': return 'Awaiting Review';
     case 'CANCELLED': return 'Cancelled';
     case 'FAILED': return 'Failed';
-    default: return status || 'Unknown';
+    // Post My Event states read as words, never as the raw enum.
+    default: return status ? friendlyEventStatus(status) : 'Unknown';
   }
 }
 
@@ -370,6 +377,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         category: data.category || '',
         status: data.eventStatus || data.status || 'UPCOMING',
         eventStatus: data.eventStatus || data.status || null,
+        bookingMode: data.bookingMode || null,
         eventDate: data.eventDate || data.date || '',
         latitude: typeof data.latitude === 'number' ? data.latitude : null,
         longitude: typeof data.longitude === 'number' ? data.longitude : null,
@@ -1387,8 +1395,12 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                       onClick={async () => {
                         setActionLoading('retry-hybrid');
                         try {
-                          await convertToHybrid(eventId);
-                          platformAlert('Matching reactivated! Your brief has been broadcast to local creators.', { tone: 'success' });
+                          const posted = await convertToHybrid(eventId);
+                          if (posted.invitedCount) {
+                            platformAlert(`Posted again. ${posted.invitedCount} photographer${posted.invitedCount === 1 ? ' was' : 's were'} alerted.`, { tone: 'success' });
+                          } else {
+                            platformAlert('Posted again, but nobody fits right now. Find a Photographer to book one yourself.', { tone: 'warning' });
+                          }
                           fetchEvent();
                         } catch (err: any) {
                           platformAlert(err?.message || 'Could not retry matching', { tone: 'danger' });
@@ -1437,7 +1449,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                   </div>
                   <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 4px' }}>
-                    Matching Complete — Select Your Creator 🎯
+                    Matching complete. Choose your photographer
                   </h4>
                   <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '0 0 14px', lineHeight: 1.5 }}>
                     Verified local creators have accepted your event brief. Compare their match tiers, reviews, ratings, and proposed rates to confirm your photographer and lock your date.
@@ -1464,7 +1476,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : isOpenHybrid(event.bookingMode, event.eventStatus || event.status, event.photographerId) ? (
               <div>
                 <div style={{ color: colors.textSecondary, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
                   No photographer assigned yet
@@ -1505,6 +1517,31 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                     <i className="bi bi-people-fill" /> View Candidates & Select
                   </button>
                 </div>
+              </div>
+            ) : (
+              // A Direct event with no photographer: nothing is being matched, so say so plainly.
+              <div>
+                <div style={{ color: colors.textSecondary, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                  No photographer assigned yet
+                </div>
+                <Link
+                  href={`${userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client'}/photographers?lat=${event.latitude ?? -1.9536}&lng=${event.longitude ?? 30.0606}&eventDate=${encodeURIComponent(event.eventDate || event.date || '')}`}
+                  style={{
+                    padding: '0.55rem 1rem',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #083A85 0%, #1D4ED8 100%)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 10px rgba(8,58,133,0.20)',
+                  }}
+                >
+                  <i className="bi bi-search" /> Find a Photographer
+                </Link>
               </div>
             )}
           </div>

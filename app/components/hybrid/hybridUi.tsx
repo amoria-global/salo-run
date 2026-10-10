@@ -30,9 +30,7 @@ export const MODE_META = {
 
 export type BookingModeKey = keyof typeof MODE_META;
 
-export function modeOf(bookingMode?: string | null): BookingModeKey {
-  return (bookingMode || '').toUpperCase() === 'HYBRID' ? 'HYBRID' : 'DIRECT';
-}
+export { modeOf } from '@/app/lib/hybridStatus';
 
 export function ModeBadge({ mode, size = 'sm' }: { mode: BookingModeKey; size?: 'sm' | 'md' }) {
   const m = MODE_META[mode];
@@ -252,26 +250,4 @@ export function HybridStyles() {
   );
 }
 
-/** Plain words for event statuses, matching the mobile app. */
-const FRIENDLY_STATUS: Record<string, string> = {
-  MATCHING: 'Matching',
-  PUBLISHED_PENDING_ASSIGNMENT: 'Finding photographers',
-  CANDIDATES_AVAILABLE: 'Photographers said yes',
-  MATCHES_AWAITING_SELECTION: 'Choose your photographer',
-  HYBRID_TIMEOUT: 'Matching ended',
-  MATCHING_FAILED: 'No match yet',
-  UNASSIGNED: 'Needs a photographer',
-  BOOKED: 'Booked',
-};
-
-export function friendlyEventStatus(status?: string | null): string {
-  const s = (status || '').toUpperCase();
-  return FRIENDLY_STATUS[s] || s.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-/** Statuses of a posted event still waiting for its photographer. */
-export function isOpenHybrid(bookingMode?: string | null, status?: string | null, photographerId?: string | null): boolean {
-  return modeOf(bookingMode) === 'HYBRID' && !photographerId
-    && ['MATCHING', 'PUBLISHED_PENDING_ASSIGNMENT', 'CANDIDATES_AVAILABLE', 'MATCHES_AWAITING_SELECTION', 'HYBRID_TIMEOUT', 'MATCHING_FAILED']
-      .includes((status || '').toUpperCase());
-}
+export { friendlyEventStatus, isOpenHybrid, isEndedHybrid, isUpcomingEventStatus } from '@/app/lib/hybridStatus';

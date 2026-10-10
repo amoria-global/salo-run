@@ -7,12 +7,14 @@ import {
   approveOpportunity,
   budgetLabel,
   getPhotographerOpportunities,
+  getPhotographerOpportunity,
   hhmm,
   rejectOpportunity,
   syncServerClock,
   type OpportunityFilter,
   type PhotographerOpportunity,
 } from '@/app/lib/hybridBooking';
+import { opportunityTabFor } from '@/app/lib/hybridStatus';
 import { CountdownText, EventStartClock, HybridStyles, MODE_META, Notice, useCountdown } from './hybridUi';
 
 const TABS: { key: OpportunityFilter; label: string; icon: string; empty: string }[] = [
@@ -77,6 +79,15 @@ export default function PhotographerOpportunitiesView({ focusCandidateId }: { fo
     const id = setInterval(() => load(tab), tab === 'PENDING_RESPONSE' ? 10000 : 30000);
     return () => clearInterval(id);
   }, [tab, load]);
+
+  // A notification names one opportunity. Selected, not selected, expired or
+  // closed ones are listed under History, not New, so open the tab that has it.
+  useEffect(() => {
+    if (!focusCandidateId) return;
+    getPhotographerOpportunity(focusCandidateId)
+      .then((o) => setTab(opportunityTabFor(o.status)))
+      .catch(() => {});
+  }, [focusCandidateId]);
 
   useEffect(() => {
     if (!focusCandidateId || loading) return;
