@@ -63,6 +63,12 @@ describe('Post My Event screens use the shared rules', () => {
     expect(src('app/pages/event-coordinator/events.tsx')).toContain('isUpcomingEventStatus(event.status)');
   });
 
+  it('both events lists count AWAITING_REVIEW as past', () => {
+    for (const page of ['app/pages/client/events.tsx', 'app/pages/event-coordinator/events.tsx']) {
+      expect(src(page), page).toContain("matchesSearch && (statusLower === 'completed' || statusLower === 'awaiting_review')");
+    }
+  });
+
   it('the event page only claims matching is active for a posted event', () => {
     const page = src('app/pages/client/event-detail.tsx');
     expect(page).toContain('bookingMode: data.bookingMode || null');

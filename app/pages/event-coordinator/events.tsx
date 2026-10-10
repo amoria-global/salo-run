@@ -1599,14 +1599,18 @@ const MyEventsPage = () => {
     } else if (activeTab === 'published') {
       return matchesSearch && statusLower === 'published';
     } else if (activeTab === 'past') {
-      return matchesSearch && statusLower === 'completed';
+      // The backend reports a past-dated event that isn't completed as AWAITING_REVIEW; it is past too, as on the client page.
+      return matchesSearch && (statusLower === 'completed' || statusLower === 'awaiting_review');
     }
     return matchesSearch;
   });
 
   const upcomingCount = events.filter(e => isUpcomingEventStatus(e.status)).length;
   const publishedCount = events.filter(e => e.status.toLowerCase() === 'published').length;
-  const completedCount = events.filter(e => e.status.toLowerCase() === 'completed').length;
+  const completedCount = events.filter(e => {
+    const s = e.status.toLowerCase();
+    return s === 'completed' || s === 'awaiting_review';
+  }).length;
   const pastCount = completedCount;
 
   return (
