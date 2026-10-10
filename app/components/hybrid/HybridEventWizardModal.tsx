@@ -563,7 +563,7 @@ export default function HybridEventWizardModal({ isOpen, onClose, onSuccess, exi
               ['bi-broadcast', `The ${Math.min(options.firstBatchSize, count ?? options.firstBatchSize) || options.firstBatchSize} best-matched photographers are alerted right away.`],
               ['bi-hand-thumbs-up', `Each has ${durationText(options.inviteWindowMinutes)} to say yes; anyone who passes is replaced by the next best match.`],
               ['bi-people', 'Only photographers who said yes appear for you, grouped as top, good and possible matches, three of each.'],
-              ['bi-shield-check', `You choose one and pay ${options.escrowOptions.join('%, ')}% upfront. Connekyt holds the money until the work is delivered.`],
+              ['bi-shield-check', `You choose one and pay ${options.escrowOptions.length > 1 ? `${options.escrowOptions.slice(0, -1).join('%, ')}% or ` : ''}${options.escrowOptions[options.escrowOptions.length - 1]}% upfront. Connekyt holds the money until the work is delivered.`],
             ].map(([icon, text], i) => (
               <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: '0.84rem', color: colors.textSecondary }}>
                 <span aria-hidden style={{ width: 26, height: 26, borderRadius: 8, background: colors.bgTertiary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.brandPrimary, flexShrink: 0 }}>
