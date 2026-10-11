@@ -332,6 +332,18 @@ Transaction Summary:
 // Payment Details Modal
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
 
+// The backend sends COMPLETED / PARTIAL / PENDING. Lowercasing them gave
+// 'completed' and 'partial', which never matched 'paid', so Paid was always 0.
+export const mapCoordinatorStatus = (apiStatus?: string): PaymentStatus => {
+  switch ((apiStatus || '').toUpperCase()) {
+    case 'COMPLETED': case 'PAID': return 'paid';
+    case 'PARTIAL': case 'PARTIALLY_PAID': return 'partially_paid';
+    case 'FAILED': return 'failed';
+    case 'REFUNDED': return 'refunded';
+    default: return 'pending';
+  }
+};
+
 interface Payment {
   id: number;
   declarationId?: string;
@@ -1828,6 +1840,7 @@ const PaymentsPage = () => {
     return () => { cancelled = true; };
   }, []);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+  const [paymentsError, setPaymentsError] = useState<string | null>(null);
   const [streamFeeEvents, setStreamFeeEvents] = useState<Array<{
     id: string;
     eventTitle: string;
@@ -1860,8 +1873,12 @@ const PaymentsPage = () => {
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments`);
-      if (response.ok) {
-        const result = await response.json();
+      const result = response.ok ? await response.json() : null;
+      // HTTP 200 with action 0 is a failure; say so instead of showing $0.
+      if (!result || result.action !== 1) {
+        setPaymentsError(result?.message || 'Could not load payments. Please refresh.');
+      } else {
+        setPaymentsError(null);
         const data = result?.data?.content || result?.data || [];
         if (data.length > 0) {
           const mapped: Payment[] = data.map((p: any, idx: number) => ({
@@ -1874,10 +1891,11 @@ const PaymentsPage = () => {
             photographerName: p.photographerName || '',
             photographerImage: p.photographerImage || undefined,
             method: p.method || p.paymentMethod || '-',
-            amount: p.amount ? `$${p.amount}` : '$0',
+            // amountNum is USD; the label used to put "$" on the booking-currency amount.
+            amount: `${Number(p.amountInUsd ?? p.amount ?? 0).toFixed(2)}`,
             amountNum: p.amountInUsd ?? p.amount ?? p.amountNum ?? 0,
             paidAmount: p.paidAmountInUsd ?? p.paidAmount ?? 0,
-            status: (p.status || 'pending').toLowerCase() as Payment['status'],
+            status: mapCoordinatorStatus(p.status),
             invoiceNumber: p.invoiceNumber || `INV-${p.id || idx + 1}`,
             escrowStatus: p.escrowStatus || 'NONE',
             escrowPercentage: p.escrowPercentage || null,
@@ -1890,6 +1908,7 @@ const PaymentsPage = () => {
       }
     } catch (err) {
       console.error('Failed to fetch payments:', err);
+      setPaymentsError('Could not load payments. Please refresh.');
     } finally {
       setIsLoadingPayments(false);
     }
@@ -1902,6 +1921,7 @@ const PaymentsPage = () => {
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments/streaming`);
       if (response.ok) {
         const result = await response.json();
+        if (result?.action !== 1) throw new Error(result?.message || 'stream payments failed');
         const data = result?.data?.content || result?.data || [];
         if (result?.totalStreamingRevenue !== undefined) {
           setTotalStreamingRevenue(result.totalStreamingRevenue);
@@ -1918,10 +1938,9 @@ const PaymentsPage = () => {
             method: p.paymentMethod || p.method || '-',
             status: (p.status || 'pending').toLowerCase(),
           }));
+          // No fallback total: a 0 wallet bucket is real, and summing these
+          // gross booking-currency rows as USD overstated revenue about 1,460x.
           setStreamFeeEvents(mapped);
-          if (!result?.totalStreamingRevenue) {
-            setTotalStreamingRevenue(mapped.filter((p: any) => p.status === 'completed').reduce((sum: number, p: any) => sum + p.amount, 0));
-          }
         }
       }
     } catch (err) {
@@ -1936,14 +1955,17 @@ const PaymentsPage = () => {
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments?type=GIFT&page=0&size=100`);
       if (response.ok) {
         const result = await response.json();
+        if (result?.action !== 1) throw new Error(result?.message || 'gift payments failed');
         const data = result?.data?.content || result?.data || [];
         if (Array.isArray(data) && data.length > 0) {
           const mapped = data.map((p: any) => ({
             id: p.id || '',
             eventTitle: p.eventTitle || 'Live Stream',
-            amount: p.amountInUsd || p.amount || 0,
-            netAmount: p.withdrawableAmount || p.netAmount || (p.amount ? p.amount * 0.65 : 0),
-            currency: p.currencyAbbreviation || p.currency || 'RWF',
+            // Both in USD so they match the label; the share comes from the
+            // backend split, never an assumed 65%.
+            amount: Number(p.amountInUsd ?? 0),
+            netAmount: Number(p.withdrawableAmountInUsd ?? 0),
+            currency: 'USD',
             giftMessage: p.giftMessage || null,
             customerPhone: p.senderName || p.viewerName || p.customerPhone || p.viewerEmail || '',
             method: p.paymentMethod || '-',
@@ -2223,6 +2245,12 @@ Amount: ${formatPrice(payment.amountNum)}
               Manage your payments and view transaction history
             </p>
           </header>
+
+          {paymentsError && (
+            <div role="alert" style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #FCA5A5', backgroundColor: actualTheme === 'dark' ? 'rgba(239,68,68,0.12)' : '#FEF2F2', color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C', fontSize: '0.875rem' }}>
+              {paymentsError} The totals below may be incomplete.
+            </div>
+          )}
 
           {/* Pending Payment Warning */}
           {totalPending > 0 && (

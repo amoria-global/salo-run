@@ -338,7 +338,7 @@ export default function RebookWizard({ open, onClose, eventId, eventTitle, color
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '0.96rem', fontWeight: 700, color: c.textPrimary }}>{selected.firstName} {selected.lastName}</div>
                   <div style={{ fontSize: '0.78rem', color: c.textSecondary, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <i className="bi bi-star-fill" style={{ fontSize: 10, color: '#F5A623' }} /> {(selected.rating ?? 5).toFixed(1)}
+                    <i className="bi bi-star-fill" style={{ fontSize: 10, color: '#F5A623' }} /> {selected.rating ? selected.rating.toFixed(1) : 'New'}
                     {selectedRec?.categoryMatch && <span style={{ color: PINK, fontWeight: 700 }}>· Best match</span>}
                   </div>
                 </div>
@@ -514,7 +514,7 @@ function PhotographerCard({ rec, c, isDark, onSelect }: { rec: Recommendation; c
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 3 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: c.textSecondary }}>
-              <i className="bi bi-star-fill" style={{ fontSize: 10, color: '#F5A623' }} /> {(p.rating ?? 5).toFixed(1)}
+              <i className="bi bi-star-fill" style={{ fontSize: 10, color: '#F5A623' }} /> {p.rating ? p.rating.toFixed(1) : 'New'}
             </span>
             {p.address && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: c.textTertiary, minWidth: 0 }}>

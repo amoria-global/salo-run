@@ -205,7 +205,7 @@ Financial Summary:
 - Total Paid: ${formatPrice(reportData.totalPaid)}
 - Pending Amount: ${formatPrice(reportData.pending)}
 - Failed: ${formatPrice(reportData.failed)}
-- Total: ${formatPrice(reportData.totalPaid + reportData.pending + reportData.failed)}
+- Total: ${formatPrice(reportData.totalPaid + reportData.pending)}
 
 Transaction Summary:
 - Total Transactions: ${reportData.totalTransactions}
@@ -258,7 +258,7 @@ Transaction Summary:
               </div>
               <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textSecondary }}>Total</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(reportData.totalPaid + reportData.pending + reportData.failed)}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(reportData.totalPaid + reportData.pending)}</span>
               </div>
             </div>
           </div>
@@ -1990,7 +1990,7 @@ Amount: ${formatPrice(payment.amountNum)}
       );
       if (!response.ok) return;
       const result = await response.json();
-      const data = result.data;
+      const data = result.action === 1 ? result.data : null; // HTTP 200 + action 0 is a failure
       if (data) {
         setTotalPaid(Number(data.totalPaid) || 0);
         setTotalPending(Number(data.totalPending) || 0);
@@ -2005,16 +2005,18 @@ Amount: ${formatPrice(payment.amountNum)}
     fetchBalance();
   }, [fetchBalance]);
 
-  // Report/stats data
+  // Report/stats data. Starts empty: this used to start from a hardcoded
+  // sample ($1,200.13, "13 - 18 July 2025") that stayed on screen whenever
+  // the stats request failed. /stats is lifetime, so the period says so.
   const [reportData, setReportData] = useState({
-    period: '13 - 18 July 2025',
-    totalPaid: 1200.13,
-    pending: 350.13,
-    failed: 200.00,
-    totalTransactions: 45,
-    completedTransactions: 32,
-    pendingTransactions: 8,
-    failedTransactions: 5,
+    period: 'All time',
+    totalPaid: 0,
+    pending: 0,
+    failed: 0,
+    totalTransactions: 0,
+    completedTransactions: 0,
+    pendingTransactions: 0,
+    failedTransactions: 0,
   });
 
   const fetchStats = useCallback(async () => {
@@ -2027,10 +2029,10 @@ Amount: ${formatPrice(payment.amountNum)}
       );
       if (!response.ok) return;
       const result = await response.json();
-      const data = result.data;
+      const data = result.action === 1 ? result.data : null;
       if (data) {
         setReportData({
-          period: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          period: 'All time',
           totalPaid: Number(data.totalPaid) || 0,
           pending: Number(data.pending) || 0,
           failed: Number(data.failed) || 0,
