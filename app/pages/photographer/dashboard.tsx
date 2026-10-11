@@ -220,6 +220,8 @@ const PhotographerDashboard = () => {
   // API data state
   const [analytics, setAnalytics] = useState<any>(null);
   const [balance, setBalance] = useState<any>(null);
+  // A failed analytics read shows Unavailable, never an invented 0.
+  const [analyticsFailed, setAnalyticsFailed] = useState(false);
   const [apiClients, setApiClients] = useState<Client[]>([]);
   const [recentActivities, setRecentActivities] = useState<{ label: string; value: string; valueColor?: string }[]>([]);
   const [recentPayments, setRecentPayments] = useState<{ name: string; type: string; amount: string; avatar?: string }[]>([]);
@@ -258,6 +260,9 @@ const PhotographerDashboard = () => {
         if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
           const data = await analyticsRes.value.json();
           if (data.action === 1 && data.data) setAnalytics(data.data);
+          setAnalyticsFailed(!(data.action === 1 && data.data));
+        } else {
+          setAnalyticsFailed(true);
         }
         if (balanceRes.status === 'fulfilled' && balanceRes.value.ok) {
           const data = await balanceRes.value.json();
@@ -1132,8 +1137,8 @@ const PhotographerDashboard = () => {
               position: 'relative',
               zIndex: 1,
             }}>
-              <HeroMiniStat label="Earnings" value={formatPrice(analytics?.totalEarnings || analytics?.earnings || 0)} color="#083A85" />
-              <HeroMiniStat label="Clients"  value={String(analytics?.totalClients || analytics?.clients || 0)} color="#F20C8F" />
+              <HeroMiniStat label="Earnings" value={analyticsFailed ? 'Unavailable' : formatPrice(analytics?.totalEarnings || analytics?.earnings || 0)} color="#083A85" />
+              <HeroMiniStat label="Clients"  value={analyticsFailed ? 'Unavailable' : String(analytics?.totalClients || analytics?.clients || 0)} color="#F20C8F" />
               <HeroMiniStat label="Accuracy" value={analytics?.accuracy ? `${analytics.accuracy}%` : '0%'} color="#10B981" />
               {balance?.heldForDelivery > 0 && (
                 <HeroMiniStat
@@ -1214,7 +1219,7 @@ const PhotographerDashboard = () => {
       <div className="stat-cards-grid">
         <StatCard
           title="Total Earnings"
-          value={formatPrice(analytics?.totalEarnings || 0)}
+          value={analyticsFailed ? 'Unavailable' : formatPrice(analytics?.totalEarnings || 0)}
           percentage={statTrends.totalEarnings.percentage}
           timeframe={periodLabel}
           icon={<MoneyIcon />}
@@ -1226,7 +1231,7 @@ const PhotographerDashboard = () => {
         />
         <StatCard
           title="Pending"
-          value={formatPrice(analytics?.pendingPayments || 0)}
+          value={analyticsFailed ? 'Unavailable' : formatPrice(analytics?.pendingPayments || 0)}
           percentage={statTrends.pending.percentage}
           timeframe={periodLabel}
           icon={<ClockIcon />}
@@ -1238,7 +1243,7 @@ const PhotographerDashboard = () => {
         />
         <StatCard
           title="Total clients"
-          value={String(analytics?.totalClients || 0)}
+          value={analyticsFailed ? 'Unavailable' : String(analytics?.totalClients || 0)}
           percentage={statTrends.clients.percentage}
           timeframe={periodLabel}
           icon={<UsersIcon />}

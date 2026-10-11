@@ -34,6 +34,7 @@ const PayrollReport = () => {
     transactions: [],
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -61,10 +62,15 @@ const PayrollReport = () => {
                 status: t.status || 'Pending',
               })),
             });
+            setLoadError(false);
+            return;
           }
         }
+        // Non-2xx or action 0: say so rather than print a $0 report.
+        setLoadError(true);
       } catch (err) {
         console.error('Failed to fetch payroll report:', err);
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
@@ -215,6 +221,11 @@ const PayrollReport = () => {
               </div>
             </div>
 
+            {loadError && !loading && (
+              <div role="alert" className="no-print" style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #FCA5A5', backgroundColor: actualTheme === 'dark' ? 'rgba(239,68,68,0.12)' : '#FEF2F2', color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C', fontSize: '0.875rem' }}>
+                We could not load your payroll report, so the figures below are not real. Please refresh before printing or downloading.
+              </div>
+            )}
             {/* Printable Report */}
             <div id="printable-report" ref={reportRef}>
               {/* Print Header (only visible when printing) */}
