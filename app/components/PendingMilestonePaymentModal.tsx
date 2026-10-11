@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { dashboardAuthFetch } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
-import { initiateBookingPayment, pollPaymentStatus, sanitizeErrorMessage } from '@/lib/xentripay';
+import { initiateBookingPayment, pollPaymentStatus } from '@/lib/xentripay';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
 import { PaymentMethodPicker, type PaymentMethodSelection } from './payments/PaymentMethodPicker';
 import InternationalPhoneInput, { type PhoneValue } from './phone/InternationalPhoneInput';
@@ -35,7 +35,8 @@ type Step =
   | 'phone'       // collect MoMo phone number
   | 'processing'  // poll XentriPay until SUCCESS / FAILED
   | 'success'
-  | 'failed';
+  | 'failed'      // definite: gateway FAILED or the backend refused; Try again is safe
+  | 'unconfirmed'; // timeout or status error: the charge may have landed, no retry (docs/PAYMENTS.md rule 2)
 
 
 /**
@@ -150,18 +151,14 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
         onSuccess: () => { setStep('success'); setSubmitting(false); },
         onFailure: () => {
           setStep('failed');
-          setError('Payment was not completed. If you were charged, the amount will be refunded automatically.');
+          setError('The provider reported this payment as failed. You were not charged.');
           setSubmitting(false);
         },
-        onError: (e) => {
-          setStep('failed');
-          setError(sanitizeErrorMessage(e, 'Unable to check payment status. Please try again.'));
-          setSubmitting(false);
-        },
-      });
-    } catch (e) {
-      setError(sanitizeErrorMessage(e instanceof Error ? e.message : '', 'Something went wrong while processing your payment.'));
-      setStep('failed');
+        onError: () => { setStep('unconfirmed'); setSubmitting(false); },
+      }, 2000, 150, selectedMethod === 'card' ? 180_000 : 0);
+    } catch {
+      // The request may have reached the gateway before the connection dropped.
+      setStep('unconfirmed');
       setSubmitting(false);
     }
   };
@@ -287,6 +284,28 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
     </div>
   );
 
+  const renderUnconfirmed = () => (
+    <div style={{ textAlign: 'center', padding: '14px 0' }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: 9999, background: '#FEF3C7',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px',
+      }}>
+        <i className="bi bi-hourglass-split" style={{ fontSize: 26, color: '#B45309' }} />
+      </div>
+      <p style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700, color: 'var(--ck-text)' }}>
+        We couldn&apos;t confirm this payment yet
+      </p>
+      <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: 'var(--ck-text-soft)', lineHeight: 1.5 }}>
+        If you approved it, the money may already have left your account, so please don&apos;t pay again yet.
+      </p>
+      <div style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 8, background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.35)', fontSize: '0.8rem', color: 'var(--ck-text)', lineHeight: 1.6 }}>
+        1. Check your phone for the payment receipt SMS.<br />
+        2. Refresh in a few minutes. A confirmed payment shows this milestone as paid.<br />
+        If neither happens, contact support before paying again.
+      </div>
+    </div>
+  );
+
   // ─── Footer renderers (per step) ───────────────────────────────────────
   const renderFooter = () => {
     if (step === 'overview') {
@@ -335,6 +354,9 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
     if (step === 'success') {
       return <Button variant="primary" onClick={() => { onClose(); if (typeof window !== 'undefined') window.location.reload(); }}>Done</Button>;
     }
+    if (step === 'unconfirmed') {
+      return <Button variant="primary" onClick={() => { onClose(); if (typeof window !== 'undefined') window.location.reload(); }}>Close and check later</Button>;
+    }
     if (step === 'failed') {
       return (
         <>
@@ -358,6 +380,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
         : step === 'phone' ? 'Enter phone number'
         : step === 'processing' ? 'Processing payment'
         : step === 'success' ? 'All set'
+        : step === 'unconfirmed' ? 'Payment not confirmed yet'
         : 'Payment failed'
       }
       description={
@@ -373,6 +396,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
       {step === 'processing' && renderProcessing()}
       {step === 'success' && renderSuccess()}
       {step === 'failed' && renderFailed()}
+      {step === 'unconfirmed' && renderUnconfirmed()}
     </Modal>
   );
 }

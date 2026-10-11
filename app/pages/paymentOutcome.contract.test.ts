@@ -19,7 +19,11 @@ vi.mock('@/app/providers/AuthProvider', () => ({ dashboardAuthFetch: (...a: unkn
 vi.mock('@/lib/api', () => ({ getApiUrl: () => 'https://api.test' }));
 
 const ROOT = path.resolve(__dirname, '../..');
-const PAGES = ['app/pages/client/payments.tsx', 'app/pages/event-coordinator/payments.tsx'];
+const PAGES = [
+  'app/pages/client/payments.tsx',
+  'app/pages/event-coordinator/payments.tsx',
+  'app/components/UnlockModal.tsx',
+];
 
 function code(file: string): string {
   return readFileSync(path.join(ROOT, file), 'utf8')
@@ -53,6 +57,36 @@ describe.each(PAGES)('%s payment failure outcome', (file) => {
 
   it('gives card payments the grace window', () => {
     expect(src).toMatch(/selectedPaymentMethod === 'card' \? 180_000 : 0/);
+  });
+});
+
+describe('PendingMilestonePaymentModal payment failure outcome', () => {
+  const src = code('app/components/PendingMilestonePaymentModal.tsx');
+
+  it('sends timeouts, status errors and dropped connections to unconfirmed', () => {
+    expect(src).toMatch(/onError: \(\) => \{ setStep\('unconfirmed'\)/);
+    expect(src).toMatch(/catch \{\s*setStep\('unconfirmed'\)/);
+  });
+
+  it('keeps Try again off the unconfirmed footer and promises no refund', () => {
+    const start = src.indexOf("if (step === 'unconfirmed')");
+    const end = src.indexOf("if (step === 'failed')", start);
+    expect(start).toBeGreaterThan(-1);
+    expect(src.slice(start, end)).not.toMatch(/Try again/i);
+    expect(src).not.toMatch(/refunded automatically/);
+  });
+
+  it('gives card payments the grace window', () => {
+    expect(src).toMatch(/selectedMethod === 'card' \? 180_000 : 0/);
+  });
+});
+
+describe('no dashboard source promises an automatic refund', () => {
+  it('appears nowhere under app/ or lib/', async () => {
+    const { execSync } = await import('node:child_process');
+    const hits = execSync('git grep -l "refunded automatically" -- app lib', { cwd: ROOT, encoding: 'utf8' })
+      .split('\n').filter((f) => f && !f.endsWith('.test.ts'));
+    expect(hits).toEqual([]);
   });
 });
 
