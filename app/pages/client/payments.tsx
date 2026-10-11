@@ -592,6 +592,17 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const [paymentPhone, setPaymentPhone] = useState<PhoneValue | null>(null);
   const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
   const [xentriPayError, setXentriPayError] = useState<string>('');
+  // docs/PAYMENTS.md rule 2. 'declined' = the gateway said FAILED or the
+  // backend refused before charging, so Try Again is safe. 'unknown' = timeout
+  // or status-check error: the charge may have landed, so no retry is offered.
+  // Defaults to 'unknown' so a path that forgets to choose fails safe.
+  const [xentriPayFailure, setXentriPayFailure] = useState<'declined' | 'unknown'>('unknown');
+  const failPayment = (kind: 'declined' | 'unknown', message: string) => {
+    setXentriPayFailure(kind);
+    setXentriPayError(message);
+    setXentriPayStep('failed');
+    setIsProcessing(false);
+  };
   const stopPollingRef = React.useRef<(() => void) | null>(null);
 
   // Pre-fill the phone field from the saved profile phone: parse it with
@@ -714,9 +725,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
       const result = await initiateBookingPayment(payment.declarationId, phone, telecom, methodType, redirectUrl, donationValue > 0 ? donationValue : undefined, currencyId, escrowPct, payCountry || undefined);
 
       if (!result.success || !result.data) {
-        setXentriPayError(result.error || 'Payment could not be initiated. Please check your payment details and try again.');
-        setXentriPayStep('failed');
-        setIsProcessing(false);
+        failPayment('declined', result.error || 'Payment could not be initiated. Please check your payment details and try again.');
         return;
       }
 
@@ -726,14 +735,14 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
 
       const stopPolling = pollPaymentStatus(result.data.refid, {
         onSuccess: () => { setXentriPayStep('success'); setIsProcessing(false); },
-        onFailure: () => { setXentriPayStep('failed'); setXentriPayError('Payment was not completed. If you were charged, the amount will be refunded automatically. Please try again.'); setIsProcessing(false); },
-        onError: (error) => { setXentriPayStep('failed'); setXentriPayError(sanitizeErrorMessage(error, 'Unable to check payment status. Please try again.')); setIsProcessing(false); },
-      });
+        onFailure: () => failPayment('declined', 'The provider reported this payment as failed. You were not charged.'),
+        onError: () => failPayment('unknown', 'We could not confirm this payment in time.'),
+      }, 2000, 150, selectedPaymentMethod === 'card' ? 180_000 : 0);
       stopPollingRef.current = stopPolling;
-    } catch (error) {
-      setXentriPayError(sanitizeErrorMessage(error instanceof Error ? error.message : '', 'Something went wrong while processing your payment. Please check your connection and try again.'));
-      setXentriPayStep('failed');
-      setIsProcessing(false);
+    } catch {
+      // The request may have reached the gateway before the connection
+      // dropped, so the buyer's phone may already have a prompt.
+      failPayment('unknown', 'The connection dropped while starting this payment.');
     }
   };
 
@@ -798,6 +807,30 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   }
 
   // XentriPay Failed View
+  if (xentriPayStep === 'failed' && xentriPayFailure === 'unknown') {
+    // The charge may have landed. No retry here: a second attempt opens a
+    // second live collection on the buyer's phone (docs/PAYMENTS.md rule 2).
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Payment Not Confirmed Yet" maxWidth="450px">
+        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span aria-hidden="true" style={{ color: 'white', fontSize: '1.75rem', fontWeight: 800 }}>?</span>
+          </div>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>We couldn&apos;t confirm this payment yet</h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+            {xentriPayError} If you approved it, the money may already have left your account, so please don&apos;t pay again yet.
+          </p>
+          <div style={{ textAlign: 'left', margin: '0 auto 1.5rem', maxWidth: '340px', padding: '0.75rem 1rem', borderRadius: '0.5rem', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.35)', color: colors.textPrimary, fontSize: '0.85rem', lineHeight: '1.6' }}>
+            1. Check your phone for the payment receipt SMS.<br />
+            2. Refresh this page in a few minutes. A confirmed payment shows as paid here.<br />
+            If neither happens, contact support before paying again.
+          </div>
+          <button onClick={() => { handleClose(); window.location.reload(); }} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close and check later</button>
+        </div>
+      </Modal>
+    );
+  }
+
   if (xentriPayStep === 'failed') {
     return (
       <Modal isOpen={isOpen} onClose={handleClose} title="Payment Failed" maxWidth="450px">
