@@ -388,10 +388,15 @@ export function pollPaymentStatus(
     onError: (error: string) => void;
   },
   intervalMs: number = 2000,
-  maxAttempts: number = 150
+  maxAttempts: number = 150,
+  // Card sessions often report FAILED right after creation while the buyer is
+  // still on the gateway page. Inside this window FAILED means "still
+  // pending", as in the landing app's poller.
+  gracePeriodMs: number = 0
 ): () => void {
   let attempts = 0;
   let stopped = false;
+  const startedAt = Date.now();
 
   const poll = async () => {
     if (stopped) return;
@@ -419,6 +424,14 @@ export function pollPaymentStatus(
       }
 
       if (status === 'FAILED') {
+        if (Date.now() - startedAt < gracePeriodMs) {
+          if (attempts >= maxAttempts) {
+            callbacks.onError('Payment is taking longer than expected. Please check your payment history.');
+            return;
+          }
+          setTimeout(poll, intervalMs);
+          return;
+        }
         callbacks.onFailure(response.data!);
         return;
       }
