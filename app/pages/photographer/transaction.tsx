@@ -162,20 +162,29 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 interface ViewReportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Wallet figures, the same reconciled source as the earnings summary. */
+  available: number;
+  pending: number;
+  withdrawn: number;
+  transactions: Transaction[];
 }
 
-const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
+const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose, available, pending, withdrawn, transactions }) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
+  // Built from the photographer's own wallet and transaction rows. This used to
+  // be a hardcoded sample ("13 - 18 July 2025", $1,200.13) shown to every user.
+  const dates = transactions.map(t => new Date(t.date).getTime()).filter(n => !Number.isNaN(n));
+  const fmt = (n: number) => new Date(n).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   const reportData = {
-    period: '13 - 18 July 2025',
-    totalEarned: 1200.13,
-    pending: 350.13,
-    withdrawn: 850.00,
-    totalTransactions: 45,
-    completedTransactions: 32,
-    pendingTransactions: 8,
-    withdrawnTransactions: 5,
+    period: dates.length ? `${fmt(Math.min(...dates))} - ${fmt(Math.max(...dates))}` : 'No transactions yet',
+    totalEarned: available,
+    pending,
+    withdrawn,
+    totalTransactions: transactions.length,
+    completedTransactions: transactions.filter(t => t.status === 'completed').length,
+    pendingTransactions: transactions.filter(t => t.status === 'pending' || t.status === 'in_progress' || t.status === 'initiated').length,
+    withdrawnTransactions: transactions.filter(t => t.status === 'withdrawn').length,
   };
 
   const handlePrint = () => {
@@ -225,7 +234,7 @@ Transaction Summary:
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Earned</span>
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Available</span>
                 </div>
                 <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.totalEarned)}</span>
               </div>
@@ -984,6 +993,7 @@ Amount: ${formatPrice(transaction.amountNum)}
   };
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [walletError, setWalletError] = useState(false);
   const [earningsData, setEarningsData] = useState<{ date: string; value: number }[]>([]);
   const [tipsData, setTipsData] = useState<{ id: number; clientName: string; amount: number; date: string; eventName: string; message: string }[]>([]);
   const [platformConfig, setPlatformConfig] = useState<PlatformConfig>(DEFAULT_CONFIG);
@@ -1016,7 +1026,8 @@ Amount: ${formatPrice(transaction.amountNum)}
       ]);
 
       // Wallet. source of truth for balances
-      getMyWallet().then(w => setWallet(w)).catch(() => {});
+      // A failed wallet read must not render as $0 earnings.
+      getMyWallet().then(w => { setWallet(w); setWalletError(false); }).catch(() => setWalletError(true));
 
       if (txRes.status === 'fulfilled' && txRes.value.ok) {
         const data = await txRes.value.json();
@@ -1712,6 +1723,11 @@ Amount: ${formatPrice(transaction.amountNum)}
             </div>
 
             {/* Earnings Summary */}
+            {walletError && (
+              <div role="alert" style={{ marginBottom: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #FCA5A5', backgroundColor: actualTheme === 'dark' ? 'rgba(239,68,68,0.12)' : '#FEF2F2', color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C', fontSize: '0.875rem' }}>
+                We could not load your wallet, so the earnings below are not your real balance. Please refresh.
+              </div>
+            )}
             <div className="mobile-earnings-summary ck-card" style={{ position: 'relative', overflow: 'hidden', padding: '1.25rem' }}>
               <span aria-hidden style={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: 3,
@@ -1864,7 +1880,7 @@ Amount: ${formatPrice(transaction.amountNum)}
       </div>
 
       {/* Modals */}
-      <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} />
+      <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} available={totalCompleted} pending={totalPending} withdrawn={totalWithdrawn} transactions={transactions} />
       <TransactionDetailsModal
         isOpen={showTransactionModal}
         onClose={() => setShowTransactionModal(false)}
