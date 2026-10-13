@@ -95,7 +95,7 @@ describe('wallet panel as rendered, USD display', () => {
   });
 
   it('a suspended wallet says so', async () => {
-    const suspended = { ...fixture('wallet-me-photographer.json'), status: 'SUSPENDED', suspensionReason: 'DRIFT_DETECTED' };
+    const suspended = { ...fixture('wallet-me-photographer.json'), status: 'SUSPENDED' as const, suspensionReason: 'DRIFT_DETECTED' };
     const text = await render(<WalletPanel wallet={suspended} role="photographer" title="My earnings" />);
     expect(text).toContain('Suspended');
     expect(text).toContain('DRIFT DETECTED');
