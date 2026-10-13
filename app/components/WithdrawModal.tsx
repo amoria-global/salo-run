@@ -51,8 +51,12 @@ const MobileMoneyIcon = () => (
 );
 
 export default function WithdrawModal({ isOpen, onClose, role, colors, actualTheme }: WithdrawModalProps) {
-  const { currencies, currency: globalCurrency } = useCurrency();
-  const rwfRate = currencies.find(c => c.code === 'RWF')?.rate || 1460;
+  const { currencies, currency: globalCurrency, isRateLive } = useCurrency();
+  // The amount submitted is typed in the display currency and divided by its
+  // rate, and balances are shown through the RWF rate, so both rates must come
+  // from the backend. A hardcoded fallback here once changed the amount that was
+  // submitted. With no live rate the form is replaced by a notice (see below).
+  const rwfRate = isRateLive('RWF') ? (currencies.find(c => c.code === 'RWF')?.rate ?? 0) : 0;
 
   // Display currency for the entire modal. every visible amount + the input
   // prefix + quick-amount presets re-render in this currency. Defaults to
@@ -64,7 +68,8 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   useEffect(() => { setDisplayCurrency(globalCurrency); }, [globalCurrency]);
   const displayInfo = currencies.find(c => c.code === displayCurrency)
     || currencies.find(c => c.code === 'RWF')!;
-  const displayRate = displayInfo.rate || 1;
+  const displayRate = displayInfo.rateLive ? displayInfo.rate : 0;
+  const ratesReady = rwfRate > 0 && displayRate > 0;
   // Convert helpers: RWF/USD amounts -> the user's chosen display currency.
   const rwfToDisplay = (rwf: number) => (rwf / rwfRate) * displayRate;
   const usdToDisplay = (usd: number) => usd * displayRate;
@@ -213,7 +218,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
       ? `Insufficient ${selectedSource?.label || ''} balance. Available: ${fmtFromRwf(sourceBalanceRwf)}`
       : '';
   const isWithdrawValid = parsedRwfAmount > 0 && parsedRwfAmount <= sourceBalanceRwf;
-  const isValid = isWithdrawValid && selectedAccount && donationAddressed && accounts.length > 0;
+  const isValid = ratesReady && isWithdrawValid && selectedAccount && donationAddressed && accounts.length > 0;
 
   const handleSelectDonation = (amount: string) => {
     setDonationSkipped(false);
@@ -849,7 +854,29 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
             </div>
           )}
 
-          {step === 'form' && twoFactorOn === true && (
+          {step === 'form' && twoFactorOn === true && !ratesReady && (
+            <div role="alert" style={{ textAlign: 'center', padding: '2rem 0 0.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Exchange rates are unavailable
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, maxWidth: 380, margin: '0 auto 1.2rem' }}>
+                A withdrawal converts your amount using the current rate, and we cannot load it right now.
+                Nothing was submitted and your balance is unchanged. Please try again shortly.
+              </p>
+              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {rwfRate > 0 && displayCurrency !== 'USD' && (
+                  <button onClick={() => setDisplayCurrency('USD')} className="ck-btn ck-btn-soft" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem' }}>
+                    Show in USD
+                  </button>
+                )}
+                <button onClick={onClose} className="ck-btn ck-btn-soft" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem' }}>
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 'form' && twoFactorOn === true && ratesReady && (
             <>
               {/* Available Balance Card. Connekyt brand gradient */}
               <div className="mobile-balance-display" style={{
@@ -910,12 +937,12 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                     // (balance card, input prefix, quick presets, fee
                     // preview). The user's typed input semantics flip too:
                     // if they had "10" while on RWF, switching to USD now
-                    // means the RWF rate equivalent (10 / 1460 ≈ 0.0068).
+                    // means the RWF rate equivalent (10 RWF divided by the live rate).
                     // Convert the input string so the underlying RWF amount
                     // stays the same instead of changing meaning.
-                    const oldRate = displayInfo.rate || 1;
+                    const oldRate = displayInfo.rateLive ? displayInfo.rate : 0;
                     const newInfo = currencies.find(c => c.code === code) || displayInfo;
-                    const newRate = newInfo.rate || 1;
+                    const newRate = newInfo.rateLive ? newInfo.rate : 0;
                     if (withdrawAmount && oldRate > 0 && newRate > 0) {
                       const inUsd = parsedDisplayAmount / oldRate;
                       const inNew = inUsd * newRate;
