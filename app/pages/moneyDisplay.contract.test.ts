@@ -41,7 +41,9 @@ describe('dashboard money display', () => {
         expect(mapCoordinatorStatus('PENDING')).toBe('pending');
         expect(mapCoordinatorStatus('FAILED')).toBe('failed');
         expect(mapCoordinatorStatus(undefined)).toBe('pending');
-    });
+        // The first import transforms the whole payments page. That took over the 5 s default whenever the
+        // machine was busy (a parallel full run, a build), so this one test gets a realistic ceiling.
+    }, 30_000);
 
     it('coordinator revenue comes from the backend, never a client-side guess', () => {
         const src = code('app/pages/event-coordinator/payments.tsx');
