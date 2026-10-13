@@ -165,8 +165,31 @@ async function request<T>(
 
 // ==================== User-facing ====================
 
-export function getMyWallet(): Promise<WalletDTO> {
-  return request<WalletDTO>('/api/remote/wallet/me');
+/** Money columns the backend never leaves null. A payload missing one is a bad response, not a zero. */
+const REQUIRED_WALLET_NUMBERS = [
+  'balanceAvailable',
+  'pendingAmount',
+  'heldForDelivery',
+  'totalWithdrawn',
+  'totalRefunded',
+  'clientSpent',
+] as const;
+
+export function assertCompleteWallet(w: unknown): WalletDTO {
+  const rec = w as Record<string, unknown> | null;
+  if (!rec || typeof rec !== 'object') {
+    throw new Error('Wallet response was empty. Please try again.');
+  }
+  for (const key of REQUIRED_WALLET_NUMBERS) {
+    if (typeof rec[key] !== 'number' || !Number.isFinite(rec[key] as number)) {
+      throw new Error('Wallet response was incomplete. Please try again.');
+    }
+  }
+  return rec as unknown as WalletDTO;
+}
+
+export async function getMyWallet(): Promise<WalletDTO> {
+  return assertCompleteWallet(await request<WalletDTO>('/api/remote/wallet/me'));
 }
 
 export function getMyWalletMovements(
