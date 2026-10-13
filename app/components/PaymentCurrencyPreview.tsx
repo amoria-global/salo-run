@@ -75,8 +75,10 @@ const PaymentCurrencyPreview: React.FC<PaymentCurrencyPreviewProps> = ({
 
   const convertedAmounts = useMemo(() => {
     if (!fromInfo || !toInfo) return [];
-    const fromRate = fromInfo.rate || 1;
-    const toRate = toInfo.rate || 1;
+    // No rate means no converted figure; it must not be read as 1 (USD).
+    if (!fromInfo.rateLive || !toInfo.rateLive) return [];
+    const fromRate = fromInfo.rate;
+    const toRate = toInfo.rate;
     if (fromRate <= 0 || toRate <= 0) return [];
     return amounts.map(({ label, amount }) => {
       const safe = Number.isFinite(amount) ? amount : 0;
