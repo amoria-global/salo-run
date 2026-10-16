@@ -41,15 +41,32 @@ export const PaymentMethodPicker: React.FC<Props> = ({
   }
 
   if (!country || !supported || !options || showCountryPicker) {
+    // Cards stay available in every market. Only mobile money depends on the
+    // country, so an unknown or uncovered country still shows the card option.
+    const showCardOnly = allowCard && !showCountryPicker;
     return (
-      <CountryPicker
-        value={country}
-        onChange={iso2 => { onCountryChange(iso2); setShowCountryPicker(false); }}
-        title={!supported && country ? 'Mobile money not yet available here' : 'Choose your country'}
-        hint={!supported && country
-          ? `We don't have mobile-money operators for ${country} yet. Pick another country, or use a card.`
-          : "We'll show the right operators for your country."}
-      />
+      <div>
+        <CountryPicker
+          value={country}
+          onChange={iso2 => { onCountryChange(iso2); setShowCountryPicker(false); }}
+          title={!supported && country ? 'Mobile money not yet available here' : 'Choose your country'}
+          hint={!supported && country
+            ? `We don't have mobile-money operators for ${country} yet. Pick another country, or pay by card below.`
+            : "We'll show the right operators for your country. You can pay by card without choosing."}
+        />
+        {showCardOnly && (
+          <div style={{ marginTop: '12px' }}>
+            <PaymentMethodChooser
+              tone="light"
+              accent="#083A85"
+              disabled={disabled}
+              selectedId={selectedMethodId === 'card' ? 'card' : null}
+              methods={[{ id: 'card', name: 'VISA & Master Card', image: CARD_ICON }]}
+              onSelect={() => onSelect({ methodId: 'card', type: 'CARD', operator: null })}
+            />
+          </div>
+        )}
+      </div>
     );
   }
 
