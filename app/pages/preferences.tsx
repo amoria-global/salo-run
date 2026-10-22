@@ -7,6 +7,7 @@ import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import EventConfirmModal from '../components/EventConfirmModal';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { validateAccountDetails } from '@/lib/xentripay';
@@ -144,6 +145,7 @@ const TabParamHandler = ({
 
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
   const { theme, setTheme, actualTheme, colors } = useTheme();
+  const { language, setLanguage, languages } = useLanguage();
   const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications' | 'security'>('appearance');
   const { user, updateUser } = useDashboardAuth();
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
@@ -1155,6 +1157,88 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       : `You've selected ${theme} mode manually`}
                   </p>
                 </div>
+              </div>
+
+              {/* Language Selection */}
+              <div style={{ height: 1, background: colors.borderPrimary, margin: '1.75rem 0 1.5rem' }} />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: '1.25rem' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 11,
+                  background: 'rgba(8,58,133,0.10)',
+                  border: '1px solid rgba(8,58,133,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <i className="bi bi-translate" style={{ fontSize: 17, color: '#083A85' }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>LANGUAGE</div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                    App language
+                  </h2>
+                  <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
+                    Choose your preferred language across the web and mobile experience.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem', maxWidth: '680px' }}>
+                {languages.map((langOpt) => {
+                  const isSelected = language === langOpt.code;
+                  return (
+                    <button
+                      key={langOpt.code}
+                      type="button"
+                      onClick={() => {
+                        setLanguage(langOpt.code);
+                        savePreference('language', langOpt.code);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem',
+                        padding: '0.85rem 1rem',
+                        borderRadius: '0.65rem',
+                        border: isSelected
+                          ? `2px solid ${colors.brandPrimary}`
+                          : `1.5px solid ${colors.borderPrimary}`,
+                        backgroundColor: isSelected
+                          ? actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(8, 58, 133, 0.06)'
+                          : colors.bgTertiary,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }} data-no-translate>
+                        <img
+                          src={`https://flagcdn.com/w40/${langOpt.flag}.png`}
+                          alt={langOpt.label}
+                          style={{ width: 24, height: 17, objectFit: 'cover', borderRadius: 3, flexShrink: 0 }}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isSelected ? colors.brandPrimary : colors.textPrimary }}>
+                            {langOpt.nativeLabel}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
+                            {langOpt.label}
+                          </div>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <div style={{
+                          width: 22, height: 22, borderRadius: '50%',
+                          backgroundColor: colors.brandPrimary,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'white', flexShrink: 0,
+                        }}>
+                          <CheckIcon />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
