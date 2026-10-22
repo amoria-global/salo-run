@@ -85,8 +85,7 @@ export default function WorkspaceAccessTab() {
           <div>
             <h2 className="text-lg font-bold text-[var(--ck-text)]">Let another photographer work in your workspace</h2>
             <p className="mt-1 text-sm text-[var(--ck-text-soft)]">
-              They sign in with their own account and switch into your workspace. They can handle bookings, events, albums and
-              clients with you. They cannot see your wallet, payments or account settings, and they do not become you.
+              They sign in with their own account and switch into your workspace. They can handle bookings, events, opportunities, albums and clients with you, and see your balance and analytics. They cannot withdraw, see transactions or change account settings, and they do not become you.
             </p>
           </div>
         </div>
@@ -305,7 +304,7 @@ function ReceivedRow({ inv, busy, onAccept, onDecline, onOpen, onLeave }: {
             </div>
             <p className="text-sm text-[var(--ck-text-soft)]">
               {inv.status === 'PENDING'
-                ? `${inv.owner.name} invited you to work in their workspace. You would handle bookings, events, albums and clients. Wallet and payments stay with them.`
+                ? `${inv.owner.name} invited you to work in their workspace. You would handle bookings, events, albums and clients, and see their balance and analytics. Withdrawals and transactions stay with them.`
                 : v.meaning.invitee}
             </p>
           </div>

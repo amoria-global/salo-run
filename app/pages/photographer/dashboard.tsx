@@ -9,7 +9,6 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import CompleteProfileModal from '../../components/CompleteProfileModal';
-import SharedWorkspaceHome from '../../components/workspace/SharedWorkspaceHome';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import {
@@ -184,7 +183,9 @@ const HeroMiniStat: React.FC<{ label: string; value: string; color: string }> = 
   </div>
 );
 
-const OwnWorkspaceDashboard = () => {
+const PhotographerDashboard = () => {
+  // In a workspace the photographer was invited to, the transaction history stays with the owner.
+  const { isShared } = useWorkspace();
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
@@ -1497,7 +1498,7 @@ const OwnWorkspaceDashboard = () => {
             </div>
           </section>
 
-          <section style={{
+          {!isShared && <section style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
@@ -1532,7 +1533,7 @@ const OwnWorkspaceDashboard = () => {
                 <PaymentItem key={index} {...payment} />
               ))}
             </div>
-          </section>
+          </section>}
         </div>
       </div>
 
@@ -1918,15 +1919,6 @@ const OwnWorkspaceDashboard = () => {
 
     </>
   );
-};
-
-/**
- * In a workspace the photographer was invited to, the owner's dashboard (earnings, balance, payments, bonuses) is not
- * loaded at all, so no money request is made and no figure is drawn. They get the shared home instead.
- */
-const PhotographerDashboard = () => {
-  const { isShared } = useWorkspace();
-  return isShared ? <SharedWorkspaceHome /> : <OwnWorkspaceDashboard />;
 };
 
 export default PhotographerDashboard;

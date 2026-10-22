@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
-import { useWorkspace } from "../providers/WorkspaceProvider";
 import { useCurrency } from "../context/CurrencyContext";
 import { useLanguage } from "../context/LanguageContext";
 import { getApiUrl } from '@/lib/api';
@@ -60,9 +59,6 @@ const roleLabel = (r: string) => r === 'photographer' ? 'Photographer'
 export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const { actualTheme, setTheme, colors } = useTheme();
   const { user, logout, refreshUserProfile } = useDashboardAuth();
-  // In another photographer's workspace the balance and tips are not this person's to see, so they are neither
-  // fetched nor shown.
-  const { isShared } = useWorkspace();
   const router = useRouter();
   const role = userRole;
   const { currency, setCurrency, formatPrice, currencies } = useCurrency();
@@ -161,7 +157,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     if (!user) return;
     const apiUrl = getApiUrl();
     try {
-      if (userRole !== 'admin' && !isShared) {
+      if (userRole !== 'admin') {
         try {
           const walletRes = await dashboardAuthFetch(`${apiUrl}/api/remote/wallet/me`, { method: 'GET' });
           if (walletRes.ok) {
@@ -201,7 +197,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         }
       }
     } catch { /* silent */ }
-  }, [user, userRole, isShared]);
+  }, [user, userRole]);
 
   useEffect(() => {
     fetchNotifications();
@@ -516,7 +512,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
             </Link>
           )}
 
-          {userRole === 'photographer' && !isShared && (
+          {userRole === 'photographer' && (
             <>
               <div className="topbar-balance" style={{
                 display: 'flex', alignItems: 'center', gap: 6,

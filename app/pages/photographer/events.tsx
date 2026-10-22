@@ -16,7 +16,6 @@ import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import StreamPreview from '../../components/StreamPreview';
 import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
-import { useWorkspace } from '../../providers/WorkspaceProvider';
 import PaidAlbumForm, { MIN_PAID_ALBUM_PRICE_RWF, isPaidAlbumPriceInvalid } from '../../components/PaidAlbumForm';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import FreeAlbumForm from '../../components/FreeAlbumForm';
@@ -407,8 +406,6 @@ const PhotobooksViewIcon = ({ active }: { active: boolean }) => (
 const PhotographerEventsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { user, token } = useDashboardAuth();
-  // In a workspace the photographer was invited to, paid albums and payment terms belong to the owner's money side.
-  const { isShared } = useWorkspace();
   const { formatPrice, currencies } = useCurrency();
   const { hasPermission } = usePermissions();
   // Owner = implicit all-perms; restricted team members (Editor / Support)
@@ -521,7 +518,7 @@ const PhotographerEventsPage = () => {
   const [editCoverIndex, setEditCoverIndex] = useState(0);
   const [isUploadingAlbum, setIsUploadingAlbum] = useState(false);
   // PAID/FREE standalone album states
-  const [standaloneAlbumType, setStandaloneAlbumType] = useState<AlbumType>(isShared ? 'FREE' : 'PAID');
+  const [standaloneAlbumType, setStandaloneAlbumType] = useState<AlbumType>('PAID');
   const [paidAlbumPrice, setPaidAlbumPrice] = useState('');
   const [paidAlbumCurrencyId, setPaidAlbumCurrencyId] = useState('');
   const paidAlbumCurrencyCode = currencies.find(c => c.code === paidAlbumCurrencyId || (c.id || c.code) === paidAlbumCurrencyId)?.code || '';
@@ -3697,7 +3694,7 @@ const PhotographerEventsPage = () => {
             </div>
 
             {/* Payment Terms Info. only show on accept */}
-            {isAccept && !isShared && bookingActionTarget.escrowPercentage && (
+            {isAccept && bookingActionTarget.escrowPercentage && (
               <div style={{
                 background: actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : 'rgba(239,246,255,0.85)',
                 border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.40)' : 'rgba(8,58,133,0.22)'}`,
@@ -3896,7 +3893,6 @@ const PhotographerEventsPage = () => {
                 <AlbumTypeSelector
                   selectedType={standaloneAlbumType}
                   onChange={setStandaloneAlbumType}
-                  hidePaid={isShared}
                 />
               </>
             )}
