@@ -1227,7 +1227,7 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<MoneyIcon />}
           trend={statTrends.totalEarnings.trend}
-          href={`${basePath}/all-transactions`}
+          href={isShared ? `${basePath}/wallet` : `${basePath}/all-transactions`}
           accentColor="#083A85"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetEarnings}
@@ -1239,7 +1239,7 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<ClockIcon />}
           trend={statTrends.pending.trend}
-          href={`${basePath}/all-transactions`}
+          href={isShared ? `${basePath}/wallet` : `${basePath}/all-transactions`}
           accentColor="#F59E0B"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetPending}
@@ -1263,7 +1263,7 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<GiftIcon />}
           trend={statTrends.bonuses.trend}
-          href={`${basePath}/all-transactions`}
+          href={isShared ? `${basePath}/wallet` : `${basePath}/all-transactions`}
           accentColor="#10B981"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetBonuses}
@@ -1275,7 +1275,7 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<StarIcon />}
           trend={statTrends.rating.trend}
-          href={`${basePath}/profile`}
+          href={isShared ? undefined : `${basePath}/profile`}
           accentColor="#8B5CF6"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetRatings}

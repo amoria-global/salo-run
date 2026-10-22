@@ -10,10 +10,14 @@ import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
 import { Can } from '@/app/lib/usePermissions';
 import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
+import { useWorkspace } from '../../providers/WorkspaceProvider';
 
 export default function PhotographerWalletPage() {
   const { colors, actualTheme } = useTheme();
   const { user } = useDashboardAuth();
+  // In a workspace the photographer was invited to, the balance and summaries are visible; withdrawing and the activity
+  // list (the transaction history) stay with the owner.
+  const { isShared, active } = useWorkspace();
   const [wallet, setWallet] = useState<WalletDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,19 +61,21 @@ export default function PhotographerWalletPage() {
                 letterSpacing: '-0.02em', color: colors.textPrimary,
               }}>My wallet</h1>
               <p style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
-                {user?.firstName ? `${user.firstName}, your` : 'Your'} earnings, tips, bonuses, and withdrawal history.
+                {isShared
+                  ? `${active ? `${active.owner.name}'s` : 'This workspace\'s'} earnings, tips and bonuses.`
+                  : `${user?.firstName ? `${user.firstName}, your` : 'Your'} earnings, tips, bonuses, and withdrawal history.`}
               </p>
             </div>
             {/* Withdrawals are a payments.manage action. Restricted team
                 members (e.g. Editor, Support) see the wallet but can't
                 request a withdrawal; only Finance / Manager-style roles
                 granted payments.manage do. Owners always pass. */}
-            <Can permission="payments.manage">
+            {!isShared && <Can permission="payments.manage">
               <button onClick={() => setShowWithdrawModal(true)} className="ck-btn ck-btn-primary"
                 style={{ padding: '11px 20px', fontSize: '0.92rem' }}>
                 <i className="bi bi-bank" /> Withdraw funds
               </button>
-            </Can>
+            </Can>}
           </header>
 
           {loading && (
@@ -91,20 +97,27 @@ export default function PhotographerWalletPage() {
 
           {wallet && !loading && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <WalletPanel wallet={wallet} title="My earnings" role="photographer" />
-              <WalletMovementsTable mode="me" title="Activity" role="photographer" />
+              <WalletPanel wallet={wallet} title={isShared ? 'Workspace earnings' : 'My earnings'} role="photographer" />
+              {isShared ? (
+                <div role="note" className="ck-card" style={{ padding: 16, display: 'flex', gap: 10, alignItems: 'center', color: colors.textSecondary, fontSize: '0.9rem' }}>
+                  <i className="bi bi-lock" aria-hidden />
+                  <span>Withdrawals and the transaction history stay with the workspace owner.</span>
+                </div>
+              ) : (
+                <WalletMovementsTable mode="me" title="Activity" role="photographer" />
+              )}
             </div>
           )}
         </main>
       </div>
 
-      <WithdrawModal
+      {!isShared && <WithdrawModal
         isOpen={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
         role="photographer"
         colors={colors}
         actualTheme={actualTheme}
-      />
+      />}
     </div>
   );
 }
