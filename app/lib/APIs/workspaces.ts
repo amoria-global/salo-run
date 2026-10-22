@@ -98,7 +98,11 @@ export async function listReceivedInvitations(): Promise<WorkspaceInvitation[]> 
 }
 
 export async function answerInvitation(id: string, accept: boolean): Promise<WorkspaceInvitation> {
-  return (await call<{ invitation: WorkspaceInvitation }>(`/received/${id}/${accept ? 'accept' : 'decline'}`, json('POST'))).invitation;
+  // Two literal calls, so the contract test can see and check both paths.
+  const res = accept
+    ? await call<{ invitation: WorkspaceInvitation }>(`/received/${id}/accept`, json('POST'))
+    : await call<{ invitation: WorkspaceInvitation }>(`/received/${id}/decline`, json('POST'));
+  return res.invitation;
 }
 
 export async function leaveWorkspace(invitationId: string): Promise<WorkspaceInvitation> {
