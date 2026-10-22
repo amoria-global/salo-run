@@ -23,7 +23,7 @@ import Sidebar from '../sidebar';
 
 /**
  * The menu in a shared workspace offers only what the server lets a collaborator do: no wallet, transactions,
- * donate, notifications, inbox, opportunities, collaborate, profile or preferences. The owner's own menu is whole.
+ * donate, notifications, inbox, collaborate, profile or preferences. Opportunities stay. The owner's own menu is whole.
  */
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -53,8 +53,8 @@ describe('photographer sidebar', () => {
     state.shared = true;
     await act(async () => root.render(<Sidebar />));
     const l = links().join('|');
-    for (const name of ['Home', 'Events', 'Clients']) expect(l).toContain(name);
-    for (const name of ['Wallet', 'Transactions', 'Donate', 'Notifications', 'Inbox', 'Opportunities', 'Collaborate', 'Profile', 'Preferences']) {
+    for (const name of ['Home', 'Events', 'Opportunities', 'Clients']) expect(l).toContain(name);
+    for (const name of ['Wallet', 'Transactions', 'Donate', 'Notifications', 'Inbox', 'Collaborate', 'Profile', 'Preferences']) {
       expect(l, name).not.toContain(name);
     }
     expect(Array.from(host.querySelectorAll('a')).some((a) => /wallet|transaction|payroll/.test(a.getAttribute('href') || ''))).toBe(false);

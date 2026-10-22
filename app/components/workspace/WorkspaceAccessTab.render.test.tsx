@@ -86,7 +86,7 @@ describe('workspace access tab', () => {
   it('explains what an invited photographer can and cannot do', async () => {
     await mount();
     expect(text()).toContain('Let another photographer work in your workspace');
-    expect(text()).toContain('cannot see your wallet, payments or account settings');
+    expect(text()).toContain('cannot withdraw, see transactions or change account settings');
     expect(text()).toContain('You have not invited anyone yet');
   });
 
@@ -179,7 +179,7 @@ describe('workspace access tab', () => {
     await mount();
     expect(text()).toContain('Invitations for you');
     expect(text()).toContain("Aline Uwase's workspace");
-    expect(text()).toContain('Wallet and payments stay with them');
+    expect(text()).toContain('Withdrawals and transactions stay with them');
     // The list is read again after the answer, and then shows the accepted workspace.
     api.listReceivedInvitations.mockResolvedValue([inv({ id: 'r1', status: 'ACCEPTED' })]);
     const accept = byText('Accept')!;

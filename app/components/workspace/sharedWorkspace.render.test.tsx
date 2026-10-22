@@ -30,12 +30,11 @@ vi.mock('@/lib/api', () => ({ getApiUrl: () => 'https://api.test', normalizeImag
 
 import RouteGuard from '../RouteGuard';
 import WorkspaceBanner from './WorkspaceBanner';
-import SharedWorkspaceHome from './SharedWorkspaceHome';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
 
 /**
- * Inside someone else's workspace the money pages are not part of the app: the route guard sends the user away
- * from them, the banner always says whose workspace this is, and the shared home draws no figures.
+ * Inside someone else's workspace the wallet and transaction pages are not part of the app: the route guard sends the
+ * user away from them, and the banner always says whose workspace this is.
  */
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -126,23 +125,5 @@ describe('workspace banner and switcher', () => {
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
     expect(state.switchTo).toHaveBeenCalledWith('o1');
-  });
-});
-
-describe('shared workspace home', () => {
-  it('lists what a collaborator can do and what stays with the owner, and draws no money', async () => {
-    state.shared = true;
-    state.active = OWNER;
-    await render(<SharedWorkspaceHome />);
-    const t = host.textContent || '';
-    expect(t).toContain("Aline Uwase's workspace");
-    expect(t).toContain('Events and bookings');
-    expect(t).toContain('Wallet, balance and earnings');
-    expect(t).toContain('Payments, withdrawals and payout details');
-    expect(t).not.toMatch(/[$]\s?\d|RWF|USD|Total Earnings/);
-    expect(Array.from(host.querySelectorAll('a')).map((a) => a.getAttribute('href'))).toEqual(
-      expect.arrayContaining(['/user/photographer/events', '/user/photographer/clients']),
-    );
-    expect(Array.from(host.querySelectorAll('a')).some((a) => /wallet|transaction/.test(a.getAttribute('href') || ''))).toBe(false);
   });
 });
