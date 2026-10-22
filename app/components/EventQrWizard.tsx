@@ -58,7 +58,7 @@ export default function EventQrWizard({
       errorCorrectionLevel: 'M',
       color: { dark: NAVY, light: '#FFFFFF' },
     })
-      .then((url) => {
+      .then((url: string) => {
         if (!cancelled) setDataUrl(url);
       })
       .catch(() => {

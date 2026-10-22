@@ -345,6 +345,21 @@ const EXACT_DICT: Record<string, [string, string, string]> = {
   "No messages yet": ["Aucun message pour le moment", "Aún no hay mensajes", "Nta butumwa burahari"],
   "Type a message...": ["Écrire un message...", "Escribe un mensaje...", "Andika ubutumwa..."],
   "Search messages...": ["Rechercher des messages...", "Buscar mensajes...", "Shakisha ubutumwa..."],
+
+  // Additional common UI labels
+  "Search...": ["Rechercher...", "Buscar...", "Shakisha..."],
+  "Filters": ["Filtres", "Filtros", "Imiyungururo"],
+  "Clear all": ["Tout effacer", "Borrar todo", "Siba byose"],
+  "Save changes": ["Enregistrer les modifications", "Guardar cambios", "Bika ibyahinduwe"],
+  "Loading": ["Chargement", "Cargando", "Biri gupakira"],
+  "Copy Link": ["Copier le lien", "Copiar enlace", "Koporora umurongo"],
+  "Link copied!": ["Lien copié !", "¡Enlace copiado!", "Umurongo wakoporowe!"],
+  "Success": ["Succès", "Éxito", "Byagenze neza"],
+  "Error": ["Erreur", "Error", "Ikosa ryabaye"],
+  "Total Balance": ["Solde total", "Saldo total", "Amafaranga yose hamwe"],
+  "Withdraw Funds": ["Retirer des fonds", "Retirar fondos", "Bikuza amafaranga"],
+  "Deposit": ["Déposer", "Depositar", "Shyiraho amafaranga"],
+  "Deposit Funds": ["Déposer des fonds", "Depositar fondos", "Shyiraho amafaranga"],
 };
 
 const LANG_INDEX: Record<Exclude<LanguageCode, "en">, 0 | 1 | 2> = {
@@ -353,18 +368,65 @@ const LANG_INDEX: Record<Exclude<LanguageCode, "en">, 0 | 1 | 2> = {
   rw: 2,
 };
 
+// Normalized and reverse dictionaries for seamless multi-directional translation
+const normalizedDict = new Map<string, [string, string, string]>();
+const reverseDict = new Map<string, string>(); // any FR, ES, RW string (lowercase trimmed) -> canonical EN
+
+for (const [enKey, trans] of Object.entries(EXACT_DICT)) {
+  const normEn = enKey.trim().toLowerCase();
+  normalizedDict.set(normEn, trans);
+
+  for (const t of trans) {
+    if (t && typeof t === "string") {
+      const normTrans = t.trim().toLowerCase();
+      if (normTrans && normTrans !== normEn) {
+        reverseDict.set(normTrans, enKey);
+      }
+    }
+  }
+}
+
 export function translateDashboardText(raw: string, lang: LanguageCode): string {
-  if (!raw || lang === "en") return raw;
-  const idx = LANG_INDEX[lang];
+  if (!raw) return raw;
   const leading = raw.match(/^\s*/)?.[0] ?? "";
   const trailing = raw.match(/\s*$/)?.[0] ?? "";
   const trimmed = raw.trim();
   if (!trimmed) return raw;
 
-  const exact = EXACT_DICT[trimmed];
-  if (exact) {
-    return `${leading}${exact[idx]}${trailing}`;
+  // Check for trailing punctuation
+  const punctMatch = trimmed.match(/^([^:!?.]+)([:!?.]+)$/);
+  const baseTrimmed = punctMatch ? punctMatch[1].trim() : trimmed;
+  const suffix = punctMatch ? punctMatch[2] : "";
+
+  // 1. Find canonical English representation
+  let enCanonical: string | null = null;
+  if (EXACT_DICT[baseTrimmed]) {
+    enCanonical = baseTrimmed;
+  } else {
+    const lower = baseTrimmed.toLowerCase();
+    for (const key of Object.keys(EXACT_DICT)) {
+      if (key.toLowerCase() === lower) {
+        enCanonical = key;
+        break;
+      }
+    }
+    if (!enCanonical) {
+      enCanonical = reverseDict.get(lower) ?? null;
+    }
   }
+
+  if (enCanonical) {
+    if (lang === "en") {
+      return `${leading}${enCanonical}${suffix}${trailing}`;
+    }
+    const match = EXACT_DICT[enCanonical] || normalizedDict.get(enCanonical.toLowerCase());
+    if (match) {
+      return `${leading}${match[LANG_INDEX[lang]]}${suffix}${trailing}`;
+    }
+  }
+
+  if (lang === "en") return raw;
+  const idx = LANG_INDEX[lang];
 
   // Dynamic patterns
   let m = trimmed.match(/^Currently using (Dark|Light) mode$/i);
@@ -527,31 +589,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
       let orig = origTextMap.get(node);
       if (orig === undefined) {
-        // Check if current text is an English phrase we know how to translate
-        const candidateFr = translateDashboardText(current, "fr");
         const candidateRw = translateDashboardText(current, "rw");
-        if (candidateFr !== current || candidateRw !== current) {
-          orig = current;
+        if (candidateRw !== current) {
+          orig = translateDashboardText(current, "en");
           origTextMap.set(node, orig);
           trackedNodes.add(node);
         } else {
           return;
         }
-      } else {
-        // If React updated the text node to a new English string, update orig
-        const expectedPrev = language === "en" ? orig : translateDashboardText(orig, language);
-        if (current !== expectedPrev && current !== orig) {
-          const candidateRw = translateDashboardText(current, "rw");
-          if (candidateRw !== current) {
-            orig = current;
-            origTextMap.set(node, orig);
-          } else {
-            return;
-          }
-        }
       }
 
-      const nextVal = language === "en" ? orig : translateDashboardText(orig, language);
+      const nextVal = translateDashboardText(orig, language);
       if (node.nodeValue !== nextVal) {
         node.nodeValue = nextVal;
       }
@@ -564,13 +612,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         let orig = origPlaceholderMap.get(el);
         if (orig === undefined) {
           if (translateDashboardText(ph, "rw") !== ph) {
-            orig = ph;
+            orig = translateDashboardText(ph, "en");
             origPlaceholderMap.set(el, orig);
             trackedEls.add(el);
           }
         }
         if (orig !== undefined) {
-          const nextPh = language === "en" ? orig : translateDashboardText(orig, language);
+          const nextPh = translateDashboardText(orig, language);
           if (el.getAttribute("placeholder") !== nextPh) {
             el.setAttribute("placeholder", nextPh);
           }
@@ -621,8 +669,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
     // Walk full document body
     walk(document.body);
-
-    if (language === "en") return;
 
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
