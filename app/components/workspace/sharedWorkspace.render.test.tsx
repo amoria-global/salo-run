@@ -66,7 +66,7 @@ describe('route guard in a shared workspace', () => {
   it('sends the user away from every money, account and notification page', async () => {
     state.shared = true;
     state.active = OWNER;
-    for (const p of ['wallet', 'transaction', 'all-transactions', 'payroll-report', 'preferences', 'profile', 'notifications', 'collaborate', 'donate']) {
+    for (const p of ['transaction', 'all-transactions', 'payroll-report', 'preferences', 'profile', 'collaborate', 'donate']) {
       state.replace.mockReset();
       state.pathname = `/user/photographer/${p}`;
       await render(<RouteGuard><div>page</div></RouteGuard>);
@@ -76,7 +76,7 @@ describe('route guard in a shared workspace', () => {
 
   it('lets the work pages open', async () => {
     state.shared = true;
-    for (const p of ['dashboard', 'events', 'clients']) {
+    for (const p of ['dashboard', 'events', 'clients', 'wallet', 'notifications', 'inbox', 'opportunities']) {
       state.replace.mockReset();
       state.pathname = `/user/photographer/${p}`;
       await render(<RouteGuard><div>page</div></RouteGuard>);

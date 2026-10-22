@@ -39,7 +39,8 @@ describe('which calls carry the workspace', () => {
   beforeEach(() => setActiveWorkspaceId(OWNER));
 
   it('names the workspace on the work calls', () => {
-    for (const path of ['/photographer/events', '/photographer/clients', '/photographer/bookings/b1/accept', '/customer/galleries', '/photographer/albums']) {
+    for (const path of ['/photographer/events', '/photographer/clients', '/photographer/bookings/b1/accept', '/customer/galleries', '/photographer/albums',
+      '/wallet/me', '/photographer/analytics', '/photographer/opportunities', '/photographer/notifications/unread-count', '/chat/conversations']) {
       expect(workspaceHeaders(`https://api.test/api/remote${path}`)).toEqual({ [WORKSPACE_HEADER]: OWNER });
     }
   });
@@ -47,7 +48,7 @@ describe('which calls carry the workspace', () => {
   it('keeps calls about the signed-in person themself out of the workspace', () => {
     for (const path of [
       '/auth/refresh', '/public/events', '/customer/profile', '/customer/kyc/status', '/customer/totp/enable',
-      '/customer/notifications', '/photographer/notifications/unread-count', '/photographer/workspaces/mine',
+      '/customer/notifications', '/photographer/workspaces/mine',
       '/photographer/profile-summary', '/team/me/permissions',
     ]) {
       expect(isPersonalCall(`https://api.test/api/remote${path}`)).toBe(true);
@@ -63,21 +64,22 @@ describe('which calls carry the workspace', () => {
 
 describe('pages that do not exist in a shared workspace', () => {
   it('blocks money, account and notification pages and their sub pages', () => {
-    for (const p of ['wallet', 'transaction', 'all-transactions', 'payroll-report', 'donate', 'preferences', 'profile', 'notifications', 'collaborate']) {
+    for (const p of ['transaction', 'all-transactions', 'payroll-report', 'donate', 'preferences', 'profile', 'collaborate']) {
       expect(isBlockedInSharedWorkspace(`/user/photographer/${p}`)).toBe(true);
       expect(isBlockedInSharedWorkspace(`/user/photographer/${p}/anything`)).toBe(true);
     }
   });
 
   it('leaves the work pages open', () => {
-    for (const p of ['/user/photographer/dashboard', '/user/photographer/events', '/user/photographer/events/e1', '/user/photographer/clients']) {
+    for (const p of ['/user/photographer/dashboard', '/user/photographer/events', '/user/photographer/events/e1', '/user/photographer/clients',
+      '/user/photographer/wallet', '/user/photographer/notifications', '/user/photographer/inbox', '/user/photographer/opportunities']) {
       expect(isBlockedInSharedWorkspace(p)).toBe(false);
     }
     expect(isBlockedInSharedWorkspace(null)).toBe(false);
   });
 
   it('does not block a path that merely starts with the same letters', () => {
-    expect(isBlockedInSharedWorkspace('/user/photographer/walletish')).toBe(false);
+    expect(isBlockedInSharedWorkspace('/user/photographer/transactionsish')).toBe(false);
   });
 });
 

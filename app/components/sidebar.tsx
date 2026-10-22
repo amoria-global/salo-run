@@ -107,9 +107,9 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
   ];
 };
 
-// Working in another photographer's workspace: the wallet and transactions, the owner's notifications, chat and
+// Working in another photographer's workspace: the transaction history, donating, the owner's account settings and
 // collaboration are not part of it (the server refuses them), so the menu does not offer them.
-const SHARED_WORKSPACE_HIDDEN = new Set(['Notifications', 'Inbox', 'Wallet', 'Transactions', 'Donate', 'Collaborate', 'Profile', 'Preferences']);
+const SHARED_WORKSPACE_HIDDEN = new Set(['Transactions', 'Donate', 'Collaborate', 'Profile', 'Preferences']);
 
 const roleFromCustomerType = (customerType: string | null | undefined): UserRole | null => {
   const t = (customerType || '').toUpperCase();

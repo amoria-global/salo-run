@@ -52,7 +52,6 @@ const PERSONAL_PATHS = [
   '/api/remote/customer/kyc',
   '/api/remote/customer/totp',
   '/api/remote/customer/notifications',
-  '/api/remote/photographer/notifications',
   '/api/remote/photographer/workspaces',
   '/api/remote/photographer/profile-summary',
   '/api/remote/photographer/pending-changes',
@@ -80,19 +79,18 @@ export function workspaceHeaders(url: string, workspaceId: string | null = getAc
 }
 
 /**
- * Pages of the photographer area that are not available while working in someone else's workspace: everything about
- * money, the owner's account and notifications, and managing who else is invited. The server refuses the matching
- * calls regardless; this keeps the menus and routes honest.
+ * Pages of the photographer area that are not available while working in someone else's workspace: the transaction
+ * history and payroll, donating, the owner's account settings, and managing who else is invited. The Wallet page IS
+ * available (its overview shows the balance); its withdraw button and activity list are left out of it. The server
+ * refuses the matching calls regardless; this keeps the menus and routes honest.
  */
 export const SHARED_BLOCKED_PREFIXES = [
-  '/user/photographer/wallet',
   '/user/photographer/transaction',
   '/user/photographer/all-transactions',
   '/user/photographer/payroll-report',
   '/user/photographer/donate',
   '/user/photographer/preferences',
   '/user/photographer/profile',
-  '/user/photographer/notifications',
   '/user/photographer/collaborate',
 ];
 
