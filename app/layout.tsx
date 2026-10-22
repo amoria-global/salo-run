@@ -8,6 +8,7 @@ import { DashboardAuthProvider } from "./providers/AuthProvider";
 import { ThemeProvider } from "./context/ThemeContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { PermissionProvider } from "./lib/usePermissions";
 import PasswordChangeGate from "./components/PasswordChangeGate";
 import PlatformAlert from "./components/PlatformAlert";
@@ -40,18 +41,20 @@ export default function RootLayout({
         <DashboardAuthProvider>
           <PermissionProvider>
             <ThemeProvider>
-              <CurrencyProvider>
-                <UserProfileProvider>
-                  {/* Forced first-login password change for invited team
-                      members. Fires on every dashboard route except
-                      /user/auth/* so login/reset/change-password itself
-                      stay reachable. */}
-                  <PasswordChangeGate />
-                  {children}
-                  {/* Global platform alert: replaces native browser alert() with brand-styled modal. */}
-                  <PlatformAlert />
-                </UserProfileProvider>
-              </CurrencyProvider>
+              <LanguageProvider>
+                <CurrencyProvider>
+                  <UserProfileProvider>
+                    {/* Forced first-login password change for invited team
+                        members. Fires on every dashboard route except
+                        /user/auth/* so login/reset/change-password itself
+                        stay reachable. */}
+                    <PasswordChangeGate />
+                    {children}
+                    {/* Global platform alert: replaces native browser alert() with brand-styled modal. */}
+                    <PlatformAlert />
+                  </UserProfileProvider>
+                </CurrencyProvider>
+              </LanguageProvider>
             </ThemeProvider>
           </PermissionProvider>
         </DashboardAuthProvider>

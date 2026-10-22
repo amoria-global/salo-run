@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
+import { useLanguage } from "../context/LanguageContext";
 import { getApiUrl } from '@/lib/api';
 import PayNowModal from './UnlockModal';
 import type { Payment } from './UnlockModal';
@@ -61,11 +62,13 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const router = useRouter();
   const role = userRole;
   const { currency, setCurrency, formatPrice, currencies } = useCurrency();
+  const { language, setLanguage, languages } = useLanguage();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [expandedNotifId, setExpandedNotifId] = useState<string | null>(null);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const [isLangOpen, setIsLangOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showKycModal, setShowKycModal] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -102,6 +105,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const [desktopAlerts, setDesktopAlerts] = useState<NotificationPermission | 'unsupported'>('unsupported');
   useEffect(() => { setDesktopAlerts(desktopAlertPermission()); }, []);
   const currencyRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
   const availabilityRef = useRef<HTMLDivElement>(null);
 
   const getUserDisplayName = () => {
@@ -297,6 +301,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsDropdownOpen(false);
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) setIsNotificationsOpen(false);
       if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) setIsCurrencyOpen(false);
+      if (langRef.current && !langRef.current.contains(event.target as Node)) setIsLangOpen(false);
       if (availabilityRef.current && !availabilityRef.current.contains(event.target as Node)) setIsAvailabilityOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -545,6 +550,51 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
           >
             <i className={`bi ${actualTheme === 'dark' ? 'bi-sun' : 'bi-moon'}`} style={{ fontSize: 15 }} />
           </button>
+
+          <div ref={langRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              aria-label="Change language"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px', borderRadius: 9999,
+                border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)',
+                color: 'var(--ck-text)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              <img src={`https://flagcdn.com/w40/${languages.find(l => l.code === language)?.flag || 'gb'}.png`} alt=""
+                style={{ width: 18, height: 14, objectFit: 'cover', borderRadius: 2 }} />
+              <span data-no-translate>{language.toUpperCase()}</span>
+              <i className="bi bi-chevron-down" style={{ fontSize: 10, transform: isLangOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms' }} />
+            </button>
+            {isLangOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                background: 'var(--ck-surface)', borderRadius: 14, boxShadow: 'var(--ck-shadow-lg)',
+                border: '1px solid var(--ck-stroke)', padding: 6, minWidth: 210, zIndex: 50,
+              }}>
+                {languages.map((l) => (
+                  <button key={l.code} onClick={() => { setLanguage(l.code); setIsLangOpen(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none',
+                      background: language === l.code ? 'var(--ck-surface-muted)' : 'transparent',
+                      color: 'var(--ck-text)', fontSize: '0.85rem',
+                      fontWeight: language === l.code ? 600 : 500, cursor: 'pointer', gap: 8,
+                    }}
+                    onMouseEnter={(e) => { if (language !== l.code) e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
+                    onMouseLeave={(e) => { if (language !== l.code) e.currentTarget.style.background = 'transparent'; }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }} data-no-translate>
+                      <img src={`https://flagcdn.com/w40/${l.flag}.png`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />
+                      <span style={{ fontWeight: 700 }}>{l.nativeLabel}</span>
+                      <span style={{ color: 'var(--ck-text-soft)', fontSize: '0.78rem' }}>{l.label}</span>
+                    </span>
+                    {language === l.code && <i className="bi bi-check-lg" style={{ color: 'var(--ck-blue)' }} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div ref={currencyRef} style={{ position: 'relative' }}>
             <button
