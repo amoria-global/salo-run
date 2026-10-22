@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useSearchParams, usePathname } from 'next/navigation';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
+import { WORKSPACE_LOST_EVENT, WORKSPACE_NOT_AVAILABLE, setActiveWorkspaceId, workspaceHeaders } from '../lib/workspace';
 
 /**
  * Availability time structure from API
@@ -893,6 +894,9 @@ export async function dashboardAuthFetch(
   if (currentToken) {
     headers['Authorization'] = `Bearer ${currentToken}`;
   }
+  // Working inside another photographer's workspace: the call names it, and the server checks the membership on every
+  // request. Calls about the signed-in person themself never carry it.
+  const sentWorkspace = Object.keys(Object.assign(headers, workspaceHeaders(url))).some((k) => k.toLowerCase() === 'x-workspace-id');
 
   // credentials: 'include' makes the browser send the amoria_auth HttpOnly
   // cookie on this cross-origin request. Backend CORS allow-list is strict
@@ -948,6 +952,20 @@ export async function dashboardAuthFetch(
       return response;
     }
     response = await fetchWithRetry(url, { ...options, headers, credentials: 'include' });
+  }
+
+  // A revoked or unknown workspace is refused with one fixed message. Drop it and fall back to the user's own
+  // workspace, so a stale selection can never leave the app stuck on errors.
+  if (sentWorkspace && response.status === 403 && typeof window !== 'undefined') {
+    try {
+      const body = await response.clone().json();
+      if (body?.message === WORKSPACE_NOT_AVAILABLE) {
+        setActiveWorkspaceId(null);
+        window.dispatchEvent(new Event(WORKSPACE_LOST_EVENT));
+      }
+    } catch {
+      /* not JSON: leave the response as it is */
+    }
   }
 
   return response;

@@ -1,5 +1,5 @@
-import Clients from '../../../pages/photographer/clients';
+import ClientsEntry from '../../../components/workspace/ClientsEntry';
 
 export default function ClientsPage() {
-  return <Clients />;
+  return <ClientsEntry />;
 }

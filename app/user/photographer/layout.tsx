@@ -6,6 +6,8 @@ import { useDashboardAuth } from '@/app/providers/AuthProvider';
 import { usePermissions } from '@/app/lib/usePermissions';
 import RouteGuard from '@/app/components/RouteGuard';
 import { MatchingProfilePrompt } from '@/app/components/hybrid/MatchingProfile';
+import { useWorkspace } from '@/app/providers/WorkspaceProvider';
+import WorkspaceBanner from '@/app/components/workspace/WorkspaceBanner';
 
 /**
  * Photographer-area layout. Wraps every /user/photographer/** route.
@@ -31,12 +33,16 @@ const PROFILE_PATH = '/user/photographer/profile';
 export default function PhotographerLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useDashboardAuth();
   const { isOwner, loading: permsLoading } = usePermissions();
+  const { isShared } = useWorkspace();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated || !user) return;
+    // Working in another photographer's workspace: the profile to complete is their own, and its page is not part of
+    // the shared workspace, so redirecting there would only bounce back.
+    if (isShared) return;
 
     const type = (user.customerType || '').toUpperCase();
     const isPhotographerLike = type === 'PHOTOGRAPHER' || type === 'VIDEOGRAPHER';
@@ -71,7 +77,7 @@ export default function PhotographerLayout({ children }: { children: React.React
     // user navigating to /profile on their own). It uses it to surface a
     // one-shot toast and auto-jump to the first incomplete section.
     router.replace(`${PROFILE_PATH}?completionRequired=1`);
-  }, [user, isAuthenticated, isLoading, pathname, router, isOwner, permsLoading]);
+  }, [user, isAuthenticated, isLoading, pathname, router, isOwner, permsLoading, isShared]);
 
   // RouteGuard consults ROUTE_RULES in app/lib/routePermissions and
   // bounces restricted team members to /user/not-authorized when the
@@ -82,10 +88,12 @@ export default function PhotographerLayout({ children }: { children: React.React
   const type = (user?.customerType || '').toUpperCase();
   const askMatching = !!user && (type === 'PHOTOGRAPHER' || type === 'VIDEOGRAPHER')
     && user.isTeamMember !== true
+    && !isShared
     && (typeof user.completionPercentage !== 'number' || user.completionPercentage >= 100)
     && !(pathname && pathname.startsWith(PROFILE_PATH));
   return (
     <RouteGuard>
+      <WorkspaceBanner />
       {children}
       {askMatching && <MatchingProfilePrompt />}
     </RouteGuard>

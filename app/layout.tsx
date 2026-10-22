@@ -10,6 +10,7 @@ import { UserProfileProvider } from "./context/UserProfileContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { PermissionProvider } from "./lib/usePermissions";
+import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 import PasswordChangeGate from "./components/PasswordChangeGate";
 import PlatformAlert from "./components/PlatformAlert";
 
@@ -40,6 +41,7 @@ export default function RootLayout({
       <body className={`${pragatiNarrow.variable} font-sans antialiased`}>
         <DashboardAuthProvider>
           <PermissionProvider>
+            <WorkspaceProvider>
             <ThemeProvider>
               <LanguageProvider>
                 <CurrencyProvider>
@@ -56,6 +58,7 @@ export default function RootLayout({
                 </CurrencyProvider>
               </LanguageProvider>
             </ThemeProvider>
+            </WorkspaceProvider>
           </PermissionProvider>
         </DashboardAuthProvider>
       </body>

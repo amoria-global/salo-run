@@ -55,7 +55,7 @@ function corsHeadersFor(origin: string | null): Record<string, string> {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Workspace-Id',
       'Vary': 'Origin',
     };
   }
@@ -100,6 +100,9 @@ async function proxyRequest(
     const headers: HeadersInit = {};
     const authHeader = request.headers.get('authorization');
     if (authHeader) headers['Authorization'] = authHeader;
+    // The workspace the user is working in. The backend checks the membership itself on every request.
+    const workspaceHeader = request.headers.get('x-workspace-id');
+    if (workspaceHeader) headers['X-Workspace-Id'] = workspaceHeader;
     // Forward the browser's cookies to the backend so it can read the
     // amoria_auth HttpOnly session cookie (for the cookie-based auth
     // rollout). All cookies carried here are already scoped to
