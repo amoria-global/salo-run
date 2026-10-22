@@ -9,6 +9,8 @@ interface AlbumTypeSelectorProps {
   selectedType: AlbumType;
   onChange: (type: AlbumType) => void;
   disabled?: boolean;
+  /** Offer only the free album (a shared workspace cannot create paid albums). */
+  hidePaid?: boolean;
 }
 
 interface OptionConfig {
@@ -72,6 +74,7 @@ const AlbumTypeSelector: React.FC<AlbumTypeSelectorProps> = ({
   selectedType,
   onChange,
   disabled = false,
+  hidePaid = false,
 }) => {
   const { colors, actualTheme } = useTheme();
   const isDark = actualTheme === 'dark';
@@ -90,7 +93,7 @@ const AlbumTypeSelector: React.FC<AlbumTypeSelectorProps> = ({
         Album Type <span style={{ color: '#EF4444' }}>*</span>
       </label>
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'stretch' }}>
-        {OPTIONS.map((opt) => {
+        {OPTIONS.filter((opt) => !(hidePaid && opt.value === "PAID")).map((opt) => {
           const isSelected = selectedType === opt.value;
           const headingColor = isSelected ? (isDark ? opt.accentDark : opt.accent) : colors.textPrimary;
           const selectedBorder = isDark ? opt.borderTintDark : opt.borderTintLight;

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { usePermissions } from '@/app/lib/usePermissions';
+import { useWorkspace } from '@/app/providers/WorkspaceProvider';
 
 /**
  * Landing page for a denied {@link RouteGuard} bounce.
@@ -18,6 +19,9 @@ export default function NotAuthorizedPage() {
   const { roleName, organizationName, isOwner } = usePermissions();
   const required = (params.get('required') || '').split(',').filter(Boolean);
   const from = params.get('from') || '';
+  const { active, switchTo } = useWorkspace();
+  // Sent here from a shared workspace: money, account and notification pages are not part of it.
+  const sharedWorkspace = required.includes('workspace');
 
   return (
     <main style={{
@@ -38,15 +42,17 @@ export default function NotAuthorizedPage() {
           <i className="bi bi-shield-lock" />
         </div>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111' }}>
-          You don&apos;t have access to this page
+          {sharedWorkspace ? 'Not available in a shared workspace' : "You don't have access to this page"}
         </h1>
         <p style={{ margin: '10px 0 0', fontSize: 14, color: '#6b7280', lineHeight: 1.55 }}>
-          {isOwner
+          {sharedWorkspace
+            ? <>You are working in {active ? <strong>{active.owner.name}</strong> : 'another photographer'}&apos;s workspace. Wallet, payments, account settings and notifications stay with its owner. Switch back to your own workspace to use them.</>
+            : isOwner
             ? 'You are listed as an organization owner - this looks like a route configuration issue. Please contact support.'
             : <>Your current role <strong>{roleName || '-'}</strong>{organizationName ? <> in <strong>{organizationName}</strong></> : null} doesn&apos;t grant the permission this page requires.</>}
         </p>
 
-        {required.length > 0 && (
+        {!sharedWorkspace && required.length > 0 && (
           <div style={{
             marginTop: 18, padding: '12px 14px', background: '#f3f4f6', borderRadius: 8, textAlign: 'left',
           }}>
@@ -71,7 +77,14 @@ export default function NotAuthorizedPage() {
         )}
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 22 }}>
-          <Link href="/" style={btnPrimary}>Go home</Link>
+          {sharedWorkspace ? (
+            <>
+              <Link href="/user/photographer/dashboard" style={btnPrimary}>Workspace home</Link>
+              <button type="button" onClick={() => switchTo(null)} style={btnSecondary}>Back to my workspace</button>
+            </>
+          ) : (
+            <Link href="/" style={btnPrimary}>Go home</Link>
+          )}
         </div>
       </section>
     </main>
@@ -81,4 +94,9 @@ export default function NotAuthorizedPage() {
 const btnPrimary: React.CSSProperties = {
   padding: '9px 18px', fontSize: 13.5, fontWeight: 600, borderRadius: 8,
   background: '#F20C8F', color: '#fff', textDecoration: 'none',
+};
+
+const btnSecondary: React.CSSProperties = {
+  padding: '9px 18px', fontSize: 13.5, fontWeight: 600, borderRadius: 8,
+  background: '#fff', color: '#083A85', border: '1px solid #083A85', cursor: 'pointer',
 };
