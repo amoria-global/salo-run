@@ -8,7 +8,14 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(nav.search),
 }));
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a> }));
-vi.mock('@/app/components/workspace/WorkspaceAccessTab', () => ({ default: () => <div data-testid="workspace-tab">workspace panel</div> }));
+vi.mock('@/app/components/workspace/WorkspaceAccessTab', () => ({
+  default: ({ inviteId, onInviteHandled }: { inviteId?: string | null; onInviteHandled?: () => void }) => (
+    <div data-testid="workspace-tab" data-invite={inviteId ?? ''}>
+      workspace panel
+      <button type="button" data-testid="handled" onClick={() => onInviteHandled?.()}>handled</button>
+    </div>
+  ),
+}));
 vi.mock('@/app/components/collab/parts', () => ({
   AlbumCover: () => null,
   JoinWithLinkModal: () => null,
@@ -114,6 +121,39 @@ describe('Collaborate page', () => {
     expect(checked()[0]).toContain('Album collaboration');
     const back = Array.from(host.querySelectorAll('button')).find((b) => (b.textContent || '').trim() === 'Use Workspace access');
     expect(back).toBeDefined();
+  });
+
+  const INVITE = '3f2a9c1e-5b7d-4c8e-9a10-0b1c2d3e4f50';
+
+  it('opens a workspace invitation link on the workspace side and hands the id to the tab', async () => {
+    await mount('tab=workspace&invite=' + INVITE);
+    expect(checked()[0]).toContain('Workspace access');
+    expect(host.querySelector('[data-testid="workspace-tab"]')!.getAttribute('data-invite')).toBe(INVITE);
+  });
+
+  it('opens the workspace side for an invitation link even if the address also names an albums tab', async () => {
+    await mount('tab=mine&invite=' + INVITE);
+    expect(checked()[0]).toContain('Workspace access');
+    expect(host.querySelector('[data-testid="workspace-tab"]')!.getAttribute('data-invite')).toBe(INVITE);
+  });
+
+  it('ignores an invite parameter that is not an invitation id', async () => {
+    await mount('tab=workspace&invite=../../etc/passwd');
+    expect(host.querySelector('[data-testid="workspace-tab"]')!.getAttribute('data-invite')).toBe('');
+    await mount('invite=<script>');
+    expect(host.querySelector('[data-testid="workspace-tab"]')!.getAttribute('data-invite')).toBe('');
+  });
+
+  it('drops the id from the address once the invitation has been handled', async () => {
+    await mount('tab=workspace&invite=' + INVITE);
+    await act(async () => { (host.querySelector('[data-testid="handled"]') as HTMLButtonElement).click(); });
+    expect(nav.replace).toHaveBeenLastCalledWith('/user/photographer/collaborate', { scroll: false });
+    expect(host.querySelector('[data-testid="workspace-tab"]')!.getAttribute('data-invite')).toBe('');
+  });
+
+  it('has no invitation without a link', async () => {
+    await mount();
+    expect(host.querySelector('[data-testid="workspace-tab"]')!.getAttribute('data-invite')).toBe('');
   });
 
   it('works from the keyboard: arrows move the choice, only the chosen one is in the tab order', async () => {

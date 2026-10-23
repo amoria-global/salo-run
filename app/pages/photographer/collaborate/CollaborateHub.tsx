@@ -18,6 +18,7 @@ import { Button, Card, EmptyState, PageHeader, Search, Skeleton, Tabs } from '@/
 import { AlbumCover, JoinWithLinkModal, PersonChip, Stat } from '@/app/components/collab/parts';
 import WorkspaceAccessTab from '@/app/components/workspace/WorkspaceAccessTab';
 import { CollaborateModeChooser, CrossLink, type CollaborateMode } from '@/app/components/collab/CollaborateModeChooser';
+import { inviteIdFromParam } from '@/app/lib/workspaceStatus';
 import { listJoinedAlbums, listOwnedAlbums, type JoinedAlbum, type OwnedAlbum } from '@/app/lib/APIs/collab';
 
 type TabKey = 'mine' | 'joined';
@@ -30,7 +31,10 @@ function modeFromParam(tab: string | null | undefined): CollaborateMode {
 export default function CollaborateHub() {
   const router = useRouter();
   const params = useSearchParams();
-  const [mode, setMode] = useState<CollaborateMode>(modeFromParam(params?.get('tab')));
+  // A workspace invitation link ("?tab=workspace&invite=<id>") always opens the workspace side.
+  const inviteParam = inviteIdFromParam(params?.get('invite'));
+  const [inviteId, setInviteId] = useState<string | null>(inviteParam);
+  const [mode, setMode] = useState<CollaborateMode>(inviteParam ? 'workspace' : modeFromParam(params?.get('tab')));
   const [tab, setTab] = useState<TabKey>(params?.get('tab') === 'joined' ? 'joined' : 'mine');
   const [owned, setOwned] = useState<OwnedAlbum[] | null>(null);
   const [joined, setJoined] = useState<JoinedAlbum[] | null>(null);
@@ -110,7 +114,10 @@ export default function CollaborateHub() {
 
       {mode === 'workspace' ? (
         <>
-          <WorkspaceAccessTab />
+          <WorkspaceAccessTab inviteId={inviteId} onInviteHandled={() => {
+            setInviteId(null);
+            router.replace('/user/photographer/collaborate', { scroll: false });
+          }} />
           <CrossLink text="Only need help with one album?" action="Use Album collaboration" onClick={() => switchMode('albums')} />
         </>
       ) : error ? (

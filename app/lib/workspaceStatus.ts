@@ -1,4 +1,4 @@
-import type { InvitationStatus, WorkspaceInvitation } from './APIs/workspaces';
+import type { InvitationStatus, InvitePreview, WorkspaceInvitation } from './APIs/workspaces';
 
 /**
  * How an invitation's status reads, and what each side may do about it. The server decides what is legal and
@@ -60,6 +60,59 @@ export function inviteeActions(status: InvitationStatus): InviteeAction[] {
     case 'ACCEPTED': return ['open', 'leave'];
     default: return [];
   }
+}
+
+/** What the owner reads next to an invitation: an emailed one is still waiting for someone to sign up. */
+export function ownerMeaning(inv: Pick<WorkspaceInvitation, 'status' | 'invitee'>): string {
+  if (inv.status === 'PENDING' && inv.invitee?.registered === false) return 'Emailed. Waiting for them to create an account and answer.';
+  return statusView(inv.status).meaning.owner;
+}
+
+/** The label of an owner action: sending an emailed invitation again is emailing it again. */
+export function ownerActionLabel(action: OwnerAction, inv: Pick<WorkspaceInvitation, 'invitee'>): string {
+  if (action === 'resend') return inv.invitee?.registered === false ? 'Email again' : 'Send again';
+  return action === 'cancel' ? 'Cancel' : 'Remove access';
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The invitation id from the link's `invite` parameter, or null when it is missing or not an id. */
+export function inviteIdFromParam(raw: string | null | undefined): string | null {
+  const v = raw?.trim();
+  return v && UUID.test(v) ? v.toLowerCase() : null;
+}
+
+/** "a•••@example.com": enough to recognise an address without printing it in full. */
+export function maskEmail(email?: string | null): string {
+  if (!email || !email.includes('@')) return 'another email address';
+  const [name, domain] = email.split('@');
+  return `${name.slice(0, 1)}•••@${domain}`;
+}
+
+/**
+ * What the invitation link means for the person who opened it, signed in. The invitations the account can answer are
+ * matched by id; one that is not among them was sent to a different address, which the public preview confirms
+ * without saying more than the masked address.
+ */
+export type InviteFocus =
+  | { kind: 'pending'; invitation: WorkspaceInvitation }
+  | { kind: 'accepted'; invitation: WorkspaceInvitation }
+  | { kind: 'ended'; invitation: WorkspaceInvitation; label: string }
+  | { kind: 'mismatch'; maskedEmail: string }
+  | { kind: 'closed' }
+  | { kind: 'unavailable' };
+
+export function inviteFocus(received: readonly WorkspaceInvitation[], id: string, preview: InvitePreview | null): InviteFocus {
+  const inv = received.find((i) => i.id === id);
+  if (inv) {
+    if (inv.status === 'PENDING') return { kind: 'pending', invitation: inv };
+    if (inv.status === 'ACCEPTED') return { kind: 'accepted', invitation: inv };
+    return { kind: 'ended', invitation: inv, label: statusView(inv.status).label.toLowerCase() };
+  }
+  // Not one of this account's invitations: ask the public preview why, and null means it could not be read.
+  if (!preview) return { kind: 'unavailable' };
+  if (!preview.found || !preview.open) return { kind: 'closed' };
+  return { kind: 'mismatch', maskedEmail: maskEmail(preview.email) };
 }
 
 /** Open invitations first (waiting, then active), then the rest by newest. */
