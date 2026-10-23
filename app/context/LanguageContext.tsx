@@ -18,11 +18,15 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: "en", label: "English", nativeLabel: "English", flag: "gb" },
   { code: "fr", label: "French", nativeLabel: "Français", flag: "fr" },
   { code: "es", label: "Spanish", nativeLabel: "Español", flag: "es" },
+];
+
+/** Paused for ongoing dictionary refinements; preserved for immediate re-activation */
+export const PAUSED_LANGUAGES: LanguageOption[] = [
   { code: "rw", label: "Kinyarwanda", nativeLabel: "Ikinyarwanda", flag: "rw" },
   { code: "sw", label: "Swahili", nativeLabel: "Kiswahili", flag: "tz" },
 ];
 
-const VALID_CODES = new Set<LanguageCode>(["en", "fr", "es", "rw", "sw"]);
+const VALID_CODES = new Set<LanguageCode>(["en", "fr", "es"]);
 const STORAGE_KEY = "connekt-language";
 const LEGACY_KEY = "locale";
 const COOKIE_NAME = "connekt_locale";
