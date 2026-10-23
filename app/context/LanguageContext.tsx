@@ -5,7 +5,7 @@ import { getApiUrl } from "@/lib/api";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import domTranslationsData from "@/lib/domTranslations.json";
 
-export type LanguageCode = "en" | "fr" | "es" | "rw";
+export type LanguageCode = "en" | "fr" | "es" | "rw" | "sw";
 
 export interface LanguageOption {
   code: LanguageCode;
@@ -19,9 +19,10 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: "fr", label: "French", nativeLabel: "Français", flag: "fr" },
   { code: "es", label: "Spanish", nativeLabel: "Español", flag: "es" },
   { code: "rw", label: "Kinyarwanda", nativeLabel: "Ikinyarwanda", flag: "rw" },
+  { code: "sw", label: "Swahili", nativeLabel: "Kiswahili", flag: "tz" },
 ];
 
-const VALID_CODES = new Set<LanguageCode>(["en", "fr", "es", "rw"]);
+const VALID_CODES = new Set<LanguageCode>(["en", "fr", "es", "rw", "sw"]);
 const STORAGE_KEY = "connekt-language";
 const LEGACY_KEY = "locale";
 const COOKIE_NAME = "connekt_locale";
@@ -46,18 +47,19 @@ function writeCookieLocale(lang: LanguageCode) {
   }
 }
 
-// ─── Exact translations dictionary (EN -> [FR, ES, RW]) ─────────────────────
-const EXACT_DICT: Record<string, [string, string, string]> = domTranslationsData as unknown as Record<string, [string, string, string]>;
+// ─── Exact translations dictionary (EN -> [FR, ES, RW, SW]) ─────────────────────
+const EXACT_DICT: Record<string, [string, string, string, string]> = domTranslationsData as unknown as Record<string, [string, string, string, string]>;
 
-const LANG_INDEX: Record<Exclude<LanguageCode, "en">, 0 | 1 | 2> = {
+const LANG_INDEX: Record<Exclude<LanguageCode, "en">, 0 | 1 | 2 | 3> = {
   fr: 0,
   es: 1,
   rw: 2,
+  sw: 3,
 };
 
 // Normalized and reverse dictionaries for seamless multi-directional translation
-const normalizedDict = new Map<string, [string, string, string]>();
-const reverseDict = new Map<string, string>(); // any FR, ES, RW string (lowercase trimmed) -> canonical EN
+const normalizedDict = new Map<string, [string, string, string, string]>();
+const reverseDict = new Map<string, string>(); // any FR, ES, RW, SW string (lowercase trimmed) -> canonical EN
 
 for (const [enKey, trans] of Object.entries(EXACT_DICT)) {
   const normEn = enKey.trim().toLowerCase();
@@ -127,6 +129,7 @@ export function translateDashboardText(raw: string, lang: LanguageCode): string 
     const isDark = m[1].toLowerCase() === "dark";
     if (lang === "fr") return `${leading}Mode ${isDark ? "sombre" : "clair"} actuellement utilisé${trailing}`;
     if (lang === "es") return `${leading}Usando actualmente el modo ${isDark ? "oscuro" : "claro"}${trailing}`;
+    if (lang === "sw") return `${leading}Hivi sasa unatumia hali ya ${isDark ? "giza" : "mwangaza"}${trailing}`;
     return `${leading}Ubu urimo gukoresha uburyo bw'${isDark ? "umwijima" : "urumuri"}${trailing}`;
   }
 
@@ -134,6 +137,7 @@ export function translateDashboardText(raw: string, lang: LanguageCode): string 
   if (m) {
     if (lang === "fr") return `${leading}${m[1]} nouveau${Number(m[1]) > 1 ? "x" : ""}${trailing}`;
     if (lang === "es") return `${leading}${m[1]} nuevo${Number(m[1]) > 1 ? "s" : ""}${trailing}`;
+    if (lang === "sw") return `${leading}${m[1]} mpya${trailing}`;
     return `${leading}${m[1]} bishya${trailing}`;
   }
 
@@ -141,6 +145,7 @@ export function translateDashboardText(raw: string, lang: LanguageCode): string 
   if (m) {
     if (lang === "fr") return `${leading}Paiement requis · ${m[1]}${trailing}`;
     if (lang === "es") return `${leading}Pago requerido · ${m[1]}${trailing}`;
+    if (lang === "sw") return `${leading}Malipo yanahitajika · ${m[1]}${trailing}`;
     return `${leading}Ubwishyu burakenewe · ${m[1]}${trailing}`;
   }
 
@@ -158,6 +163,7 @@ export function translateDashboardText(raw: string, lang: LanguageCode): string 
   if (m) {
     if (lang === "fr") return `${leading}Page ${m[1]} sur ${m[2]}${trailing}`;
     if (lang === "es") return `${leading}Página ${m[1]} de ${m[2]}${trailing}`;
+    if (lang === "sw") return `${leading}Ukurasa wa ${m[1]} kati ya ${m[2]}${trailing}`;
     return `${leading}Urupapuro rwa ${m[1]} kuri ${m[2]}${trailing}`;
   }
 
