@@ -83,9 +83,9 @@ export default function WorkspaceAccessTab() {
             <i className="bi bi-person-workspace text-xl" />
           </span>
           <div>
-            <h2 className="text-lg font-bold text-[var(--ck-text)]">Let another photographer work in your workspace</h2>
+            <h2 className="text-lg font-bold text-[var(--ck-text)]">What they can and cannot do</h2>
             <p className="mt-1 text-sm text-[var(--ck-text-soft)]">
-              They sign in with their own account and switch into your workspace. They can handle bookings, events, opportunities, albums and clients with you, and see your balance and analytics. They cannot withdraw, see transactions or change account settings, and they do not become you.
+              They can handle bookings, events, opportunities, albums and clients with you, and see your balance and analytics. They cannot withdraw, see transactions or change account settings, and they do not become you.
             </p>
           </div>
         </div>
