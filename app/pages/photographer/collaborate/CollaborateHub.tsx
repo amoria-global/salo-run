@@ -1,11 +1,13 @@
 "use client";
 
 /**
- * Collaborate hub. Two sides of one feature:
+ * Collaborate hub. Album collaboration has two sides, and a third tab is separate from it:
  *  - My albums: albums this photographer owns, how many collaborators each
  *    has and how many submitted photos wait for review.
  *  - Joined: albums other photographers invited them to, with how their
  *    own submissions stand.
+ *  - Workspace access: invite a photographer to work inside the whole workspace (not just one album), and answer
+ *    invitations to someone else's. It never exposes the wallet or account settings.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -13,14 +15,15 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Card, EmptyState, PageHeader, Search, Skeleton, Tabs } from '@/app/components/ui';
 import { AlbumCover, JoinWithLinkModal, PersonChip, Stat } from '@/app/components/collab/parts';
+import WorkspaceAccessTab from '@/app/components/workspace/WorkspaceAccessTab';
 import { listJoinedAlbums, listOwnedAlbums, type JoinedAlbum, type OwnedAlbum } from '@/app/lib/APIs/collab';
 
-type TabKey = 'mine' | 'joined';
+type TabKey = 'mine' | 'joined' | 'workspace';
 
 export default function CollaborateHub() {
   const router = useRouter();
   const params = useSearchParams();
-  const [tab, setTab] = useState<TabKey>(params?.get('tab') === 'joined' ? 'joined' : 'mine');
+  const [tab, setTab] = useState<TabKey>(params?.get('tab') === 'joined' ? 'joined' : params?.get('tab') === 'workspace' ? 'workspace' : 'mine');
   const [owned, setOwned] = useState<OwnedAlbum[] | null>(null);
   const [joined, setJoined] = useState<JoinedAlbum[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +45,7 @@ export default function CollaborateHub() {
 
   const switchTab = (key: string) => {
     setTab(key as TabKey);
-    router.replace(`/user/photographer/collaborate${key === 'joined' ? '?tab=joined' : ''}`, { scroll: false });
+    router.replace(`/user/photographer/collaborate${key === 'mine' ? '' : `?tab=${key}`}`, { scroll: false });
   };
 
   const q = query.trim().toLowerCase();
@@ -61,12 +64,14 @@ export default function CollaborateHub() {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
       <PageHeader
         eyebrow="Collaborate"
-        title="Work on albums together"
-        subtitle="Invite fellow photographers to an album. They submit photos, and you choose what goes in."
-        actions={<Button variant="soft" onClick={() => setJoinOpen(true)} iconLeft={<i className="bi bi-box-arrow-in-right" aria-hidden />}>Join with a link</Button>}
+        title={tab === 'workspace' ? 'Work together' : 'Work on albums together'}
+        subtitle={tab === 'workspace'
+          ? 'Invite a photographer to work in your workspace, or answer an invitation to someone else\'s.'
+          : 'Invite fellow photographers to an album. They submit photos, and you choose what goes in.'}
+        actions={tab === 'workspace' ? undefined : <Button variant="soft" onClick={() => setJoinOpen(true)} iconLeft={<i className="bi bi-box-arrow-in-right" aria-hidden />}>Join with a link</Button>}
       />
 
-      {!loading && !error && (
+      {tab !== 'workspace' && !loading && !error && (
         <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-surface)] px-5 py-3.5">
           <Stat value={toReview} label={toReview === 1 ? 'photo to review' : 'photos to review'} tone="accent" />
           <Stat value={collaborators} label={collaborators === 1 ? 'collaborator' : 'collaborators'} />
@@ -79,16 +84,19 @@ export default function CollaborateHub() {
           items={[
             { key: 'mine', label: 'My albums', count: owned?.length },
             { key: 'joined', label: 'Joined', count: joined?.length },
+            { key: 'workspace', label: 'Workspace access' },
           ]}
           active={tab}
           onChange={switchTab}
         />
-        <div className="w-full sm:w-72">
+        {tab !== 'workspace' && <div className="w-full sm:w-72">
           <Search value={query} onChange={(e) => setQuery(e.target.value)} onClear={() => setQuery('')} aria-label="Search albums" placeholder={tab === 'mine' ? 'Search your albums' : 'Search albums or owners'} />
-        </div>
+        </div>}
       </div>
 
-      {error ? (
+      {tab === 'workspace' ? (
+        <WorkspaceAccessTab />
+      ) : error ? (
         <Card>
           <EmptyState
             icon={<i className="bi bi-wifi-off" aria-hidden />}

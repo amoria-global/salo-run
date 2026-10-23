@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import { usePermissions } from "../lib/usePermissions";
+import { useWorkspace } from '../providers/WorkspaceProvider';
+import WorkspaceSwitcher from './workspace/WorkspaceSwitcher';
 import { getLandingUrl } from "@/lib/urls";
 import { getApiUrl } from '@/lib/api';
 import Modal from './ui/Modal';
@@ -105,6 +107,10 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
   ];
 };
 
+// Working in another photographer's workspace: the transaction history, donating, the owner's account settings and
+// collaboration are not part of it (the server refuses them), so the menu does not offer them.
+const SHARED_WORKSPACE_HIDDEN = new Set(['Transactions', 'Donate', 'Collaborate', 'Profile', 'Preferences']);
+
 const roleFromCustomerType = (customerType: string | null | undefined): UserRole | null => {
   const t = (customerType || '').toUpperCase();
   if (t === 'PHOTOGRAPHER' || t === 'VIDEOGRAPHER') return 'photographer';
@@ -136,6 +142,7 @@ export default function Sidebar() {
   // hasAny() reads from the permission set fetched by PermissionProvider.
   // Until that resolves, the set is empty so gated items stay hidden.
   const { hasAny, isOwner } = usePermissions();
+  const { isShared } = useWorkspace();
   const currentUserId = user?.id || '';
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -224,6 +231,7 @@ export default function Sidebar() {
     // their role was seeded with.
     .filter(item => !item.ownerOnly || isOwner)
     .filter(item => !item.requires || hasAny(item.requires))
+    .filter(item => !(isShared && currentRole === 'photographer' && SHARED_WORKSPACE_HIDDEN.has(item.name)))
     .map(item => {
       if (item.name === "Notifications") return { ...item, badge: notificationCount };
       if (item.name === "Inbox") return { ...item, badge: messageCount };
@@ -233,7 +241,8 @@ export default function Sidebar() {
   // Same filters as the main nav for the bottom nav.
   const bottomNavigationItems = getBottomNavigationItems(currentRole)
     .filter(item => !item.ownerOnly || isOwner)
-    .filter(item => !item.requires || hasAny(item.requires));
+    .filter(item => !item.requires || hasAny(item.requires))
+    .filter(item => !(isShared && currentRole === 'photographer' && SHARED_WORKSPACE_HIDDEN.has(item.name)));
 
   const groups = useMemo(() => {
     const map = new Map<string, NavigationItem[]>();
@@ -370,6 +379,8 @@ export default function Sidebar() {
             <i className="bi bi-chevron-double-left" style={{ fontSize: 14 }} />
           </button>
         </div>
+
+        {currentRole === 'photographer' && !isCollapsed && <WorkspaceSwitcher />}
 
         {/* Nav */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 16 }}>
