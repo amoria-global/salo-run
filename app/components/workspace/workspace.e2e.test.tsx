@@ -136,7 +136,7 @@ const only = (phase: string) => (BASE && PHASE === phase ? it : it.skip);
 describe('web client against the real backend', () => {
   only('invite')('the owner invites a photographer through the Workspace access tab', async () => {
     await mountTab();
-    expect(text()).toContain('Let another photographer work in your workspace');
+    expect(text()).toContain('What they can and cannot do');
     await type('ws-email', MEMBER_EMAIL);
     await act(async () => { host.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
     await waitForText(MEMBER_NAME);

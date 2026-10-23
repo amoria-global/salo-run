@@ -85,7 +85,7 @@ afterEach(() => {
 describe('workspace access tab', () => {
   it('explains what an invited photographer can and cannot do', async () => {
     await mount();
-    expect(text()).toContain('Let another photographer work in your workspace');
+    expect(text()).toContain('What they can and cannot do');
     expect(text()).toContain('cannot withdraw, see transactions or change account settings');
     expect(text()).toContain('You have not invited anyone yet');
   });
