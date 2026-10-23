@@ -4,23 +4,30 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * The REAL web client code against a REAL running backend. It does nothing unless the backend's WorkspaceClientsIT
- * starts a server and sets WS_E2E_URL: that test seeds the accounts, runs this file once per phase (alternating with
- * the mobile client, so an invitation sent from one client is answered from the other), then checks the database.
+ * The REAL web client code against the REAL backend pipeline (real security chain, really signed tokens, real
+ * controllers: see the backend's WorkspaceClientsIT). It does nothing unless that test starts the server and sets
+ * WS_E2E_URL: it seeds the accounts, runs this file once per phase (alternating with the mobile client, so an invitation
+ * sent from one client is answered from the other), then checks the database.
  *
  * Real here: the Workspace access tab, the invitation API client, dashboardAuthFetch (token, workspace header, fallback
- * on a refused workspace), and the workspace storage. Faked here: only the transport (node http instead of the
- * browser) and the page chrome around the tab.
+ * on a refused workspace), and the workspace storage. Faked here: only the transport (node http instead of a browser),
+ * the workspace provider (replaced by a minimal one) and the page chrome around the tab. Not a browser run.
  */
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+// Real endpoints on a cold JVM: the first requests can take several seconds.
+vi.setConfig({ testTimeout: 90000 });
 
 const BASE = process.env.WS_E2E_URL;
 const PHASE = process.env.WS_E2E_PHASE ?? '';
 const ME = process.env.WS_E2E_ME_ID ?? '';
+const ME_TOKEN = process.env.WS_E2E_ME_TOKEN ?? '';
+const STRANGER_TOKEN = process.env.WS_E2E_STRANGER_TOKEN ?? '';
+const OWNER_BOOKING_ID = process.env.WS_E2E_OWNER_BOOKING_ID ?? '';
+const OWNER_BOOKING_TITLE = process.env.WS_E2E_OWNER_BOOKING_TITLE ?? '';
+const MEMBER_BOOKING_TITLE = process.env.WS_E2E_MEMBER_BOOKING_TITLE ?? '';
 const OWNER = process.env.WS_E2E_OWNER_ID ?? '';
 const MEMBER_EMAIL = process.env.WS_E2E_MEMBER_EMAIL ?? '';
 const MEMBER_NAME = process.env.WS_E2E_MEMBER_NAME ?? '';
-const STRANGER_ID = process.env.WS_E2E_STRANGER_ID ?? '';
 
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), usePathname: () => '/', useRouter: () => ({ replace() {}, push() {} }) }));
 vi.mock('@/lib/platformConfig', () => ({ getPlatformConfig: async () => ({}) }));
@@ -69,6 +76,18 @@ const call = async (path: string, init?: RequestInit) => {
   return { status: res.status, body: await res.json() };
 };
 
+/** The member's own booking id, read from their personal workspace (no workspace header). */
+async function listMyOwnBookingId(): Promise<string> {
+  const selected = getActiveWorkspaceId();
+  setActiveWorkspaceId(null);
+  try {
+    const r = await call('/photographer/bookings');
+    return r.body.data[0].id as string;
+  } finally {
+    setActiveWorkspaceId(selected);
+  }
+}
+
 let host: HTMLDivElement;
 let root: Root;
 const text = () => host.textContent || '';
@@ -102,7 +121,7 @@ beforeEach(() => {
   (globalThis as { fetch: unknown }).fetch = nodeFetch;
   (window as unknown as { fetch: unknown }).fetch = nodeFetch;
   window.localStorage.clear();
-  window.localStorage.setItem('authToken', 'test:' + ME);
+  window.localStorage.setItem('authToken', ME_TOKEN);
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -140,9 +159,9 @@ describe('web client against the real backend', () => {
     expect(pending.owner.id).toBe(OWNER);
 
     // Someone else's account cannot answer it.
-    window.localStorage.setItem('authToken', 'test:' + STRANGER_ID);
+    window.localStorage.setItem('authToken', STRANGER_TOKEN);
     await expect(answerInvitation(pending.id, true)).rejects.toThrow('Invitation not found');
-    window.localStorage.setItem('authToken', 'test:' + ME);
+    window.localStorage.setItem('authToken', ME_TOKEN);
 
     await mountTab();
     expect(text()).toContain('Invitations for you');
@@ -157,29 +176,41 @@ describe('web client against the real backend', () => {
     await click(byText('Open workspace'));
     expect(getActiveWorkspaceId()).toBe(OWNER);
 
-    // Work calls run as the owner with this photographer kept as the actor.
-    const clients = await call('/photographer/clients');
-    expect(clients.status).toBe(200);
-    expect(clients.body.ranAs).toBe(OWNER);
-    expect(clients.body.actor).toBe(ME);
-    expect(clients.body.data[0].totalSpent).toBe(1250);
-    expect(clients.body.data[0]).not.toHaveProperty('transactions');
-    expect((await call('/photographer/balance')).body.balance).toBe(999);
-    expect((await call('/photographer/bookings/b1/accept', { method: 'POST' })).body.bookingOwner).toBe(OWNER);
+    // Work calls run in the OWNER's workspace: the owner's booking is listed with its amount, the member's own is not.
+    const list = await call('/photographer/bookings');
+    expect(list.status).toBe(200);
+    const listed = JSON.stringify(list.body.data);
+    expect(listed).toContain(OWNER_BOOKING_TITLE);
+    expect(listed).not.toContain(MEMBER_BOOKING_TITLE);
+    expect(listed).toContain('300');
+    // The balance, the wallet summary, analytics and opportunities are available.
+    const balance = await call('/photographer/balance');
+    expect(balance.status).toBe(200);
+    expect(balance.body.data).toHaveProperty('withdrawableBalance');
+    const wallet = await call('/wallet/me');
+    expect(wallet.status).toBe(200);
+    expect(wallet.body.data).toHaveProperty('totalWithdrawn');
+    expect((await call('/photographer/analytics')).status).toBe(200);
+    expect((await call('/photographer/opportunities')).status).toBe(200);
+    // The real booking rules apply: the owner's booking can be accepted, the member's own cannot, from here.
+    const owned = await call('/photographer/bookings');
+    const memberBookingId = (await listMyOwnBookingId());
+    expect((await call(`/photographer/bookings/${memberBookingId}/accept`, { method: 'POST' })).status).toBe(403);
+    const accepted = await call(`/photographer/bookings/${OWNER_BOOKING_ID}/accept`, { method: 'POST' });
+    expect(accepted.status).toBe(200);
+    expect(accepted.body.data.status).toBe('ACCEPTED');
+    expect(owned.status).toBe(200);
 
-    // Withdrawals and transactions are refused by the server, and that does not throw the user out of the workspace.
-    for (const [path, init] of [['/photographer/transactions', undefined], ['/wallet/me/movements', undefined], ['/photographer/withdraw', { method: 'POST' }]] as const) {
+    // Withdrawals and transactions are refused by the real backend, and that does not drop the workspace selection.
+    for (const [path, init] of [['/photographer/transactions', undefined], ['/wallet/me/movements', undefined], ['/photographer/withdraw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"amount":10}' }]] as const) {
       const r = await call(path, init as RequestInit | undefined);
       expect(r.status, path).toBe(403);
-      expect(JSON.stringify(r.body)).not.toContain('t1');
+      expect(r.body.message).toBe('This is not available in a shared workspace');
     }
     expect(getActiveWorkspaceId()).toBe(OWNER);
 
-    // A call about the person themself does not carry the workspace.
-    expect((await call('/customer/profile')).body.ranAs).toBe(ME);
-    // Managing invitations from inside the workspace is not possible: it goes out without the workspace and acts as them.
-    const sent = await listSentInvitations();
-    expect(sent).toEqual([]);
+    // A call about the person themself does not carry the workspace: under the real policy it would be refused if it did.
+    expect(await listSentInvitations()).toEqual([]);
   });
 
   only('revoke')('the owner removes access', async () => {
@@ -192,16 +223,20 @@ describe('web client against the real backend', () => {
     const lost = vi.fn();
     window.addEventListener(WORKSPACE_LOST_EVENT, lost);
     setActiveWorkspaceId(OWNER);
-    const r = await call('/photographer/clients');
+    const r = await call('/photographer/bookings');
     expect(r.status).toBe(403);
     expect(r.body.message).toBe('Workspace access is not available');
-    expect(JSON.stringify(r.body)).not.toContain('Kigali');
+    expect(JSON.stringify(r.body)).not.toContain(OWNER_BOOKING_TITLE);
     expect(getActiveWorkspaceId()).toBeNull();
     expect(lost).toHaveBeenCalledTimes(1);
     window.removeEventListener(WORKSPACE_LOST_EVENT, lost);
 
-    // Their own account and workspace carry on.
-    expect((await call('/photographer/clients')).body.ranAs).toBe(ME);
+    // Their own account and workspace carry on: their own booking, not the owner's.
+    const own = await call('/photographer/bookings');
+    expect(own.status).toBe(200);
+    expect(JSON.stringify(own.body.data)).toContain(MEMBER_BOOKING_TITLE);
+    expect(JSON.stringify(own.body.data)).not.toContain(OWNER_BOOKING_TITLE);
+    expect((await call('/wallet/me')).status).toBe(200);
     expect(await listMyWorkspaces()).toEqual([]);
     const received = await listReceivedInvitations();
     expect(received.map((i) => i.status)).toEqual(['REVOKED']);
