@@ -46,7 +46,7 @@ export default function NotAuthorizedPage() {
         </h1>
         <p style={{ margin: '10px 0 0', fontSize: 14, color: '#6b7280', lineHeight: 1.55 }}>
           {sharedWorkspace
-            ? <>You are working in {active ? <strong>{active.owner.name}</strong> : 'another photographer'}&apos;s workspace. The wallet page, withdrawals, transactions, account settings and notifications stay with its owner. Switch back to your own workspace to use them.</>
+            ? <>You are working in {active ? <strong>{active.owner.name}</strong> : 'another photographer'}&apos;s workspace. Withdrawals, the transaction history, payroll, donating, account settings and managing access stay with its owner. Switch back to your own workspace to use them.</>
             : isOwner
             ? 'You are listed as an organization owner - this looks like a route configuration issue. Please contact support.'
             : <>Your current role <strong>{roleName || '-'}</strong>{organizationName ? <> in <strong>{organizationName}</strong></> : null} doesn&apos;t grant the permission this page requires.</>}
