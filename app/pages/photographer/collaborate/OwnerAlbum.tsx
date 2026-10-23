@@ -11,7 +11,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Avatar, Button, Card, EmptyState, Modal, Skeleton, Tabs } from '@/app/components/ui';
-import { AlbumCover, CopyButton, InviteModal, PersonChip, StatusBadge, daysLeft, timeAgo } from '@/app/components/collab/parts';
+import { AlbumCover, CopyButton, InviteModal, StatusBadge, daysLeft, timeAgo } from '@/app/components/collab/parts';
+import { ContributorList, ProgressSummaryCard } from '@/app/components/collab/ContributorProgress';
+import { contributorProgress, fromContributor, type Contributor } from '@/app/lib/collabProgress';
 import {
   cancelInvite, getOwnedAlbum, removeCollaborator, reviewSubmissions,
   type Collaborator, type Invite, type OwnedAlbumDetail, type Submission,
@@ -28,6 +30,8 @@ export default function OwnerAlbum({ albumId }: { albumId: string }) {
   const [preview, setPreview] = useState<Submission | null>(null);
   const [rejecting, setRejecting] = useState<string[] | null>(null);
   const [removing, setRemoving] = useState<Collaborator | null>(null);
+  // Narrows Review and History to one collaborator, when the owner comes from their progress card.
+  const [contributorId, setContributorId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
 
@@ -42,15 +46,19 @@ export default function OwnerAlbum({ albumId }: { albumId: string }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const pending = useMemo(() => (data?.submissions ?? []).filter((s) => s.status === 'PENDING')
+  const pendingAll = useMemo(() => (data?.submissions ?? []).filter((s) => s.status === 'PENDING')
     .sort((a, b) => (a.submittedAt ?? '').localeCompare(b.submittedAt ?? '')), [data]);
-  const decided = useMemo(() => (data?.submissions ?? []).filter((s) => s.status !== 'PENDING'), [data]);
-
-  const submittedBy = useMemo(() => {
-    const m = new Map<string, number>();
-    (data?.submissions ?? []).forEach((s) => m.set(s.collaborator.id, (m.get(s.collaborator.id) ?? 0) + 1));
-    return m;
-  }, [data]);
+  const decidedAll = useMemo(() => (data?.submissions ?? []).filter((s) => s.status !== 'PENDING'), [data]);
+  // The tab counts stay whole; the lists below them can be narrowed to one person.
+  const pending = useMemo(() => fromContributor(pendingAll, contributorId), [pendingAll, contributorId]);
+  const decided = useMemo(() => fromContributor(decidedAll, contributorId), [decidedAll, contributorId]);
+  const progress = useMemo(
+    () => contributorProgress(data?.collaborators ?? [], data?.submissions ?? [], data?.album.imageCount ?? 0),
+    [data],
+  );
+  const everyone = useMemo(() => [...progress.contributors, ...progress.former], [progress]);
+  const filterName = contributorId ? everyone.find((c) => c.id === contributorId)?.name ?? 'this photographer' : null;
+  const goTo = (key: TabKey, id: string) => { setContributorId(id); setTab(key); setSelected(new Set()); };
 
   const toggle = (id: string) => setSelected((prev) => {
     const next = new Set(prev);
@@ -141,25 +149,40 @@ export default function OwnerAlbum({ albumId }: { albumId: string }) {
       <div className="mb-5">
         <Tabs
           items={[
-            { key: 'review', label: 'Review', count: pending.length },
-            { key: 'people', label: 'Collaborators', count: collaborators.length },
-            { key: 'history', label: 'History', count: decided.length },
+            { key: 'review', label: 'Review', count: pendingAll.length },
+            { key: 'people', label: 'Progress', count: collaborators.length },
+            { key: 'history', label: 'History', count: decidedAll.length },
           ]}
           active={tab}
           onChange={(k) => { setTab(k as TabKey); setSelected(new Set()); }}
         />
       </div>
 
+      {filterName && (tab === 'review' || tab === 'history') && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-[var(--ck-surface-soft)] px-3 py-2 text-sm text-[var(--ck-text)]" data-testid="contributor-filter">
+          <i className="bi bi-funnel" aria-hidden />
+          <span>Showing only photos from <b>{filterName}</b></span>
+          <button type="button" onClick={() => { setContributorId(null); setSelected(new Set()); }}
+            className="ml-auto rounded-full px-2 py-0.5 text-xs font-semibold text-[var(--ck-blue)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85]">
+            Show everyone
+          </button>
+        </div>
+      )}
+
       {tab === 'review' && (
         pending.length === 0 ? (
           <Card>
             <EmptyState
               icon={<i className="bi bi-inbox" aria-hidden />}
-              title="Nothing to review"
-              description={collaborators.length === 0
-                ? 'Invite a photographer. Photos they submit will wait here for your decision.'
-                : 'You are all caught up. New photos from your collaborators will appear here.'}
-              action={collaborators.length === 0 ? <Button onClick={() => setInviteOpen(true)}>Invite photographer</Button> : undefined}
+              title={contributorId ? `Nothing from ${filterName} to review` : 'Nothing to review'}
+              description={contributorId
+                ? 'Everything they sent has been decided.'
+                : collaborators.length === 0
+                  ? 'Invite a photographer. Photos they submit will wait here for your decision.'
+                  : 'You are all caught up. New photos from your collaborators will appear here.'}
+              action={contributorId
+                ? <Button onClick={() => setContributorId(null)}>Show everyone</Button>
+                : collaborators.length === 0 ? <Button onClick={() => setInviteOpen(true)}>Invite photographer</Button> : undefined}
             />
           </Card>
         ) : (
@@ -191,29 +214,20 @@ export default function OwnerAlbum({ albumId }: { albumId: string }) {
 
       {tab === 'people' && (
         <div className="space-y-6">
-          <section aria-labelledby="people-h">
-            <h2 id="people-h" className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--ck-text-soft)]">Collaborators</h2>
-            {collaborators.length === 0 ? (
-              <Card>
-                <EmptyState icon={<i className="bi bi-people" aria-hidden />} title="No collaborators yet"
-                  description="Create an invite link and send it to a photographer you work with."
-                  action={<Button onClick={() => setInviteOpen(true)}>Invite photographer</Button>} />
-              </Card>
-            ) : (
-              <Card padding={0}>
-                <ul className="divide-y divide-[var(--ck-stroke-soft)]">
-                  {collaborators.map((c) => (
-                    <li key={c.membershipId} className="flex items-center gap-3 px-4 py-3">
-                      <div className="min-w-0 flex-1">
-                        <PersonChip person={c} caption={`Joined ${timeAgo(c.joinedAt)} · ${submittedBy.get(c.id) ?? 0} photos submitted`} />
-                      </div>
-                      <Button size="sm" variant="ghost" onClick={() => setRemoving(c)}>Remove</Button>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
-          </section>
+          {collaborators.length === 0 && progress.former.length === 0 ? (
+            <Card>
+              <EmptyState icon={<i className="bi bi-people" aria-hidden />} title="No collaborators yet"
+                description="Create an invite link and send it to a photographer you work with. Once they accept, you can follow their progress here."
+                action={<Button onClick={() => setInviteOpen(true)}>Invite photographer</Button>} />
+            </Card>
+          ) : (
+            <>
+              <ProgressSummaryCard totals={progress.totals} />
+              <ContributorList contributors={progress.contributors} former={progress.former}
+                onReview={(id) => goTo('review', id)} onSeePhotos={(id) => goTo('history', id)}
+                onRemove={(c: Contributor) => { const m = collaborators.find((x) => x.id === c.id); if (m) setRemoving(m); }} />
+            </>
+          )}
 
           <section aria-labelledby="links-h">
             <h2 id="links-h" className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--ck-text-soft)]">Open invite links</h2>
