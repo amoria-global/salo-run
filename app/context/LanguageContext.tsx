@@ -73,6 +73,33 @@ for (const [enKey, trans] of Object.entries(EXACT_DICT)) {
   }
 }
 
+export function getDashboardCanonical(raw: string): { canonical: string; leading: string; suffix: string; trailing: string } | null {
+  if (!raw) return null;
+  const leading = raw.match(/^\s*/)?.[0] ?? "";
+  const trailing = raw.match(/\s*$/)?.[0] ?? "";
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const punctMatch = trimmed.match(/^([^:!?.]+)([:!?.]+)$/);
+  const baseTrimmed = punctMatch ? punctMatch[1].trim() : trimmed;
+  const suffix = punctMatch ? punctMatch[2] : "";
+
+  if (EXACT_DICT[baseTrimmed]) {
+    return { canonical: baseTrimmed, leading, suffix, trailing };
+  }
+  const lower = baseTrimmed.toLowerCase();
+  for (const key of Object.keys(EXACT_DICT)) {
+    if (key.toLowerCase() === lower) {
+      return { canonical: key, leading, suffix, trailing };
+    }
+  }
+  const rev = reverseDict.get(lower);
+  if (rev) {
+    return { canonical: rev, leading, suffix, trailing };
+  }
+  return null;
+}
+
 export function translateDashboardText(raw: string, lang: LanguageCode): string {
   if (!raw) return raw;
   const leading = raw.match(/^\s*/)?.[0] ?? "";
@@ -80,35 +107,14 @@ export function translateDashboardText(raw: string, lang: LanguageCode): string 
   const trimmed = raw.trim();
   if (!trimmed) return raw;
 
-  // Check for trailing punctuation
-  const punctMatch = trimmed.match(/^([^:!?.]+)([:!?.]+)$/);
-  const baseTrimmed = punctMatch ? punctMatch[1].trim() : trimmed;
-  const suffix = punctMatch ? punctMatch[2] : "";
-
-  // 1. Find canonical English representation
-  let enCanonical: string | null = null;
-  if (EXACT_DICT[baseTrimmed]) {
-    enCanonical = baseTrimmed;
-  } else {
-    const lower = baseTrimmed.toLowerCase();
-    for (const key of Object.keys(EXACT_DICT)) {
-      if (key.toLowerCase() === lower) {
-        enCanonical = key;
-        break;
-      }
-    }
-    if (!enCanonical) {
-      enCanonical = reverseDict.get(lower) ?? null;
-    }
-  }
-
-  if (enCanonical) {
+  const info = getDashboardCanonical(raw);
+  if (info) {
     if (lang === "en") {
-      return `${leading}${enCanonical}${suffix}${trailing}`;
+      return `${info.leading}${info.canonical}${info.suffix}${info.trailing}`;
     }
-    const match = EXACT_DICT[enCanonical] || normalizedDict.get(enCanonical.toLowerCase());
+    const match = EXACT_DICT[info.canonical] || normalizedDict.get(info.canonical.toLowerCase());
     if (match) {
-      return `${leading}${match[LANG_INDEX[lang]]}${suffix}${trailing}`;
+      return `${info.leading}${match[LANG_INDEX[lang]]}${info.suffix}${info.trailing}`;
     }
   }
 
@@ -276,9 +282,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
       let orig = origTextMap.get(node);
       if (orig === undefined) {
-        const candidateRw = translateDashboardText(current, "rw");
-        if (candidateRw !== current) {
-          orig = translateDashboardText(current, "en");
+        const info = getDashboardCanonical(current);
+        if (info) {
+          orig = `${info.leading}${info.canonical}${info.suffix}${info.trailing}`;
           origTextMap.set(node, orig);
           trackedNodes.add(node);
         } else {
@@ -286,7 +292,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const nextVal = translateDashboardText(orig, language);
+      const nextVal = language === "en" ? orig : translateDashboardText(orig, language);
       if (node.nodeValue !== nextVal) {
         node.nodeValue = nextVal;
       }
@@ -298,14 +304,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       if (ph && ph.trim()) {
         let orig = origPlaceholderMap.get(el);
         if (orig === undefined) {
-          if (translateDashboardText(ph, "rw") !== ph) {
-            orig = translateDashboardText(ph, "en");
+          const info = getDashboardCanonical(ph);
+          if (info) {
+            orig = `${info.leading}${info.canonical}${info.suffix}${info.trailing}`;
             origPlaceholderMap.set(el, orig);
             trackedEls.add(el);
           }
         }
         if (orig !== undefined) {
-          const nextPh = translateDashboardText(orig, language);
+          const nextPh = language === "en" ? orig : translateDashboardText(orig, language);
           if (el.getAttribute("placeholder") !== nextPh) {
             el.setAttribute("placeholder", nextPh);
           }
