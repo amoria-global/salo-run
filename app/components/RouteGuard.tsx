@@ -4,6 +4,8 @@ import { useEffect, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { usePermissions } from '../lib/usePermissions';
 import { matchRouteRule } from '../lib/routePermissions';
+import { isBlockedInSharedWorkspace } from '../lib/workspace';
+import { useWorkspace } from '../providers/WorkspaceProvider';
 
 /**
  * Central permission gate for dashboard routes.
@@ -30,10 +32,17 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
   const { loading, hasAny, isOwner } = usePermissions();
+  const { isShared } = useWorkspace();
 
   const rule = useMemo(() => matchRouteRule(pathname), [pathname]);
 
   useEffect(() => {
+    // Working in someone else's workspace: money, account and notification pages are not part of it. The server
+    // refuses the matching calls too; this just keeps the user off pages that could only fail.
+    if (isShared && isBlockedInSharedWorkspace(pathname)) {
+      router.replace(`/user/not-authorized?required=workspace&from=${encodeURIComponent(pathname || '/')}`);
+      return;
+    }
     if (loading) return;
     if (!rule) return;
     // ownerOnly rules take precedence: even if the caller's role
@@ -51,7 +60,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     // offer "go back" without losing the original intent.
     const returnTo = pathname || '/';
     router.replace(`/user/not-authorized?required=${encodeURIComponent(rule.any.join(','))}&from=${encodeURIComponent(returnTo)}`);
-  }, [loading, rule, hasAny, isOwner, pathname, router]);
+  }, [loading, rule, hasAny, isOwner, isShared, pathname, router]);
 
   return <>{children}</>;
 }
