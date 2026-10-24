@@ -100,7 +100,7 @@ function Blocked({ icon, title, body }: { icon: string; title: string; body: str
       </div>
       <h1 className="text-lg font-bold text-[var(--ck-text)]">{title}</h1>
       <p className="text-sm text-[var(--ck-text-soft)]">{body}</p>
-      <Link href="/user/photographer/collaborate"><Button variant="soft">Go to Collaborate</Button></Link>
+      <Link href="/user/photographer/collaborate?tab=joined"><Button variant="soft">Go to Collaborate</Button></Link>
     </div>
   );
 }
