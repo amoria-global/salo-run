@@ -195,7 +195,7 @@ export default function WorkspaceAccessTab({ inviteId = null, onInviteHandled }:
             {(sent ?? []).length === 0 ? (
               <Card>
                 <EmptyState icon={<i className="bi bi-send" aria-hidden />} title="You have not invited anyone yet"
-                  description="Find a photographer by their email above. If they have an account they see the invitation in their app. If not, we email them a link to create one." />
+                  description="Find a photographer by their email above. If they have an account they see the invitation in their app and get it by email. If not, we email them a link to create one." />
               </Card>
             ) : (
               <ul className="space-y-3">
@@ -269,7 +269,7 @@ function InviteForm({ onSent }: { onSent: (text: string) => Promise<void> }) {
       setFound(null);
       setEmail('');
       setNote('');
-      await onSent(`Invitation sent to ${name}. They will see it in their app.`);
+      await onSent(`Invitation sent to ${name}. They will see it in their app and by email.`);
     } catch (err) {
       setProblem(err instanceof Error ? err.message : 'Could not send the invitation');
     } finally {
