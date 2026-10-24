@@ -111,6 +111,8 @@ interface EventData {
   eventType: string;
   category: string;
   status: string;
+  /** The owner has published the event, which is what makes its link open for guests. */
+  isPublished: boolean;
   date: string;
   time: string;
   endTime: string;
@@ -404,6 +406,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         completionStatus: data.completionStatus || data.eventCompletionStatus || null,
         createdAt: data.createdAt || '',
         eventVisibility: data.eventVisibility || data.visibility || 'PUBLIC',
+        isPublished: data.isPublished === true,
         hasLiveStream: Boolean(data.hasLiveStream),
         bookingProgress: Array.isArray(data.bookingProgress) ? data.bookingProgress : [],
       };
@@ -1209,7 +1212,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                         <i className="bi bi-broadcast-pin" style={{ fontSize: 13 }} /> Live Stream
                       </button>
                     )}
-                    <button
+                    {/* Shared links only open for a published event, so the button follows the QR button. */}
+                    {event.isPublished && <button
                       onClick={handleShareEvent}
                       style={{
                         padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -1219,7 +1223,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                       }}
                     >
                       <i className="bi bi-share-fill" style={{ fontSize: 13 }} /> Share
-                    </button>
+                    </button>}
                     {event.status.toUpperCase() === 'PUBLISHED' && (
                       <button
                         onClick={() => { setQrJustPublished(false); setQrOpen(true); }}
