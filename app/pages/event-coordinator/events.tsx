@@ -1944,9 +1944,10 @@ const MyEventsPage = () => {
                             <i className="bi bi-broadcast" style={{ fontSize: 13 }} /> Post
                           </button>
                         )}
-                        <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
+                        {/* An unpublished event has no link guests can open, so there is nothing to share yet. */}
+                        {event.isPublished && <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                           <ShareIcon />
-                        </button>
+                        </button>}
                         {isEventEditable(event) && (
                           <>
                           <button onClick={() => setGeoEvent(event)} title="Geo pricing" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
