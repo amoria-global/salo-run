@@ -11,18 +11,28 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Avatar, Badge, Button, Card, EmptyState, Modal, Skeleton } from '@/app/components/ui';
 import {
-  answerInvitation, cancelInvitation, leaveWorkspace, listReceivedInvitations, listSentInvitations,
-  lookupPhotographer, resendInvitation, revokeMembership, sendInvitation,
-  type WorkspaceInvitation, type WorkspacePerson,
+  answerInvitation, cancelInvitation, getInvitePreview, leaveWorkspace, listReceivedInvitations, listSentInvitations,
+  lookupPhotographer, resendInvitation, revokeMembership, sendInvitation, sendInvitationByEmail,
+  type InvitablePerson, type InvitePreview, type WorkspaceInvitation,
 } from '@/app/lib/APIs/workspaces';
-import { inviteeActions, ownerActions, shortDate, sortInvitations, statusView, type OwnerAction } from '@/app/lib/workspaceStatus';
+import {
+  inviteeActions, inviteFocus, ownerActionLabel, ownerActions, ownerMeaning, shortDate, sortInvitations, statusView,
+  type InviteFocus, type OwnerAction,
+} from '@/app/lib/workspaceStatus';
 import { useWorkspace } from '@/app/providers/WorkspaceProvider';
 
 type Notice = { kind: 'ok' | 'error'; text: string } | null;
 type Confirm = { action: OwnerAction | 'leave'; invitation: WorkspaceInvitation } | null;
 
-export default function WorkspaceAccessTab() {
+/**
+ * `inviteId` is the id from an invitation link ("...?tab=workspace&invite=<id>"): the matching invitation is put first,
+ * with a button that accepts it and opens the workspace. `onInviteHandled` is called once it has been answered, so the
+ * page can drop the id from the address.
+ */
+export default function WorkspaceAccessTab({ inviteId = null, onInviteHandled }: { inviteId?: string | null; onInviteHandled?: () => void } = {}) {
   const { switchTo, refresh: refreshWorkspaces } = useWorkspace();
+  // The public preview, asked only when the link's invitation is not one of this account's own.
+  const [preview, setPreview] = useState<InvitePreview | null | undefined>(undefined);
   const [sent, setSent] = useState<WorkspaceInvitation[] | null>(null);
   const [received, setReceived] = useState<WorkspaceInvitation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +54,19 @@ export default function WorkspaceAccessTab() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  const foundInReceived = !!inviteId && !!received && received.some((i) => i.id === inviteId);
+  useEffect(() => {
+    if (!inviteId || received === null || foundInReceived) return;
+    let live = true;
+    getInvitePreview(inviteId).then((p) => { if (live) setPreview(p); });
+    return () => { live = false; };
+  }, [inviteId, received, foundInReceived]);
+
+  const focus: InviteFocus | null = inviteId && received !== null && (foundInReceived || preview !== undefined)
+    ? inviteFocus(received, inviteId, preview ?? null)
+    : null;
+  const focusId = focus && (focus.kind === 'pending' || focus.kind === 'accepted' || focus.kind === 'ended') ? focus.invitation.id : null;
 
   /** Runs one request at a time per row; a second tap on the same button while it runs does nothing. */
   const run = async (key: string, work: () => Promise<unknown>, success: string) => {
@@ -73,19 +96,50 @@ export default function WorkspaceAccessTab() {
   };
 
   const loading = sent === null || received === null;
-  const pendingForMe = (received ?? []).filter((i) => i.status === 'PENDING').length;
+  // The linked invitation has its own card above, so it is not listed a second time.
+  const listed = (received ?? []).filter((i) => i.id !== focusId);
+  const pendingForMe = listed.filter((i) => i.status === 'PENDING').length;
 
   return (
     <div className="space-y-6">
+      {inviteId && !loading && !error && (
+        focus ? (
+          <InviteFocusCard focus={focus} busy={busy}
+            onAcceptAndOpen={async (inv) => {
+              if (working.current) return;
+              working.current = true;
+              setBusy(inv.id + 'accept');
+              setNotice(null);
+              try {
+                await answerInvitation(inv.id, true);
+                onInviteHandled?.();
+                // Switching reloads the page into the owner's workspace, so nothing after this needs to run.
+                await switchTo(inv.owner.id as string);
+              } catch (e) {
+                setNotice({ kind: 'error', text: e instanceof Error ? e.message : 'Something went wrong' });
+                void load();
+              } finally {
+                working.current = false;
+                setBusy(null);
+              }
+            }}
+            onDecline={(inv) => run(inv.id + 'decline', async () => { await answerInvitation(inv.id, false); onInviteHandled?.(); }, 'Invitation declined.')}
+            onOpen={(inv) => { onInviteHandled?.(); void switchTo(inv.owner.id as string); }}
+            onDismiss={() => onInviteHandled?.()} />
+        ) : (
+          <Card padding={16}><Skeleton height={16} width="45%" /></Card>
+        )
+      )}
+
       <Card accent="gradient">
         <div className="flex items-start gap-4">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#083A85]/10 text-[#083A85]" aria-hidden>
             <i className="bi bi-person-workspace text-xl" />
           </span>
           <div>
-            <h2 className="text-lg font-bold text-[var(--ck-text)]">Let another photographer work in your workspace</h2>
+            <h2 className="text-lg font-bold text-[var(--ck-text)]">What they can and cannot do</h2>
             <p className="mt-1 text-sm text-[var(--ck-text-soft)]">
-              They sign in with their own account and switch into your workspace. They can handle bookings, events, opportunities, albums and clients with you, and see your balance and analytics. They cannot withdraw, see transactions or change account settings, and they do not become you.
+              They can handle bookings, events, opportunities, albums and clients with you, and see your balance and analytics. They cannot withdraw, see transactions or change account settings, and they do not become you.
             </p>
           </div>
         </div>
@@ -113,7 +167,7 @@ export default function WorkspaceAccessTab() {
             <section aria-labelledby="ws-for-me">
               <h3 id="ws-for-me" className="mb-3 text-base font-semibold text-[var(--ck-text)]">Invitations for you</h3>
               <ul className="space-y-3">
-                {sortInvitations(received ?? []).filter((i) => i.status === 'PENDING').map((inv) => (
+                {sortInvitations(listed).filter((i) => i.status === 'PENDING').map((inv) => (
                   <ReceivedRow key={inv.id} inv={inv} busy={busy} onAccept={() => run(inv.id + 'accept', () => answerInvitation(inv.id, true), `You joined ${inv.owner.name}'s workspace.`)}
                     onDecline={() => run(inv.id + 'decline', () => answerInvitation(inv.id, false), 'Invitation declined.')}
                     onOpen={() => switchTo(inv.owner.id)} onLeave={() => setConfirm({ action: 'leave', invitation: inv })} />
@@ -122,11 +176,11 @@ export default function WorkspaceAccessTab() {
             </section>
           )}
 
-          {(received ?? []).some((i) => i.status === 'ACCEPTED') && (
+          {listed.some((i) => i.status === 'ACCEPTED') && (
             <section aria-labelledby="ws-joined">
               <h3 id="ws-joined" className="mb-3 text-base font-semibold text-[var(--ck-text)]">Workspaces you can open</h3>
               <ul className="space-y-3">
-                {(received ?? []).filter((i) => i.status === 'ACCEPTED').map((inv) => (
+                {listed.filter((i) => i.status === 'ACCEPTED').map((inv) => (
                   <ReceivedRow key={inv.id} inv={inv} busy={busy} onAccept={() => {}} onDecline={() => {}}
                     onOpen={() => switchTo(inv.owner.id)} onLeave={() => setConfirm({ action: 'leave', invitation: inv })} />
                 ))}
@@ -141,7 +195,7 @@ export default function WorkspaceAccessTab() {
             {(sent ?? []).length === 0 ? (
               <Card>
                 <EmptyState icon={<i className="bi bi-send" aria-hidden />} title="You have not invited anyone yet"
-                  description="Find a photographer by their email above. They will see the invitation in their app." />
+                  description="Find a photographer by their email above. If they have an account they see the invitation in their app. If not, we email them a link to create one." />
               </Card>
             ) : (
               <ul className="space-y-3">
@@ -171,7 +225,7 @@ export default function WorkspaceAccessTab() {
 
 function InviteForm({ onSent }: { onSent: (text: string) => Promise<void> }) {
   const [email, setEmail] = useState('');
-  const [found, setFound] = useState<WorkspacePerson | null>(null);
+  const [found, setFound] = useState<InvitablePerson | null>(null);
   const [note, setNote] = useState('');
   const [looking, setLooking] = useState(false);
   const [sending, setSending] = useState(false);
@@ -201,7 +255,16 @@ function InviteForm({ onSent }: { onSent: (text: string) => Promise<void> }) {
     setSending(true);
     setProblem(null);
     try {
-      await sendInvitation(found.id, note.trim() || undefined);
+      if (found.registered === false) {
+        const address = found.email || email.trim();
+        await sendInvitationByEmail(address, note.trim() || undefined);
+        setFound(null);
+        setEmail('');
+        setNote('');
+        await onSent(`Invitation emailed to ${address}. They will need to create an account with that address first.`);
+        return;
+      }
+      await sendInvitation(found.id as string, note.trim() || undefined);
       const name = found.name;
       setFound(null);
       setEmail('');
@@ -233,19 +296,33 @@ function InviteForm({ onSent }: { onSent: (text: string) => Promise<void> }) {
 
       {found && (
         <div className="mt-4 rounded-xl border border-[var(--ck-stroke)] bg-[var(--ck-surface-muted)] p-4">
-          <div className="flex items-center gap-3">
-            <Avatar src={found.profilePicture} name={found.name} size={40} />
-            <div className="min-w-0">
-              <div className="truncate font-semibold text-[var(--ck-text)]">{found.name}</div>
-              <div className="text-xs text-[var(--ck-text-soft)]">{found.customerType || 'Photographer'}</div>
+          {found.registered === false ? (
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--ck-surface)] text-[var(--ck-text-soft)]" aria-hidden>
+                <i className="bi bi-envelope" />
+              </span>
+              <div className="min-w-0">
+                <div className="truncate font-semibold text-[var(--ck-text)]">{found.email || email.trim()}</div>
+                <div className="text-sm text-[var(--ck-text-soft)]">
+                  No account uses this address yet. We will email them a link. They create a photographer account with this exact address, then accept your invitation.
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Avatar src={found.profilePicture} name={found.name} size={40} />
+              <div className="min-w-0">
+                <div className="truncate font-semibold text-[var(--ck-text)]">{found.name}</div>
+                <div className="text-xs text-[var(--ck-text-soft)]">{found.customerType || 'Photographer'}</div>
+              </div>
+            </div>
+          )}
           <label htmlFor="ws-note" className="mt-3 mb-1 block text-sm font-medium text-[var(--ck-text)]">Add a note (optional)</label>
           <input id="ws-note" type="text" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)}
             placeholder="For example: help me with weddings this season"
             className="w-full rounded-xl border border-[var(--ck-stroke)] bg-[var(--ck-surface)] px-3 py-2.5 text-sm text-[var(--ck-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85]" />
           <div className="mt-3 flex justify-end">
-            <Button onClick={send} loading={sending} disabled={sending}>Send invitation</Button>
+            <Button onClick={send} loading={sending} disabled={sending}>{found.registered === false ? 'Email invitation' : 'Send invitation'}</Button>
           </div>
         </div>
       )}
@@ -254,8 +331,6 @@ function InviteForm({ onSent }: { onSent: (text: string) => Promise<void> }) {
 }
 
 // ─── Rows ────────────────────────────────────────────────────────
-
-const ACTION_LABEL: Record<OwnerAction, string> = { resend: 'Send again', cancel: 'Cancel', revoke: 'Remove access' };
 
 function SentRow({ inv, busy, onAction }: { inv: WorkspaceInvitation; busy: string | null; onAction: (a: OwnerAction) => void }) {
   const v = statusView(inv.status);
@@ -268,16 +343,17 @@ function SentRow({ inv, busy, onAction }: { inv: WorkspaceInvitation; busy: stri
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="truncate font-semibold text-[var(--ck-text)]">{inv.invitee.name}</span>
+              {inv.invitee.registered === false && <Badge tone="info" icon={<i className="bi bi-envelope" aria-hidden />}>No account yet</Badge>}
               <Badge tone={v.tone}>{v.label}</Badge>
             </div>
-            <p className="text-sm text-[var(--ck-text-soft)]">{v.meaning.owner} {when}</p>
+            <p className="text-sm text-[var(--ck-text-soft)]">{ownerMeaning(inv)} {when}</p>
             {inv.note && <p className="mt-1 text-sm italic text-[var(--ck-text-soft)]">&ldquo;{inv.note}&rdquo;</p>}
           </div>
           <div className="flex gap-2">
             {ownerActions(inv.status).map((a) => (
               <Button key={a} size="sm" variant={a === 'resend' ? 'soft' : 'ghost'} loading={busy === inv.id + a} disabled={busy !== null}
-                aria-label={`${ACTION_LABEL[a]}: ${inv.invitee.name}`} onClick={() => onAction(a)}>
-                {ACTION_LABEL[a]}
+                aria-label={`${ownerActionLabel(a, inv)}: ${inv.invitee.name}`} onClick={() => onAction(a)}>
+                {ownerActionLabel(a, inv)}
               </Button>
             ))}
           </div>
@@ -317,6 +393,62 @@ function ReceivedRow({ inv, busy, onAccept, onDecline, onOpen, onLeave }: {
         </div>
       </Card>
     </li>
+  );
+}
+
+// ─── The invitation a link points at ─────────────────────────────
+
+function InviteFocusCard({ focus, busy, onAcceptAndOpen, onDecline, onOpen, onDismiss }: {
+  focus: InviteFocus; busy: string | null;
+  onAcceptAndOpen: (inv: WorkspaceInvitation) => void; onDecline: (inv: WorkspaceInvitation) => void;
+  onOpen: (inv: WorkspaceInvitation) => void; onDismiss: () => void;
+}) {
+  const shell = 'rounded-2xl border-2 p-5';
+  if (focus.kind === 'pending') {
+    const inv = focus.invitation;
+    return (
+      <section aria-label="Your invitation" data-testid="invite-focus" className={`${shell} border-[#083A85] bg-[#083A85]/5`}>
+        <div className="flex items-start gap-4">
+          <Avatar src={inv.owner.profilePicture} name={inv.owner.name} size={48} />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#F20C8F]">Your invitation</p>
+            <h2 className="text-lg font-bold text-[var(--ck-text)]">{inv.owner.name} invited you to work in their workspace</h2>
+            <p className="mt-1 text-sm text-[var(--ck-text-soft)]">
+              You would handle bookings, events, albums and clients with them, and see their balance and analytics. Withdrawals and transactions stay with them, and your own account stays separate.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button loading={busy === inv.id + 'accept'} disabled={busy !== null} onClick={() => onAcceptAndOpen(inv)}>Accept and open workspace</Button>
+              <Button variant="ghost" loading={busy === inv.id + 'decline'} disabled={busy !== null} onClick={() => onDecline(inv)}>Decline</Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+  if (focus.kind === 'accepted') {
+    const inv = focus.invitation;
+    return (
+      <section aria-label="Your invitation" data-testid="invite-focus" className={`${shell} border-emerald-300 bg-emerald-50`}>
+        <h2 className="text-base font-bold text-emerald-800">You already work in {inv.owner.name}&apos;s workspace</h2>
+        <div className="mt-3 flex gap-2">
+          <Button onClick={() => onOpen(inv)}>Open workspace</Button>
+          <Button variant="ghost" onClick={onDismiss}>Dismiss</Button>
+        </div>
+      </section>
+    );
+  }
+  const message = focus.kind === 'ended'
+    ? `This invitation from ${focus.invitation.owner.name} is ${focus.label}. Ask them to send a new one if you still want to work together.`
+    : focus.kind === 'mismatch'
+      ? `This invitation was sent to ${focus.maskedEmail}, which is not the account you are signed in with. Sign out, then sign in or create an account with that address to accept it.`
+      : focus.kind === 'closed'
+        ? 'This invitation is no longer open. It may have been answered, cancelled or expired. Ask the photographer to send a new one.'
+        : 'We could not open this invitation. Check your connection, and that you are signed in with the address it was sent to.';
+  return (
+    <section role="alert" aria-label="Your invitation" data-testid="invite-focus" className={`${shell} border-amber-300 bg-amber-50`}>
+      <p className="text-sm font-medium text-amber-900">{message}</p>
+      <div className="mt-3"><Button variant="ghost" size="sm" onClick={onDismiss}>Dismiss</Button></div>
+    </section>
   );
 }
 

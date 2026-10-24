@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * Collaborate hub. Album collaboration has two sides, and a third tab is separate from it:
- *  - My albums: albums this photographer owns, how many collaborators each
- *    has and how many submitted photos wait for review.
- *  - Joined: albums other photographers invited them to, with how their
- *    own submissions stand.
- *  - Workspace access: invite a photographer to work inside the whole workspace (not just one album), and answer
- *    invitations to someone else's. It never exposes the wallet or account settings.
+ * Collaborate hub. Two different things live here, and the page opens on the first:
+ *  - Workspace access (the default): invite a photographer to work inside the whole workspace, and answer invitations to
+ *    someone else's. Withdrawals and the transaction history stay with the owner.
+ *  - Album collaboration: share one album. It has two sides:
+ *      My albums: albums this photographer owns, how many collaborators each has and how many photos wait for review.
+ *      Joined: albums other photographers invited them to, with how their own submissions stand.
+ * A chooser at the top says which is which; the address says where you are (no parameter or ?tab=workspace for the
+ * workspace, ?tab=mine or ?tab=joined for albums), so links back from an album go to the albums side explicitly.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -16,14 +17,25 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Card, EmptyState, PageHeader, Search, Skeleton, Tabs } from '@/app/components/ui';
 import { AlbumCover, JoinWithLinkModal, PersonChip, Stat } from '@/app/components/collab/parts';
 import WorkspaceAccessTab from '@/app/components/workspace/WorkspaceAccessTab';
+import { CollaborateModeChooser, CrossLink, type CollaborateMode } from '@/app/components/collab/CollaborateModeChooser';
+import { inviteIdFromParam } from '@/app/lib/workspaceStatus';
 import { listJoinedAlbums, listOwnedAlbums, type JoinedAlbum, type OwnedAlbum } from '@/app/lib/APIs/collab';
 
-type TabKey = 'mine' | 'joined' | 'workspace';
+type TabKey = 'mine' | 'joined';
+
+/** The address decides where the page opens: albums only when it names an albums tab, the workspace otherwise. */
+function modeFromParam(tab: string | null | undefined): CollaborateMode {
+  return tab === 'mine' || tab === 'joined' ? 'albums' : 'workspace';
+}
 
 export default function CollaborateHub() {
   const router = useRouter();
   const params = useSearchParams();
-  const [tab, setTab] = useState<TabKey>(params?.get('tab') === 'joined' ? 'joined' : params?.get('tab') === 'workspace' ? 'workspace' : 'mine');
+  // A workspace invitation link ("?tab=workspace&invite=<id>") always opens the workspace side.
+  const inviteParam = inviteIdFromParam(params?.get('invite'));
+  const [inviteId, setInviteId] = useState<string | null>(inviteParam);
+  const [mode, setMode] = useState<CollaborateMode>(inviteParam ? 'workspace' : modeFromParam(params?.get('tab')));
+  const [tab, setTab] = useState<TabKey>(params?.get('tab') === 'joined' ? 'joined' : 'mine');
   const [owned, setOwned] = useState<OwnedAlbum[] | null>(null);
   const [joined, setJoined] = useState<JoinedAlbum[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +57,12 @@ export default function CollaborateHub() {
 
   const switchTab = (key: string) => {
     setTab(key as TabKey);
-    router.replace(`/user/photographer/collaborate${key === 'mine' ? '' : `?tab=${key}`}`, { scroll: false });
+    router.replace(`/user/photographer/collaborate?tab=${key}`, { scroll: false });
+  };
+
+  const switchMode = (next: CollaborateMode) => {
+    setMode(next);
+    router.replace(next === 'workspace' ? '/user/photographer/collaborate' : `/user/photographer/collaborate?tab=${tab}`, { scroll: false });
   };
 
   const q = query.trim().toLowerCase();
@@ -64,14 +81,14 @@ export default function CollaborateHub() {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
       <PageHeader
         eyebrow="Collaborate"
-        title={tab === 'workspace' ? 'Work together' : 'Work on albums together'}
-        subtitle={tab === 'workspace'
-          ? 'Invite a photographer to work in your workspace, or answer an invitation to someone else\'s.'
-          : 'Invite fellow photographers to an album. They submit photos, and you choose what goes in.'}
-        actions={tab === 'workspace' ? undefined : <Button variant="soft" onClick={() => setJoinOpen(true)} iconLeft={<i className="bi bi-box-arrow-in-right" aria-hidden />}>Join with a link</Button>}
+        title="Work together"
+        subtitle="Choose how you want to work with another photographer."
+        actions={mode === 'workspace' ? undefined : <Button variant="soft" onClick={() => setJoinOpen(true)} iconLeft={<i className="bi bi-box-arrow-in-right" aria-hidden />}>Join with a link</Button>}
       />
 
-      {tab !== 'workspace' && !loading && !error && (
+      <CollaborateModeChooser mode={mode} onChange={switchMode} />
+
+      {mode === 'albums' && !loading && !error && (
         <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-[var(--ck-stroke)] bg-[var(--ck-surface)] px-5 py-3.5">
           <Stat value={toReview} label={toReview === 1 ? 'photo to review' : 'photos to review'} tone="accent" />
           <Stat value={collaborators} label={collaborators === 1 ? 'collaborator' : 'collaborators'} />
@@ -79,23 +96,30 @@ export default function CollaborateHub() {
         </div>
       )}
 
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs
-          items={[
-            { key: 'mine', label: 'My albums', count: owned?.length },
-            { key: 'joined', label: 'Joined', count: joined?.length },
-            { key: 'workspace', label: 'Workspace access' },
-          ]}
-          active={tab}
-          onChange={switchTab}
-        />
-        {tab !== 'workspace' && <div className="w-full sm:w-72">
-          <Search value={query} onChange={(e) => setQuery(e.target.value)} onClear={() => setQuery('')} aria-label="Search albums" placeholder={tab === 'mine' ? 'Search your albums' : 'Search albums or owners'} />
-        </div>}
-      </div>
+      {mode === 'albums' && (
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Tabs
+            items={[
+              { key: 'mine', label: 'My albums', count: owned?.length },
+              { key: 'joined', label: 'Joined', count: joined?.length },
+            ]}
+            active={tab}
+            onChange={switchTab}
+          />
+          <div className="w-full sm:w-72">
+            <Search value={query} onChange={(e) => setQuery(e.target.value)} onClear={() => setQuery('')} aria-label="Search albums" placeholder={tab === 'mine' ? 'Search your albums' : 'Search albums or owners'} />
+          </div>
+        </div>
+      )}
 
-      {tab === 'workspace' ? (
-        <WorkspaceAccessTab />
+      {mode === 'workspace' ? (
+        <>
+          <WorkspaceAccessTab inviteId={inviteId} onInviteHandled={() => {
+            setInviteId(null);
+            router.replace('/user/photographer/collaborate', { scroll: false });
+          }} />
+          <CrossLink text="Only need help with one album?" action="Use Album collaboration" onClick={() => switchMode('albums')} />
+        </>
       ) : error ? (
         <Card>
           <EmptyState
@@ -136,6 +160,8 @@ export default function CollaborateHub() {
           {joinedFiltered.map((a) => <JoinedAlbumCard key={a.id} album={a} />)}
         </div>
       )}
+
+      {mode === 'albums' && <CrossLink text="Want someone to work in your whole business?" action="Use Workspace access" onClick={() => switchMode('workspace')} />}
 
       <JoinWithLinkModal isOpen={joinOpen} onClose={() => setJoinOpen(false)} />
     </div>

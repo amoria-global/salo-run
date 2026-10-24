@@ -28,6 +28,7 @@ const MEMBER_BOOKING_TITLE = process.env.WS_E2E_MEMBER_BOOKING_TITLE ?? '';
 const OWNER = process.env.WS_E2E_OWNER_ID ?? '';
 const MEMBER_EMAIL = process.env.WS_E2E_MEMBER_EMAIL ?? '';
 const MEMBER_NAME = process.env.WS_E2E_MEMBER_NAME ?? '';
+const NEWCOMER_EMAIL = process.env.WS_E2E_NEWCOMER_EMAIL ?? '';
 
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), usePathname: () => '/', useRouter: () => ({ replace() {}, push() {} }) }));
 vi.mock('@/lib/platformConfig', () => ({ getPlatformConfig: async () => ({}) }));
@@ -39,7 +40,10 @@ vi.mock('@/app/providers/WorkspaceProvider', async () => {
 
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import WorkspaceAccessTab from './WorkspaceAccessTab';
-import { answerInvitation, listMyWorkspaces, listReceivedInvitations, listSentInvitations, revokeMembership, sendInvitation } from '@/app/lib/APIs/workspaces';
+import {
+  answerInvitation, getInvitePreview, listMyWorkspaces, listReceivedInvitations, listSentInvitations, resendInvitation, revokeMembership,
+  sendInvitation, sendInvitationByEmail,
+} from '@/app/lib/APIs/workspaces';
 import { WORKSPACE_LOST_EVENT, getActiveWorkspaceId, setActiveWorkspaceId } from '@/app/lib/workspace';
 
 /** A fetch over node http: the same wire the browser would use, without a browser. */
@@ -136,7 +140,7 @@ const only = (phase: string) => (BASE && PHASE === phase ? it : it.skip);
 describe('web client against the real backend', () => {
   only('invite')('the owner invites a photographer through the Workspace access tab', async () => {
     await mountTab();
-    expect(text()).toContain('Let another photographer work in your workspace');
+    expect(text()).toContain('What they can and cannot do');
     await type('ws-email', MEMBER_EMAIL);
     await act(async () => { host.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
     await waitForText(MEMBER_NAME);
@@ -150,7 +154,7 @@ describe('web client against the real backend', () => {
     expect(mine.note).toBe('Weddings this season');
     expect(mine.delivery).toBe('in_app');
     // A second invitation to the same photographer is refused by the server, not just hidden by the screen.
-    await expect(sendInvitation(mine.invitee.id)).rejects.toThrow(/already waiting/);
+    await expect(sendInvitation(mine.invitee.id as string)).rejects.toThrow(/already waiting/);
   });
 
   only('accept')('the invited photographer accepts, works in the workspace, and is kept away from withdrawals and transactions', async () => {
@@ -211,6 +215,62 @@ describe('web client against the real backend', () => {
 
     // A call about the person themself does not carry the workspace: under the real policy it would be refused if it did.
     expect(await listSentInvitations()).toEqual([]);
+  });
+
+  only('email-invite')('the owner invites an address with no account by email, through the Workspace access tab', async () => {
+    await mountTab();
+    await type('ws-email', NEWCOMER_EMAIL);
+    await act(async () => { host.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    await waitForText('No account uses this address yet');
+    await click(byText('Email invitation'));
+    await waitForText('Invitation emailed to ' + NEWCOMER_EMAIL);
+
+    const mine = (await listSentInvitations()).find((i) => i.invitee.email === NEWCOMER_EMAIL)!;
+    expect(mine.status).toBe('PENDING');
+    expect(mine.delivery).toBe('email');
+    expect(mine.invitee.registered).toBe(false);
+    expect(mine.invitee.id).toBeNull();
+    // The screen reads it as waiting for an account, with emailing it again as the move.
+    await mountTab();
+    await waitForText('No account yet');
+    await waitForText('Emailed. Waiting for them to create an account and answer.');
+    // The server, not just the screen, refuses a second invitation to the same address and an immediate second email.
+    await expect(sendInvitationByEmail(NEWCOMER_EMAIL)).rejects.toThrow(/already waiting/);
+    await expect(resendInvitation(mine.id)).rejects.toThrow(/just emailed/);
+  });
+
+  only('email-accept')('the person signs up with that address, opens the invitation from its link, accepts, and works in the workspace', async () => {
+    // The invitation is theirs because the address is theirs: it appears for the new account, and only for it.
+    const pending = (await listReceivedInvitations()).find((i) => i.status === 'PENDING')!;
+    expect(pending.owner.id).toBe(OWNER);
+    // What the link's page shows before sign-in: no token needed, and it knows the address now has an account.
+    const preview = await getInvitePreview(pending.id);
+    expect(preview).toMatchObject({ found: true, open: true, email: NEWCOMER_EMAIL, account: 'photographer' });
+    // Someone else's account that was forwarded the link cannot answer it, and sees only the masked address.
+    window.localStorage.setItem('authToken', STRANGER_TOKEN);
+    await expect(answerInvitation(pending.id, true)).rejects.toThrow('Invitation not found');
+    expect((await listReceivedInvitations()).map((i) => i.id)).not.toContain(pending.id);
+    window.localStorage.setItem('authToken', ME_TOKEN);
+
+    // Open it the way the link does: the invitation first, accepted and opened in one step.
+    const handled = vi.fn();
+    await act(async () => { root.render(<WorkspaceAccessTab inviteId={pending.id} onInviteHandled={handled} />); });
+    await waitForText('Your invitation');
+    await click(byText('Accept and open workspace'));
+    for (let i = 0; i < 40 && getActiveWorkspaceId() !== OWNER; i++) await settle();
+    expect(handled).toHaveBeenCalledTimes(1);
+    expect(getActiveWorkspaceId()).toBe(OWNER);
+
+    // Now a member like any other: the owner's booking, accepted for real; money stays with the owner.
+    const listed = JSON.stringify((await call('/photographer/bookings')).body.data);
+    expect(listed).toContain(OWNER_BOOKING_TITLE);
+    expect(listed).not.toContain(MEMBER_BOOKING_TITLE);
+    const accepted = await call(`/photographer/bookings/${OWNER_BOOKING_ID}/accept`, { method: 'POST' });
+    expect(accepted.status).toBe(200);
+    expect(accepted.body.data.status).toBe('ACCEPTED');
+    expect((await call('/photographer/transactions')).status).toBe(403);
+    // The link's page no longer offers a finished invitation.
+    expect(await getInvitePreview(pending.id)).toMatchObject({ found: true, open: false });
   });
 
   only('revoke')('the owner removes access', async () => {

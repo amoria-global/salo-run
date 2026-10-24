@@ -19,18 +19,42 @@ export interface WorkspacePerson {
   profilePicture?: string | null;
 }
 
+/**
+ * The person an invitation is for. Usually an account, but an invitation can go to an address with no account yet:
+ * then `id` is null, `registered` is false and `name` is the address.
+ */
+export interface InvitablePerson extends Omit<WorkspacePerson, 'id'> {
+  id: string | null;
+  /** False when the address has no account yet. Absent on older servers, which means an account. */
+  registered?: boolean;
+  email?: string | null;
+}
+
 export interface WorkspaceInvitation {
   id: string;
   status: InvitationStatus;
   owner: WorkspacePerson;
-  invitee: WorkspacePerson;
+  invitee: InvitablePerson;
   note?: string | null;
   createdAt?: string | null;
   expiresAt?: string | null;
   respondedAt?: string | null;
   endedAt?: string | null;
-  /** How the invitee is told. Always "in_app": nothing is emailed. */
+  /** The address it was sent to. */
+  inviteeEmail?: string | null;
+  /** "email" when it went to an address with no account yet, "in_app" when it went to an account. */
   delivery?: string;
+  emailedAt?: string | null;
+}
+
+/** What the invitation link shows before sign-in: who invited, to which address, and whether it has an account. */
+export interface InvitePreview {
+  found: boolean;
+  open: boolean;
+  status?: string;
+  ownerName?: string;
+  email?: string;
+  account?: 'none' | 'photographer' | 'other';
 }
 
 export interface WorkspaceMembership {
@@ -68,8 +92,9 @@ const json = (method: string, body?: unknown): RequestInit => ({
   body: body === undefined ? undefined : JSON.stringify(body),
 });
 
-export async function lookupPhotographer(email: string): Promise<WorkspacePerson> {
-  const d = await call<{ photographer: WorkspacePerson }>(`/lookup?email=${encodeURIComponent(email.trim())}`);
+/** Finds a photographer by exact email. An address with no account answers with `registered: false` and can be invited by email. */
+export async function lookupPhotographer(email: string): Promise<InvitablePerson> {
+  const d = await call<{ photographer: InvitablePerson }>(`/lookup?allowUnregistered=true&email=${encodeURIComponent(email.trim())}`);
   return d.photographer;
 }
 
@@ -79,6 +104,25 @@ export async function listSentInvitations(): Promise<WorkspaceInvitation[]> {
 
 export async function sendInvitation(inviteeId: string, note?: string): Promise<WorkspaceInvitation> {
   return (await call<{ invitation: WorkspaceInvitation }>('/invitations', json('POST', { inviteeId, note }))).invitation;
+}
+
+/** Invites an address that has no account yet: they are emailed a link and join once they sign up with that address. */
+export async function sendInvitationByEmail(email: string, note?: string): Promise<WorkspaceInvitation> {
+  return (await call<{ invitation: WorkspaceInvitation }>('/invitations', json('POST', { email: email.trim(), note }))).invitation;
+}
+
+/**
+ * The public preview of an invitation link, for a signed-in person who may not be the invited address. Null when it
+ * cannot be read, so the caller falls back to a plain message rather than a broken screen.
+ */
+export async function getInvitePreview(id: string): Promise<InvitePreview | null> {
+  try {
+    const res = await fetch(`${getApiUrl()}/api/remote/public/workspace-invitations/${encodeURIComponent(id)}`);
+    const body = await res.json();
+    return res.ok && body && body.action === 1 ? (body.data as InvitePreview) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function resendInvitation(id: string): Promise<WorkspaceInvitation> {
