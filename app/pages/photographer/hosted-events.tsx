@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { dashboardAuthFetch } from '../../providers/AuthProvider';
 import { useTheme } from '../../context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
-import StreamPreview from '../../components/StreamPreview';
+import HostLivePage from '../../components/live/HostLivePage';
 import {
   bucketOf, createHostedEvent, getEarningsPreview, getEligibility, listHostedEvents, publishHostedEvent,
   runHostFlow, uploadCover, validateHostForm,
@@ -179,8 +179,7 @@ export default function HostedEventsPage() {
       ) : null}
 
       {live ? (
-        <StreamPreview
-          isOpen
+        <HostLivePage
           onClose={() => { setLive(null); loadEvents(); }}
           eventTitle={live.title}
           eventId={live.id}
