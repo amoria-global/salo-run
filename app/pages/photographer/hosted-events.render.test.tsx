@@ -21,8 +21,8 @@ import HostedEventsPage from './hosted-events';
 const res = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response;
 const elig = (o: Record<string, unknown> = {}) => res({ action: 1, data: { enabled: true, canHostFree: true, canHostPaid: false, reason: null, ...o } });
 const events = [
-  { id: 'u1', title: 'Friday set', eventStatus: 'PUBLISHED', eventDate: '2026-11-10' },
-  { id: 'e1', title: 'Old set', eventStatus: 'COMPLETED' },
+  { id: 'u1', title: 'Friday set', eventStatus: 'PUBLISHED', eventDate: '2099-11-10', isPublished: true },
+  { id: 'e1', title: 'Old set', eventStatus: 'COMPLETED', isPublished: true },
 ];
 
 let root: Root;
