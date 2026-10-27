@@ -11,6 +11,8 @@ import StreamGiftOverlay from './StreamGiftOverlay';
 interface StreamPreviewProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Render the preview and its controls inline, without the modal frame, header or backdrop (the host page supplies those). */
+  embedded?: boolean;
   eventTitle: string;
   /** Event id used by the gift/reaction overlay to poll the live chat feed. */
   eventId?: string;
@@ -115,6 +117,7 @@ const WarningIcon = () => (
 export default function StreamPreview({
   isOpen,
   onClose,
+  embedded = false,
   eventTitle,
   eventId,
   whipUrl,
@@ -1565,6 +1568,157 @@ export default function StreamPreview({
   // RENDER
   // ============================================
 
+  const bodyEl = (
+    !hasCredentials && !isEnded ? (
+            /* Phase 1: Get Credentials. single column, no video */
+            <div style={{ padding: '2rem 1.5rem' }}>
+              {renderControlPanel()}
+            </div>
+          ) : (
+            /* Phase 2+: Two-panel layout with video */
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              display: 'flex',
+              gap: '1.25rem',
+              flexWrap: 'wrap' as const,
+            }}>
+              {renderVideoPanel()}
+              {renderControlPanel()}
+            </div>
+          )
+  );
+  const endConfirmEl = (
+    showEndConfirm && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1200,
+          padding: '1rem',
+        }} onClick={() => setShowEndConfirm(false)}>
+          <div style={{
+            position: 'relative',
+            backgroundColor: colors.bgCard,
+            borderRadius: 18,
+            padding: '1.5rem 1.5rem 1.4rem',
+            paddingTop: 'calc(1.5rem + 3px)',
+            maxWidth: 440,
+            width: '95%',
+            boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+            border: `1px solid ${colors.borderPrimary}`,
+          }} onClick={e => e.stopPropagation()}>
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)',
+            }} />
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.9rem' }}>
+              <div style={{
+                width: 60, height: 60, borderRadius: 18,
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 12px 28px rgba(220,38,38,0.40)',
+              }}>
+                <i className="bi bi-stop-circle-fill" style={{ fontSize: 26, color: '#fff' }} />
+              </div>
+            </div>
+            <div style={{ textAlign: 'center', marginBottom: '0.85rem' }}>
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 700, color: '#DC2626',
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: 4,
+              }}>End broadcast</div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                End Stream?
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, margin: '0 auto 0.65rem', textAlign: 'center', maxWidth: 380 }}>
+              This will end the live stream for <strong style={{ color: colors.textPrimary }}>{eventTitle}</strong>. All viewers will be disconnected.
+            </p>
+            <p style={{ fontSize: '0.82rem', color: isDark ? '#FCA5A5' : '#B91C1C', lineHeight: 1.5, margin: '0 0 1.3rem', textAlign: 'center', fontWeight: 600 }}>
+              You can restart the stream later using Reset &amp; Restart.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setShowEndConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 11,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  background: colors.bgTertiary || colors.bgCard,
+                  color: colors.textPrimary,
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEndConfirm}
+                style={{
+                  flex: 1.4,
+                  padding: '0.75rem 1rem',
+                  borderRadius: 11,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                  color: 'white',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
+                  cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  boxShadow: '0 8px 18px rgba(220,38,38,0.32)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(220,38,38,0.38)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(220,38,38,0.32)'; }}
+              >
+                <i className="bi bi-stop-circle-fill" style={{ fontSize: 13 }} />
+                End Stream
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+  );
+
+  // Embedded: the host page already provides the header and the frame, so only the preview, its controls and the
+  // end-stream confirmation are drawn.
+  if (embedded) {
+    return (
+      <>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes twinkle {
+          0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(59,130,246,0.4), 0 0 8px rgba(59,130,246,0.2); }
+          25% { opacity: 0.85; box-shadow: 0 0 8px rgba(59,130,246,0.6), 0 0 16px rgba(59,130,246,0.3); }
+          50% { opacity: 1; box-shadow: 0 0 12px rgba(59,130,246,0.8), 0 0 24px rgba(59,130,246,0.4); }
+          75% { opacity: 0.9; box-shadow: 0 0 6px rgba(59,130,246,0.5), 0 0 12px rgba(59,130,246,0.25); }
+        }
+        @keyframes twinkleDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.6); }
+        }
+        .stream-modal { animation: slideUp 0.3s ease-out; }
+        .stream-modal::-webkit-scrollbar { width: 6px; }
+        .stream-modal::-webkit-scrollbar-track { background: transparent; }
+        .stream-modal::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 3px; }
+      `}</style>
+        {bodyEl}
+        {endConfirmEl}
+      </>
+    );
+  }
+
   return (
     <>
       <style>{`
@@ -1729,126 +1883,12 @@ export default function StreamPreview({
           </div>
 
           {/* Body */}
-          {!hasCredentials && !isEnded ? (
-            /* Phase 1: Get Credentials. single column, no video */
-            <div style={{ padding: '2rem 1.5rem' }}>
-              {renderControlPanel()}
-            </div>
-          ) : (
-            /* Phase 2+: Two-panel layout with video */
-            <div style={{
-              padding: '1.25rem 1.5rem',
-              display: 'flex',
-              gap: '1.25rem',
-              flexWrap: 'wrap' as const,
-            }}>
-              {renderVideoPanel()}
-              {renderControlPanel()}
-            </div>
-          )}
+          {bodyEl}
         </div>
       </div>
 
       {/* End Stream Confirmation Modal */}
-      {showEndConfirm && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.45)',
-          backdropFilter: 'blur(2px)',
-          WebkitBackdropFilter: 'blur(2px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1200,
-          padding: '1rem',
-        }} onClick={() => setShowEndConfirm(false)}>
-          <div style={{
-            position: 'relative',
-            backgroundColor: colors.bgCard,
-            borderRadius: 18,
-            padding: '1.5rem 1.5rem 1.4rem',
-            paddingTop: 'calc(1.5rem + 3px)',
-            maxWidth: 440,
-            width: '95%',
-            boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
-            border: `1px solid ${colors.borderPrimary}`,
-          }} onClick={e => e.stopPropagation()}>
-            <span aria-hidden style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-              background: 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)',
-            }} />
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.9rem' }}>
-              <div style={{
-                width: 60, height: 60, borderRadius: 18,
-                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 12px 28px rgba(220,38,38,0.40)',
-              }}>
-                <i className="bi bi-stop-circle-fill" style={{ fontSize: 26, color: '#fff' }} />
-              </div>
-            </div>
-            <div style={{ textAlign: 'center', marginBottom: '0.85rem' }}>
-              <div style={{
-                fontSize: '0.66rem', fontWeight: 700, color: '#DC2626',
-                letterSpacing: '0.08em', textTransform: 'uppercase',
-                marginBottom: 4,
-              }}>End broadcast</div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
-                End Stream?
-              </h3>
-            </div>
-            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, margin: '0 auto 0.65rem', textAlign: 'center', maxWidth: 380 }}>
-              This will end the live stream for <strong style={{ color: colors.textPrimary }}>{eventTitle}</strong>. All viewers will be disconnected.
-            </p>
-            <p style={{ fontSize: '0.82rem', color: isDark ? '#FCA5A5' : '#B91C1C', lineHeight: 1.5, margin: '0 0 1.3rem', textAlign: 'center', fontWeight: 600 }}>
-              You can restart the stream later using Reset &amp; Restart.
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => setShowEndConfirm(false)}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: 11,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  background: colors.bgTertiary || colors.bgCard,
-                  color: colors.textPrimary,
-                  fontSize: '0.9rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.005em',
-                  cursor: 'pointer',
-                  transition: 'border-color 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleEndConfirm}
-                style={{
-                  flex: 1.4,
-                  padding: '0.75rem 1rem',
-                  borderRadius: 11,
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                  color: 'white',
-                  fontSize: '0.92rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.005em',
-                  cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                  boxShadow: '0 8px 18px rgba(220,38,38,0.32)',
-                  transition: 'transform 0.15s, box-shadow 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(220,38,38,0.38)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(220,38,38,0.32)'; }}
-              >
-                <i className="bi bi-stop-circle-fill" style={{ fontSize: 13 }} />
-                End Stream
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {endConfirmEl}
     </>
   );
 }
