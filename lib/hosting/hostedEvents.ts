@@ -38,11 +38,18 @@ export type HostedEvent = {
   id: string;
   title: string;
   eventDate?: string;
+  startTime?: string;
+  endTime?: string;
   status?: string;
+  streamStatus?: string;
+  /** The publication flag. Unpublished events stay listed for the host with an "Unpublished" badge. */
+  published: boolean;
   streamFee?: number;
 };
 
 export type EarningsPreview = { hostPercent: string; platformPercent: string; hostEarnsPerTicket: number };
+import { getEventStatus, type EventStatus } from '@/lib/events/eventStatus';
+
 export type HostedBucket = 'upcoming' | 'live' | 'ended';
 
 const REASONS: HostingReason[] = ['HOSTING_DISABLED', 'NOT_A_PHOTOGRAPHER', 'KYC_REQUIRED_FOR_PAID'];
@@ -87,6 +94,10 @@ export function mapHostedEvent(r: Raw): HostedEvent {
     id: String(r.id ?? ''),
     title: typeof r.title === 'string' ? r.title : 'Untitled event',
     eventDate: typeof r.eventDate === 'string' ? r.eventDate : undefined,
+    startTime: typeof r.startTime === 'string' ? r.startTime : undefined,
+    endTime: typeof r.endTime === 'string' ? r.endTime : undefined,
+    streamStatus: typeof r.streamStatus === 'string' ? r.streamStatus : undefined,
+    published: r.isPublished === true || r.published === true,
     status: typeof r.eventStatus === 'string' ? r.eventStatus : typeof r.status === 'string' ? r.status : undefined,
     streamFee: Number.isFinite(fee) && fee > 0 ? fee : undefined,
   };
@@ -207,9 +218,35 @@ export function validateHostForm(form: HostForm, hasCover: boolean, today: strin
   return errors;
 }
 
-export function bucketOf(status?: string): HostedBucket {
-  const s = (status ?? '').toUpperCase();
+export function bucketOf(event?: string | HostedEvent, now: number = Date.now()): HostedBucket {
+  if (event && typeof event === 'object') {
+    const s = getEventStatus(event, now);
+    return s === 'LIVE' ? 'live' : s === 'ENDED' ? 'ended' : 'upcoming';
+  }
+  const s = (event ?? '').toUpperCase();
   if (s === 'ONGOING' || s === 'LIVE') return 'live';
   if (s === 'COMPLETED' || s === 'ENDED') return 'ended';
   return 'upcoming';
 }
+
+/** Publish or unpublish, through the endpoints the booked-events page already uses. */
+export async function setEventPublished(apiUrl: string, fetcher: Fetcher, eventId: string, published: boolean): Promise<void> {
+  await envelope(
+    await fetcher(`${apiUrl}/api/remote/customer/events/${encodeURIComponent(eventId)}/${published ? 'publish' : 'unpublish'}`, { method: 'POST' }),
+    published ? 'Could not republish the event.' : 'Could not unpublish the event.',
+  );
+}
+
+/** The server refuses to unpublish a completed event, so ended events are only offered the action once it supports it. */
+export const ENDED_UNPUBLISH_SUPPORTED = false;
+
+export type PublishAction = { kind: 'unpublish' } | { kind: 'republish' } | { kind: 'blocked'; reason: string } | { kind: 'none' };
+
+export function publishActionFor(published: boolean, status: EventStatus, endedSupported = ENDED_UNPUBLISH_SUPPORTED): PublishAction {
+  if (status === 'LIVE') return { kind: 'blocked', reason: 'End the stream first' };
+  if (!published) return endedSupported || status !== 'ENDED' ? { kind: 'republish' } : { kind: 'none' };
+  if (status === 'ENDED' && !endedSupported) return { kind: 'none' };
+  return { kind: 'unpublish' };
+}
+
+export const UNPUBLISH_BODY = 'It will be hidden from Explore and its public link will stop working. Your photos, wishes and data are kept, and you can republish it at any time.';

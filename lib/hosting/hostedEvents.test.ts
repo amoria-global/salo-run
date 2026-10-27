@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  bucketOf, createHostedEvent, getEligibility, listHostedEvents, parseEligibility, runHostFlow, validateHostForm,
+  bucketOf, publishActionFor, createHostedEvent, getEligibility, listHostedEvents, parseEligibility, runHostFlow, validateHostForm,
   type HostDeps, type HostedEventInput,
 } from './hostedEvents';
 
@@ -32,9 +32,9 @@ describe('server answers', () => {
   });
 
   it('lists events from the envelope and drops rows without an id', async () => {
-    const f = vi.fn().mockResolvedValue(json({ action: 1, data: [{ id: 'a', title: 'One', eventStatus: 'ONGOING', streamFee: 5000 }, { title: 'no id' }] }));
+    const f = vi.fn().mockResolvedValue(json({ action: 1, data: [{ id: 'a', title: 'One', eventStatus: 'ONGOING', streamFee: 5000, isPublished: true }, { title: 'no id' }] }));
     const list = await listHostedEvents('https://api', f);
-    expect(list).toEqual([{ id: 'a', title: 'One', eventDate: undefined, status: 'ONGOING', streamFee: 5000 }]);
+    expect(list).toEqual([{ id: 'a', title: 'One', eventDate: undefined, startTime: undefined, endTime: undefined, streamStatus: undefined, published: true, status: 'ONGOING', streamFee: 5000 }]);
   });
 
   it('posts the new event as JSON to the hosted-events route', async () => {
@@ -88,6 +88,20 @@ describe('validateHostForm and bucketOf', () => {
     expect(validateHostForm({ ...ok, startTime: '25:00' }, true, '2026-11-01').startTime).toBeDefined();
     expect(validateHostForm({ ...ok, paid: true, price: '0' }, true, '2026-11-01').price).toBeDefined();
     expect(validateHostForm({ ...ok, paid: true, price: '5000' }, true, '2026-11-01').price).toBeUndefined();
+  });
+  it('puts an event that ended today under ended, never upcoming (the one shared rule)', () => {
+    const ended = { id: 'g', title: 'Gaming Center', published: true, status: 'PUBLISHED', streamStatus: 'ended', eventDate: '2026-10-27', startTime: '18:00' };
+    const now = Date.parse('2026-10-27T12:00:00+02:00');
+    expect(bucketOf(ended, now)).toBe('ended');
+    expect(bucketOf({ ...ended, streamStatus: undefined, eventDate: '2026-10-28' }, now)).toBe('upcoming');
+    expect(bucketOf({ ...ended, streamStatus: 'connected' }, now)).toBe('live');
+  });
+  it('offers publish actions by state: unpublish, republish, blocked while live, nothing for ended', () => {
+    expect(publishActionFor(true, 'UPCOMING')).toEqual({ kind: 'unpublish' });
+    expect(publishActionFor(false, 'UPCOMING')).toEqual({ kind: 'republish' });
+    expect(publishActionFor(true, 'LIVE')).toEqual({ kind: 'blocked', reason: 'End the stream first' });
+    expect(publishActionFor(true, 'ENDED')).toEqual({ kind: 'none' });
+    expect(publishActionFor(false, 'ENDED', true)).toEqual({ kind: 'republish' });
   });
   it('sorts by status', () => {
     expect(bucketOf('ONGOING')).toBe('live');
