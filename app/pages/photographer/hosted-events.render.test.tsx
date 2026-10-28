@@ -92,6 +92,32 @@ describe('HostedEventsPage', () => {
     expect(host.textContent).toContain('List down');
   });
 
+  it('blocks both publish buttons until Wish invites is chosen, shows a linked error, then sends the choice', async () => {
+    serve(elig());
+    await mount();
+    await act(async () => { buttonByText('Host an event')!.click(); });
+    expect(host.textContent).toContain('Wish invites');
+    expect(host.textContent).toContain('Allow viewers to invite friends and family to send message and video wishes?');
+    const radios = () => [...host.querySelectorAll('fieldset input[type="radio"]')] as HTMLInputElement[];
+    expect(radios()).toHaveLength(2);
+    expect(radios().some((r) => r.checked)).toBe(false);
+    const file = new File(['x'], 'c.jpg', { type: 'image/jpeg' });
+    const input = host.querySelector('input[type="file"]') as HTMLInputElement;
+    await act(async () => { Object.defineProperty(input, 'files', { value: [file], configurable: true }); input.dispatchEvent(new Event('change', { bubbles: true })); });
+    const title = host.querySelector('input[placeholder^="e.g. Friday"]') as HTMLInputElement;
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(title, 'Rooftop set'); title.dispatchEvent(new Event('input', { bubbles: true })); });
+    await act(async () => { buttonByText('Publish and go live')!.click(); });
+    await act(async () => { buttonByText('Publish and schedule for later')!.click(); });
+    const alert = host.querySelector('fieldset [role="alert"]')!;
+    expect(alert.textContent).toContain('Choose whether viewers can invite others');
+    expect(host.querySelector('fieldset')!.getAttribute('aria-describedby')).toBe(alert.id);
+    expect(mockFetch.mock.calls.some((c) => (c[1] as RequestInit | undefined)?.method === 'POST')).toBe(false);
+
+    await act(async () => { radios()[1].click(); });
+    expect(host.querySelector('fieldset [role="alert"]')).toBeNull();
+    expect(radios()[1].checked).toBe(true);
+  });
+
   it('locks Paid behind verification and refuses to submit without a cover', async () => {
     serve(elig());
     await mount();
