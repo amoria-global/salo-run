@@ -1,5 +1,7 @@
 "use client";
 
+import { WishInvitesField, focusWishInvitesField } from '../wishes/WishInvitesField';
+import { wishInvitesError } from '@/lib/wishes/wishInvites';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
@@ -75,6 +77,9 @@ export default function HybridEventWizardModal({ isOpen, onClose, onSuccess, exi
   const [city, setCity] = useState('Kigali');
   const [venue, setVenue] = useState('');
   const [notes, setNotes] = useState('');
+  // Wish invites: no default, so the choice is required before step 1 can continue.
+  const [wishInvites, setWishInvites] = useState<boolean | null>(null);
+  const [wishInvitesErr, setWishInvitesErr] = useState<string | null>(null);
 
   // Step 2
   const [photographerType, setPhotographerType] = useState<PhotographerType>('ANY');
@@ -184,6 +189,12 @@ export default function HybridEventWizardModal({ isOpen, onClose, onSuccess, exi
     if (!minutes) return 'Choose a start and end time.';
     if (!city) return 'Choose the city.';
     if (!venue.trim()) return 'Add the venue or address so photographers know where to go.';
+    const missing = wishInvitesError(wishInvites);
+    setWishInvitesErr(missing ?? null);
+    if (missing) {
+      focusWishInvitesField();
+      return missing;
+    }
     return null;
   };
 
@@ -232,6 +243,7 @@ export default function HybridEventWizardModal({ isOpen, onClose, onSuccess, exi
             // least 100 RWF, and the backend refused every post. The backend keeps a
             // posted event off public listings until a photographer is booked.
             eventVisibility: 'PUBLIC',
+            allowWishInvites: wishInvites === true,
           }),
         });
         const body = await res.json().catch(() => null);
@@ -474,6 +486,9 @@ export default function HybridEventWizardModal({ isOpen, onClose, onSuccess, exi
           <FieldLabel htmlFor="hy-venue" required hint="A venue name, street or landmark.">Venue or address</FieldLabel>
           <input id="hy-venue" className="hy-input" style={field} value={venue} maxLength={200} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. Kigali Convention Centre" />
         </div>
+
+        <WishInvitesField value={wishInvites} error={wishInvitesErr} disabled={submitting}
+          onChange={(v) => { setWishInvites(v); setWishInvitesErr(null); setErrorMsg(null); }} />
 
         <div>
           <FieldLabel htmlFor="hy-notes" hint="Optional: shots you want, indoor or outdoor, dress code.">Notes for photographers</FieldLabel>

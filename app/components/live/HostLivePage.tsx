@@ -11,12 +11,13 @@ import React, { useMemo, useState } from 'react';
 import { dashboardAuthFetch } from '../../providers/AuthProvider';
 import StreamPreview from '../StreamPreview';
 import LiveChatPreviewDrawer from '../LiveChatPreviewDrawer';
+import { HostWishInvitesRow } from '../wishes/HostWishInvitesRow';
 import { EventHeader, EventInfo, EventTabs, InviteOthers, LiveSectionsStyles, ModerationQueue, WishVideoDialog, useHostWishes } from './index';
 import { Icon } from './icons';
 import type { LiveTab, Wish } from '@/lib/live/types';
 
 type StreamPreviewProps = React.ComponentProps<typeof StreamPreview>;
-type Props = Omit<StreamPreviewProps, 'embedded' | 'isOpen' | 'eventId'> & { eventId: string };
+type Props = Omit<StreamPreviewProps, 'embedded' | 'isOpen' | 'eventId'> & { eventId: string; /** The saved Wish invites setting; undefined on a server that predates it. */ wishInvites?: boolean };
 
 export default function HostLivePage(props: Props) {
   const { eventId, eventTitle, onClose, connectionStatus, viewerCount = 0, theme } = props;
@@ -100,6 +101,7 @@ export default function HostLivePage(props: Props) {
         </div>
 
         <aside className="lv-side" aria-label="Invitations and wishes">
+          <HostWishInvitesRow eventId={eventId} initial={props.wishInvites} fetcher={fetcher} />
           <InviteOthers eventId={eventId} title={eventTitle} prominent />
           {tab === 'live' ? (
             <ModerationQueue
