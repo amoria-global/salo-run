@@ -25,6 +25,8 @@ import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 import ContentAlbumsTab from './ContentAlbumsTab';
 import LiveChatPreviewDrawer from '../../components/LiveChatPreviewDrawer';
 import PhotographerOpportunitiesView from '../../components/hybrid/PhotographerOpportunitiesView';
+import { AlbumShareCard } from '../../components/albums/AlbumShareCard';
+import { albumShareUrl } from '@/lib/albums/albumShare';
 
 const CURRENCY_FLAG_MAP: Record<string, string> = {
   USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
@@ -555,7 +557,7 @@ const PhotographerEventsPage = () => {
   const [freeExtraCurrencyId, setFreeExtraCurrencyId] = useState('');
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
-  const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number; rejected?: string[] } | null>(null);
+  const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; albumId?: string; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number; rejected?: string[] } | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   // Tracks which album card's Copy Link button just flashed "Copied" —
@@ -604,15 +606,7 @@ const PhotographerEventsPage = () => {
   // Returns null when the album doesn't have the required pieces yet —
   // the card hides the Copy Link button entirely in that case so it
   // never offers a broken link.
-  const buildAlbumLink = (album: Album): string | null => {
-    if (album.isFreeAlbum && album.accessCode) {
-      return `https://connekyt.com/user/find-my-photos?code=${album.accessCode}`;
-    }
-    if (album.inviteCode) {
-      return `https://connekyt.com/user/find-my-photos?code=${album.inviteCode}`;
-    }
-    return null;
-  };
+  const buildAlbumLink = (album: Album): string | null => albumShareUrl(album);
 
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
@@ -1722,6 +1716,7 @@ const PhotographerEventsPage = () => {
     if (isStandalone) {
       setAlbumSuccessModal({
         type: standaloneAlbumType === 'PAID' ? 'paid' : 'free',
+        albumId: backendAlbumId,
         title: albumTitle,
         inviteCode: backendInviteCode || undefined,
         email: standaloneAlbumType === 'FREE' ? freeAlbumEmail : undefined,
@@ -4173,6 +4168,14 @@ const PhotographerEventsPage = () => {
               </div>
             </div>
 
+            {albumSuccessModal.albumId && (
+              <AlbumShareCard
+                albumId={albumSuccessModal.albumId}
+                title={albumSuccessModal.title}
+                album={albumSuccessModal.type === 'free' ? { isFreeAlbum: true, accessCode: albumSuccessModal.accessCode, inviteCode: albumSuccessModal.inviteCode } : { inviteCode: albumSuccessModal.inviteCode }}
+              />
+            )}
+
             {albumSuccessModal.rejected && albumSuccessModal.rejected.length > 0 && (
               <div style={{
                 background: actualTheme === 'dark' ? 'rgba(239,68,68,0.10)' : 'rgba(239,68,68,0.06)',
@@ -4771,27 +4774,9 @@ const PhotographerEventsPage = () => {
                         </button>
                       </div>
                     </div>
-                    <div style={{ marginBottom: '1rem' }}>
-                      <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Find-My-Photos Link</label>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.78rem', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }} />
-                        <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={{
-                          ...smallActionBtn,
-                          padding: '0.6rem 0.95rem', fontSize: '0.82rem',
-                          background: copiedLink ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' : colors.bgCard,
-                          color: copiedLink ? 'white' : colors.textPrimary,
-                          border: copiedLink ? 'none' : `1px solid ${colors.borderPrimary}`,
-                          boxShadow: copiedLink ? '0 4px 10px rgba(16,185,129,0.30)' : 'none',
-                        }}
-                        onMouseEnter={(e) => { if (!copiedLink) e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
-                        onMouseLeave={(e) => { if (!copiedLink) e.currentTarget.style.borderColor = colors.borderPrimary; }}
-                        >
-                          {copiedLink ? <><i className="bi bi-check2" style={{ fontSize: 12 }} /> Copied!</> : <><i className="bi bi-clipboard-fill" style={{ fontSize: 11 }} /> Copy</>}
-                        </button>
-                      </div>
-                    </div>
                   </>
                 )}
+                <AlbumShareCard albumId={selectedAlbum.id} title={selectedAlbum.title} album={selectedAlbum} />
               </>
             ) : (
               <>
@@ -4914,9 +4899,7 @@ const PhotographerEventsPage = () => {
                 {/* Upload Button */}
                 <button onClick={async () => {
                   const updated = { ...selectedAlbum, faceRecognitionEnabled: true };
-                  setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? updated : a));
-                  setSelectedAlbum(updated);
-                  setShowFaceRecognitionModal(false);
+                  let published = false;
                   try {
                     // Publish with pricing. triggers Rekognition face indexing without notifying client
                     const publishBody: Record<string, unknown> = {};
@@ -4924,19 +4907,33 @@ const PhotographerEventsPage = () => {
                       publishBody.pricePerImage = parseFloat(faceAIPrice);
                       publishBody.currencyId = faceAICurrency;
                     }
-                    await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/publish`, {
+                    const pubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/publish`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(publishBody),
                     });
+                    const pubJson = await pubRes.json().catch(() => null);
+                    published = pubRes.ok && pubJson?.action !== 0;
+                    if (!published) {
+                      setShowFaceRecognitionModal(false);
+                      setAlbumSuccessMessage({
+                        status: 'error',
+                        title: 'Could not publish to Find-My-Photos',
+                        description: pubJson?.message || 'The album was not published. Please try again.',
+                      });
+                      setShowAlbumSuccessModal(true);
+                    }
                   } catch (err) {
                     console.error('Failed to enable face recognition on album:', err);
+                    setShowFaceRecognitionModal(false);
+                    setAlbumSuccessMessage({ status: 'error', title: 'Could not publish to Find-My-Photos', description: 'The album was not published. Please try again.' });
+                    setShowAlbumSuccessModal(true);
                   }
-                  setAlbumSuccessMessage({
-                    title: 'Album Uploaded to Find-My-Photos',
-                    description: `"${selectedAlbum.title}" is now live. Share the invite code with event attendees so they can find their photos using face recognition.`,
-                  });
-                  setShowAlbumSuccessModal(true);
+                  if (published) {
+                    // Stay on the modal: it now shows the invite code, the link and the QR to share.
+                    setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? updated : a));
+                    setSelectedAlbum(updated);
+                  }
                 }} disabled={(() => {
                   if (!selectedAlbum.inviteCode) return true;
                   if (selectedAlbum.isStandalone) {
