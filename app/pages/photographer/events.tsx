@@ -9,6 +9,19 @@ import EventQrWizard from '../../components/EventQrWizard';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
+import { EmptyResult, EventRowShell, EventsCalendar, EventsToolbar, GroupedEvents, SectionTabsBar, type CalendarMode, type EventsLayout } from '../../components/events/EventsBrowser';
+import { countsOf, dayFilter, emptyInfo, filterEvents, groupEvents, type DateFilter, type StatusFilter } from '@/lib/events/eventsFilter';
+
+// What the user last chose this session. A fresh visit opens on List, All and Any date, so only the layout and the calendar
+// mode are remembered, and only until the tab is closed.
+const webSession: { layout: EventsLayout; calMode: CalendarMode } = { layout: 'list', calMode: 'month' };
+const SECTION_TABS = [
+  { key: 'events', label: 'Events', icon: 'bi-calendar-event' },
+  { key: 'opportunities', label: 'Opportunities', icon: 'bi-broadcast' },
+  { key: 'albums', label: 'Albums', icon: 'bi-images' },
+  { key: 'photobooks', label: 'Photobooks', icon: 'bi-book' },
+  { key: 'content', label: 'Content', icon: 'bi-newspaper' },
+] as const;
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { usePermissions } from '@/app/lib/usePermissions';
@@ -469,8 +482,26 @@ const PhotographerEventsPage = () => {
       highlightCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [highlightId, events.length]);
-  const [eventFilter, setEventFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
+  const [eventFilter, setEventFilter] = useState<StatusFilter>('all');
   const [eventSearch, setEventSearch] = useState('');
+  const [eventDate, setEventDate] = useState<DateFilter>(null);
+  const [eventsLayout, setEventsLayoutState] = useState<EventsLayout>(webSession.layout);
+  const [calMode, setCalModeState] = useState<CalendarMode>(webSession.calMode);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+  const setEventsLayout = (l: EventsLayout) => {
+    webSession.layout = l;
+    setEventsLayoutState(l);
+    // Back to the list means no date filter at all.
+    if (l === 'list') setEventDate(null);
+  };
+  const setCalMode = (m: CalendarMode) => {
+    webSession.calMode = m;
+    setCalModeState(m);
+  };
   const [selectedEvent, setSelectedEvent] = useState<AssignedEvent | null>(null);
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
   const [showStreamPreview, setShowStreamPreview] = useState(false);
@@ -1941,11 +1972,6 @@ const PhotographerEventsPage = () => {
     return () => window.removeEventListener('keydown', handleBrowseKeyDown);
   }, [handleBrowseKeyDown]);
 
-  const filteredEvents = events.filter(e => {
-    const matchesFilter = eventFilter === 'all' || e.status === eventFilter;
-    const matchesSearch = e.title.toLowerCase().includes(eventSearch.toLowerCase()) || e.clientName.toLowerCase().includes(eventSearch.toLowerCase()) || e.eventType.toLowerCase().includes(eventSearch.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
   const filteredAlbums = albums.filter(a => {
     // Content albums live exclusively in the Content tab - exclude
     // them from the Albums tab so they don't appear in both places.
@@ -1960,22 +1986,26 @@ const PhotographerEventsPage = () => {
     const matchesSearch = a.title.toLowerCase().includes(albumSearch.toLowerCase()) || a.clientName.toLowerCase().includes(albumSearch.toLowerCase()) || a.category.toLowerCase().includes(albumSearch.toLowerCase());
     return matchesFilter && matchesSearch;
   });
-  const completedEvents = events.filter(e => e.status === 'completed');
-  const eventCounts = { all: events.length, upcoming: events.filter(e => e.status === 'upcoming').length, ongoing: events.filter(e => e.status === 'ongoing').length, completed: completedEvents.length };
+  // The shared Events model: statuses from getEventStatus, so the chips, their counts and the rows always agree.
+  const eventItems = events.map((e) => ({
+    id: e.id,
+    title: e.title,
+    clientName: e.clientName,
+    category: e.eventType,
+    eventDate: (e.date || '').slice(0, 10),
+    startTime: e.startTime,
+    endTime: e.endTime,
+    eventStatus: e.status === 'pending' ? 'UPCOMING' : e.status.toUpperCase(),
+    streamStatus: e.streamStatus,
+    hasLiveStream: e.hasLiveStream,
+    src: e,
+  }));
+  const eventFilters = { status: eventFilter, date: eventDate, search: eventSearch };
+  const eventCounts = countsOf(eventItems, { date: eventDate, search: eventSearch }, nowMs);
+  const visibleItems = filterEvents(eventItems, eventFilters, nowMs);
+  const groupedItems = groupEvents(visibleItems, nowMs);
+  const emptyHelp = emptyInfo(eventItems, eventFilters, nowMs);
 
-  const viewToggleBtnStyle = (isActive: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '10px 18px',
-    background: isActive ? 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)' : 'transparent',
-    color: isActive ? '#ffffff' : 'var(--ck-text-soft)',
-    border: 'none', borderRadius: 10,
-    fontSize: '0.88rem', fontWeight: 700, letterSpacing: '-0.005em',
-    cursor: 'pointer',
-    transition: 'background 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease',
-    boxShadow: isActive ? '0 4px 12px rgba(8, 58, 133, 0.30)' : 'none',
-    whiteSpace: 'nowrap',
-    transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
-  });
   const filterBtnStyle = (isActive: boolean): React.CSSProperties => ({
     padding: '8px 16px', borderRadius: 9, border: 'none',
     backgroundColor: isActive ? 'var(--ck-surface)' : 'transparent',
@@ -2019,7 +2049,12 @@ const PhotographerEventsPage = () => {
           <Topbar userRole="photographer" />
           <div className="events-page-main" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
 
-            {/* Page Header + View Toggle */}
+            {/* One bar of equal tabs at the top of the content area */}
+            <div style={{ marginBottom: '1rem', maxWidth: 760 }}>
+              <SectionTabsBar tabs={SECTION_TABS} value={activeTab} onChange={setActiveTab} />
+            </div>
+
+            {/* Page Header */}
             <header className="events-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{
@@ -2039,473 +2074,91 @@ const PhotographerEventsPage = () => {
                 </p>
                 {canHost ? <HostEntryTiles caption={hostedCaption} /> : null}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-                <span style={{
-                  fontSize: '0.65rem', fontWeight: 700, color: 'var(--ck-text-muted)',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                }}>View</span>
-                <div role="tablist" aria-label="Switch view" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  background: 'var(--ck-surface)', border: '1px solid var(--ck-stroke)',
-                  padding: 4, borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                }}>
-                  <button onClick={() => setActiveTab('events')} role="tab" aria-selected={activeTab === 'events'} style={viewToggleBtnStyle(activeTab === 'events')}>
-                    <i className="bi bi-calendar-event" style={{ fontSize: 15 }} /> Events
-                  </button>
-                  <button onClick={() => setActiveTab('opportunities')} role="tab" aria-selected={activeTab === 'opportunities'} style={viewToggleBtnStyle(activeTab === 'opportunities')}>
-                    <i className="bi bi-broadcast" style={{ fontSize: 15 }} /> Opportunities
-                  </button>
-                  <button onClick={() => setActiveTab('albums')} role="tab" aria-selected={activeTab === 'albums'} style={viewToggleBtnStyle(activeTab === 'albums')}>
-                    <i className="bi bi-images" style={{ fontSize: 15 }} /> Albums
-                  </button>
-                  <button onClick={() => setActiveTab('photobooks')} role="tab" aria-selected={activeTab === 'photobooks'} style={viewToggleBtnStyle(activeTab === 'photobooks')}>
-                    <i className="bi bi-book" style={{ fontSize: 15 }} /> Photobooks
-                  </button>
-                  <button onClick={() => setActiveTab('content')} role="tab" aria-selected={activeTab === 'content'} style={viewToggleBtnStyle(activeTab === 'content')}>
-                    <i className="bi bi-newspaper" style={{ fontSize: 15 }} /> Content
-                  </button>
-                </div>
-              </div>
             </header>
 
             {/* ==================== EVENTS TAB ==================== */}
             {activeTab === 'events' && (
               <>
-                {/* Stat Cards */}
-                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginBottom: '1.25rem' }}>
-                  {([
-                    { label: 'Total Events', value: eventCounts.all, accent: '#083A85', icon: 'bi-calendar3', tint: 'rgba(8,58,133,0.10)' },
-                    { label: 'Upcoming', value: eventCounts.upcoming, accent: '#F59E0B', icon: 'bi-hourglass-split', tint: 'rgba(245,158,11,0.12)' },
-                    { label: 'Ongoing', value: eventCounts.ongoing, accent: '#3B82F6', icon: 'bi-broadcast-pin', tint: 'rgba(59,130,246,0.12)' },
-                    { label: 'Completed', value: eventCounts.completed, accent: '#10B981', icon: 'bi-check2-circle', tint: 'rgba(16,185,129,0.12)' },
-                  ] as const).map(stat => (
-                    <div
-                      key={stat.label}
-                      className="ck-card"
-                      style={{ position: 'relative', overflow: 'hidden', padding: '14px 16px 16px' }}
-                    >
-                      <span aria-hidden style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                        background: `linear-gradient(90deg, ${stat.accent} 0%, #F20C8F 130%)`,
-                      }} />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                          width: 38, height: 38, borderRadius: 10,
-                          background: stat.tint,
-                          border: `1px solid ${stat.accent}33`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <i className={`bi ${stat.icon}`} style={{ fontSize: 16, color: stat.accent }} />
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginBottom: 2, fontWeight: 600 }}>{stat.label}</div>
-                          <div style={{ fontSize: '1.45rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>{stat.value}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div style={{ display: 'grid', gap: 14, marginBottom: '1.25rem' }}>
+                  <EventsToolbar
+                    counts={eventCounts}
+                    status={eventFilter}
+                    onStatus={setEventFilter}
+                    date={eventDate}
+                    onClearDate={() => setEventDate(null)}
+                    onPickDate={() => setEventsLayout('calendar')}
+                    layout={eventsLayout}
+                    onLayout={setEventsLayout}
+                    search={eventSearch}
+                    onSearch={setEventSearch}
+                  />
+                  {eventsLayout === 'calendar' ? <EventsCalendar events={eventItems} date={eventDate} onSelect={setEventDate} mode={calMode} onMode={setCalMode} /> : null}
                 </div>
 
-                {/* Filters + Search */}
-                <div className="events-page-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-                  <div className="ck-tabs">
-                    {(['all', 'upcoming', 'ongoing', 'completed'] as const).map(f => (
-                      <button key={f} onClick={() => setEventFilter(f)} className={`ck-tab ${eventFilter === f ? 'is-active' : ''}`}>
-                        <span>{f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}</span>
-                        <span style={{
-                          marginLeft: 6,
-                          backgroundColor: eventFilter === f ? 'rgba(255,255,255,0.22)' : 'rgba(8,58,133,0.10)',
-                          color: eventFilter === f ? '#fff' : '#083A85',
-                          padding: '0.06rem 0.42rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                        }}>
-                          {eventCounts[f]}
-                        </span>
-                      </button>
-                    ))}
+                {events.length === 0 ? (
+                  <div role="status" style={{ textAlign: 'center', padding: '28px 12px', color: colors.textSecondary }}>
+                    <strong style={{ display: 'block', color: colors.textPrimary, fontSize: '1.05rem' }}>No events found</strong>
+                    Events you’re assigned to will appear here.
                   </div>
-                  <div className="ck-search" style={{ marginLeft: 'auto', minWidth: 240, maxWidth: 320 }}>
-                    <i className="bi bi-search" />
-                    <input placeholder="Search events…" value={eventSearch} onChange={e => setEventSearch(e.target.value)} />
-                  </div>
-                </div>
-
-                {/* Event Cards Grid */}
-                <div className="events-page-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem' }}>
-                  {filteredEvents.map(event => {
-                    const badge = getStatusBadge(event.status);
-                    const streamCfg = event.hasLiveStream ? streamConfigs[event.id] : null;
-                    const isLive = streamCfg?.connectionStatus === 'connected';
-                    const isHighlighted = highlightId != null && String(event.id) === highlightId;
-                    return (
-                      /* Outer glow wrapper. blurred image border */
-                      <div
-                        key={event.id}
-                        ref={isHighlighted ? highlightCardRef : null}
-                        className={isHighlighted ? 'notif-highlight-pop' : undefined}
-                        style={{ position: 'relative', height: '450px', borderRadius: '1.25rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                      >
-                        <img src={event.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                        {/* Inner card. clickable to open details */}
-                        <div
-                          onClick={() => { setSelectedEvent(event); setShowEventDetailModal(true); }}
-                          style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
-                        >
-                          {/* Full-bleed cover image */}
-                          <img src={event.coverImage || '/coverr.jpg'} alt={event.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                          {/* Gradient overlay */}
-                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
-
-                          {/* TOP: date badge + status badge + live badge */}
-                          <div style={{ position: 'absolute', top: '0.7rem', left: '0.7rem', right: '0.7rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
-                            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                              <div style={{
-                                background: 'rgba(0,0,0,0.55)',
-                                backdropFilter: 'blur(8px)',
-                                WebkitBackdropFilter: 'blur(8px)',
-                                color: 'white',
-                                padding: '0.28rem 0.7rem',
-                                borderRadius: 9999,
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                letterSpacing: '0.02em',
-                                display: 'inline-flex', alignItems: 'center', gap: 5,
-                                border: '1px solid rgba(255,255,255,0.18)',
-                              }}>
-                                <i className="bi bi-calendar3" style={{ fontSize: 10 }} />
-                                {formatDate(event.date)}
-                              </div>
-                              <div style={{
-                                backgroundColor: badge.bg, color: badge.color,
-                                padding: '0.28rem 0.65rem',
-                                borderRadius: 9999,
-                                fontSize: '0.65rem',
-                                fontWeight: 700,
-                                letterSpacing: '0.06em',
-                                textTransform: 'uppercase',
-                                border: '1px solid rgba(255,255,255,0.25)',
-                                boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-                              }}>{badge.label}</div>
-                            </div>
-                            {event.hasLiveStream && event.status !== 'completed' && (
-                              <div style={{
-                                background: isLive
-                                  ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
-                                  : 'rgba(0,0,0,0.55)',
-                                backdropFilter: 'blur(8px)',
-                                WebkitBackdropFilter: 'blur(8px)',
-                                color: 'white',
-                                padding: '0.28rem 0.65rem',
-                                borderRadius: 9999,
-                                fontSize: '0.65rem',
-                                fontWeight: 800,
-                                letterSpacing: '0.06em',
-                                textTransform: 'uppercase',
-                                display: 'inline-flex', alignItems: 'center', gap: 5,
-                                animation: isLive ? 'pulse 2s infinite' : 'none',
-                                border: '1px solid rgba(255,255,255,0.25)',
-                                boxShadow: isLive ? '0 4px 12px rgba(220,38,38,0.40)' : '0 4px 10px rgba(0,0,0,0.20)',
-                              }}>
-                                {isLive && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff' }} />}
-                                <i className="bi bi-broadcast-pin" style={{ fontSize: 10 }} /> {isLive ? 'LIVE' : 'Stream'}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Viewer count for live */}
-                          {isLive && streamCfg && event.status !== 'completed' && (
-                            <div style={{ position: 'absolute', top: '2.5rem', right: '0.6rem', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '2rem', fontSize: '0.65rem', fontWeight: 600, pointerEvents: 'none' }}>{streamCfg.viewerCount.toLocaleString()} viewers</div>
-                          )}
-
-                          {/* Live-chat preview trigger - sits under the
-                              viewer count chip on a LIVE card so the
-                              photographer can read what viewers are
-                              saying without opening the public watch
-                              URL. Read-only; replies still go through
-                              the viewer side. */}
-                          {isLive && event.status !== 'completed' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setChatPreview({ id: event.id, title: event.title });
-                              }}
-                              title="View live chat"
-                              style={{
-                                position: 'absolute',
-                                top: '4.5rem',
-                                right: '0.6rem',
-                                backgroundColor: 'rgba(8, 58, 133, 0.85)',
-                                backdropFilter: 'blur(6px)',
-                                border: '1px solid rgba(255,255,255,0.25)',
-                                color: '#fff',
-                                padding: '0.2rem 0.6rem',
-                                borderRadius: '2rem',
-                                fontSize: '0.65rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                boxShadow: '0 4px 10px rgba(0,0,0,0.30)',
-                              }}
-                            >
-                              <i className="bi bi-chat-square-text-fill" style={{ fontSize: 10 }} />
-                              Chat
-                            </button>
-                          )}
-
-                          {/* MIDDLE-BOTTOM: title + location over image */}
-                          <div style={{ position: 'absolute', bottom: '6.2rem', left: 0, right: 0, padding: '0 0.8rem' }}>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.25rem', marginTop: '-0.5rem' }}>
-                              {event.title}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z" stroke="rgba(255,255,255,0.85)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                                <circle cx="12" cy="10" r="3" stroke="rgba(255,255,255,0.85)" strokeWidth="3"/>
-                              </svg>
-                              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[event.location.city, event.location.country].filter(Boolean).join(', ') || event.location.address || 'No location'}</span>
-                            </div>
-                          </div>
-
-                          {/* FOOTER BAR: frosted glass */}
-                          <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
-                            {/* Client avatar + name + time */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
-                                {event.clientImage ? (
-                                  <img src={event.clientImage} alt={event.clientName} style={{ width: 34, height: 34, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.45)', objectFit: 'cover', flexShrink: 0, boxShadow: '0 3px 8px rgba(0,0,0,0.30)' }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
-                                ) : null}
-                                <div style={{
-                                  width: 34, height: 34, borderRadius: '50%',
-                                  padding: 2,
-                                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                                  display: event.clientImage ? 'none' : 'flex',
-                                  alignItems: 'center', justifyContent: 'center',
-                                  flexShrink: 0,
-                                  boxShadow: '0 4px 10px rgba(8,58,133,0.36), 0 0 0 1px rgba(255,255,255,0.18)',
-                                }}>
-                                  <div style={{
-                                    width: '100%', height: '100%', borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #0a4da8 0%, #DB0A7F 100%)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: '#fff',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 800,
-                                    letterSpacing: '-0.01em',
-                                    textShadow: '0 1px 2px rgba(0,0,0,0.30)',
-                                    boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.18)',
-                                  }}>
-                                    {event.clientName.charAt(0).toUpperCase()}
-                                  </div>
-                                </div>
-                                <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.clientName}</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'rgba(255,255,255,0.12)', padding: '0.2rem 0.6rem', borderRadius: '2rem', fontSize: '0.67rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600, flexShrink: 0 }}>
-                                <ClockIcon /> {formatTime(event.startTime)}
-                              </div>
-                            </div>
-                            {/* Action buttons */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
-                              {event.bookingStatus?.toUpperCase() === 'PENDING' ? (
-                                <>
-                                  <button onClick={() => openBookingAction(event, 'accept')} style={{
-                                    flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                    padding: '0.42rem 0', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                    color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                    boxShadow: '0 4px 10px rgba(16,185,129,0.32)',
-                                    transition: 'transform 0.15s',
-                                  }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                  >
-                                    <i className="bi bi-check2-circle" style={{ fontSize: 12 }} /> Accept
-                                  </button>
-                                  <button onClick={() => openBookingAction(event, 'decline')} style={{
-                                    flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                    padding: '0.42rem 0', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                                    color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                    boxShadow: '0 4px 10px rgba(220,38,38,0.30)',
-                                    transition: 'transform 0.15s',
-                                  }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                  >
-                                    <i className="bi bi-x-circle-fill" style={{ fontSize: 12 }} /> Deny
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  {event.isPublished && event.bookingStatus?.toUpperCase() === 'ACCEPTED' && (
-                                    <button
-                                      onClick={() => setQrEvent({ id: event.id, title: event.title })}
-                                      style={{
-                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                        padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                        background: 'transparent', color: 'inherit', border: '1px solid currentColor',
-                                        borderRadius: 9, cursor: 'pointer',
-                                      }}
-                                    >
-                                      <i className="bi bi-qr-code" style={{ fontSize: 11 }} /> QR code
-                                    </button>
-                                  )}
-                                  {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
-                                    <button onClick={() => {
-                                      setSelectedEvent(event);
-                                      if (!event.isPublished) {
-                                        setShowUnpublishedModal(true);
-                                      } else {
-                                        setShowStreamPreview(true);
-                                      }
-                                    }} style={{
-                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: isLive
-                                        ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
-                                        : 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-                                      color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                      boxShadow: isLive ? '0 4px 10px rgba(220,38,38,0.36)' : '0 4px 10px rgba(139,92,246,0.32)',
-                                      animation: isLive ? 'pulse 2s infinite' : 'none',
-                                      transition: 'transform 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                    >
-                                      <i className="bi bi-broadcast-pin" style={{ fontSize: 11 }} /> {isLive ? 'LIVE' : 'Live Stream'}
-                                    </button>
-                                  )}
-                                  {/* Create Album requires events.create - owner always passes; restricted team member without the perm sees the event but no create CTA. */}
-                                  {canCreateEvents && (event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
-                                    <button onClick={() => {
-                                      if (!event.isPublished) {
-                                        setSelectedEvent(event);
-                                        setShowUnpublishedModal(true);
-                                      } else {
-                                        handleOpenCreateAlbum(event.id);
-                                      }
-                                    }} style={{
-                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                                      color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                      boxShadow: '0 4px 10px rgba(8,58,133,0.32)',
-                                      transition: 'transform 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                    >
-                                      <i className="bi bi-plus-circle-fill" style={{ fontSize: 11 }} /> Create Album
-                                    </button>
-                                  )}
-                                  {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && !canCreateAlbumForEvent(event.id) && eventHasAlbum(event.id).sent && (
-                                    <div style={{
-                                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                      color: 'white', borderRadius: 9,
-                                      boxShadow: '0 4px 10px rgba(16,185,129,0.30)',
-                                    }}>
-                                      <i className="bi bi-send-check-fill" style={{ fontSize: 11 }} /> Album Sent
-                                    </div>
-                                  )}
-                                  {event.hasLiveStream && event.status === 'ongoing' && (
-                                    <button onClick={() => setMarkCompleteTarget(event)} style={{
-                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                      color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                      boxShadow: '0 4px 10px rgba(16,185,129,0.30)',
-                                      transition: 'transform 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                    >
-                                      <i className="bi bi-check2-all" style={{ fontSize: 12 }} /> Complete
-                                    </button>
-                                  )}
-                                  {event.bookingStatus?.toUpperCase() === 'ACCEPTED' && (
-                                    <div style={{
-                                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', borderRadius: 9,
-                                      fontSize: '0.7rem', color: 'white', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                      boxShadow: '0 4px 10px rgba(16,185,129,0.28)',
-                                    }}>
-                                      <i className="bi bi-check2-circle" style={{ fontSize: 11 }} /> Accepted
-                                    </div>
-                                  )}
-                                  {canDismissEvent(event) && (
-                                    <button onClick={() => { setEventToDismiss(event); setShowDismissEventModal(true); }} title="Dismiss Event" style={{
-                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                      padding: '0.42rem 0.55rem',
-                                      background: 'rgba(220,38,38,0.85)',
-                                      backdropFilter: 'blur(6px)',
-                                      color: 'white', border: '1px solid rgba(255,255,255,0.18)',
-                                      borderRadius: 9, cursor: 'pointer',
-                                      transition: 'transform 0.15s, background 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(220,38,38,0.85)'; }}
-                                    >
-                                      <i className="bi bi-trash3-fill" style={{ fontSize: 11 }} />
-                                    </button>
-                                  )}
-                                  <div style={{
-                                    marginLeft: 'auto',
-                                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                                    background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                                    padding: '0.42rem 0.7rem', borderRadius: 9,
-                                    fontSize: '0.7rem', color: 'white', fontWeight: 700, letterSpacing: '-0.005em',
-                                    flexShrink: 0,
-                                    boxShadow: '0 4px 10px rgba(8,58,133,0.30)',
-                                  }}>
-                                    <i className="bi bi-box-seam-fill" style={{ fontSize: 11 }} /> {event.packageName}
-                                  </div>
-                                </>
+                ) : visibleItems.length === 0 ? (
+                  <EmptyResult
+                    info={emptyHelp}
+                    canShowAll={!!eventDate || eventFilter !== 'all' || !!eventSearch}
+                    showAllLabel={eventDate ? 'Show all dates' : 'Show all events'}
+                    onShowAll={() => { if (eventDate) setEventDate(null); else { setEventFilter('all'); setEventSearch(''); } }}
+                    onJump={() => emptyHelp.nextDay && setEventDate(dayFilter(emptyHelp.nextDay))}
+                  />
+                ) : (
+                  <GroupedEvents
+                    groups={groupedItems}
+                    renderRow={(item, st) => {
+                      const event = item.src;
+                      const streamCfg = event.hasLiveStream ? streamConfigs[event.id] : null;
+                      const isLive = streamCfg?.connectionStatus === 'connected';
+                      const pending = event.bookingStatus?.toUpperCase() === 'PENDING';
+                      const small: React.CSSProperties = { minHeight: 36, padding: '0 12px', borderRadius: 9, border: '1px solid currentColor', background: 'transparent', cursor: 'pointer', font: 'inherit', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5, color: colors.textPrimary };
+                      const wd = event.date ? new Date(event.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short' }) : '';
+                      const meta = [wd, event.startTime ? formatTime(event.startTime) : '', event.location.address || event.location.city].filter(Boolean).join(' · ');
+                      return (
+                        <EventRowShell
+                          key={event.id}
+                          day={item.eventDate || null}
+                          title={event.title}
+                          meta={meta}
+                          status={st}
+                          pending={pending}
+                          onOpen={() => { setSelectedEvent(event); setShowEventDetailModal(true); }}
+                          actions={pending ? (
+                            <>
+                              <button type="button" onClick={() => openBookingAction(event, 'accept')} style={{ ...small, color: '#10B981' }}><i className="bi bi-check2-circle" aria-hidden="true" /> Accept</button>
+                              <button type="button" onClick={() => openBookingAction(event, 'decline')} style={{ ...small, color: '#EF4444' }}><i className="bi bi-x-circle-fill" aria-hidden="true" /> Deny</button>
+                            </>
+                          ) : (
+                            <>
+                              {event.isPublished && event.bookingStatus?.toUpperCase() === 'ACCEPTED' && (
+                                <button type="button" onClick={() => setQrEvent({ id: event.id, title: event.title })} style={small}><i className="bi bi-qr-code" aria-hidden="true" /> QR code</button>
                               )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {filteredEvents.length === 0 && (
-                  <div className="ck-empty" style={{
-                    background: colors.bgCard,
-                    border: `1px solid ${colors.borderPrimary}`,
-                    borderRadius: 16,
-                    padding: '3.5rem 1.5rem',
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 12,
-                  }}>
-                    <div style={{
-                      width: 64, height: 64, borderRadius: 18,
-                      background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.10) 100%)',
-                      border: '1px solid var(--ck-stroke)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <i className="bi bi-calendar3" style={{ fontSize: 26, color: '#083A85' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>No events found</div>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: colors.textSecondary }}>
-                        {eventFilter === 'all' ? 'Events you’re assigned to will appear here.' : `Try a different filter or search term.`}
-                      </p>
-                    </div>
-                  </div>
+                              {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
+                                <button type="button" onClick={() => { setSelectedEvent(event); if (!event.isPublished) setShowUnpublishedModal(true); else setShowStreamPreview(true); }} style={{ ...small, color: isLive ? '#EF4444' : '#A78BFA' }}><i className="bi bi-broadcast-pin" aria-hidden="true" /> {isLive ? 'LIVE' : 'Live Stream'}</button>
+                              )}
+                              {canCreateEvents && (event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
+                                <button type="button" onClick={() => { if (!event.isPublished) { setSelectedEvent(event); setShowUnpublishedModal(true); } else handleOpenCreateAlbum(event.id); }} style={{ ...small, color: '#7fa8ff' }}><i className="bi bi-plus-circle-fill" aria-hidden="true" /> Create Album</button>
+                              )}
+                              {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && !canCreateAlbumForEvent(event.id) && eventHasAlbum(event.id).sent && (
+                                <span style={{ ...small, cursor: 'default', color: '#10B981' }}><i className="bi bi-send-check-fill" aria-hidden="true" /> Album Sent</span>
+                              )}
+                              {event.hasLiveStream && event.status === 'ongoing' && (
+                                <button type="button" onClick={() => setMarkCompleteTarget(event)} style={small}><i className="bi bi-check2-all" aria-hidden="true" /> Mark complete</button>
+                              )}
+                              {canDismissEvent(event) && (
+                                <button type="button" title="Dismiss Event" aria-label={'Dismiss ' + event.title} onClick={() => { setEventToDismiss(event); setShowDismissEventModal(true); }} style={{ ...small, color: colors.textSecondary }}><i className="bi bi-eye-slash" aria-hidden="true" /></button>
+                              )}
+                            </>
+                          )}
+                        />
+                      );
+                    }}
+                  />
                 )}
               </>
             )}
