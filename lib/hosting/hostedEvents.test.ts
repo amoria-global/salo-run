@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  bucketOf, createHostedEvent, getEligibility, listHostedEvents, parseEligibility, runHostFlow, validateHostForm,
+  bucketOf, publishActionFor, getUnpublishImpact, unpublishWarning, createHostedEvent, getEligibility, listHostedEvents, parseEligibility, runHostFlow, validateHostForm,
   type HostDeps, type HostedEventInput,
 } from './hostedEvents';
 
@@ -32,9 +32,9 @@ describe('server answers', () => {
   });
 
   it('lists events from the envelope and drops rows without an id', async () => {
-    const f = vi.fn().mockResolvedValue(json({ action: 1, data: [{ id: 'a', title: 'One', eventStatus: 'ONGOING', streamFee: 5000 }, { title: 'no id' }] }));
+    const f = vi.fn().mockResolvedValue(json({ action: 1, data: [{ id: 'a', title: 'One', eventStatus: 'ONGOING', streamFee: 5000, isPublished: true }, { title: 'no id' }] }));
     const list = await listHostedEvents('https://api', f);
-    expect(list).toEqual([{ id: 'a', title: 'One', eventDate: undefined, status: 'ONGOING', streamFee: 5000 }]);
+    expect(list).toEqual([{ id: 'a', title: 'One', eventDate: undefined, startTime: undefined, endTime: undefined, streamStatus: undefined, published: true, status: 'ONGOING', streamFee: 5000 }]);
   });
 
   it('posts the new event as JSON to the hosted-events route', async () => {
@@ -88,6 +88,33 @@ describe('validateHostForm and bucketOf', () => {
     expect(validateHostForm({ ...ok, startTime: '25:00' }, true, '2026-11-01').startTime).toBeDefined();
     expect(validateHostForm({ ...ok, paid: true, price: '0' }, true, '2026-11-01').price).toBeDefined();
     expect(validateHostForm({ ...ok, paid: true, price: '5000' }, true, '2026-11-01').price).toBeUndefined();
+  });
+  it('puts an event that ended today under ended, never upcoming (the one shared rule)', () => {
+    const ended = { id: 'g', title: 'Gaming Center', published: true, status: 'PUBLISHED', streamStatus: 'ended', eventDate: '2026-10-27', startTime: '18:00' };
+    const now = Date.parse('2026-10-27T12:00:00+02:00');
+    expect(bucketOf(ended, now)).toBe('ended');
+    expect(bucketOf({ ...ended, streamStatus: undefined, eventDate: '2026-10-28' }, now)).toBe('upcoming');
+    expect(bucketOf({ ...ended, streamStatus: 'connected' }, now)).toBe('live');
+  });
+  it('offers publish actions by state: unpublish, republish, blocked while live, nothing for ended', () => {
+    expect(publishActionFor(true, 'UPCOMING')).toEqual({ kind: 'unpublish' });
+    expect(publishActionFor(false, 'UPCOMING')).toEqual({ kind: 'republish' });
+    expect(publishActionFor(true, 'LIVE')).toEqual({ kind: 'blocked', reason: 'End the stream first' });
+    expect(publishActionFor(true, 'ENDED')).toEqual({ kind: 'unpublish' });
+    expect(publishActionFor(false, 'ENDED')).toEqual({ kind: 'republish' });
+    expect(publishActionFor(true, 'ENDED', false)).toEqual({ kind: 'none' });
+  });
+  it('words the impact warning from the server counts, and says nothing when there are none', () => {
+    expect(unpublishWarning({ bookings: 1, ticketsSold: 7 })).toBe('This event has 1 booking and 7 tickets sold. People who already have one will not be able to open the public page.');
+    expect(unpublishWarning({ bookings: 0, ticketsSold: 0 })).toBeUndefined();
+    expect(unpublishWarning(undefined)).toBeUndefined();
+  });
+  it('reads the impact and swallows a failure', async () => {
+    const ok = vi.fn().mockResolvedValue(json({ action: 1, data: { bookings: 2, ticketsSold: 3 } }));
+    expect(await getUnpublishImpact('https://api', ok, 'e1')).toEqual({ bookings: 2, ticketsSold: 3 });
+    expect(ok.mock.calls[0][0]).toBe('https://api/api/remote/customer/events/e1/unpublish-impact');
+    expect(await getUnpublishImpact('https://api', vi.fn().mockRejectedValue(new Error('down')), 'e1')).toBeUndefined();
+    expect(await getUnpublishImpact('https://api', vi.fn().mockResolvedValue(json({ action: 0 })), 'e1')).toBeUndefined();
   });
   it('sorts by status', () => {
     expect(bucketOf('ONGOING')).toBe('live');

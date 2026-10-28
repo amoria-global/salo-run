@@ -13,7 +13,8 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
-import { getEligibility } from '@/lib/hosting/hostedEvents';
+import { bucketOf, getEligibility, listHostedEvents } from '@/lib/hosting/hostedEvents';
+import HostEntryTiles from '../../components/HostEntryTiles';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import HostLivePage from '../../components/live/HostLivePage';
 import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
@@ -417,9 +418,20 @@ const PhotographerEventsPage = () => {
 
   // Offered only when the server says this account can host its own events, so with the feature off nothing shows.
   const [canHost, setCanHost] = useState(false);
+  const [hostedCaption, setHostedCaption] = useState('Upcoming, live and ended');
   useEffect(() => {
-    getEligibility(apiUrl, dashboardAuthFetch as (u: string, i?: RequestInit) => Promise<Response>)
-      .then((e) => setCanHost(e.canHostFree))
+    const authFetch = dashboardAuthFetch as (u: string, i?: RequestInit) => Promise<Response>;
+    getEligibility(apiUrl, authFetch)
+      .then((e) => {
+        setCanHost(e.canHostFree);
+        if (!e.canHostFree) return;
+        // "1 upcoming · 0 live", from the same rule the hosted events tabs use.
+        return listHostedEvents(apiUrl, authFetch).then((list) => {
+          const now = Date.now();
+          const b = list.map((x) => bucketOf(x, now));
+          setHostedCaption(`${b.filter((x) => x === 'upcoming').length} upcoming \u00B7 ${b.filter((x) => x === 'live').length} live`);
+        });
+      })
       .catch(() => setCanHost(false));
   }, [apiUrl]);
 
@@ -2030,11 +2042,7 @@ const PhotographerEventsPage = () => {
                     ? 'Browse and manage your created photo albums.'
                     : 'Curate and share photobooks with your clients.'}
                 </p>
-                {canHost ? (
-                  <a href="/user/photographer/host" style={{ display: 'inline-block', marginTop: 8, fontWeight: 700, color: '#F20C8F' }}>
-                    Host your own event and go live
-                  </a>
-                ) : null}
+                {canHost ? <HostEntryTiles caption={hostedCaption} /> : null}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
                 <span style={{
