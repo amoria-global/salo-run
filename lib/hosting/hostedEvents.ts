@@ -32,10 +32,14 @@ export type HostedEventInput = {
   location?: string;
   streamFee?: number;
   streamFeeCurrencyId?: string;
+  /** Required by the server: whether viewers may invite others to send wishes. */
+  allowWishInvites: boolean;
 };
 
 export type HostedEvent = {
   id: string;
+  /** Whether viewers may invite others to send wishes. Undefined on a server that predates the setting (treated as on). */
+  allowWishInvites?: boolean;
   title: string;
   eventDate?: string;
   startTime?: string;
@@ -48,6 +52,7 @@ export type HostedEvent = {
 };
 
 export type EarningsPreview = { hostPercent: string; platformPercent: string; hostEarnsPerTicket: number };
+import { wishInvitesError } from '@/lib/wishes/wishInvites';
 import { getEventStatus, type EventStatus } from '@/lib/events/eventStatus';
 
 export type HostedBucket = 'upcoming' | 'live' | 'ended';
@@ -100,6 +105,7 @@ export function mapHostedEvent(r: Raw): HostedEvent {
     published: r.isPublished === true || r.published === true,
     status: typeof r.eventStatus === 'string' ? r.eventStatus : typeof r.status === 'string' ? r.status : undefined,
     streamFee: Number.isFinite(fee) && fee > 0 ? fee : undefined,
+    allowWishInvites: typeof r.allowWishInvites === 'boolean' ? r.allowWishInvites : undefined,
   };
 }
 
@@ -117,6 +123,18 @@ export async function createHostedEvent(apiUrl: string, fetcher: Fetcher, input:
   const event = mapHostedEvent(((await envelope(res, 'Could not create the event.')).data ?? {}) as Raw);
   if (!event.id) throw new HostError('The server did not return the new event.');
   return event;
+}
+
+/** The host turns wish invites on or off, at any time including while live. Only that flag changes on the server. */
+export async function setWishInvites(apiUrl: string, fetcher: Fetcher, eventId: string, allow: boolean): Promise<void> {
+  await envelope(
+    await fetcher(`${apiUrl}/api/remote/customer/events/${encodeURIComponent(eventId)}/wish-invites`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allowWishInvites: allow }),
+    }),
+    'Could not change wish invites.',
+  );
 }
 
 export async function uploadCover(apiUrl: string, fetcher: Fetcher, eventId: string, file: File): Promise<void> {
@@ -198,8 +216,9 @@ export async function runHostFlow(
   return { status: 'done', eventId: progress.eventId, progress };
 }
 
-export type HostForm = { title: string; date: string; startTime: string; paid: boolean; price: string };
-export type HostFormErrors = Partial<Record<'title' | 'date' | 'startTime' | 'price' | 'cover', string>>;
+/** allowWishInvites is null until the host chooses; the form blocks both publish buttons until then. */
+export type HostForm = { title: string; date: string; startTime: string; paid: boolean; price: string; allowWishInvites?: boolean | null };
+export type HostFormErrors = Partial<Record<'title' | 'date' | 'startTime' | 'price' | 'cover' | 'wishInvites', string>>;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -214,6 +233,8 @@ export function validateHostForm(form: HostForm, hasCover: boolean, today: strin
     const n = Number(form.price);
     if (!Number.isFinite(n) || n <= 0) errors.price = 'Enter a price above zero.';
   }
+  const invites = wishInvitesError(form.allowWishInvites);
+  if (invites) errors.wishInvites = invites;
   if (!hasCover) errors.cover = 'Add a cover photo.';
   return errors;
 }

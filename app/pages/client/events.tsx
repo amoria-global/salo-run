@@ -1,5 +1,7 @@
 "use client";
 
+import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
+import { invitesOn, wishInvitesError } from '@/lib/wishes/wishInvites';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -227,6 +229,8 @@ interface Event {
   priceCurrency?: string;
   hasLiveStream: boolean;
   isPublished: boolean;
+  /** Whether viewers may invite others to send wishes. Undefined on a server that predates the setting (treated as on). */
+  allowWishInvites?: boolean;
   guestCount: number;
   maxGuests: number;
   status: EventStatus;
@@ -477,6 +481,10 @@ const MyEventsPage = () => {
   const [createBannerImageFile, setCreateBannerImageFile] = useState<File | null>(null);
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
+  // Wish invites: no default on a new event, so the choice is required before it can be created.
+  const [createWishInvites, setCreateWishInvites] = useState<boolean | null>(null);
+  const [createWishInvitesErr, setCreateWishInvitesErr] = useState<string | null>(null);
+  const [editWishInvites, setEditWishInvites] = useState<boolean | null>(null);
   const [createPackageId, setCreatePackageId] = useState<string>('');
   const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; currencySymbol: string; currencyAbbreviation: string; description: string; durationHours: number; hasLiveStream: boolean; includedPhotos: number; includedVideos: number}[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
@@ -847,6 +855,7 @@ const MyEventsPage = () => {
             priceCurrency: (evt.streamFeeCurrencyAbbreviation as string) || (evt.priceCurrency as string) || 'RWF',
             hasLiveStream: (evt.hasLiveStream as boolean) ?? false,
             isPublished: evt.isPublished === true,
+            allowWishInvites: typeof evt.allowWishInvites === 'boolean' ? evt.allowWishInvites : undefined,
             guestCount: (evt.guestCount as number) || 0,
             maxGuests: (evt.maxGuests as number) || 0,
             status: (() => {
@@ -1175,6 +1184,8 @@ const MyEventsPage = () => {
 
   const openEditModal = (event: Event) => {
     setEditEvent(event);
+    // The saved value; an event from before the setting reads as on.
+    setEditWishInvites(invitesOn(event.allowWishInvites));
     setEditTitle(event.title);
     setEditDescription(event.description);
     setEditEventType(event.eventType);
@@ -1260,6 +1271,7 @@ const MyEventsPage = () => {
         eventTags: editTags.length > 0 ? editTags.join(',') : editCategory,
         price: editNumericPrice ? Number(editNumericPrice) : 0,
         priceCurrency: editPriceCurrency || 'RWF',
+        allowWishInvites: editWishInvites === true,
         maxGuests: editMaxGuests ? Number(editMaxGuests.replace(/[^\d]/g, '')) : 0,
       };
       const validEditPhotographerId = (editPhotographerId && isValidUUID(editPhotographerId)) ? editPhotographerId : null;
@@ -1354,6 +1366,8 @@ const MyEventsPage = () => {
 
   // Reset create form
   const resetCreateForm = (clearDraft: boolean = true) => {
+    setCreateWishInvites(null);
+    setCreateWishInvitesErr(null);
     setCreateTitle('');
     setCreateDescription('');
     setCreateEventType('');
@@ -1489,6 +1503,9 @@ const MyEventsPage = () => {
       setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
       return;
     }
+    const missingInvites = wishInvitesError(createWishInvites);
+    setCreateWishInvitesErr(missingInvites ?? null);
+    if (missingInvites) { focusWishInvitesField(); return; }
 
     // Currency-aware minimum stream access fee
     if (isEventPriceInvalid(createPrice || '', createPriceCurrency)) {
@@ -1521,6 +1538,7 @@ const MyEventsPage = () => {
           location: capitalizeWords(locationStr),
           eventOrganizer: capitalizeWords(createOrganizer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Organizer'),
           eventVisibility: createEventVisibility || 'PUBLIC',
+          allowWishInvites: createWishInvites === true,
           eventTags: tagsStr,
           price: numericPrice ? Number(numericPrice) : 0,
           priceCurrency: createPriceCurrency || 'RWF',
@@ -1636,6 +1654,7 @@ const MyEventsPage = () => {
         price: createPrice || 'Free',
         hasLiveStream: createStatus === 'LIVE',
         isPublished: false,
+        allowWishInvites: createWishInvites === true,
         guestCount: 0,
         maxGuests: parseInt(createMaxGuests) || 100,
         status: createStatus,
@@ -2912,6 +2931,10 @@ const MyEventsPage = () => {
           )}
 
           {/* Submit Error */}
+          <div style={{ marginBottom: '1rem' }}>
+            <WishInvitesField value={createWishInvites} error={createWishInvitesErr} disabled={isSubmitting}
+              onChange={(v) => { setCreateWishInvites(v); setCreateWishInvitesErr(null); }} />
+          </div>
           {submitError && (
             <div style={{
               padding: '0.7rem 0.95rem',
@@ -4136,6 +4159,9 @@ const MyEventsPage = () => {
             </div>
 
             {/* Submit Error (Edit) */}
+            <div style={{ marginBottom: '1rem' }}>
+              <WishInvitesField value={editWishInvites} onChange={setEditWishInvites} />
+            </div>
             {submitError && (
               <div style={{ padding: '0.75rem', backgroundColor: '#FEE2E2', color: '#DC2626', borderRadius: '0.5rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ flexShrink: 0 }}>⚠</span>
