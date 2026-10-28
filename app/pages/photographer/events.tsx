@@ -15,7 +15,7 @@ import { usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { getEligibility } from '@/lib/hosting/hostedEvents';
 import { getPlatformConfig } from '@/lib/platformConfig';
-import StreamPreview from '../../components/StreamPreview';
+import HostLivePage from '../../components/live/HostLivePage';
 import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
 import PaidAlbumForm, { MIN_PAID_ALBUM_PRICE_RWF, isPaidAlbumPriceInvalid } from '../../components/PaidAlbumForm';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
@@ -3610,9 +3610,8 @@ const PhotographerEventsPage = () => {
       )}
 
       {/* Live Stream Control Modal */}
-      {selectedEvent && (
-        <StreamPreview
-          isOpen={showStreamPreview}
+      {selectedEvent && showStreamPreview && (
+        <HostLivePage
           onClose={() => setShowStreamPreview(false)}
           eventTitle={selectedEvent.title}
           eventId={selectedEvent.id}
