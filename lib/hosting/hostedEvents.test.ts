@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  bucketOf, publishActionFor, createHostedEvent, getEligibility, listHostedEvents, parseEligibility, runHostFlow, validateHostForm,
+  bucketOf, publishActionFor, getUnpublishImpact, unpublishWarning, createHostedEvent, getEligibility, listHostedEvents, parseEligibility, runHostFlow, validateHostForm,
   type HostDeps, type HostedEventInput,
 } from './hostedEvents';
 
@@ -100,8 +100,21 @@ describe('validateHostForm and bucketOf', () => {
     expect(publishActionFor(true, 'UPCOMING')).toEqual({ kind: 'unpublish' });
     expect(publishActionFor(false, 'UPCOMING')).toEqual({ kind: 'republish' });
     expect(publishActionFor(true, 'LIVE')).toEqual({ kind: 'blocked', reason: 'End the stream first' });
-    expect(publishActionFor(true, 'ENDED')).toEqual({ kind: 'none' });
-    expect(publishActionFor(false, 'ENDED', true)).toEqual({ kind: 'republish' });
+    expect(publishActionFor(true, 'ENDED')).toEqual({ kind: 'unpublish' });
+    expect(publishActionFor(false, 'ENDED')).toEqual({ kind: 'republish' });
+    expect(publishActionFor(true, 'ENDED', false)).toEqual({ kind: 'none' });
+  });
+  it('words the impact warning from the server counts, and says nothing when there are none', () => {
+    expect(unpublishWarning({ bookings: 1, ticketsSold: 7 })).toBe('This event has 1 booking and 7 tickets sold. People who already have one will not be able to open the public page.');
+    expect(unpublishWarning({ bookings: 0, ticketsSold: 0 })).toBeUndefined();
+    expect(unpublishWarning(undefined)).toBeUndefined();
+  });
+  it('reads the impact and swallows a failure', async () => {
+    const ok = vi.fn().mockResolvedValue(json({ action: 1, data: { bookings: 2, ticketsSold: 3 } }));
+    expect(await getUnpublishImpact('https://api', ok, 'e1')).toEqual({ bookings: 2, ticketsSold: 3 });
+    expect(ok.mock.calls[0][0]).toBe('https://api/api/remote/customer/events/e1/unpublish-impact');
+    expect(await getUnpublishImpact('https://api', vi.fn().mockRejectedValue(new Error('down')), 'e1')).toBeUndefined();
+    expect(await getUnpublishImpact('https://api', vi.fn().mockResolvedValue(json({ action: 0 })), 'e1')).toBeUndefined();
   });
   it('sorts by status', () => {
     expect(bucketOf('ONGOING')).toBe('live');

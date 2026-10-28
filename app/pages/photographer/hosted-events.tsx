@@ -13,9 +13,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
 import StreamPreview from '../../components/StreamPreview';
 import {
-  UNPUBLISH_BODY, bucketOf, createHostedEvent, getEarningsPreview, getEligibility, listHostedEvents, publishActionFor, publishHostedEvent,
-  runHostFlow, setEventPublished, uploadCover, validateHostForm,
-  type EarningsPreview, type HostedBucket, type HostedEvent, type HostFormErrors, type HostingEligibility, type HostProgress,
+  UNPUBLISH_BODY, bucketOf, createHostedEvent, getEarningsPreview, getEligibility, getUnpublishImpact, listHostedEvents, publishActionFor, publishHostedEvent,
+  runHostFlow, setEventPublished, unpublishWarning, uploadCover, validateHostForm,
+  type EarningsPreview, type HostedBucket, type HostedEvent, type UnpublishImpact, type HostFormErrors, type HostingEligibility, type HostProgress,
 } from '@/lib/hosting/hostedEvents';
 import { formatEventDay, getEventStatus, isStartingSoon } from '@/lib/events/eventStatus';
 
@@ -152,7 +152,8 @@ export default function HostedEventsPage() {
           {shown.map((e) => (
             <HostedRow key={e.id} event={e} now={now} colors={colors} card={card} onLive={() => openLive(e)}
               onChanged={loadEvents}
-              setPublished={(published) => setEventPublished(apiUrl, fetcher, e.id, published)} />
+              setPublished={(published) => setEventPublished(apiUrl, fetcher, e.id, published)}
+              loadImpact={() => getUnpublishImpact(apiUrl, fetcher, e.id)} />
           ))}
         </ul>
       )}
@@ -206,9 +207,10 @@ type Colors = ReturnType<typeof useTheme>['colors'];
 
 const RED = '#E61220';
 
-function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished }: {
+function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished, loadImpact }: {
   event: HostedEvent; now: number; colors: Colors; card: React.CSSProperties;
   onLive: () => void; onChanged: () => void; setPublished: (published: boolean) => Promise<void>;
+  loadImpact: () => Promise<UnpublishImpact | undefined>;
 }) {
   const status = getEventStatus(event, now);
   const soon = isStartingSoon(event, now);
@@ -218,6 +220,8 @@ function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished }
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [impact, setImpact] = useState<UnpublishImpact | undefined>();
+  const warning = unpublishWarning(impact);
   const label = status === 'LIVE' ? 'Live now' : status === 'ENDED' ? 'Ended' : soon ? 'Starting soon' : 'Upcoming';
   const badge: React.CSSProperties = { padding: '2px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 700, border: '1px solid currentColor' };
   const item: React.CSSProperties = { width: '100%', textAlign: 'left', padding: '10px 12px', background: 'transparent', border: 0, color: colors.textPrimary, cursor: 'pointer', fontWeight: 600 };
@@ -255,7 +259,7 @@ function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished }
                 {action.kind === 'blocked' ? (
                   <div role="menuitem" style={{ padding: '10px 12px', color: colors.textSecondary }}>{action.reason}</div>
                 ) : action.kind === 'unpublish' ? (
-                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setConfirm(true); }} style={item}>Unpublish</button>
+                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setImpact(undefined); setConfirm(true); void loadImpact().then(setImpact); }} style={item}>Unpublish</button>
                 ) : (
                   <button type="button" role="menuitem" disabled={busy} onClick={() => run(true)} style={item}>{busy ? 'Republishing...' : 'Republish'}</button>
                 )}
@@ -271,6 +275,7 @@ function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished }
           <div style={{ ...card, maxWidth: 440, width: '100%', display: 'grid', gap: 12 }}>
             <h2 style={{ margin: 0, fontSize: '1.2rem', color: colors.textPrimary }}>Unpublish this event?</h2>
             <p style={{ margin: 0, color: colors.textSecondary }}>{UNPUBLISH_BODY}</p>
+            {warning ? <p role="status" style={{ margin: 0, color: '#B45309', fontWeight: 600 }}>{warning}</p> : null}
             {error ? <p role="alert" style={{ margin: 0, color: RED }}>{error}</p> : null}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button type="button" disabled={busy} onClick={() => setConfirm(false)} style={{ padding: '10px 18px', borderRadius: 9999, border: `1px solid ${colors.borderPrimary}`, background: 'transparent', color: colors.textPrimary, cursor: 'pointer', fontWeight: 600 }}>Cancel</button>

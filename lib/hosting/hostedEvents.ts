@@ -237,8 +237,28 @@ export async function setEventPublished(apiUrl: string, fetcher: Fetcher, eventI
   );
 }
 
-/** The server refuses to unpublish a completed event, so ended events are only offered the action once it supports it. */
-export const ENDED_UNPUBLISH_SUPPORTED = false;
+/** The server hides and restores an ended event by flipping only its publish flag (deployed 2026-10-28). */
+export const ENDED_UNPUBLISH_SUPPORTED = true;
+
+export type UnpublishImpact = { bookings?: number; ticketsSold?: number };
+
+/** Bookings and sold tickets the confirm dialog warns about. Never throws: no warning beats a blocked dialog. */
+export async function getUnpublishImpact(apiUrl: string, fetcher: Fetcher, eventId: string): Promise<UnpublishImpact | undefined> {
+  try {
+    const res = await fetcher(`${apiUrl}/api/remote/customer/events/${encodeURIComponent(eventId)}/unpublish-impact`, { method: 'GET' });
+    const body = (await res.json().catch(() => ({}))) as { action?: number; data?: UnpublishImpact };
+    return res.ok && body.action === 1 ? body.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function unpublishWarning(impact?: UnpublishImpact): string | undefined {
+  const parts: string[] = [];
+  if (impact?.bookings) parts.push(`${impact.bookings} booking${impact.bookings === 1 ? '' : 's'}`);
+  if (impact?.ticketsSold) parts.push(`${impact.ticketsSold} ticket${impact.ticketsSold === 1 ? '' : 's'} sold`);
+  return parts.length ? `This event has ${parts.join(' and ')}. People who already have one will not be able to open the public page.` : undefined;
+}
 
 export type PublishAction = { kind: 'unpublish' } | { kind: 'republish' } | { kind: 'blocked'; reason: string } | { kind: 'none' };
 
