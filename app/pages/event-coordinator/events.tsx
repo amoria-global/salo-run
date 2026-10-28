@@ -1,5 +1,7 @@
 "use client";
 
+import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
+import { invitesOn, wishInvitesError } from '@/lib/wishes/wishInvites';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -261,6 +263,8 @@ interface Event {
   photographerName?: string;
   photographerImage?: string;
   isPublished: boolean;
+  /** Whether viewers may invite others to send wishes. Undefined on a server that predates the setting (treated as on). */
+  allowWishInvites?: boolean;
   shareLink: string;
   inviteCode?: string;
   streamInviteToken?: string;
@@ -516,6 +520,10 @@ const MyEventsPage = () => {
   const [createBannerImageFile, setCreateBannerImageFile] = useState<File | null>(null);
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
+  // Wish invites: no default on a new event, so the choice is required before it can be created.
+  const [createWishInvites, setCreateWishInvites] = useState<boolean | null>(null);
+  const [createWishInvitesErr, setCreateWishInvitesErr] = useState<string | null>(null);
+  const [editWishInvites, setEditWishInvites] = useState<boolean | null>(null);
   const [createPackageId, setCreatePackageId] = useState<string>('');
   const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; currencySymbol: string; currencyAbbreviation: string; description: string; durationHours: number; includedPhotos: number; includedVideos: number}[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
@@ -890,6 +898,7 @@ const MyEventsPage = () => {
             photographerName: (evt.photographerName as string) || (evt.photographer ? `${(evt.photographer as Record<string, unknown>).firstName || ''} ${(evt.photographer as Record<string, unknown>).lastName || ''}`.trim() : '') || '',
             photographerImage: (evt.photographerImage as string) || (evt.photographer && (evt.photographer as Record<string, unknown>).profilePicture as string) || '',
             isPublished: evt.isPublished === true,
+            allowWishInvites: typeof evt.allowWishInvites === 'boolean' ? evt.allowWishInvites : undefined,
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
             streamInviteToken: (evt.streamInviteToken as string) || undefined,
             shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/events/view-event?id=${evt.id}`,
@@ -1108,6 +1117,8 @@ const MyEventsPage = () => {
 
   const openEditModal = (event: Event) => {
     setEditEvent(event);
+    // The saved value; an event from before the setting reads as on.
+    setEditWishInvites(invitesOn(event.allowWishInvites));
     setEditTitle(event.title);
     setEditDescription(event.description);
     setEditCategory((event.category as EventCategory) || '');
@@ -1231,6 +1242,7 @@ const MyEventsPage = () => {
         eventTags: editTags.join(','),
         price: editNumericPrice ? Number(editNumericPrice) : 0,
         priceCurrency: editPriceCurrency || 'RWF',
+        allowWishInvites: editWishInvites === true,
         streamFee: editNumericPrice ? Number(editNumericPrice) : 0,
         streamFeeCurrencyId: (() => {
           const match = currencyOptions.find(c => c.value === (editPriceCurrency || 'RWF'));
@@ -1292,6 +1304,8 @@ const MyEventsPage = () => {
 
   // Reset create form
   const resetCreateForm = (clearDraft: boolean = true) => {
+    setCreateWishInvites(null);
+    setCreateWishInvitesErr(null);
     setCreateTitle('');
     setCreateDescription('');
     setCreateEventType('');
@@ -1429,6 +1443,9 @@ const MyEventsPage = () => {
       setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
       return;
     }
+    const missingInvites = wishInvitesError(createWishInvites);
+    setCreateWishInvitesErr(missingInvites ?? null);
+    if (missingInvites) { focusWishInvitesField(); return; }
 
     // Currency-aware minimum stream access fee
     if (isEventPriceInvalid(createPrice, createPriceCurrency)) {
@@ -1464,6 +1481,7 @@ const MyEventsPage = () => {
           location: capitalizeWords(locationStr),
           eventOrganizer: capitalizeWords(createOrganizer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Organizer'),
           eventVisibility: createEventVisibility || 'PUBLIC',
+          allowWishInvites: createWishInvites === true,
           eventTags: tagsStr,
           price: numericPrice ? Number(numericPrice) : 0,
           priceCurrency: createPriceCurrency || 'RWF',
@@ -2492,6 +2510,11 @@ const MyEventsPage = () => {
                 );
               })()}
             </div>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <WishInvitesField value={createWishInvites} error={createWishInvitesErr} disabled={isSubmitting}
+              onChange={(v) => { setCreateWishInvites(v); setCreateWishInvitesErr(null); }} />
           </div>
 
           {/* Section: Organizer */}
@@ -3957,6 +3980,10 @@ const MyEventsPage = () => {
                   );
                 })()}
               </div>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <WishInvitesField value={editWishInvites} onChange={setEditWishInvites} />
             </div>
 
             {/* Section: Organizer */}

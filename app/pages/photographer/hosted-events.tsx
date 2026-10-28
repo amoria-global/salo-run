@@ -12,9 +12,11 @@ import { dashboardAuthFetch } from '../../providers/AuthProvider';
 import { useTheme } from '../../context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
 import HostLivePage from '../../components/live/HostLivePage';
+import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
+import { invitesOn, wishInvitesStatus } from '@/lib/wishes/wishInvites';
 import {
   UNPUBLISH_BODY, bucketOf, createHostedEvent, getEarningsPreview, getEligibility, getUnpublishImpact, listHostedEvents, publishActionFor, publishHostedEvent,
-  runHostFlow, setEventPublished, unpublishWarning, uploadCover, validateHostForm,
+  runHostFlow, setEventPublished, setWishInvites as setWishInvitesApi, unpublishWarning, uploadCover, validateHostForm,
   type EarningsPreview, type HostedBucket, type HostedEvent, type UnpublishImpact, type HostFormErrors, type HostingEligibility, type HostProgress,
 } from '@/lib/hosting/hostedEvents';
 import { formatEventDay, getEventStatus, isStartingSoon } from '@/lib/events/eventStatus';
@@ -153,7 +155,8 @@ export default function HostedEventsPage() {
             <HostedRow key={e.id} event={e} now={now} colors={colors} card={card} onLive={() => openLive(e)}
               onChanged={loadEvents}
               setPublished={(published) => setEventPublished(apiUrl, fetcher, e.id, published)}
-              loadImpact={() => getUnpublishImpact(apiUrl, fetcher, e.id)} />
+              loadImpact={() => getUnpublishImpact(apiUrl, fetcher, e.id)}
+              setInvites={(allow) => setWishInvitesApi(apiUrl, fetcher, e.id, allow)} />
           ))}
         </ul>
       )}
@@ -180,6 +183,7 @@ export default function HostedEventsPage() {
           onClose={() => { setLive(null); loadEvents(); }}
           eventTitle={live.title}
           eventId={live.id}
+          wishInvites={live.allowWishInvites}
           whipUrl={stream.whipUrl}
           whepUrl={stream.whepUrl}
           inviteToken={stream.inviteToken}
@@ -206,10 +210,11 @@ type Colors = ReturnType<typeof useTheme>['colors'];
 
 const RED = '#E61220';
 
-function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished, loadImpact }: {
+function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished, loadImpact, setInvites }: {
   event: HostedEvent; now: number; colors: Colors; card: React.CSSProperties;
   onLive: () => void; onChanged: () => void; setPublished: (published: boolean) => Promise<void>;
   loadImpact: () => Promise<UnpublishImpact | undefined>;
+  setInvites: (allow: boolean) => Promise<void>;
 }) {
   const status = getEventStatus(event, now);
   const soon = isStartingSoon(event, now);
@@ -221,6 +226,13 @@ function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished, 
   const [error, setError] = useState<string | null>(null);
   const [impact, setImpact] = useState<UnpublishImpact | undefined>();
   const warning = unpublishWarning(impact);
+  const [invites, setInvitesOn] = useState(invitesOn(event.allowWishInvites));
+  const toggleInvites = async () => {
+    setBusy(true); setError(null);
+    try { await setInvites(!invites); setInvitesOn(!invites); setMenu(false); onChanged(); }
+    catch (e) { setError(e instanceof Error ? e.message : 'That did not work. Please try again.'); }
+    finally { setBusy(false); }
+  };
   const label = status === 'LIVE' ? 'Live now' : status === 'ENDED' ? 'Ended' : soon ? 'Starting soon' : 'Upcoming';
   const badge: React.CSSProperties = { padding: '2px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 700, border: '1px solid currentColor' };
   const item: React.CSSProperties = { width: '100%', textAlign: 'left', padding: '10px 12px', background: 'transparent', border: 0, color: colors.textPrimary, cursor: 'pointer', fontWeight: 600 };
@@ -247,7 +259,7 @@ function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished, 
             {status === 'LIVE' ? 'Back to stream' : 'Go live'}
           </button>
         ) : null}
-        {action.kind !== 'none' ? (
+        {(
           <div style={{ position: 'relative' }}>
             <button type="button" aria-haspopup="menu" aria-expanded={menu} aria-label={`More options for ${event.title}`} onClick={() => setMenu((m) => !m)}
               style={{ width: 40, height: 40, borderRadius: 9999, border: `1px solid ${colors.borderPrimary}`, background: 'transparent', color: colors.textPrimary, cursor: 'pointer', fontSize: 18 }}>
@@ -262,11 +274,12 @@ function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished, 
                 ) : (
                   <button type="button" role="menuitem" disabled={busy} onClick={() => run(true)} style={item}>{busy ? 'Republishing...' : 'Republish'}</button>
                 )}
+                <button type="button" role="menuitem" disabled={busy} onClick={toggleInvites} style={item}>{wishInvitesStatus(invites)}{' '}<span style={{ color: colors.brandAccent }}>{invites ? 'Turn off' : 'Turn on'}</span></button>
                 {error && !confirm ? <p role="alert" style={{ color: RED, margin: '4px 12px' }}>{error}</p> : null}
               </div>
             ) : null}
           </div>
-        ) : null}
+        )}
       </div>
       {confirm ? (
         <div role="dialog" aria-modal="true" aria-label="Unpublish this event" style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
@@ -308,6 +321,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, onClose, onDone }: {
   const [location, setLocation] = useState('');
   const [paid, setPaid] = useState(false);
   const [price, setPrice] = useState('');
+  const [wishInvites, setWishInvites] = useState<boolean | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [errors, setErrors] = useState<HostFormErrors>({});
   const [busy, setBusy] = useState(false);
@@ -330,9 +344,13 @@ function HostForm({ elig, apiUrl, fetcher, colors, onClose, onDone }: {
 
   const submit = async (goLive: boolean) => {
     if (inFlight.current) return;
-    const found = validateHostForm({ title, date, startTime, paid, price }, !!cover, todayYmd());
+    const found = validateHostForm({ title, date, startTime, paid, price, allowWishInvites: wishInvites }, !!cover, todayYmd());
     setErrors(found);
-    if (Object.keys(found).length > 0 || !cover) return;
+    if (Object.keys(found).length > 0 || !cover) {
+      // The choice has no default, so a missing one is the likeliest reason to stop: bring the field into view.
+      if (found.wishInvites && !found.cover && !found.title && !found.price) focusWishInvitesField();
+      return;
+    }
     inFlight.current = true;
     setBusy(true);
     setFailure(null);
@@ -347,6 +365,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, onClose, onDone }: {
           title: title.trim(), eventDate: date, startTime: startTime.trim() || undefined,
           description: description.trim() || undefined, location: location.trim() || undefined,
           streamFee: paid ? priceNow : undefined,
+          allowWishInvites: wishInvites === true,
         },
         cover,
         progress.current,
@@ -406,6 +425,8 @@ function HostForm({ elig, apiUrl, fetcher, colors, onClose, onDone }: {
             {livePreview ? <span style={{ color: colors.textPrimary, fontWeight: 500 }}>{`You keep ${livePreview.hostPercent}% of each ticket, about ${Math.round(livePreview.hostEarnsPerTicket).toLocaleString()}. The platform keeps ${livePreview.platformPercent}%.`}</span> : null}
           </label>
         ) : null}
+        <WishInvitesField value={wishInvites} disabled={busy} error={errors.wishInvites}
+          onChange={(v) => { setWishInvites(v); setErrors((x) => ({ ...x, wishInvites: undefined })); }} />
         <label style={label}>Date
           <input style={field} type="date" min={todayYmd()} value={date} disabled={busy} onChange={(e) => setDate(e.target.value)} />
           {err(errors.date)}

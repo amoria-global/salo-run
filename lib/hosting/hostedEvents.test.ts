@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  bucketOf, publishActionFor, getUnpublishImpact, unpublishWarning, createHostedEvent, getEligibility, listHostedEvents, parseEligibility, runHostFlow, validateHostForm,
+  setWishInvites, bucketOf, publishActionFor, getUnpublishImpact, unpublishWarning, createHostedEvent, getEligibility, listHostedEvents, parseEligibility, runHostFlow, validateHostForm,
   type HostDeps, type HostedEventInput,
 } from './hostedEvents';
 
 const json = (body: unknown, ok = true) => ({ ok, status: ok ? 200 : 500, json: async () => body }) as Response;
-const input: HostedEventInput = { title: 'Rooftop set', eventDate: '2026-11-10' };
+const input: HostedEventInput = { title: 'Rooftop set', eventDate: '2026-11-10', allowWishInvites: true };
 const cover = new File(['x'], 'c.jpg', { type: 'image/jpeg' });
 
 function deps(over: Partial<HostDeps> = {}) {
@@ -78,7 +78,13 @@ describe('runHostFlow', () => {
 });
 
 describe('validateHostForm and bucketOf', () => {
-  const ok = { title: 'Rooftop set', date: '2026-11-10', startTime: '', paid: false, price: '' };
+  const ok = { title: 'Rooftop set', date: '2026-11-10', startTime: '', paid: false, price: '', allowWishInvites: true as boolean | null };
+  it('requires a Wish invites choice, and accepts either one', () => {
+    expect(validateHostForm({ ...ok, allowWishInvites: null }, true, '2026-11-01')).toEqual({ wishInvites: 'Choose whether viewers can invite others' });
+    expect(validateHostForm({ ...ok, allowWishInvites: undefined }, true, '2026-11-01')).toEqual({ wishInvites: 'Choose whether viewers can invite others' });
+    expect(validateHostForm({ ...ok, allowWishInvites: false }, true, '2026-11-01')).toEqual({});
+    expect(validateHostForm({ ...ok, allowWishInvites: true }, true, '2026-11-01')).toEqual({});
+  });
   it('accepts a free event with a cover and asks for what is missing', () => {
     expect(validateHostForm(ok, true, '2026-11-01')).toEqual({});
     expect(Object.keys(validateHostForm({ ...ok, title: 'ab', date: '' }, false, '2026-11-01')).sort()).toEqual(['cover', 'date', 'title']);
@@ -120,5 +126,14 @@ describe('validateHostForm and bucketOf', () => {
     expect(bucketOf('ONGOING')).toBe('live');
     expect(bucketOf('COMPLETED')).toBe('ended');
     expect(bucketOf('PUBLISHED')).toBe('upcoming');
+  });
+});
+
+describe('setWishInvites', () => {
+  it('changes only the flag, on the owner route, and a refusal is an error', async () => {
+    const ok = vi.fn().mockResolvedValue(json({ action: 1, data: {} }));
+    await setWishInvites('https://api', ok, 'e1', false);
+    expect(ok).toHaveBeenCalledWith('https://api/api/remote/customer/events/e1/wish-invites', expect.objectContaining({ method: 'PUT', body: JSON.stringify({ allowWishInvites: false }) }));
+    await expect(setWishInvites('https://api', vi.fn().mockResolvedValue(json({ action: 0, message: 'Not yours' })), 'e1', true)).rejects.toThrow('Not yours');
   });
 });
