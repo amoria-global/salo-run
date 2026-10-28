@@ -13,10 +13,11 @@ import { useTheme } from '../../context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
 import HostLivePage from '../../components/live/HostLivePage';
 import {
-  bucketOf, createHostedEvent, getEarningsPreview, getEligibility, listHostedEvents, publishHostedEvent,
-  runHostFlow, uploadCover, validateHostForm,
-  type EarningsPreview, type HostedBucket, type HostedEvent, type HostFormErrors, type HostingEligibility, type HostProgress,
+  UNPUBLISH_BODY, bucketOf, createHostedEvent, getEarningsPreview, getEligibility, getUnpublishImpact, listHostedEvents, publishActionFor, publishHostedEvent,
+  runHostFlow, setEventPublished, unpublishWarning, uploadCover, validateHostForm,
+  type EarningsPreview, type HostedBucket, type HostedEvent, type UnpublishImpact, type HostFormErrors, type HostingEligibility, type HostProgress,
 } from '@/lib/hosting/hostedEvents';
+import { formatEventDay, getEventStatus, isStartingSoon } from '@/lib/events/eventStatus';
 
 type ConnStatus = 'disconnected' | 'connected' | 'paused' | 'ended';
 type StreamState = {
@@ -42,7 +43,8 @@ export default function HostedEventsPage() {
   const [events, setEvents] = useState<HostedEvent[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [tab, setTab] = useState<HostedBucket>('upcoming');
-  const [showForm, setShowForm] = useState(false);
+  // Go live on the dashboard opens the host form straight away (?new=1).
+  const [showForm, setShowForm] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('new') === '1');
 
   const loadElig = useCallback(() => {
     getEligibility(apiUrl, fetcher).then(setElig).catch((e: Error) => setEligError(e.message));
@@ -88,7 +90,10 @@ export default function HostedEventsPage() {
 
   const openLive = (e: HostedEvent) => { setStream({ connectionStatus: 'disconnected' }); setLive(e); };
 
-  const shown = useMemo(() => (events ?? []).filter((e) => bucketOf(e.status) === tab), [events, tab]);
+  // One rule for the tab, the badge and the actions: getEventStatus, from the stream and the date-times.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
+  const shown = useMemo(() => (events ?? []).filter((e) => bucketOf(e, now) === tab), [events, tab, now]);
   const card: React.CSSProperties = { background: colors.bgCard, border: `1px solid ${colors.borderPrimary}`, borderRadius: 14, padding: 16 };
 
   if (eligError) {
@@ -145,18 +150,10 @@ export default function HostedEventsPage() {
       ) : (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
           {shown.map((e) => (
-            <li key={e.id} style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontWeight: 700, color: colors.textPrimary }}>{e.title}</div>
-                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{[e.eventDate, e.streamFee ? 'Paid' : 'Free'].filter(Boolean).join('  ')}</div>
-              </div>
-              {tab !== 'ended' ? (
-                <button type="button" onClick={() => openLive(e)} aria-label={`${tab === 'live' ? 'Back to the stream of' : 'Go live with'} ${e.title}`}
-                  style={{ padding: '8px 16px', borderRadius: 9999, border: `1px solid ${colors.brandAccent}`, background: 'transparent', color: colors.brandAccent, fontWeight: 700, cursor: 'pointer' }}>
-                  {tab === 'live' ? 'Back to stream' : 'Go live'}
-                </button>
-              ) : null}
-            </li>
+            <HostedRow key={e.id} event={e} now={now} colors={colors} card={card} onLive={() => openLive(e)}
+              onChanged={loadEvents}
+              setPublished={(published) => setEventPublished(apiUrl, fetcher, e.id, published)}
+              loadImpact={() => getUnpublishImpact(apiUrl, fetcher, e.id)} />
           ))}
         </ul>
       )}
@@ -206,6 +203,89 @@ export default function HostedEventsPage() {
 }
 
 type Colors = ReturnType<typeof useTheme>['colors'];
+
+const RED = '#E61220';
+
+function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished, loadImpact }: {
+  event: HostedEvent; now: number; colors: Colors; card: React.CSSProperties;
+  onLive: () => void; onChanged: () => void; setPublished: (published: boolean) => Promise<void>;
+  loadImpact: () => Promise<UnpublishImpact | undefined>;
+}) {
+  const status = getEventStatus(event, now);
+  const soon = isStartingSoon(event, now);
+  const action = publishActionFor(event.published, status);
+  const canGoLive = status !== 'ENDED' && event.published;
+  const [menu, setMenu] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [impact, setImpact] = useState<UnpublishImpact | undefined>();
+  const warning = unpublishWarning(impact);
+  const label = status === 'LIVE' ? 'Live now' : status === 'ENDED' ? 'Ended' : soon ? 'Starting soon' : 'Upcoming';
+  const badge: React.CSSProperties = { padding: '2px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 700, border: '1px solid currentColor' };
+  const item: React.CSSProperties = { width: '100%', textAlign: 'left', padding: '10px 12px', background: 'transparent', border: 0, color: colors.textPrimary, cursor: 'pointer', fontWeight: 600 };
+  const run = async (published: boolean) => {
+    setBusy(true); setError(null);
+    try { await setPublished(published); setConfirm(false); setMenu(false); onChanged(); }
+    catch (e) { setError(e instanceof Error ? e.message : 'That did not work. Please try again.'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <li style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', position: 'relative' }}>
+      <div style={{ display: 'grid', gap: 4 }}>
+        <div style={{ fontWeight: 700, color: colors.textPrimary }}>{event.title}</div>
+        <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{[formatEventDay(event.eventDate) || event.eventDate, event.streamFee ? 'Paid' : 'Free'].filter(Boolean).join('  ')}</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ ...badge, color: status === 'LIVE' ? RED : status === 'ENDED' ? colors.textSecondary : colors.brandAccent }}>{label}</span>
+          {!event.published ? <span style={{ ...badge, color: '#B45309' }}>Unpublished</span> : null}
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {canGoLive ? (
+          <button type="button" onClick={onLive} aria-label={`${status === 'LIVE' ? 'Back to the stream of' : 'Go live with'} ${event.title}`}
+            style={{ padding: '8px 16px', borderRadius: 9999, border: `1px solid ${RED}`, background: 'rgba(230,18,32,0.10)', color: RED, fontWeight: 700, cursor: 'pointer' }}>
+            {status === 'LIVE' ? 'Back to stream' : 'Go live'}
+          </button>
+        ) : null}
+        {action.kind !== 'none' ? (
+          <div style={{ position: 'relative' }}>
+            <button type="button" aria-haspopup="menu" aria-expanded={menu} aria-label={`More options for ${event.title}`} onClick={() => setMenu((m) => !m)}
+              style={{ width: 40, height: 40, borderRadius: 9999, border: `1px solid ${colors.borderPrimary}`, background: 'transparent', color: colors.textPrimary, cursor: 'pointer', fontSize: 18 }}>
+              {'\u22EF'}
+            </button>
+            {menu ? (
+              <div role="menu" style={{ position: 'absolute', right: 0, top: 44, zIndex: 20, minWidth: 190, padding: 6, borderRadius: 12, background: colors.bgCard, border: `1px solid ${colors.borderPrimary}`, boxShadow: colors.shadowLg }}>
+                {action.kind === 'blocked' ? (
+                  <div role="menuitem" style={{ padding: '10px 12px', color: colors.textSecondary }}>{action.reason}</div>
+                ) : action.kind === 'unpublish' ? (
+                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setImpact(undefined); setConfirm(true); void loadImpact().then(setImpact); }} style={item}>Unpublish</button>
+                ) : (
+                  <button type="button" role="menuitem" disabled={busy} onClick={() => run(true)} style={item}>{busy ? 'Republishing...' : 'Republish'}</button>
+                )}
+                {error && !confirm ? <p role="alert" style={{ color: RED, margin: '4px 12px' }}>{error}</p> : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      {confirm ? (
+        <div role="dialog" aria-modal="true" aria-label="Unpublish this event" style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onMouseDown={(ev) => { if (ev.target === ev.currentTarget && !busy) setConfirm(false); }}>
+          <div style={{ ...card, maxWidth: 440, width: '100%', display: 'grid', gap: 12 }}>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', color: colors.textPrimary }}>Unpublish this event?</h2>
+            <p style={{ margin: 0, color: colors.textSecondary }}>{UNPUBLISH_BODY}</p>
+            {warning ? <p role="status" style={{ margin: 0, color: '#B45309', fontWeight: 600 }}>{warning}</p> : null}
+            {error ? <p role="alert" style={{ margin: 0, color: RED }}>{error}</p> : null}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button type="button" disabled={busy} onClick={() => setConfirm(false)} style={{ padding: '10px 18px', borderRadius: 9999, border: `1px solid ${colors.borderPrimary}`, background: 'transparent', color: colors.textPrimary, cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+              <button type="button" disabled={busy} onClick={() => run(false)} style={{ padding: '10px 18px', borderRadius: 9999, border: 0, background: RED, color: '#fff', cursor: 'pointer', fontWeight: 700 }}>{busy ? 'Unpublishing...' : 'Unpublish'}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </li>
+  );
+}
 
 function Notice({ colors, title, body, action }: { colors: Colors; title: string; body: string; action?: { label: string; onClick: () => void } }) {
   return (
