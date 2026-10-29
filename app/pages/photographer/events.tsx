@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { hasActiveStream } from '../../lib/streamState';
 import Sidebar from '../../components/sidebar';
@@ -41,9 +42,6 @@ import PhotographerOpportunitiesView from '../../components/hybrid/PhotographerO
 import { AlbumShareCard } from '../../components/albums/AlbumShareCard';
 import { albumShareUrl } from '@/lib/albums/albumShare';
 
-const CURRENCY_FLAG_MAP: Record<string, string> = {
-  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
-};
 
 // ============================================
 // ICONS
@@ -4511,7 +4509,7 @@ const PhotographerEventsPage = () => {
                           const selCode = currencies.find(c => (c.id || c.code) === faceAICurrency)?.code || '';
                           return (
                             <>
-                              {CURRENCY_FLAG_MAP[selCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selCode]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+                              {CURRENCY_FLAG_MAP[selCode] && <img src={`/flags/${CURRENCY_FLAG_MAP[selCode]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
                               <span style={{ flex: 1, fontSize: '0.85rem' }}>{selCode || 'Currency'}</span>
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: showFaceAICurrencyDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
                                 <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4532,7 +4530,7 @@ const PhotographerEventsPage = () => {
                                 onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                  {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
                                   <span style={{ fontWeight: '600' }}>{opt.code}</span>
                                   {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
                                 </div>

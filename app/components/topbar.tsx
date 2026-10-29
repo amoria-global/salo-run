@@ -606,7 +606,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                 color: 'var(--ck-text)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
               }}
             >
-              <img src={`https://flagcdn.com/w40/${currencies.find(c => c.code === currency)?.flag}.png`} alt=""
+              <img src={`/flags/${currencies.find(c => c.code === currency)?.flag}.svg`} alt=""
                 style={{ width: 18, height: 14, objectFit: 'cover', borderRadius: 2 }} />
               {currency}
               <i className="bi bi-chevron-down" style={{ fontSize: 10, transform: isCurrencyOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms' }} />
@@ -629,7 +629,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                     onMouseEnter={(e) => { if (currency !== c.code) e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
                     onMouseLeave={(e) => { if (currency !== c.code) e.currentTarget.style.background = 'transparent'; }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <img src={`https://flagcdn.com/w40/${c.flag}.png`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />
+                      <img src={`/flags/${c.flag}.svg`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />
                       <span style={{ fontWeight: 700 }}>{c.code}</span>
                       <span style={{ color: 'var(--ck-text-soft)' }}>{c.name}</span>
                     </span>
