@@ -1,5 +1,6 @@
 'use client';
 
+import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
 import React, { useState, useRef, useEffect } from 'react';
 
 // Mobile Money (Rwanda) rejects collections below 100 RWF. The minimum only
@@ -14,11 +15,6 @@ export const isPaidAlbumPriceInvalid = (price: string, currencyCode: string): bo
   return n < MIN_PAID_ALBUM_PRICE_RWF;
 };
 
-const CURRENCY_FLAG_MAP: Record<string, string> = {
-  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
-  NGN: 'ng', ZAR: 'za', GHS: 'gh', XAF: 'cm', XOF: 'sn', ETB: 'et', MAD: 'ma',
-  EGP: 'eg', BIF: 'bi', CDF: 'cd', MWK: 'mw', ZMW: 'zm', BWP: 'bw', MZN: 'mz',
-};
 
 interface CurrencyInfo {
   code: string;
@@ -135,7 +131,7 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
             >
               {selectedFlag && (
                 <img
-                  src={`https://flagcdn.com/w40/${selectedFlag}.png`}
+                  src={`/flags/${selectedFlag}.svg`}
                   alt=""
                   style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }}
                 />
@@ -193,7 +189,7 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
                       onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                        {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
                         <span style={{ fontWeight: 600 }}>{c.code}</span>
                         {c.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{c.name}</span>}
                       </div>
