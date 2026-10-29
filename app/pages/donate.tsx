@@ -1,5 +1,6 @@
 'use client';
 
+import CurrencyFlag from '../components/CurrencyFlag';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
@@ -350,7 +351,9 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
                     border: `2px solid ${currency === code ? accent : colors.borderPrimary}`,
                     background: currency === code ? (actualTheme === 'dark' ? `${accent}15` : `${accent}08`) : colors.bgCard,
                     color: currency === code ? accent : colors.textSecondary,
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
                   }}>
+                    <CurrencyFlag code={code} width={16} />
                     {code}
                   </button>
                 ))}

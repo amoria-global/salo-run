@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
 import { MatchingProfileCard } from '../../components/hybrid/MatchingProfile';
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -30,9 +31,6 @@ const profileFormStorage = localforage.createInstance({
 // Storage key for the profile form
 const PROFILE_FORM_KEY = 'profile_form_draft';
 
-const CURRENCY_FLAG_MAP: Record<string, string> = {
-  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
-};
 
 // Interface for day availability
 interface DayAvailability {
@@ -2130,7 +2128,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       <div ref={(el) => { currencyDropdownRefs.current[ddKey] = el; }} style={{ position: 'relative' }}>
         <button type="button" disabled={!isPackageEditEnabled} onClick={() => isPackageEditEnabled && setOpenCurrencyPkgId(isDropdownOpen ? null : ddKey)}
           style={{ ...pkgSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed', opacity: isPackageEditEnabled ? 1 : 0.6, width: '100%', textAlign: 'left' }}>
-          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selectedCode]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`/flags/${CURRENCY_FLAG_MAP[selectedCode]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
           <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
             <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -2148,7 +2146,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                    {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
                     <span style={{ fontWeight: '600' }}>{opt.code}</span>
                     {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
                   </div>
@@ -4838,7 +4836,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       <div ref={(el) => { currencyDropdownRefs.current[pkg.id] = el; }} style={{ position: 'relative' }}>
                                         <button type="button" disabled={!isPackageEditEnabled} onClick={() => isPackageEditEnabled && setOpenCurrencyPkgId(isDropdownOpen ? null : pkg.id)}
                                           style={{ ...pkgSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed', opacity: isPackageEditEnabled ? 1 : 0.6, width: '100%', textAlign: 'left' }}>
-                                          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selectedCode]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`/flags/${CURRENCY_FLAG_MAP[selectedCode]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
                                           <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
                                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
                                             <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4856,7 +4854,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                                   onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                                                 >
                                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                                    {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
                                                     <span style={{ fontWeight: '600' }}>{opt.code}</span>
                                                     {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
                                                   </div>
@@ -5522,7 +5520,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       <div ref={(el) => { currencyDropdownRefs.current[ddKey] = el; }} style={{ position: 'relative' }}>
                                         <button type="button" disabled={!isStudioPackageEditEnabled} onClick={() => isStudioPackageEditEnabled && setOpenCurrencyPkgId(isOpen ? null : ddKey)}
                                           style={{ ...studioPkgSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isStudioPackageEditEnabled ? 'pointer' : 'not-allowed', width: '100%', textAlign: 'left' }}>
-                                          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selectedCode]}.png`} alt="" style={{ width: 18, height: 14, objectFit: 'cover', borderRadius: 2 }} />}
+                                          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`/flags/${CURRENCY_FLAG_MAP[selectedCode]}.svg`} alt="" style={{ width: 18, height: 14, objectFit: 'cover', borderRadius: 2 }} />}
                                           <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
                                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                                             <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -5537,7 +5535,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                                 <button key={opt.val} type="button" onClick={() => { updatePackage(pkg.id, 'currencyId', opt.val); setOpenCurrencyPkgId(null); }}
                                                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? accentBg : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? 600 : 400, cursor: 'pointer', gap: '0.5rem' }}>
                                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />}
+                                                    {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />}
                                                     <span style={{ fontWeight: 600 }}>{opt.code}</span>
                                                     {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
                                                   </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import CurrencySelect from '../../components/CurrencySelect';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { Can, usePermissions } from '@/app/lib/usePermissions';
@@ -689,14 +690,7 @@ function CreateContentAlbumModal({
               <input type="number" min={100} step="1" value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} placeholder="e.g. 500" required />
             </label>
             <label style={lbl}>Currency
-              <select value={currencyId} onChange={e => setCurrencyId(e.target.value)} style={inp} required>
-                <option value="">- Pick -</option>
-                {currencies.map(c => (
-                  <option key={c.id || c.code} value={c.id || c.code}>
-                    {c.code}{c.name ? ` - ${c.name}` : ''}
-                  </option>
-                ))}
-              </select>
+              <CurrencySelect value={currencyId} onChange={setCurrencyId} style={inp} required placeholder="- Pick -" options={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))} />
             </label>
           </div>
 
@@ -1063,14 +1057,7 @@ function EditContentAlbumModal({
               <input type="number" min={100} step="1" value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} required />
             </label>
             <label style={lbl}>Currency
-              <select value={currencyId} onChange={e => setCurrencyId(e.target.value)} style={inp} required>
-                <option value="">- Pick -</option>
-                {currencies.map(c => (
-                  <option key={c.id || c.code} value={c.id || c.code}>
-                    {c.code}{c.name ? ` - ${c.name}` : ''}
-                  </option>
-                ))}
-              </select>
+              <CurrencySelect value={currencyId} onChange={setCurrencyId} style={inp} required placeholder="- Pick -" options={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))} />
             </label>
           </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
 import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
 import { invitesOn, wishInvitesError } from '@/lib/wishes/wishInvites';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -71,9 +72,6 @@ const fallbackCurrencyOptions: { value: string; label: string; id?: string }[] =
   { value: 'TZS', label: 'TZS' }
 ];
 
-const CURRENCY_FLAG_MAP: Record<string, string> = {
-  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
-};
 
 
 function parseTimeToApiString(timeStr: string): string {
@@ -2424,7 +2422,7 @@ const MyEventsPage = () => {
                       fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary,
                       backgroundColor: colors.bgTertiary, cursor: 'pointer',
                     }}>
-                      {CURRENCY_FLAG_MAP[createPriceCurrency] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[createPriceCurrency]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+                      {CURRENCY_FLAG_MAP[createPriceCurrency] && <img src={`/flags/${CURRENCY_FLAG_MAP[createPriceCurrency]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
                       <span style={{ flex: 1, textAlign: 'left' }}>{createPriceCurrency}</span>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: createCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
                         <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -2443,7 +2441,7 @@ const MyEventsPage = () => {
                               onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
                                 <span style={{ fontWeight: '600' }}>{opt.value}</span>
                                 {extra && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{extra}</span>}
                               </div>
@@ -3894,7 +3892,7 @@ const MyEventsPage = () => {
                         fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary,
                         backgroundColor: colors.bgTertiary, cursor: 'pointer',
                       }}>
-                        {CURRENCY_FLAG_MAP[editPriceCurrency] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[editPriceCurrency]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+                        {CURRENCY_FLAG_MAP[editPriceCurrency] && <img src={`/flags/${CURRENCY_FLAG_MAP[editPriceCurrency]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
                         <span style={{ flex: 1, textAlign: 'left' }}>{editPriceCurrency}</span>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: editCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
                           <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3913,7 +3911,7 @@ const MyEventsPage = () => {
                                 onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                  {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
                                   <span style={{ fontWeight: '600' }}>{opt.value}</span>
                                   {extra && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{extra}</span>}
                                 </div>
