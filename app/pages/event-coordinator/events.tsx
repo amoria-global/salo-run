@@ -14,6 +14,8 @@ import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import EventConfirmModal from '../../components/EventConfirmModal';
 import EventQrWizard from '../../components/EventQrWizard';
+import EventCoverageChoice from '../../components/EventCoverageChoice';
+import { selfStreamFeeError, type EventCoverage } from '@/lib/events/selfStream';
 import OwnerGoLive from '../../components/live/OwnerGoLive';
 import { canOwnerGoLive } from '@/lib/events/ownerGoLive';
 import RebookWizard from '../../components/RebookWizard';
@@ -1452,8 +1454,10 @@ const MyEventsPage = () => {
     setCreateWishInvitesErr(missingInvites ?? null);
     if (missingInvites) { focusWishInvitesField(); return; }
 
-    // Currency-aware minimum stream access fee
-    if (isEventPriceInvalid(createPrice, createPriceCurrency)) {
+    if (createEventVisibility === 'PRIVATE') {
+      const feeError = selfStreamFeeError(createPrice, createPriceCurrency || 'RWF');
+      if (feeError) { setSubmitError(feeError); return; }
+    } else if (isEventPriceInvalid(createPrice, createPriceCurrency)) {
       setSubmitError(`Live Stream Access Fee must be at least ${getMinEventPriceLabel(createPriceCurrency)}.`);
       return;
     }
@@ -1472,7 +1476,7 @@ const MyEventsPage = () => {
         const locationStr = [createVenueName, createAddress, createCity, createCountry].filter(Boolean).join(', ');
         const tagsStr = createTags.length > 0 ? createTags.join(',') : createCategory;
 
-        const validPhotographerId = (createPhotographerId && isValidUUID(createPhotographerId)) ? createPhotographerId : null;
+        const validPhotographerId = (createEventVisibility !== 'PRIVATE' && createPhotographerId && isValidUUID(createPhotographerId)) ? createPhotographerId : null;
 
         const numericPrice = createPrice.replace(/[^\d]/g, '');
 
@@ -1505,7 +1509,7 @@ const MyEventsPage = () => {
           payload.photographerId = validPhotographerId;
         }
 
-        if (createPackageId && isValidUUID(createPackageId)) {
+        if (createEventVisibility !== 'PRIVATE' && createPackageId && isValidUUID(createPackageId)) {
           payload.packageId = createPackageId;
         }
 
@@ -2586,6 +2590,16 @@ const MyEventsPage = () => {
           </div>
 
           {/* Section: Photographer Assignment */}
+          <EventCoverageChoice
+            value={(createEventVisibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC') as EventCoverage}
+            onChange={(v) => {
+              setCreateEventVisibility(v);
+              setSubmitError(null);
+              if (v === 'PRIVATE') { setCreatePhotographerId(''); setCreatePackageId(''); setPhotographerAssignMode('none'); }
+            }}
+            colors={colors}
+          />
+          {createEventVisibility !== 'PRIVATE' ? (
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -2789,6 +2803,7 @@ const MyEventsPage = () => {
               </div>
             )}
           </div>
+          ) : null}
 
 
           {/* Escrow / Payment Milestone Selector. shown when photographer + package selected */}
