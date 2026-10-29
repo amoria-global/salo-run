@@ -231,6 +231,8 @@ interface Album {
   photoCount: number;
   liked: boolean;
   images: string[];
+  /** False for a standalone paid album: the server refuses to send it to a client; it is published instead. */
+  canSend?: boolean;
 }
 
 
@@ -339,6 +341,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           thumbnail: cover,
           featured: false,
           sharedWithClient: a.sent === true,
+          canSend: !((a.albumType === 'standalone' || a.standalone === true || a.isStandalone === true) && a.freeAlbum !== true),
           photoCount: typeof a.imageCount === 'number' ? a.imageCount : 0,
           liked: false,
           images: imageUrls,
@@ -1392,7 +1395,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                         <EyeIcon />
                         Browse
                       </button>
-                      <button
+                      {photo.canSend !== false ? (
+<button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSharePhoto(photo);
@@ -1418,6 +1422,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                         <SendIcon />
                         Send
                       </button>
+) : null}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1658,7 +1663,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                           >
                             <i className="bi bi-eye-fill" style={{ fontSize: 12 }} />
                           </button>
-                          <button
+                          {photo.canSend !== false ? (
+<button
                             onClick={(e) => {
                               e.stopPropagation();
                               setSharePhoto(photo);
@@ -1681,6 +1687,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                           >
                             <i className="bi bi-send-fill" style={{ fontSize: 12 }} />
                           </button>
+) : null}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -2466,7 +2473,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     <i className="bi bi-pencil"></i>
                     Edit Album
                   </button>
-                  <button
+                  {selectedPhoto.canSend !== false ? (
+<button
                     onClick={() => {
                       setSharePhoto(selectedPhoto);
                       setShowShareModal(true);
@@ -2490,6 +2498,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     <SendIcon />
                     Send to Client
                   </button>
+) : null}
                 </div>
               </div>
             </div>
@@ -3566,7 +3575,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     <DownloadIcon />
                     Download ({selectedImages.length})
                   </button>
-                  <button
+                  {multiSelectAlbum?.canSend !== false ? (
+<button
                     onClick={handleBulkShareToClient}
                     style={{
                       padding: '0.5rem 1rem',
@@ -3592,6 +3602,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     <SendIcon />
                     Send to Client ({selectedImages.length})
                   </button>
+) : null}
                   <button
                     onClick={handleBulkDelete}
                     style={{
