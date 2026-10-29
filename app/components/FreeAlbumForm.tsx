@@ -1,5 +1,6 @@
 'use client';
 
+import CurrencySelect from './CurrencySelect';
 import React from 'react';
 
 interface FreeAlbumFormProps {
@@ -159,25 +160,20 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
           <label htmlFor="freeExtraCurrency" style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>
             Currency for extras
           </label>
-          <select
+          <CurrencySelect
             id="freeExtraCurrency"
             value={currencyId}
-            onChange={(e) => onCurrencyChange && onCurrencyChange(e.target.value)}
+            onChange={(v) => onCurrencyChange && onCurrencyChange(v)}
             disabled={disabled}
+            placeholder="Pick a currency…"
+            options={currencies.map((c) => ({ value: c.id || c.code, code: c.code, name: c.name }))}
             style={{
               width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem',
               border: `1px solid ${!currencyId ? '#f59e0b' : colors.border}`,
               borderRadius: '0.4rem', background: colors.background,
               color: colors.textPrimary, outline: 'none',
             }}
-          >
-            <option value="">Pick a currency…</option>
-            {currencies.map((c) => (
-              <option key={c.id || c.code} value={c.id || c.code}>
-                {c.code}{c.name ? `. ${c.name}` : ''}
-              </option>
-            ))}
-          </select>
+          />
           {!currencyId && (
             <div style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '0.25rem' }}>
               A currency is required when charging for extras.
