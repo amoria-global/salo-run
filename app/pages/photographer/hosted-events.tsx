@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { dashboardAuthFetch } from '../../providers/AuthProvider';
 import { useTheme } from '../../context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
-import HostLivePage from '../../components/live/HostLivePage';
+import OwnerGoLive from '../../components/live/OwnerGoLive';
 import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
 import { invitesOn, wishInvitesStatus } from '@/lib/wishes/wishInvites';
 import {
@@ -20,12 +20,6 @@ import {
   type EarningsPreview, type HostedBucket, type HostedEvent, type UnpublishImpact, type HostFormErrors, type HostingEligibility, type HostProgress,
 } from '@/lib/hosting/hostedEvents';
 import { formatEventDay, getEventStatus, isStartingSoon } from '@/lib/events/eventStatus';
-
-type ConnStatus = 'disconnected' | 'connected' | 'paused' | 'ended';
-type StreamState = {
-  whipUrl?: string; whepUrl?: string; inviteToken?: string; connectionStatus: ConnStatus;
-  streamHealth?: string; uploadSpeed?: string; viewerCount?: number; peakViewers?: number; error?: string;
-};
 
 const todayYmd = () => {
   const d = new Date();
@@ -57,40 +51,9 @@ export default function HostedEventsPage() {
   useEffect(() => { loadElig(); }, [loadElig]);
   useEffect(() => { if (elig?.canHostFree) loadEvents(); }, [elig, loadEvents]);
 
-  // Stream control for one event at a time, through the same endpoints the booked-events page uses.
+  // Stream control for one event at a time: OwnerGoLive, the same page the booked-events and private-event owners use.
   const [live, setLive] = useState<HostedEvent | null>(null);
-  const [stream, setStream] = useState<StreamState>({ connectionStatus: 'disconnected' });
-  const patch = (p: Partial<StreamState>) => setStream((s) => ({ ...s, ...p }));
-  const post = async (path: string, fallback: string) => {
-    const res = await fetcher(`${apiUrl}/api/remote/photographer/events/${live!.id}/stream/${path}`, { method: 'POST' });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || body.action === 0) throw new Error(body.message || fallback);
-    return (body.data || body) as Record<string, string>;
-  };
-  const guarded = (fn: () => Promise<void>, fallback: string) => async () => {
-    patch({ error: undefined });
-    try { await fn(); } catch (e) { patch({ error: e instanceof Error ? e.message : fallback }); }
-  };
-  useEffect(() => {
-    if (!live) return;
-    let stop = false;
-    const poll = async () => {
-      try {
-        const res = await fetcher(`${apiUrl}/api/remote/photographer/events/${live.id}/stream/config`);
-        const cfg = (await res.json()).data;
-        if (!stop && cfg) patch({
-          whipUrl: cfg.whipUrl || undefined, whepUrl: cfg.whepUrl || undefined, inviteToken: cfg.inviteToken || undefined,
-          connectionStatus: (cfg.connectionStatus || 'disconnected') as ConnStatus,
-          streamHealth: cfg.streamHealth, uploadSpeed: cfg.uploadSpeed, viewerCount: cfg.viewerCount || 0, peakViewers: cfg.peakViewers || 0,
-        });
-      } catch { /* polling errors are ignored */ }
-    };
-    void poll();
-    const t = setInterval(poll, 5000);
-    return () => { stop = true; clearInterval(t); };
-  }, [live, apiUrl, fetcher]);
-
-  const openLive = (e: HostedEvent) => { setStream({ connectionStatus: 'disconnected' }); setLive(e); };
+  const openLive = (e: HostedEvent) => setLive(e);
 
   // One rule for the tab, the badge and the actions: getEventStatus, from the stream and the date-times.
   const [now, setNow] = useState(() => Date.now());
@@ -179,27 +142,11 @@ export default function HostedEventsPage() {
       ) : null}
 
       {live ? (
-        <HostLivePage
+        <OwnerGoLive
           onClose={() => { setLive(null); loadEvents(); }}
           eventTitle={live.title}
           eventId={live.id}
-          wishInvites={live.allowWishInvites}
-          whipUrl={stream.whipUrl}
-          whepUrl={stream.whepUrl}
-          inviteToken={stream.inviteToken}
-          connectionStatus={stream.connectionStatus}
-          streamHealth={stream.streamHealth}
-          uploadSpeed={stream.uploadSpeed}
-          viewerCount={stream.viewerCount || 0}
-          peakViewers={stream.peakViewers || 0}
-          error={stream.error}
-          onStartStream={guarded(async () => { const d = await post('start', 'Failed to start stream. Please try again.'); patch({ whipUrl: d.whipUrl, whepUrl: d.whepUrl }); }, 'Failed to start stream.')}
-          onResumeStream={guarded(async () => { await post('resume', 'Failed to go live. Please try again.'); patch({ connectionStatus: 'connected' }); }, 'Failed to go live.')}
-          onPauseStream={guarded(async () => { await post('pause', 'Failed to pause stream. Please try again.'); patch({ connectionStatus: 'paused' }); }, 'Failed to pause stream.')}
-          onEndStream={guarded(async () => { await post('stop', 'Failed to end stream. Please try again.'); patch({ connectionStatus: 'ended' }); }, 'Failed to end stream.')}
-          onResetStream={guarded(async () => { const d = await post('reset', 'Failed to reset stream.'); patch({ whipUrl: d.whipUrl, whepUrl: d.whepUrl, connectionStatus: 'disconnected' }); }, 'Failed to reset stream.')}
-          theme={actualTheme as 'light' | 'dark'}
-          colors={colors}
+          allowWishInvites={live.allowWishInvites}
         />
       ) : null}
     </div>

@@ -14,6 +14,8 @@ import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import EventConfirmModal from '../../components/EventConfirmModal';
 import EventQrWizard from '../../components/EventQrWizard';
+import OwnerGoLive from '../../components/live/OwnerGoLive';
+import { canOwnerGoLive } from '@/lib/events/ownerGoLive';
 import RebookWizard from '../../components/RebookWizard';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -261,6 +263,8 @@ interface Event {
   photographerName?: string;
   photographerImage?: string;
   isPublished: boolean;
+  /** PUBLIC (a photographer streams it) or PRIVATE (its owner streams it). */
+  eventVisibility?: string;
   /** Whether viewers may invite others to send wishes. Undefined on a server that predates the setting (treated as on). */
   allowWishInvites?: boolean;
   shareLink: string;
@@ -382,6 +386,8 @@ const MyEventsPage = () => {
   }, []);
   const [showEventDetails, setShowEventDetails] = useState<Event | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  // Go live (camera or OBS) for a private event the user streams themselves.
+  const [goLiveEvent, setGoLiveEvent] = useState<Event | null>(null);
   const [shareEvent, setShareEvent] = useState<Event | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteEvent, setDeleteEvent] = useState<Event | null>(null);
@@ -896,6 +902,7 @@ const MyEventsPage = () => {
             photographerName: (evt.photographerName as string) || (evt.photographer ? `${(evt.photographer as Record<string, unknown>).firstName || ''} ${(evt.photographer as Record<string, unknown>).lastName || ''}`.trim() : '') || '',
             photographerImage: (evt.photographerImage as string) || (evt.photographer && (evt.photographer as Record<string, unknown>).profilePicture as string) || '',
             isPublished: evt.isPublished === true,
+            eventVisibility: typeof evt.eventVisibility === 'string' ? evt.eventVisibility : undefined,
             allowWishInvites: typeof evt.allowWishInvites === 'boolean' ? evt.allowWishInvites : undefined,
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
             streamInviteToken: (evt.streamInviteToken as string) || undefined,
@@ -1961,6 +1968,9 @@ const MyEventsPage = () => {
                           </button>
                         )}
                         {/* An unpublished event has no link guests can open, so there is nothing to share yet. */}
+                        {canOwnerGoLive(event) && <button onClick={() => setGoLiveEvent(event)} title="Go live" aria-label={`Go live: ${event.title}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0.5rem 0.75rem', background: '#E61220', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 9, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+                          <i className="bi bi-broadcast" aria-hidden="true" /> Go live
+                        </button>}
                         {event.isPublished && <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                           <ShareIcon />
                         </button>}
@@ -3316,6 +3326,10 @@ const MyEventsPage = () => {
       )}
 
       {/* Share Modal */}
+      {goLiveEvent ? (
+        <OwnerGoLive eventId={goLiveEvent.id} eventTitle={goLiveEvent.title} allowWishInvites={goLiveEvent.allowWishInvites} onClose={() => setGoLiveEvent(null)} />
+      ) : null}
+
       <Modal isOpen={showShareModal} onClose={() => setShowShareModal(false)} title="Share event stream">
         {shareEvent && (
           <div>
