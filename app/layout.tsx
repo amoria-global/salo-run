@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Pragati_Narrow } from "next/font/google";
 import "./globals.css";
@@ -13,6 +14,7 @@ import { PermissionProvider } from "./lib/usePermissions";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 import PasswordChangeGate from "./components/PasswordChangeGate";
 import PlatformAlert from "./components/PlatformAlert";
+import AppInstallWizard from "./components/AppInstallWizard";
 
 const pragatiNarrow = Pragati_Narrow({
   weight: ["400", "700"],
@@ -54,6 +56,10 @@ export default function RootLayout({
                     {children}
                     {/* Global platform alert: replaces native browser alert() with brand-styled modal. */}
                     <PlatformAlert />
+                    {/* Get-the-app wizard for a collaboration invite opened on a phone. */}
+                    <Suspense fallback={null}>
+                      <AppInstallWizard />
+                    </Suspense>
                   </UserProfileProvider>
                 </CurrencyProvider>
               </LanguageProvider>
