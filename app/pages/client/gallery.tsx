@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import EventConfirmModal from '../../components/EventConfirmModal';
+import ArchiveRestoreFlow from '../../components/ArchiveRestoreFlow';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
@@ -199,6 +200,12 @@ interface Album {
   downloadedCount: number;
   favoriteCount: number;
   images: string[];
+  /** Archived: locked after its year of access ran out. Opening it offers to restore it. */
+  isLocked: boolean;
+  lockedAt: string | null;
+  archiveFee: number | null;
+  archiveCurrency: string | null;
+  eventId: string | null;
 }
 
 const ClientGallery = () => {
@@ -233,6 +240,8 @@ const ClientGallery = () => {
 
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [albumTab, setAlbumTab] = useState<'all' | 'archived'>('all');
+  const [restoreAlbum, setRestoreAlbum] = useState<Album | null>(null);
   const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
 
   // Photobook states
@@ -293,6 +302,11 @@ const ClientGallery = () => {
           downloadedCount: typeof a.downloadedCount === 'number' ? a.downloadedCount : 0,
           favoriteCount: typeof a.favoriteCount === 'number' ? a.favoriteCount : 0,
           images: imageUrls,
+          isLocked: a.isLocked === true,
+          lockedAt: (a.lockedAt as string) || null,
+          archiveFee: typeof a.archiveFee === 'number' ? a.archiveFee : null,
+          archiveCurrency: (a.archiveCurrency as string) || null,
+          eventId: (a.eventId as string) || null,
         };
       });
 
@@ -356,8 +370,10 @@ const ClientGallery = () => {
                          album.photographer.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = filterCategory === 'All' || album.category === filterCategory;
     const matchesPhotographer = filterPhotographer === 'All' || album.photographer === filterPhotographer;
-    return matchesSearch && matchesCategory && matchesPhotographer;
+    const matchesTab = albumTab === 'all' || album.isLocked;
+    return matchesSearch && matchesCategory && matchesPhotographer && matchesTab;
   });
+  const archivedCount = albums.filter((a) => a.isLocked).length;
 
   // Stats
   const totalPhotos = albums.reduce((sum, a) => sum + a.photoCount, 0);
@@ -730,6 +746,19 @@ const ClientGallery = () => {
             ))}
           </div>
 
+          {/* Albums | Archived. Archived albums are the locked ones; the tab appears once there is one. */}
+          {!viewingPhotobooks && (archivedCount > 0 || albumTab === 'archived') && (
+            <div className="ck-tabs" style={{ marginBottom: '1rem' }} role="tablist" aria-label="Albums">
+              <button type="button" role="tab" aria-selected={albumTab === 'all'} onClick={() => setAlbumTab('all')} className={`ck-tab ${albumTab === 'all' ? 'is-active' : ''}`}>
+                All albums
+              </button>
+              <button type="button" role="tab" aria-selected={albumTab === 'archived'} onClick={() => setAlbumTab('archived')} className={`ck-tab ${albumTab === 'archived' ? 'is-active' : ''}`}>
+                <i className="bi bi-archive-fill" style={{ fontSize: 12, marginRight: 6 }} />
+                Archived ({archivedCount})
+              </button>
+            </div>
+          )}
+
           {/* Filters */}
           <div className="ck-card" style={{ padding: '0.85rem 1rem', marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -987,6 +1016,7 @@ const ClientGallery = () => {
                     cursor: 'pointer',
                   }}
                   onClick={() => {
+                    if (album.isLocked) { setRestoreAlbum(album); return; }
                     setSelectedAlbum(album);
                     setShowViewModal(true);
                   }}
@@ -1009,6 +1039,12 @@ const ClientGallery = () => {
                       fill
                       style={{ objectFit: 'cover' }}
                     />
+                    {album.isLocked && (
+                      <div style={{ position: 'absolute', top: 10, left: 10, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(8,58,133,0.85)', color: '#fff', padding: '4px 10px', borderRadius: 9999, fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.25)' }}>
+                        <i className="bi bi-lock-fill" style={{ fontSize: 11 }} />
+                        Archived
+                      </div>
+                    )}
                     {/* Soft gradient overlay for badge legibility */}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 65%, rgba(0,0,0,0.30) 100%)', pointerEvents: 'none' }} />
                     {/* Photo count pill */}
@@ -1230,6 +1266,7 @@ const ClientGallery = () => {
                     transition: 'background-color 0.18s',
                   }}
                   onClick={() => {
+                    if (album.isLocked) { setRestoreAlbum(album); return; }
                     setSelectedAlbum(album);
                     setShowViewModal(true);
                   }}
@@ -1250,6 +1287,11 @@ const ClientGallery = () => {
                     boxShadow: '0 3px 8px rgba(8,58,133,0.12)',
                   }}>
                     <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
+                    {album.isLocked && (
+                      <div title="Archived" style={{ position: 'absolute', top: 4, left: 4, width: 20, height: 20, borderRadius: 9999, background: 'rgba(8,58,133,0.85)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <i className="bi bi-lock-fill" style={{ fontSize: 10 }} />
+                      </div>
+                    )}
                   </div>
 
                   {/* Album Title */}
@@ -2712,6 +2754,16 @@ const ClientGallery = () => {
       )}
 
       {/* Delete Confirmation Modal */}
+      {restoreAlbum && (
+        <ArchiveRestoreFlow
+          album={restoreAlbum}
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setRestoreAlbum(null)}
+          onRestored={() => { setRestoreAlbum(null); setAlbumTab('all'); fetchAlbums(); }}
+        />
+      )}
+
       {showDeleteModal && albumToDelete && (
         <EventConfirmModal
           tone="danger"
@@ -3502,7 +3554,12 @@ const ClientGallery = () => {
                         photoCount: photobook.images.length,
                         downloadedCount: 0,
                         favoriteCount: 0,
-                        images: photobook.images.map(img => img.url)
+                        images: photobook.images.map(img => img.url),
+                        isLocked: false,
+                        lockedAt: null,
+                        archiveFee: null,
+                        archiveCurrency: null,
+                        eventId: null,
                       });
                       setCurrentImageIndex(index);
                       setShowImageViewer(true);
