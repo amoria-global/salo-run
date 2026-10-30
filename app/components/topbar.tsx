@@ -250,9 +250,12 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
       switch (t) {
         case 'payment': case 'tip': case 'bonus': case 'withdrawal': dest = '/user/photographer/transaction'; break;
         case 'booking': case 'event':
-        case 'album': case 'media':
+        case 'media':
         case 'streaming': case 'photobook':
           dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
+        // The reference of an album notification is the album's id, so it opens the album, not an event with that id.
+        case 'album':
+          dest = refId ? `/user/photographer/collaborate/albums/${refId}` : '/user/photographer/collaborate'; break;
         case 'security': dest = '/user/photographer/profile'; break;
       }
     } else if (userRole === 'event-coordinator') {
@@ -261,7 +264,8 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
           dest = refId ? `/user/event-coordinator/events/${refId}` : '/user/event-coordinator/events'; break;
         case 'payment': case 'streamfee': case 'streaming':
           dest = refId ? `/user/event-coordinator/payments/${refId}` : '/user/event-coordinator/payments'; break;
-        case 'album': case 'media': dest = '/user/event-coordinator/gallery'; break;
+        case 'album': dest = refId ? `/user/event-coordinator/gallery/albums/${refId}` : '/user/event-coordinator/gallery'; break;
+        case 'media': dest = '/user/event-coordinator/gallery'; break;
         case 'photographer': dest = '/user/event-coordinator/home'; break;
         case 'security': dest = '/user/event-coordinator/profile'; break;
       }
@@ -272,7 +276,8 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         case 'payment':
           dest = refId ? `/user/client/payments/${refId}` : '/user/client/payments'; break;
         case 'gift': dest = '/user/client/payments'; break;
-        case 'album': case 'media': dest = '/user/client/gallery'; break;
+        case 'album': dest = refId ? `/user/client/gallery/albums/${refId}` : '/user/client/gallery'; break;
+        case 'media': dest = '/user/client/gallery'; break;
         case 'photographer': dest = '/user/client/photographers'; break;
         case 'security': dest = '/user/client/profile'; break;
         case 'streaming': dest = '/user/client/streams'; break;
