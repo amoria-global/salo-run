@@ -67,14 +67,6 @@ const TrashIcon = () => (
   </svg>
 );
 
-const ArchiveIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="3" width="20" height="5" rx="1" stroke="currentColor" strokeWidth="2"/>
-    <path d="M4 8V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V8" stroke="currentColor" strokeWidth="2"/>
-    <path d="M10 12H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
 const CloseIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -117,7 +109,10 @@ interface Album {
   category: string;
   date: string | null;
   eventLocation: string | null;
+  /** Locked after its year of access ran out (same fact as isLocked). Not the event's completion. */
   isArchived: boolean;
+  /** The client confirmed the event is complete. */
+  isCompleted: boolean;
   receivedDate: string | null;
   thumbnail: string | null;
   photoCount: number;
@@ -196,6 +191,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchAlbum = useCallback(async () => {
     // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
@@ -231,6 +227,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
         date: data.date || null,
         eventLocation: data.eventLocation || null,
         isArchived: Boolean(data.isArchived),
+        isCompleted: Boolean(data.isCompleted),
         receivedDate: data.receivedDate || null,
         thumbnail: normalizeImageUrl(data.thumbnail) || null,
         photoCount: Number(data.photoCount) || 0,
@@ -273,59 +270,25 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
     router.push(`/${userRole === 'event-coordinator' ? 'user/event-coordinator' : 'user/client'}/gallery/albums`);
   };
 
-  const handleArchive = async () => {
-    if (!album || actionLoading) return;
-    setActionLoading(true);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/albums/archives`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ albumId: id }),
-      });
-      if (res.ok) {
-        await fetchAlbum();
-      }
-    } catch (err) {
-      console.error('Failed to archive album:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleUnarchive = async () => {
-    if (!album || actionLoading) return;
-    setActionLoading(true);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/albums/archives`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ albumId: id }),
-      });
-      if (res.ok) {
-        await fetchAlbum();
-      }
-    } catch (err) {
-      console.error('Failed to unarchive album:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (!album || actionLoading) return;
     setActionLoading(true);
+    setActionError(null);
     try {
       const apiUrl = getApiUrl();
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/albums/${id}`, {
         method: 'DELETE',
       });
-      if (res.ok) {
+      const body = await res.json().catch(() => null);
+      // The backend answers 200 with action 0 for some failures, so both are checked.
+      if (res.ok && body?.action !== 0) {
         router.back();
+      } else {
+        setActionError(body?.message || 'This album could not be deleted. Please try again.');
       }
     } catch (err) {
       console.error('Failed to delete album:', err);
+      setActionError('This album could not be deleted. Check your connection and try again.');
     } finally {
       setActionLoading(false);
       setShowDeleteConfirm(false);
@@ -549,26 +512,8 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                   border: `1px solid ${album.isLocked ? '#F59E0B40' : '#10B98140'}`,
                 }}>
                   {album.isLocked ? <LockIcon /> : <UnlockIcon />}
-                  {album.isLocked ? 'Locked' : 'Unlocked'}
+                  {album.isLocked ? 'Archived' : 'Unlocked'}
                 </span>
-                {/* Archived badge */}
-                {album.isArchived && (
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.3rem',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    color: '#6B7280',
-                    backgroundColor: '#6B728018',
-                    borderRadius: '9999px',
-                    padding: '0.25rem 0.75rem',
-                    border: '1px solid #6B728040',
-                  }}>
-                    <ArchiveIcon />
-                    Archived
-                  </span>
-                )}
               </div>
             </div>
 
@@ -895,30 +840,11 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                   </button>
                 )}
 
-                {/* Archive / Unarchive button */}
-                <button
-                  onClick={album.isArchived ? handleUnarchive : handleArchive}
-                  disabled={actionLoading}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                    color: actualTheme === 'dark' ? '#93C5FD' : '#083A85',
-                    border: `2px solid ${actualTheme === 'dark' ? '#2563EB40' : '#083A8530'}`,
-                    borderRadius: '0.5rem',
-                    padding: '0.875rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    cursor: actionLoading ? 'not-allowed' : 'pointer',
-                    width: '100%',
-                    opacity: actionLoading ? 0.6 : 1,
-                  }}
-                >
-                  <ArchiveIcon />
-                  {album.isArchived ? 'Unarchive Album' : 'Archive Album'}
-                </button>
+                {actionError && (
+                  <div role="alert" style={{ color: '#DC2626', fontSize: '0.85rem', fontWeight: '500', textAlign: 'center' }}>
+                    {actionError}
+                  </div>
+                )}
 
                 {/* Delete button */}
                 {!showDeleteConfirm ? (
@@ -1060,15 +986,15 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
                   <InfoRow
                     label="Status"
-                    value={album.isLocked ? 'Locked' : 'Unlocked'}
+                    value={album.isLocked ? 'Archived' : 'Unlocked'}
                     colors={colors}
                     valueColor={album.isLocked ? '#F59E0B' : '#10B981'}
                   />
                   <InfoRow
-                    label="Archived"
-                    value={album.isArchived ? 'Yes' : 'No'}
+                    label="Event"
+                    value={album.isCompleted ? 'Completed' : 'In progress'}
                     colors={colors}
-                    valueColor={album.isArchived ? '#6B7280' : colors.textPrimary}
+                    valueColor={colors.textPrimary}
                   />
                   <InfoRow
                     label="Photos"
