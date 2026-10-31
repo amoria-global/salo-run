@@ -1118,7 +1118,7 @@ const ClientGallery = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          openMultiSelectView(album);
+                          if (album.isLocked) { setRestoreAlbum(album); } else { openMultiSelectView(album); }
                         }}
                         style={{
                           flex: 1.5,
@@ -1139,7 +1139,7 @@ const ClientGallery = () => {
                         onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                       >
                         <EyeIcon />
-                        Browse
+                        {album.isLocked ? 'Restore' : 'Browse'}
                       </button>
                       {!photobook && (
                         <button
@@ -1370,7 +1370,7 @@ const ClientGallery = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        openMultiSelectView(album);
+                        if (album.isLocked) { setRestoreAlbum(album); } else { openMultiSelectView(album); }
                       }}
                       title="Browse album"
                       style={{
@@ -1391,7 +1391,7 @@ const ClientGallery = () => {
                       onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
                       <i className="bi bi-eye-fill" style={{ fontSize: 11 }} />
-                      Browse
+                      {album.isLocked ? 'Restore' : 'Browse'}
                     </button>
                     {!photobook && (
                       <button
