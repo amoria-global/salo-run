@@ -8,6 +8,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import ArchiveRestoreFlow from '../../components/ArchiveRestoreFlow';
+import { archivedMessage, archiveFeeText } from '@/lib/archivedCopy';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -113,6 +115,9 @@ interface Album {
   isArchived: boolean;
   /** The client confirmed the event is complete. */
   isCompleted: boolean;
+  lockedAt: string | null;
+  archiveFee: number | null;
+  archiveCurrency: string | null;
   receivedDate: string | null;
   thumbnail: string | null;
   photoCount: number;
@@ -228,6 +233,9 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
         eventLocation: data.eventLocation || null,
         isArchived: Boolean(data.isArchived),
         isCompleted: Boolean(data.isCompleted),
+        lockedAt: data.lockedAt || null,
+        archiveFee: typeof data.archiveFee === 'number' ? data.archiveFee : null,
+        archiveCurrency: data.archiveCurrency || null,
         receivedDate: data.receivedDate || null,
         thumbnail: normalizeImageUrl(data.thumbnail) || null,
         photoCount: Number(data.photoCount) || 0,
@@ -265,9 +273,10 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
     router.back();
   };
 
+  const [showRestore, setShowRestore] = useState(false);
   const handleUnlock = () => {
     if (!album) return;
-    router.push(`/${userRole === 'event-coordinator' ? 'user/event-coordinator' : 'user/client'}/gallery/albums`);
+    setShowRestore(true);
   };
 
   const handleDelete = async () => {
@@ -686,10 +695,10 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                       <LockIcon />
                     </div>
                     <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Album is Locked
+                      This album is archived
                     </h3>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      Unlock this album to view and download images.
+                      {archivedMessage({ lockedAt: album.lockedAt, price: archiveFeeText(album.archiveFee, album.archiveCurrency) })}
                     </p>
                   </div>
                 ) : album.images.length === 0 ? (
@@ -836,7 +845,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                     }}
                   >
                     <UnlockIcon />
-                    Unlock Album
+                    Restore album
                   </button>
                 )}
 
@@ -1170,6 +1179,16 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
             </div>
           )}
         </div>
+      )}
+
+      {showRestore && album && (
+        <ArchiveRestoreFlow
+          album={{ id: album.id, title: album.title, eventId: album.eventId, photographer: album.photographer, lockedAt: album.lockedAt, archiveFee: album.archiveFee, archiveCurrency: album.archiveCurrency }}
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setShowRestore(false)}
+          onRestored={() => { setShowRestore(false); fetchAlbum(); }}
+        />
       )}
     </div>
   );
