@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
-import { initiateBookingPayment, initiateArchivePayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType } from '@/lib/xentripay';
+import { initiateBookingPayment, initiateArchivePayment, initiateGalleryRestorePayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType } from '@/lib/xentripay';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
 import InternationalPhoneInput, { type PhoneValue } from './phone/InternationalPhoneInput';
 import { usePaymentOptions } from '@/lib/payments/usePaymentOptions';
@@ -57,6 +57,8 @@ export interface Payment {
   id: number;
   declarationId?: string;
   eventId?: string;
+  /** A locked standalone album restored by its owner; it has no event. */
+  galleryId?: string;
   date: string;
   eventName: string;
   eventType: string;
@@ -221,7 +223,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
       return;
     }
 
-    if (isArchive && !payment?.eventId) {
+    if (isArchive && !payment?.eventId && !payment?.galleryId) {
       setXentriPayError('No archived album event found. Please try again or contact support.');
       return;
     }
@@ -248,7 +250,9 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
       const country = payCountry ?? undefined;
 
       let result;
-      if (isArchive && payment?.eventId) {
+      if (isArchive && payment?.galleryId && !payment?.eventId) {
+        result = await initiateGalleryRestorePayment(payment.galleryId, phone, telecom, methodType, undefined, country);
+      } else if (isArchive && payment?.eventId) {
         result = await initiateArchivePayment(
           payment.eventId,
           payment.amountNum,

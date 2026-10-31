@@ -14,6 +14,8 @@ export interface ArchivedAlbum {
   title: string;
   /** The event the archive payment is made against. */
   eventId?: string | null;
+  /** A standalone album (no event) is restored against the album itself. */
+  galleryId?: string | null;
   photographer?: string;
   lockedAt?: string | null;
   archiveFee?: number | null;
@@ -37,6 +39,7 @@ const ArchiveRestoreFlow: React.FC<Props> = ({ album, colors, actualTheme, onClo
     const payment: Payment = {
       id: 0,
       eventId: album.eventId ?? undefined,
+      galleryId: album.eventId ? undefined : album.galleryId ?? undefined,
       date: '',
       eventName: album.title,
       eventType: 'Archive Unlock',
@@ -60,14 +63,14 @@ const ArchiveRestoreFlow: React.FC<Props> = ({ album, colors, actualTheme, onClo
       title="Restore this album?"
       highlight={album.title}
       intro={archivedMessage({ lockedAt: album.lockedAt, price })}
-      detail={album.eventId ? restoreDetail(price) : 'This album cannot be restored online right now. Please contact support and we will restore it for you.'}
+      detail={album.eventId || album.galleryId ? restoreDetail(price) : 'This album cannot be restored online right now. Please contact support and we will restore it for you.'}
       colors={colors}
       actualTheme={actualTheme}
       onClose={onClose}
-      closeLabel={album.eventId ? 'Not now' : 'Close'}
-      fullWidthClose={!album.eventId}
+      closeLabel={album.eventId || album.galleryId ? 'Not now' : 'Close'}
+      fullWidthClose={!album.eventId && !album.galleryId}
       primary={
-        album.eventId
+        album.eventId || album.galleryId
           ? { label: price ? `Restore for ${price}` : 'Restore album', icon: 'bi-arrow-counterclockwise', onClick: () => setPaying(true) }
           : undefined
       }

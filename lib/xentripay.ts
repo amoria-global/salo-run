@@ -205,6 +205,52 @@ export async function initiateArchivePayment(
 }
 
 /**
+ * Pay the archive fee to restore a locked standalone (PAID or FREE) album. The server sets the price; nothing about the
+ * amount is sent. Owner only.
+ */
+export async function initiateGalleryRestorePayment(
+  albumId: string,
+  phone: string,
+  telecomProvider: string,
+  paymentMethod: string,
+  redirectUrl?: string,
+  /** ISO-2 country code. Drives backend gateway selection. */
+  country?: string
+): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
+  try {
+    const body: Record<string, unknown> = { paymentMethod };
+    if (phone) body.phone = phone;
+    if (telecomProvider) body.telecomProvider = telecomProvider;
+    if (redirectUrl) body.redirectUrl = redirectUrl;
+    if (country) body.country = country;
+    const response = await dashboardAuthFetch(
+      `${getApiUrl()}/api/remote/photographer/albums/${encodeURIComponent(albumId)}/restore-payment`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    );
+    const result = await response.json().catch(() => null);
+    if (result?.action === 1 && result.data) {
+      return {
+        success: true,
+        data: {
+          refid: result.data.refid,
+          tid: result.data.tid,
+          paymentUrl: result.data.paymentUrl,
+          status: result.data.status || 'PENDING',
+          message: result.message,
+        },
+      };
+    }
+    // A prompt that may already be on the phone is never offered again as a plain retry.
+    if (result?.code === 'AMBIGUOUS') {
+      return { success: false, error: result.message };
+    }
+    return { success: false, error: sanitizeErrorMessage(result?.message, 'Failed to start the restore payment. Please try again.') };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+/**
  * Initiate tip payment via XentriPay
  */
 export async function initiateTipPayment(
