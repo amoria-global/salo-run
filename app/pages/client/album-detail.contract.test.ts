@@ -37,4 +37,13 @@ describe('client album page', () => {
     expect(SOURCE).toContain("album.isLocked ? 'Archived' : 'Unlocked'");
     expect(SOURCE).not.toContain("album.isArchived ? 'Yes' : 'No'");
   });
+
+  it('restores an archived album through the confirm-then-pay flow, in plain language', () => {
+    expect(SOURCE).toContain('<ArchiveRestoreFlow');
+    expect(SOURCE).toContain('archivedMessage(');
+    expect(SOURCE).toContain('Restore album');
+    expect(SOURCE).not.toMatch(/cold storage|Album is Locked|Unlock this album to view/);
+    // the old Unlock button only navigated to the albums list
+    expect(SOURCE).not.toContain('gallery/albums`);');
+  });
 });
