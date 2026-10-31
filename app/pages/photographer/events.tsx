@@ -10,6 +10,7 @@ import EventQrWizard from '../../components/EventQrWizard';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
+import StandaloneAlbumRestore from '../../components/StandaloneAlbumRestore';
 import { EmptyResult, EventRowShell, EventsCalendar, EventsToolbar, GroupedEvents, SectionTabsBar, type CalendarMode, type EventsLayout } from '../../components/events/EventsBrowser';
 import { countsOf, dayFilter, emptyInfo, filterEvents, groupEvents, type DateFilter, type StatusFilter } from '@/lib/events/eventsFilter';
 
@@ -382,6 +383,9 @@ interface Album {
   expiresAt: string;
   albumType?: 'event' | 'standalone';
   isStandalone?: boolean;
+  /** Archived: locked after its access ran out. The photographer keeps read-only access and can restore it. */
+  isLocked?: boolean;
+  lockedAt?: string | null;
   // Standalone free-album fields. recipientEmail is the email captured at
   // album creation (already auto-sent then); "Send" on these is a Resend
   // via POST /albums/{id}/send-free. no event/eventId needed.
@@ -562,6 +566,8 @@ const PhotographerEventsPage = () => {
   const [copiedInviteCode, setCopiedInviteCode] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [viewerAlbum, setViewerAlbum] = useState<Album | null>(null);
+  const [restoreAlbum, setRestoreAlbum] = useState<Album | null>(null);
+  const [albumsReload, setAlbumsReload] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -824,6 +830,8 @@ const PhotographerEventsPage = () => {
       accessCode: a.accessCode || '',
       location: a.location || '',
       albumDate: a.albumDate || '',
+      isLocked: a.isLocked === true,
+      lockedAt: a.lockedAt || null,
     };
     return { album, imageIds };
   };
@@ -979,7 +987,7 @@ const PhotographerEventsPage = () => {
       }
     };
     loadAlbums();
-  }, [user?.id, apiUrl]);
+  }, [user?.id, apiUrl, albumsReload]);
 
   // Fetch received photobooks
   useEffect(() => {
@@ -2242,6 +2250,17 @@ const PhotographerEventsPage = () => {
                       >
                         {/* Full-bleed cover image spanning entire inner card */}
                         <img src={album.coverImage || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                        {album.isLocked && (
+                          <button
+                            type="button"
+                            title="This album is archived. Restore it to open it to buyers again."
+                            onClick={(e) => { e.stopPropagation(); setRestoreAlbum(album); }}
+                            style={{ position: 'absolute', top: '3.4rem', left: '0.7rem', zIndex: 3, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(8,58,133,0.92)', color: '#fff', padding: '5px 11px', borderRadius: 9999, fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer' }}
+                          >
+                            <i className="bi bi-lock-fill" style={{ fontSize: 11 }} />
+                            Archived · Restore
+                          </button>
+                        )}
                         {/* Gradient overlay. lighter so image shows through */}
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
@@ -2516,6 +2535,17 @@ const PhotographerEventsPage = () => {
                     >
                       {/* Image side with overlay */}
                       <div style={{ position: 'relative', width: 220, flexShrink: 0, overflow: 'hidden' }}>
+                        {album.isLocked && (
+                          <button
+                            type="button"
+                            title="This album is archived. Restore it to open it to buyers again."
+                            onClick={(e) => { e.stopPropagation(); setRestoreAlbum(album); }}
+                            style={{ position: 'absolute', bottom: 10, left: 10, zIndex: 3, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(8,58,133,0.92)', color: '#fff', padding: '4px 10px', borderRadius: 9999, fontSize: '0.64rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer' }}
+                          >
+                            <i className="bi bi-lock-fill" style={{ fontSize: 10 }} />
+                            Archived · Restore
+                          </button>
+                        )}
                         <img src={album.coverImage || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%)', pointerEvents: 'none' }} />
                         <div style={{
@@ -3902,6 +3932,16 @@ const PhotographerEventsPage = () => {
       )}
 
       {/* Album Browse / Image Viewer Modal */}
+      {restoreAlbum && (
+        <StandaloneAlbumRestore
+          album={{ id: restoreAlbum.id, title: restoreAlbum.title, lockedAt: restoreAlbum.lockedAt }}
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setRestoreAlbum(null)}
+          onRestored={() => { setRestoreAlbum(null); setAlbumsReload((n) => n + 1); }}
+        />
+      )}
+
       {showAlbumBrowseModal && viewerAlbum && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 2000 }}>
           {/* Radial cinematic backdrop tint */}
