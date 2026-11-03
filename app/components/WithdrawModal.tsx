@@ -8,7 +8,6 @@ import { useCurrency } from '../context/CurrencyContext';
 import PaymentCurrencyPreview from './PaymentCurrencyPreview';
 import { HeartIcon } from './UnlockModal';
 import KycVerificationModal from './KycVerificationModal';
-import FaceScanCapture from './FaceScanCapture';
 
 interface WithdrawAccount {
   id: string;
@@ -106,13 +105,11 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   const [verificationId, setVerificationId] = useState('');
   const [verificationMethod, setVerificationMethod] = useState('');
   const [maskedDestination, setMaskedDestination] = useState('');
-  const [requiresFaceScan, setRequiresFaceScan] = useState(false);
   const [requiresOtp, setRequiresOtp] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [verificationError, setVerificationError] = useState('');
   const [remainingAttempts, setRemainingAttempts] = useState(3);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [capturedSelfie, setCapturedSelfie] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
 
@@ -145,7 +142,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
     setStep('form'); setError(''); setWithdrawAmount(''); setDonationAmount(''); setCustomDonation('');
     setDonationSkipped(false); setShowCustomInput(false); setAccountsLoading(true);
     setVerificationId(''); setVerificationMethod(''); setOtpDigits(['', '', '', '', '', '']);
-    setVerificationError(''); setCapturedSelfie(null); setResendCooldown(0); setIsResending(false); setFeePreview(null);
+    setVerificationError(''); setResendCooldown(0); setIsResending(false); setFeePreview(null);
     const apiUrl = getApiUrl();
 
     dashboardAuthFetch(`${apiUrl}/api/remote/${apiNamespace}/withdrawal-methods`)
@@ -276,10 +273,8 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
       setVerificationId(data.verificationId);
       setVerificationMethod(data.method);
       setMaskedDestination(data.maskedDestination || '');
-      setRequiresFaceScan(data.requiresFaceScan || false);
       setRequiresOtp(data.requiresOtp || false);
       setOtpDigits(['', '', '', '', '', '']);
-      setCapturedSelfie(null);
       setVerificationError('');
       setRemainingAttempts(3);
       setStep('verification');
@@ -293,20 +288,15 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
     try {
       const apiUrl = getApiUrl();
       const otp = requiresOtp ? otpDigits.join('') : undefined;
-      const selfie = requiresFaceScan ? capturedSelfie : undefined;
 
       if (requiresOtp && (!otp || otp.length < 6)) {
         setVerificationError('Please enter the complete 6-digit code.');
         setIsVerifying(false); return;
       }
-      if (requiresFaceScan && !selfie) {
-        setVerificationError('Please capture your selfie for face verification.');
-        setIsVerifying(false); return;
-      }
 
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${apiNamespace}/withdraw/verify`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verificationId, otp, selfie }),
+        body: JSON.stringify({ verificationId, otp }),
       });
       const result = await res.json();
       if (result.action === 0 && result.twoFactorRequired) {
@@ -323,7 +313,6 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
           setVerificationError(result.message || 'Verification failed.');
           if (result.remainingAttempts !== undefined) setRemainingAttempts(result.remainingAttempts);
           if (requiresOtp) setOtpDigits(['', '', '', '', '', '']);
-          if (requiresFaceScan) setCapturedSelfie(null);
         }
         setIsVerifying(false); return;
       }
@@ -393,25 +382,10 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
 
   if (!isOpen) return null;
 
-  const getVerificationTitle = () => {
-    switch (verificationMethod) {
-      case 'SMS_OTP': return 'SMS Verification';
-      case 'EMAIL_OTP': return 'Email Verification';
-      case 'FACE_SCAN': return 'Face Verification';
-      case 'FACE_SCAN_WITH_OTP': return 'Face + OTP Verification';
-      default: return 'Verification';
-    }
-  };
+  const getVerificationTitle = () => 'Email Verification';
 
-  const getVerificationDescription = () => {
-    switch (verificationMethod) {
-      case 'SMS_OTP': return `Enter the 6-digit code sent to ${maskedDestination}`;
-      case 'EMAIL_OTP': return `Enter the 6-digit code sent to ${maskedDestination}`;
-      case 'FACE_SCAN': return 'Take a selfie to verify your identity';
-      case 'FACE_SCAN_WITH_OTP': return `Take a selfie and enter the code sent to ${maskedDestination}`;
-      default: return 'Please verify your identity to continue';
-    }
-  };
+  const getVerificationDescription = () =>
+    `Enter the 6-digit code we emailed to ${maskedDestination || 'your account email'}`;
 
   return (
     <div style={{
@@ -654,47 +628,12 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                   display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto',
                   boxShadow: '0 4px 14px rgba(8, 58, 133, 0.3)',
                 }}>
-                  {requiresFaceScan ? (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21V19C20 16.79 18.21 15 16 15H8C5.79 15 4 16.79 4 19V21"/>
-                      <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                  ) : (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/>
-                      <path d="M9 12L11 14L15 10"/>
-                    </svg>
-                  )}
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="5" width="18" height="14" rx="2"/>
+                    <path d="M3 7L12 13L21 7"/>
+                  </svg>
                 </div>
               </div>
-
-              {/* Face Scan Section */}
-              {requiresFaceScan && !capturedSelfie && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <FaceScanCapture
-                    onCapture={(base64) => setCapturedSelfie(base64)}
-                    onClose={() => setStep('form')}
-                    colors={colors}
-                    actualTheme={actualTheme}
-                  />
-                </div>
-              )}
-
-              {/* Captured selfie preview */}
-              {requiresFaceScan && capturedSelfie && (
-                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                  <div style={{
-                    width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden',
-                    border: '3px solid #16A34A', margin: '0 auto 0.5rem',
-                  }}>
-                    <img src={capturedSelfie} alt="Your selfie" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
-                  </div>
-                  <button onClick={() => setCapturedSelfie(null)} style={{
-                    fontSize: '0.8rem', color: '#083A85', background: 'none', border: 'none',
-                    cursor: 'pointer', textDecoration: 'underline', fontWeight: '500',
-                  }}>Retake Photo</button>
-                </div>
-              )}
 
               {/* OTP Input Section */}
               {requiresOtp && (
@@ -737,7 +676,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                         fontSize: '0.8rem', color: '#083A85', background: 'none', border: 'none',
                         cursor: isResending ? 'not-allowed' : 'pointer', textDecoration: 'underline',
                         fontWeight: '500', opacity: isResending ? 0.6 : 1,
-                      }}>{isResending ? 'Sending…' : 'Resend verification code'}</button>
+                      }}>{isResending ? 'Sending…' : 'Send a new code to my email'}</button>
                     )}
                   </div>
                 </div>
