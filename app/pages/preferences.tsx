@@ -190,12 +190,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
   const [isSavingPreference, setIsSavingPreference] = useState(false);
 
-  // Withdrawal verification method
-  const [withdrawalVerificationMethod, setWithdrawalVerificationMethod] = useState(
-    user?.preferredWithdrawalVerification || 'EMAIL_OTP'
-  );
-  const [isSavingVerificationMethod, setIsSavingVerificationMethod] = useState(false);
-  const [verificationMethodMessage, setVerificationMethodMessage] = useState('');
 
   // Two-factor authentication states
   const [totpEnabled, setTotpEnabled] = useState(user?.twoFactorEnabled || false);
@@ -330,44 +324,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     }
   }, [userType, preferencesBasePath]);
 
-  // Save withdrawal verification method
-  const saveVerificationMethod = useCallback(async (method: string) => {
-    setIsSavingVerificationMethod(true);
-    setVerificationMethodMessage('');
-    try {
-      const apiUrl = getApiUrl();
-      // The photographer/customer handler lives on CustomerProfileController
-      // (@RequestMapping "/api/remote/customer/profile"), so the path needs
-      // the "/profile" segment. without it Spring matched no handler and
-      // returned "No static resource ...". The coordinator handler is on
-      // CoordinatorController ("/api/remote/coordinator"), no /profile there.
-      const basePath = userType === 'event-coordinator'
-        ? '/api/remote/coordinator/withdrawal-verification-method'
-        : '/api/remote/customer/profile/withdrawal-verification-method';
-      const response = await dashboardAuthFetch(`${apiUrl}${basePath}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ method }),
-      });
-      const result: ApiResponse = await response.json();
-      if (response.ok && result.action === 1) {
-        setWithdrawalVerificationMethod(method);
-        updateUser({ preferredWithdrawalVerification: method });
-        setVerificationMethodMessage('Verification method updated successfully');
-      } else {
-        setVerificationMethodMessage(result.message || 'Failed to update verification method');
-        // Revert selection
-        setWithdrawalVerificationMethod(user?.preferredWithdrawalVerification || 'EMAIL_OTP');
-      }
-    } catch (err) {
-      console.error('Failed to save verification method:', err);
-      setVerificationMethodMessage('Failed to update verification method');
-      setWithdrawalVerificationMethod(user?.preferredWithdrawalVerification || 'EMAIL_OTP');
-    } finally {
-      setIsSavingVerificationMethod(false);
-      setTimeout(() => setVerificationMethodMessage(''), 4000);
-    }
-  }, [userType, user, updateUser]);
 
   // Load TOTP status when security tab is active
   useEffect(() => {
@@ -2303,193 +2259,24 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     Withdrawal verification
                   </h2>
                   <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
-                    Choose how to verify your identity before each withdrawal is processed.
+                    Every withdrawal is confirmed with a code sent to your email.
                   </p>
                 </div>
               </div>
 
-              {verificationMethodMessage && (
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  borderRadius: 10,
-                  marginBottom: '1rem',
-                  fontSize: '0.85rem',
-                  background: verificationMethodMessage.includes('success')
-                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.14)' : '#DCFCE7')
-                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : '#FEE2E2'),
-                  color: verificationMethodMessage.includes('success')
-                    ? (actualTheme === 'dark' ? '#4ADE80' : '#166534')
-                    : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
-                  border: `1px solid ${verificationMethodMessage.includes('success')
-                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.35)' : '#BBF7D0')
-                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : '#FECACA')}`,
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                }}>
-                  <i className={`bi ${verificationMethodMessage.includes('success') ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}`} style={{ fontSize: 13 }} />
-                  {verificationMethodMessage}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {([
-                  {
-                    value: 'EMAIL_OTP',
-                    label: 'Email OTP',
-                    description: 'Receive a 6-digit code via email to verify each withdrawal',
-                    icon: 'bi-envelope',
-                    requiresKyc: false,
-                  },
-                  {
-                    value: 'SMS_OTP',
-                    label: 'SMS OTP',
-                    description: 'Receive a 6-digit code via SMS to verify each withdrawal',
-                    icon: 'bi-phone',
-                    requiresKyc: false,
-                  },
-                  {
-                    value: 'FACE_SCAN',
-                    label: 'Face Scan',
-                    description: 'Verify your identity with a live selfie compared to your KYC photo',
-                    icon: 'bi-person-bounding-box',
-                    requiresKyc: true,
-                  },
-                  {
-                    value: 'FACE_SCAN_WITH_OTP',
-                    label: 'Face Scan + OTP',
-                    description: 'Maximum security: both face scan and OTP code required',
-                    icon: 'bi-shield-check',
-                    requiresKyc: true,
-                  },
-                ] as const).map((option) => {
-                  const isSelected = withdrawalVerificationMethod === option.value;
-                  const kycNotApproved = option.requiresKyc && user?.kycStatus !== 'APPROVED';
-                  const isDisabled = isSavingVerificationMethod || kycNotApproved;
-
-                  return (
-                    <button
-                      key={option.value}
-                      data-ck-shape="card"
-                      onClick={() => !isDisabled && saveVerificationMethod(option.value)}
-                      disabled={isDisabled}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '0.85rem',
-                        padding: '0.95rem 1rem',
-                        background: isSelected
-                          ? (actualTheme === 'dark'
-                              ? 'linear-gradient(135deg, rgba(8,58,133,0.30) 0%, rgba(242,12,143,0.14) 100%)'
-                              : 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.04) 100%)')
-                          : colors.bgCard,
-                        borderRadius: 11,
-                        border: `${isSelected ? '1.5px' : '1px'} solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
-                        cursor: isDisabled ? 'not-allowed' : 'pointer',
-                        opacity: kycNotApproved ? 0.5 : 1,
-                        textAlign: 'left',
-                        transition: 'all 0.18s',
-                        width: '100%',
-                        boxShadow: isSelected ? '0 4px 12px rgba(8,58,133,0.10)' : 'none',
-                      }}
-                    >
-                      <div style={{
-                        width: 38, height: 38, borderRadius: 10,
-                        background: isSelected
-                          ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
-                          : (actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : 'rgba(8,58,133,0.08)'),
-                        border: `1px solid ${isSelected ? 'transparent' : 'rgba(8,58,133,0.20)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <i className={`bi ${option.icon}`} style={{
-                          fontSize: '1.05rem',
-                          color: isSelected ? '#fff' : '#083A85',
-                        }} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontSize: '0.92rem',
-                          fontWeight: 700,
-                          color: colors.textPrimary,
-                          marginBottom: '0.25rem',
-                          letterSpacing: '-0.01em',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          flexWrap: 'wrap',
-                        }}>
-                          {option.label}
-                          {isSelected && (
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 4,
-                              fontSize: '0.66rem', fontWeight: 700, color: '#fff',
-                              background: '#F20C8F',
-                              padding: '2px 8px',
-                              borderRadius: 9999,
-                              letterSpacing: '0.04em', textTransform: 'uppercase',
-                            }}>
-                              <i className="bi bi-check" style={{ fontSize: 10 }} /> Active
-                            </span>
-                          )}
-                          {isSavingVerificationMethod && isSelected && (
-                            <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.4' }}>
-                          {option.description}
-                        </div>
-                        {kycNotApproved && (
-                          <div style={{
-                            fontSize: '0.8rem',
-                            color: '#DC2626',
-                            marginTop: '0.35rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                          }}>
-                            <i className="bi bi-exclamation-circle" style={{ fontSize: '0.75rem' }} />
-                            Requires approved KYC verification
-                          </div>
-                        )}
-                      </div>
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        border: `2px solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        marginTop: '0.25rem',
-                      }}>
-                        {isSelected && (
-                          <div style={{
-                            width: '10px',
-                            height: '10px',
-                            borderRadius: '50%',
-                            backgroundColor: '#083A85',
-                          }} />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
               <div style={{
-                marginTop: '1.25rem',
-                padding: '0.875rem 1rem',
-                backgroundColor: actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.15)' : 'rgba(8, 58, 133, 0.04)',
-                borderRadius: '0.75rem',
-                border: `1px solid ${actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.3)' : 'rgba(8, 58, 133, 0.1)'}`,
+                display: 'flex', alignItems: 'flex-start', gap: '0.875rem',
+                padding: '1rem 1.1rem', borderRadius: '0.9rem',
+                border: '2px solid #083A85',
+                backgroundColor: actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.18)' : 'rgba(8, 58, 133, 0.05)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-                  <i className="bi bi-info-circle" style={{ color: '#083A85', fontSize: '0.9rem', marginTop: '0.1rem' }} />
-                  <p style={{ fontSize: '0.825rem', color: colors.textSecondary, margin: 0, lineHeight: '1.5' }}>
-                    Each time you request a withdrawal, you will be asked to verify using your chosen method.
-                    Face scan options require an approved KYC with a selfie on file.
+                <i className="bi bi-envelope-check" style={{ fontSize: 20, color: '#083A85', marginTop: 2 }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary }}>Email code</div>
+                  <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
+                    When you confirm a withdrawal we email a 6-digit code to {user?.email || 'your account email'}.
+                    Enter it to finish. You can ask for a new code on the confirmation step, and you get an email
+                    again once the withdrawal is completed.
                   </p>
                 </div>
               </div>
