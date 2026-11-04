@@ -70,7 +70,7 @@ describe('Collaborate page', () => {
     // What tells the two apart is on the page before anyone clicks.
     expect(text()).toContain('Whole workspace');
     expect(text()).toContain('One album');
-    expect(text()).toContain('Withdrawals and transactions stay with you');
+    expect(text()).toContain('Money, wallet and settings stay with you');
     expect(text()).toContain('They never see your bookings, clients or money');
     // The album tabs and the search belong to the albums side only.
     expect(host.querySelector('[role="tablist"]')).toBeNull();

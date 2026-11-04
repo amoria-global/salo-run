@@ -82,7 +82,7 @@ export default function CollaborateHub() {
       <PageHeader
         eyebrow="Collaborate"
         title="Work together"
-        subtitle="Choose how you want to work with another photographer."
+        subtitle="Choose how you want to work with other people."
         actions={mode === 'workspace' ? undefined : <Button variant="soft" onClick={() => setJoinOpen(true)} iconLeft={<i className="bi bi-box-arrow-in-right" aria-hidden />}>Join with a link</Button>}
       />
 

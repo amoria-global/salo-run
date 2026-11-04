@@ -5,9 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const api = vi.hoisted(() => ({
   listSentInvitations: vi.fn(),
   listReceivedInvitations: vi.fn(),
-  lookupPhotographer: vi.fn(),
-  sendInvitation: vi.fn(),
   sendInvitationByEmail: vi.fn(),
+  listWorkspaceActivity: vi.fn(),
   getInvitePreview: vi.fn(),
   resendInvitation: vi.fn(),
   cancelInvitation: vi.fn(),
@@ -72,6 +71,7 @@ beforeEach(() => {
   api.listSentInvitations.mockResolvedValue([]);
   api.listReceivedInvitations.mockResolvedValue([]);
   api.getInvitePreview.mockResolvedValue(null);
+  api.listWorkspaceActivity.mockResolvedValue([]);
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -84,42 +84,23 @@ afterEach(() => {
 describe('inviting an address with no account yet', () => {
   const NEW = person(null, 'new@example.com', { registered: false, email: 'new@example.com' });
 
-  it('says no account uses it, that they will be emailed, and offers to email the invitation', async () => {
-    api.lookupPhotographer.mockResolvedValue(NEW);
+  it('emails any address once, by address, and says the link works for 7 days', async () => {
+    api.sendInvitationByEmail.mockResolvedValue(inv({ id: 'n', invitee: NEW, delivery: 'email', role: 'COLLABORATOR' }));
     await mount();
     await type('ws-email', 'new@example.com');
     await submit();
-    expect(api.lookupPhotographer).toHaveBeenCalledWith('new@example.com');
-    expect(text()).toContain('No account uses this address yet');
-    expect(text()).toContain('create a photographer account with this exact address');
-    expect(byText('Email invitation')).toBeTruthy();
-    expect(byText('Send invitation')).toBeUndefined();
-  });
-
-  it('emails it once by address, not by account, and says so', async () => {
-    api.lookupPhotographer.mockResolvedValue(NEW);
-    api.sendInvitationByEmail.mockResolvedValue(inv({ id: 'n', invitee: NEW, delivery: 'email' }));
-    await mount();
-    await type('ws-email', 'new@example.com');
-    await submit();
-    await click(byText('Email invitation'));
     expect(api.sendInvitationByEmail).toHaveBeenCalledTimes(1);
     expect(api.sendInvitationByEmail).toHaveBeenCalledWith('new@example.com', undefined);
-    expect(api.sendInvitation).not.toHaveBeenCalled();
     expect(text()).toContain('Invitation emailed to new@example.com');
-    expect(text()).toContain('create an account with that address first');
+    expect(text()).toContain('expires in 7 days');
   });
 
-  it('keeps an account holder on the ordinary in-app invitation', async () => {
-    api.lookupPhotographer.mockResolvedValue(person('p9', 'Grace Mutoni', { registered: true, email: 'grace@example.com' }));
-    api.sendInvitation.mockResolvedValue(inv({ id: 'n', invitee: person('p9', 'Grace Mutoni') }));
+  it('an existing account holder is invited the same way: by email, with no lookup and no second flow', async () => {
+    api.sendInvitationByEmail.mockResolvedValue(inv({ id: 'n', invitee: person('p9', 'Grace Mutoni'), role: 'COLLABORATOR' }));
     await mount();
     await type('ws-email', 'grace@example.com');
     await submit();
-    expect(text()).toContain('Grace Mutoni');
-    await click(byText('Send invitation'));
-    expect(api.sendInvitation).toHaveBeenCalledWith('p9', undefined);
-    expect(api.sendInvitationByEmail).not.toHaveBeenCalled();
+    expect(api.sendInvitationByEmail).toHaveBeenCalledWith('grace@example.com', undefined);
   });
 
   it('shows an emailed invitation as waiting for an account, with emailing it again as the move', async () => {
@@ -149,7 +130,7 @@ describe('opening an invitation from its link', () => {
     await mount({ inviteId: ID, onInviteHandled: handled });
     expect(focusCard()).not.toBeNull();
     expect(text()).toContain('Your invitation');
-    expect(text()).toContain('Aline Uwase invited you to work in their workspace');
+    expect(text()).toContain('Aline Uwase invited you to their workspace');
     // It is on the card, not listed a second time under "Invitations for you".
     expect(text()).not.toContain('Invitations for you');
     await click(byText('Accept and open workspace'));

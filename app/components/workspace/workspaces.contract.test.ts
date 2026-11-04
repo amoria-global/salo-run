@@ -28,7 +28,6 @@ describe('workspace invitations client against the backend contract', () => {
   it('finds both sides of the workflow', () => {
     const paths = calls.map((c) => `${c.method} ${c.path}`);
     for (const expected of [
-      'GET /api/remote/photographer/workspaces/lookup',
       'GET /api/remote/photographer/workspaces/sent',
       'POST /api/remote/photographer/workspaces/invitations',
       'POST /api/remote/photographer/workspaces/invitations/X/resend',
@@ -38,7 +37,7 @@ describe('workspace invitations client against the backend contract', () => {
       'POST /api/remote/photographer/workspaces/received/X/accept',
       'POST /api/remote/photographer/workspaces/received/X/decline',
       'POST /api/remote/photographer/workspaces/received/X/leave',
-      'GET /api/remote/photographer/workspaces/mine',
+      'GET /api/remote/photographer/workspaces/activity',
     ]) {
       expect(paths, expected).toContain(expected);
     }
@@ -47,5 +46,13 @@ describe('workspace invitations client against the backend contract', () => {
   it('every workspace call exists on the backend with that method', () => {
     const missing = calls.filter((c) => !templates.some((t) => t.method === c.method && t.regex.test(c.path))).map((c) => `${c.method} ${c.path}`);
     expect(missing).toEqual([]);
+  });
+});
+
+describe('collaborator routes the dashboard reads directly', () => {
+  it('the picker and the login profile exist on the backend', () => {
+    for (const p of ['/api/remote/collaborator/workspaces', '/api/remote/collaborator/me']) {
+      expect(templates.some((t) => t.method === 'GET' && t.regex.test(p)), p).toBe(true);
+    }
   });
 });
