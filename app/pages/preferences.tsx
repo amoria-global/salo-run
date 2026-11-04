@@ -194,7 +194,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
   // Two-factor authentication states
   const [totpEnabled, setTotpEnabled] = useState(user?.twoFactorEnabled || false);
-  const setup2fa = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('setup2fa') === 'true';
 
   // Notification settings states
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -1775,7 +1774,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
               <TwoFactorMethods
                 theme={{ colors, dark: actualTheme === 'dark' }}
-                autoStart={setup2fa}
                 onStatus={(st) => {
                   setTotpEnabled(st.enabled);
                   if (st.enabled !== !!user?.twoFactorEnabled) updateUser({ twoFactorEnabled: st.enabled });

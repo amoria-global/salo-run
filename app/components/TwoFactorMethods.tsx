@@ -53,11 +53,8 @@ function useCountdown(deadlineMs: number | null): number {
 export default function TwoFactorMethods({
   theme,
   onStatus,
-  autoStart = false,
 }: {
   theme: Theme;
-  /** Opens the authenticator setup straight away (the ?setup2fa=true link). */
-  autoStart?: boolean;
   /** Tells the page what the account now has, so its badge and cached user stay right. */
   onStatus: (s: TwoFactorStatus) => void;
 }) {
@@ -110,15 +107,6 @@ export default function TwoFactorMethods({
   useEffect(() => {
     void loadStatus();
   }, [loadStatus]);
-
-  const started = useRef(false);
-  useEffect(() => {
-    if (autoStart && status && !status.totpEnabled && !started.current) {
-      started.current = true;
-      void open('totp-on');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart, status]);
 
   const post = async (path: string, body?: unknown) => {
     const res = await dashboardAuthFetch(`${getApiUrl()}/api/remote/customer/${path}`, {
