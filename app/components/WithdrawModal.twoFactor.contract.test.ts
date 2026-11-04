@@ -60,7 +60,7 @@ describe('WithdrawModal without 2FA', () => {
 
   it('offers a way to turn 2FA on', () => {
     expect(MODAL).toMatch(/preferences\?tab=security&setup2fa=true/);
-    expect(MODAL).toMatch(/Turn on 2FA/);
+    expect(MODAL).toMatch(/Set up two-factor/);
   });
 
   it('switches to that panel when the server refuses initiate or verify', () => {

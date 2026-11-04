@@ -757,7 +757,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                 Turn on two-factor authentication to withdraw
               </h3>
               <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, maxWidth: 380, margin: '0 auto 1.4rem' }}>
-                Your wallet holds real money, so withdrawals need a code from your authenticator app. Your balance is safe and stays in your wallet until you turn it on.
+                Your wallet holds real money, so withdrawals need a second step at sign-in: a code from an authenticator app or one we email you. Setting it up takes about a minute, and your balance stays safe in your wallet until then.
               </p>
               <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button onClick={onClose} className="ck-btn ck-btn-soft" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem' }}>
@@ -765,7 +765,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                 </button>
                 <a href={twoFactorSetupPath} className="ck-btn ck-btn-primary" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none' }}>
                   <i className="bi bi-shield-lock-fill" style={{ fontSize: 13 }} aria-hidden />
-                  Turn on 2FA
+                  Set up two-factor
                 </a>
               </div>
             </div>
