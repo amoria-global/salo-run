@@ -122,3 +122,31 @@ describe('invitation status rules', () => {
     expect(shortDate('nonsense')).toBe('');
   });
 });
+
+describe('workspace collaborator', () => {
+  it('keeps the whole wallet away from a collaborator, while an older member keeps the overview', () => {
+    expect(isBlockedInSharedWorkspace('/user/photographer/wallet')).toBe(false);
+    expect(isBlockedInSharedWorkspace('/user/photographer/wallet', true)).toBe(true);
+    expect(isBlockedInSharedWorkspace('/user/photographer/wallet/anything', true)).toBe(true);
+    expect(isBlockedInSharedWorkspace('/user/photographer/events', true)).toBe(false);
+    expect(isBlockedInSharedWorkspace('/user/photographer/transaction', true)).toBe(true);
+  });
+
+  it('remembers the chosen workspace in a cookie the edge proxy can read, and clears it with the choice', () => {
+    const id = '3f2a9c1e-5b7d-4c8e-9a10-0b1c2d3e4f50';
+    window.localStorage.clear();
+    setActiveWorkspaceId(id);
+    expect(document.cookie).toContain(`ckws=${id}`);
+    expect(getActiveWorkspaceId()).toBe(id);
+    setActiveWorkspaceId(null);
+    expect(document.cookie).not.toContain('ckws=3f2a');
+    expect(getActiveWorkspaceId()).toBeNull();
+  });
+
+  it('never sends the workspace header on the collaborator picker or profile', () => {
+    const id = '3f2a9c1e-5b7d-4c8e-9a10-0b1c2d3e4f50';
+    expect(workspaceHeaders('https://api.test/api/remote/collaborator/workspaces', id)).toEqual({});
+    expect(workspaceHeaders('https://api.test/api/remote/collaborator/me', id)).toEqual({});
+    expect(workspaceHeaders('https://api.test/api/remote/photographer/bookings', id)).toEqual({ 'X-Workspace-Id': id });
+  });
+});

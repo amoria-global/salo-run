@@ -142,7 +142,9 @@ export default function Sidebar() {
   // hasAny() reads from the permission set fetched by PermissionProvider.
   // Until that resolves, the set is empty so gated items stay hidden.
   const { hasAny, isOwner } = usePermissions();
-  const { isShared } = useWorkspace();
+  const { isShared, isCollaborator } = useWorkspace();
+  // A workspace collaborator has no wallet at all: the whole Money group goes, not just the withdraw button.
+  const hiddenInWorkspace = (name: string) => SHARED_WORKSPACE_HIDDEN.has(name) || (isCollaborator && name === 'Wallet');
   const currentUserId = user?.id || '';
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -231,7 +233,7 @@ export default function Sidebar() {
     // their role was seeded with.
     .filter(item => !item.ownerOnly || isOwner)
     .filter(item => !item.requires || hasAny(item.requires))
-    .filter(item => !(isShared && currentRole === 'photographer' && SHARED_WORKSPACE_HIDDEN.has(item.name)))
+    .filter(item => !(isShared && currentRole === 'photographer' && hiddenInWorkspace(item.name)))
     .map(item => {
       if (item.name === "Notifications") return { ...item, badge: notificationCount };
       if (item.name === "Inbox") return { ...item, badge: messageCount };
@@ -242,7 +244,7 @@ export default function Sidebar() {
   const bottomNavigationItems = getBottomNavigationItems(currentRole)
     .filter(item => !item.ownerOnly || isOwner)
     .filter(item => !item.requires || hasAny(item.requires))
-    .filter(item => !(isShared && currentRole === 'photographer' && SHARED_WORKSPACE_HIDDEN.has(item.name)));
+    .filter(item => !(isShared && currentRole === 'photographer' && hiddenInWorkspace(item.name)));
 
   const groups = useMemo(() => {
     const map = new Map<string, NavigationItem[]>();

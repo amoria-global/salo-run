@@ -9,8 +9,10 @@ import { useWorkspace } from '@/app/providers/WorkspaceProvider';
  * workspace can linger in the other.
  */
 export default function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
-  const { workspaces, active, isShared, switchTo } = useWorkspace();
+  const { workspaces, active, isShared, hasOwnWorkspace, switchTo } = useWorkspace();
   if (workspaces.length === 0 && !isShared) return null;
+  // A collaborator login with a single workspace has nothing to choose between.
+  if (!hasOwnWorkspace && workspaces.length <= 1) return null;
 
   const value = active?.workspaceId ?? (isShared ? 'loading' : 'own');
 
@@ -31,7 +33,7 @@ export default function WorkspaceSwitcher({ compact = false }: { compact?: boole
           border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)', color: 'var(--ck-text)', cursor: 'pointer',
         }}
       >
-        <option value="own">My workspace</option>
+        {hasOwnWorkspace && <option value="own">My business</option>}
         {isShared && !active && <option value="loading" disabled>Shared workspace</option>}
         {workspaces.map((w) => (
           <option key={w.workspaceId} value={w.workspaceId}>{w.owner.name}&apos;s workspace</option>

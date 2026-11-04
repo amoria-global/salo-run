@@ -121,6 +121,26 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // A workspace handed over by the sign-in site (?workspace=<id>, or "personal" for the person's own business). It is kept in
+  // a cookie this edge code can read, then dropped from the URL. The cookie only says which workspace was chosen: the
+  // server checks a live membership on every call, so a made-up value opens nothing.
+  const UUID_RE = /^[0-9a-f-]{36}$/i;
+  const workspaceParam = searchParams.get('workspace');
+  if (workspaceParam && hasToken && pathname.startsWith('/user/')) {
+    const rest = new URLSearchParams(searchParams);
+    rest.delete('workspace');
+    const qs = rest.toString();
+    const response = NextResponse.redirect(publicRedirect(request, pathname + (qs ? `?${qs}` : '')));
+    if (UUID_RE.test(workspaceParam)) {
+      response.cookies.set('ckws', workspaceParam, { path: '/', maxAge: 60 * 60 * 24 * 30, sameSite: 'lax' });
+    } else {
+      response.cookies.delete('ckws');
+    }
+    return response;
+  }
+  const workspaceCookie = request.cookies.get('ckws')?.value;
+  const inWorkspace = !!workspaceCookie && UUID_RE.test(workspaceCookie);
+
   // Role-based access control: prevent users from accessing other roles' pages.
   // Normalize legacy/backend variants to the canonical path segment used in
   // /user/{role}/...:
@@ -154,6 +174,19 @@ export function proxy(request: NextRequest) {
   if (userRole && pathname.startsWith('/user/')) {
     // Extract the role segment from the URL: /user/{role}/...
     const pathRole = pathname.split('/')[2]; // 'client', 'photographer', 'event-coordinator'
+
+    // Working in a workspace: a workspace collaborator login, or a client login that joined as a collaborator, opens the
+    // photographer pages for it. With no workspace chosen a collaborator has nowhere to be, so it goes to pick one.
+    if (pathRole === 'photographer' && inWorkspace && (userRole === 'collaborator' || userRole === 'client')) {
+      return NextResponse.next();
+    }
+    if (userRole === 'collaborator' && !inWorkspace) {
+      const landingBase = getLandingUrl();
+      if (landingBase) return NextResponse.redirect(new URL(`${landingBase}/user/workspace/choose`));
+    }
+    if (userRole === 'collaborator' && pathRole !== 'photographer') {
+      return NextResponse.redirect(publicRedirect(request, '/user/photographer/dashboard'));
+    }
 
     if (pathRole && pathRole !== userRole) {
       // User is trying to access a different role's pages, so redirect to their correct dashboard

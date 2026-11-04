@@ -12,8 +12,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Avatar, Badge, Button, Card, EmptyState, Modal, Skeleton } from '@/app/components/ui';
 import {
   answerInvitation, cancelInvitation, getInvitePreview, leaveWorkspace, listReceivedInvitations, listSentInvitations,
-  lookupPhotographer, resendInvitation, revokeMembership, sendInvitation, sendInvitationByEmail,
-  type InvitablePerson, type InvitePreview, type WorkspaceInvitation,
+  listWorkspaceActivity, resendInvitation, revokeMembership, sendInvitationByEmail,
+  type InvitePreview, type WorkspaceActivityEntry, type WorkspaceInvitation,
 } from '@/app/lib/APIs/workspaces';
 import {
   inviteeActions, inviteFocus, ownerActionLabel, ownerActions, ownerMeaning, shortDate, sortInvitations, statusView,
@@ -139,7 +139,7 @@ export default function WorkspaceAccessTab({ inviteId = null, onInviteHandled }:
           <div>
             <h2 className="text-lg font-bold text-[var(--ck-text)]">What they can and cannot do</h2>
             <p className="mt-1 text-sm text-[var(--ck-text-soft)]">
-              They can handle bookings, events, opportunities, albums and clients with you, and see your balance and analytics. They cannot withdraw, see transactions or change account settings, and they do not become you.
+              A workspace collaborator can handle bookings, events, opportunities, albums, clients, your calendar, live streams, messages and analytics. They never see your wallet, balance, withdrawals, transactions, payouts or payment methods, your account and security settings, and they cannot invite or remove other collaborators or delete the workspace. Analytics show counts without money figures. Everything they change is recorded under their name.
             </p>
           </div>
         </div>
@@ -191,11 +191,11 @@ export default function WorkspaceAccessTab({ inviteId = null, onInviteHandled }:
           <InviteForm onSent={async (text) => { setNotice({ kind: 'ok', text }); await load(); }} />
 
           <section aria-labelledby="ws-sent">
-            <h3 id="ws-sent" className="mb-3 text-base font-semibold text-[var(--ck-text)]">Invitations you sent</h3>
+            <h3 id="ws-sent" className="mb-3 text-base font-semibold text-[var(--ck-text)]">Collaborators</h3>
             {(sent ?? []).length === 0 ? (
               <Card>
                 <EmptyState icon={<i className="bi bi-send" aria-hidden />} title="You have not invited anyone yet"
-                  description="Find a photographer by their email above. If they have an account they see the invitation in their app and get it by email. If not, we email them a link to create one." />
+                  description="Enter an email above. We email them a link to set a password and open your workspace. They do not need a Connekyt account." />
               </Card>
             ) : (
               <ul className="space-y-3">
@@ -206,6 +206,8 @@ export default function WorkspaceAccessTab({ inviteId = null, onInviteHandled }:
               </ul>
             )}
           </section>
+
+          {(sent ?? []).some((i) => i.status === 'ACCEPTED') && <ActivityList />}
         </>
       )}
 
@@ -225,51 +227,24 @@ export default function WorkspaceAccessTab({ inviteId = null, onInviteHandled }:
 
 function InviteForm({ onSent }: { onSent: (text: string) => Promise<void> }) {
   const [email, setEmail] = useState('');
-  const [found, setFound] = useState<InvitablePerson | null>(null);
   const [note, setNote] = useState('');
-  const [looking, setLooking] = useState(false);
   const [sending, setSending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const inFlight = useRef(false);
 
-  const find = async (e: React.FormEvent) => {
+  const send = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (inFlight.current || !email.trim()) return;
-    inFlight.current = true;
-    setLooking(true);
-    setProblem(null);
-    setFound(null);
-    try {
-      setFound(await lookupPhotographer(email));
-    } catch (err) {
-      setProblem(err instanceof Error ? err.message : 'Could not look that up');
-    } finally {
-      inFlight.current = false;
-      setLooking(false);
-    }
-  };
-
-  const send = async () => {
-    if (!found || inFlight.current) return;
+    const address = email.trim();
+    if (inFlight.current || !address) return;
     inFlight.current = true;
     setSending(true);
     setProblem(null);
     try {
-      if (found.registered === false) {
-        const address = found.email || email.trim();
-        await sendInvitationByEmail(address, note.trim() || undefined);
-        setFound(null);
-        setEmail('');
-        setNote('');
-        await onSent(`Invitation emailed to ${address}. They will need to create an account with that address first.`);
-        return;
-      }
-      await sendInvitation(found.id as string, note.trim() || undefined);
-      const name = found.name;
-      setFound(null);
+      // Any address will do: the person does not need a Connekyt account.
+      await sendInvitationByEmail(address, note.trim() || undefined);
       setEmail('');
       setNote('');
-      await onSent(`Invitation sent to ${name}. They will see it in their app and by email.`);
+      await onSent(`Invitation emailed to ${address}. The link works once and expires in 7 days.`);
     } catch (err) {
       setProblem(err instanceof Error ? err.message : 'Could not send the invitation');
     } finally {
@@ -280,53 +255,79 @@ function InviteForm({ onSent }: { onSent: (text: string) => Promise<void> }) {
 
   return (
     <Card>
-      <h3 className="text-base font-semibold text-[var(--ck-text)]">Invite a photographer</h3>
-      <form onSubmit={find} className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="flex-1">
+      <h3 className="text-base font-semibold text-[var(--ck-text)]">Invite a collaborator</h3>
+      <p className="mt-1 text-sm text-[var(--ck-text-soft)]">
+        Someone who helps run your business, such as a supporter or a friend. They do not need a Connekyt account: we email them a link to set a password, and after that they sign in on the normal login page.
+      </p>
+      <form onSubmit={send} className="mt-3 space-y-3">
+        <div>
           <label htmlFor="ws-email" className="mb-1 block text-sm font-medium text-[var(--ck-text)]">Their email</label>
           <input id="ws-email" type="email" inputMode="email" autoComplete="off" value={email}
-            onChange={(e) => { setEmail(e.target.value); setFound(null); setProblem(null); }}
+            onChange={(e) => { setEmail(e.target.value); setProblem(null); }}
             placeholder="name@example.com"
             className="w-full rounded-xl border border-[var(--ck-stroke)] bg-[var(--ck-surface)] px-3 py-2.5 text-sm text-[var(--ck-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85]" />
         </div>
-        <Button type="submit" variant="soft" loading={looking} disabled={looking || !email.trim()}>Find photographer</Button>
-      </form>
-
-      {problem && <p role="alert" className="mt-3 text-sm text-red-600">{problem}</p>}
-
-      {found && (
-        <div className="mt-4 rounded-xl border border-[var(--ck-stroke)] bg-[var(--ck-surface-muted)] p-4">
-          {found.registered === false ? (
-            <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--ck-surface)] text-[var(--ck-text-soft)]" aria-hidden>
-                <i className="bi bi-envelope" />
-              </span>
-              <div className="min-w-0">
-                <div className="truncate font-semibold text-[var(--ck-text)]">{found.email || email.trim()}</div>
-                <div className="text-sm text-[var(--ck-text-soft)]">
-                  No account uses this address yet. We will email them a link. They create a photographer account with this exact address, then accept your invitation.
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <Avatar src={found.profilePicture} name={found.name} size={40} />
-              <div className="min-w-0">
-                <div className="truncate font-semibold text-[var(--ck-text)]">{found.name}</div>
-                <div className="text-xs text-[var(--ck-text-soft)]">{found.customerType || 'Photographer'}</div>
-              </div>
-            </div>
-          )}
-          <label htmlFor="ws-note" className="mt-3 mb-1 block text-sm font-medium text-[var(--ck-text)]">Add a note (optional)</label>
+        <div>
+          <label htmlFor="ws-note" className="mb-1 block text-sm font-medium text-[var(--ck-text)]">Add a note (optional)</label>
           <input id="ws-note" type="text" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)}
             placeholder="For example: help me with weddings this season"
             className="w-full rounded-xl border border-[var(--ck-stroke)] bg-[var(--ck-surface)] px-3 py-2.5 text-sm text-[var(--ck-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85]" />
-          <div className="mt-3 flex justify-end">
-            <Button onClick={send} loading={sending} disabled={sending}>{found.registered === false ? 'Email invitation' : 'Send invitation'}</Button>
-          </div>
         </div>
-      )}
+        {problem && <p role="alert" className="text-sm text-red-600">{problem}</p>}
+        <div className="flex justify-end">
+          <Button type="submit" loading={sending} disabled={sending || !email.trim()}>Email invitation</Button>
+        </div>
+      </form>
     </Card>
+  );
+}
+
+// ─── What collaborators did ──────────────────────────────────────
+
+/** "by <name> for <owner>": the changes collaborators made in this workspace and the attempts that were refused. */
+function ActivityList() {
+  const [rows, setRows] = useState<WorkspaceActivityEntry[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open || rows !== null) return;
+    let live = true;
+    listWorkspaceActivity().then((r) => { if (live) setRows(r); }).catch(() => { if (live) setFailed(true); });
+    return () => { live = false; };
+  }, [open, rows]);
+
+  return (
+    <section aria-labelledby="ws-activity">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 id="ws-activity" className="text-base font-semibold text-[var(--ck-text)]">Collaborator activity</h3>
+        <Button size="sm" variant="ghost" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Hide' : 'Show'}</Button>
+      </div>
+      {open && (
+        failed ? (
+          <Card><p role="alert" className="text-sm text-red-600">Could not load the activity. Try again later.</p></Card>
+        ) : rows === null ? (
+          <Card padding={16}><Skeleton height={14} width="55%" /></Card>
+        ) : rows.length === 0 ? (
+          <Card><EmptyState icon={<i className="bi bi-clock-history" aria-hidden />} title="Nothing yet" description="Changes your collaborators make will be listed here." /></Card>
+        ) : (
+          <Card padding={0}>
+            <ul className="divide-y divide-[var(--ck-stroke)]">
+              {rows.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3 text-sm">
+                  <span className="min-w-0">
+                    <strong className="text-[var(--ck-text)]">{r.summary}</strong>
+                    <span className="ml-2 break-all text-[var(--ck-text-soft)]">{r.what}</span>
+                    {r.outcome === 'refused' && <span className="ml-2 text-red-600">refused</span>}
+                  </span>
+                  <time dateTime={r.at} className="shrink-0 text-xs text-[var(--ck-text-soft)]">{shortDate(r.at)}</time>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )
+      )}
+    </section>
   );
 }
 
@@ -344,9 +345,13 @@ function SentRow({ inv, busy, onAction }: { inv: WorkspaceInvitation; busy: stri
             <div className="flex flex-wrap items-center gap-2">
               <span className="truncate font-semibold text-[var(--ck-text)]">{inv.invitee.name}</span>
               {inv.invitee.registered === false && <Badge tone="info" icon={<i className="bi bi-envelope" aria-hidden />}>No account yet</Badge>}
+              {inv.role === 'PHOTOGRAPHER' && <Badge tone="muted">Photographer</Badge>}
               <Badge tone={v.tone}>{v.label}</Badge>
             </div>
             <p className="text-sm text-[var(--ck-text-soft)]">{ownerMeaning(inv)} {when}</p>
+            {inv.status === 'ACCEPTED' && (
+              <p className="text-xs text-[var(--ck-text-soft)]">{inv.lastActiveAt ? `Last active ${shortDate(inv.lastActiveAt)}.` : 'Not active yet.'}</p>
+            )}
             {inv.note && <p className="mt-1 text-sm italic text-[var(--ck-text-soft)]">&ldquo;{inv.note}&rdquo;</p>}
           </div>
           <div className="flex gap-2">
@@ -380,7 +385,7 @@ function ReceivedRow({ inv, busy, onAccept, onDecline, onOpen, onLeave }: {
             </div>
             <p className="text-sm text-[var(--ck-text-soft)]">
               {inv.status === 'PENDING'
-                ? `${inv.owner.name} invited you to work in their workspace. You would handle bookings, events, albums and clients, and see their balance and analytics. Withdrawals and transactions stay with them.`
+                ? `${inv.owner.name} invited you to their workspace. You would handle bookings, events, albums, clients and messages. Money, the wallet and account settings stay with them.`
                 : v.meaning.invitee}
             </p>
           </div>
@@ -412,9 +417,9 @@ function InviteFocusCard({ focus, busy, onAcceptAndOpen, onDecline, onOpen, onDi
           <Avatar src={inv.owner.profilePicture} name={inv.owner.name} size={48} />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#F20C8F]">Your invitation</p>
-            <h2 className="text-lg font-bold text-[var(--ck-text)]">{inv.owner.name} invited you to work in their workspace</h2>
+            <h2 className="text-lg font-bold text-[var(--ck-text)]">{inv.owner.name} invited you to their workspace</h2>
             <p className="mt-1 text-sm text-[var(--ck-text-soft)]">
-              You would handle bookings, events, albums and clients with them, and see their balance and analytics. Withdrawals and transactions stay with them, and your own account stays separate.
+              You would handle bookings, events, albums, clients and messages with them. Money, the wallet and account settings stay with them, and your own account stays separate.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button loading={busy === inv.id + 'accept'} disabled={busy !== null} onClick={() => onAcceptAndOpen(inv)}>Accept and open workspace</Button>
@@ -458,7 +463,7 @@ function ConfirmModal({ confirm, onClose, onConfirm, busy }: { confirm: Confirm;
   if (!confirm) return null;
   const { action, invitation } = confirm;
   const text = action === 'revoke'
-    ? `${invitation.invitee.name} will lose access to your workspace right away. You can invite them again later.`
+    ? `${invitation.invitee.name} will lose access to your workspace right away and their sessions end. You can invite them again later with the same email.`
     : action === 'cancel'
       ? `${invitation.invitee.name} will no longer be able to accept this invitation.`
       : `You will stop working in ${invitation.owner.name}'s workspace. They can invite you again.`;

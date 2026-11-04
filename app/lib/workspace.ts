@@ -18,13 +18,35 @@ export const WORKSPACE_CHANGED_EVENT = 'ck:workspace-changed';
 export const WORKSPACE_NOT_AVAILABLE = 'Workspace access is not available';
 
 const STORAGE_KEY = 'connekyt:workspace';
+/**
+ * The same choice as a cookie. The sign-in site hands a workspace to this app in the URL, and the edge proxy (which cannot
+ * read localStorage) must know a workspace was chosen to let a collaborator or client login reach the photographer pages
+ * for it. The cookie decides nothing about access: the server checks a live membership on every call.
+ */
+export const WORKSPACE_COOKIE = 'ckws';
+const UUID = /^[0-9a-f-]{36}$/i;
+
+function readCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const m = document.cookie.match(new RegExp('(?:^|; )' + WORKSPACE_COOKIE + '=([^;]*)'));
+  return m && UUID.test(m[1]) ? m[1] : null;
+}
+
+function writeCookie(id: string | null): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = id
+    ? `${WORKSPACE_COOKIE}=${id}; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`
+    : `${WORKSPACE_COOKIE}=; path=/; max-age=0; samesite=lax`;
+}
 
 /** The workspace the user chose, or null for their own. */
 export function getActiveWorkspaceId(): string | null {
   if (typeof window === 'undefined') return null;
+  const fromCookie = readCookie();
+  if (fromCookie) return fromCookie;
   try {
     const v = window.localStorage.getItem(STORAGE_KEY);
-    return v && /^[0-9a-f-]{36}$/i.test(v) ? v : null;
+    return v && UUID.test(v) ? v : null;
   } catch {
     return null;
   }
@@ -32,11 +54,12 @@ export function getActiveWorkspaceId(): string | null {
 
 export function setActiveWorkspaceId(id: string | null): void {
   if (typeof window === 'undefined') return;
+  writeCookie(id);
   try {
     if (id) window.localStorage.setItem(STORAGE_KEY, id);
     else window.localStorage.removeItem(STORAGE_KEY);
   } catch {
-    /* storage disabled: the user simply stays in their own workspace */
+    /* storage disabled: the cookie still carries the choice */
   }
   window.dispatchEvent(new Event(WORKSPACE_CHANGED_EVENT));
 }
@@ -53,6 +76,8 @@ const PERSONAL_PATHS = [
   '/api/remote/customer/totp',
   '/api/remote/customer/notifications',
   '/api/remote/photographer/workspaces',
+  // The collaborator picker and the login's own profile: they run as the signed-in person, never inside a workspace.
+  '/api/remote/collaborator',
   '/api/remote/photographer/profile-summary',
   '/api/remote/photographer/pending-changes',
   '/api/remote/photographer/update-important-details',
@@ -94,9 +119,16 @@ export const SHARED_BLOCKED_PREFIXES = [
   '/user/photographer/collaborate',
 ];
 
-export function isBlockedInSharedWorkspace(pathname: string | null | undefined): boolean {
+/**
+ * Added for a workspace collaborator (every invitation made now): the wallet is not part of their workspace at all, not
+ * even the balance overview an older photographer member still gets.
+ */
+export const COLLABORATOR_BLOCKED_PREFIXES = ['/user/photographer/wallet'];
+
+export function isBlockedInSharedWorkspace(pathname: string | null | undefined, collaborator = false): boolean {
   if (!pathname) return false;
-  return SHARED_BLOCKED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
+  const blocked = collaborator ? [...SHARED_BLOCKED_PREFIXES, ...COLLABORATOR_BLOCKED_PREFIXES] : SHARED_BLOCKED_PREFIXES;
+  return blocked.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
 /** What the server says a member may do in a workspace. Fixed by the policy; shown, never trusted. */
