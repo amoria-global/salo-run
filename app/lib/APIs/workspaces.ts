@@ -45,6 +45,22 @@ export interface WorkspaceInvitation {
   /** "email" when it went to an address with no account yet, "in_app" when it went to an account. */
   delivery?: string;
   emailedAt?: string | null;
+  /** COLLABORATOR for every invitation made now; PHOTOGRAPHER for an older photographer-to-photographer one. */
+  role?: 'COLLABORATOR' | 'PHOTOGRAPHER';
+  /** The last time the member did something in the workspace. */
+  lastActiveAt?: string | null;
+}
+
+/** One line of what collaborators did in the workspace, "by <name> for <owner>". */
+export interface WorkspaceActivityEntry {
+  id: string;
+  at: string;
+  actor: string;
+  outcome: 'done' | 'refused';
+  method: string;
+  what: string;
+  status: number;
+  summary: string;
 }
 
 /** What the invitation link shows before sign-in: who invited, to which address, and whether it has an account. */
@@ -63,6 +79,8 @@ export interface WorkspaceMembership {
   owner: WorkspacePerson;
   joinedAt?: string | null;
   access: WorkspaceAccess;
+  /** COLLABORATOR: no wallet or balance at all. PHOTOGRAPHER (older members): the balance overview stays. */
+  role?: 'COLLABORATOR' | 'PHOTOGRAPHER';
 }
 
 const base = () => `${getApiUrl()}/api/remote/photographer/workspaces`;
@@ -153,6 +171,23 @@ export async function leaveWorkspace(invitationId: string): Promise<WorkspaceInv
   return (await call<{ invitation: WorkspaceInvitation }>(`/received/${invitationId}/leave`, json('POST'))).invitation;
 }
 
+/**
+ * Every workspace this login may open. It reads the collaborator picker rather than /mine because a collaborator login
+ * is refused the photographer routes until a workspace is chosen; the picker answers for any account.
+ */
 export async function listMyWorkspaces(): Promise<WorkspaceMembership[]> {
-  return (await call<{ workspaces: WorkspaceMembership[] }>('/mine')).workspaces;
+  let res: Response;
+  try {
+    res = await dashboardAuthFetch(`${getApiUrl()}/api/remote/collaborator/workspaces`);
+  } catch {
+    throw new Error('Could not reach the server. Check your connection and try again.');
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body || body.action !== 1) throw new Error(body?.message || 'Something went wrong. Please try again.');
+  return (body.data?.workspaces ?? []) as WorkspaceMembership[];
+}
+
+/** What collaborators did in the owner's workspace, newest first. */
+export async function listWorkspaceActivity(): Promise<WorkspaceActivityEntry[]> {
+  return (await call<{ activity: WorkspaceActivityEntry[] }>('/activity')).activity;
 }

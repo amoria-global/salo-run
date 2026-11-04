@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const api = vi.hoisted(() => ({
   listSentInvitations: vi.fn(),
   listReceivedInvitations: vi.fn(),
-  lookupPhotographer: vi.fn(),
-  sendInvitation: vi.fn(),
+  sendInvitationByEmail: vi.fn(),
+  listWorkspaceActivity: vi.fn(),
   resendInvitation: vi.fn(),
   cancelInvitation: vi.fn(),
   revokeMembership: vi.fn(),
@@ -73,6 +73,7 @@ beforeEach(() => {
   ws.switchTo.mockReset();
   api.listSentInvitations.mockResolvedValue([]);
   api.listReceivedInvitations.mockResolvedValue([]);
+  api.listWorkspaceActivity.mockResolvedValue([]);
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -83,11 +84,39 @@ afterEach(() => {
 });
 
 describe('workspace access tab', () => {
-  it('explains what an invited photographer can and cannot do', async () => {
+  it('explains what a workspace collaborator can and cannot do', async () => {
     await mount();
     expect(text()).toContain('What they can and cannot do');
-    expect(text()).toContain('cannot withdraw, see transactions or change account settings');
+    expect(text()).toContain('never see your wallet, balance, withdrawals, transactions, payouts or payment methods');
+    expect(text()).toContain('cannot invite or remove other collaborators');
     expect(text()).toContain('You have not invited anyone yet');
+    expect(text()).toContain('Invite a collaborator');
+  });
+
+  it('asks for an email only: no Find photographer step, and no need for an account', async () => {
+    await mount();
+    expect(text()).not.toContain('Find photographer');
+    expect(text()).toContain('They do not need a Connekyt account');
+    expect(byText('Email invitation')).toBeTruthy();
+  });
+
+  it('shows when a collaborator was last active, and what they did by name for the owner', async () => {
+    api.listSentInvitations.mockResolvedValue([
+      inv({ id: 'b', status: 'ACCEPTED', role: 'COLLABORATOR', lastActiveAt: '2026-11-03T10:00:00' }),
+      inv({ id: 'c', status: 'ACCEPTED', role: 'COLLABORATOR', invitee: person('p2', 'Chantal Ineza'), lastActiveAt: null }),
+    ]);
+    api.listWorkspaceActivity.mockResolvedValue([
+      { id: 'e1', at: '2026-11-03T10:00:00', actor: 'Eric Mugisha', outcome: 'done', method: 'POST', what: 'POST photographer/bookings/:id/accept', status: 200, summary: 'by Eric Mugisha for Aline Uwase' },
+      { id: 'e2', at: '2026-11-03T10:05:00', actor: 'Eric Mugisha', outcome: 'refused', method: 'GET', what: 'GET wallet/me', status: 403, summary: 'by Eric Mugisha for Aline Uwase' },
+    ]);
+    await mount();
+    expect(text()).toContain('Last active');
+    expect(text()).toContain('Not active yet');
+    expect(api.listWorkspaceActivity).not.toHaveBeenCalled();
+    await click(byText('Show'));
+    expect(text()).toContain('by Eric Mugisha for Aline Uwase');
+    expect(text()).toContain('POST photographer/bookings/:id/accept');
+    expect(text()).toContain('refused');
   });
 
   it('lists what was sent with its status and the right moves', async () => {
@@ -134,43 +163,33 @@ describe('workspace access tab', () => {
     expect(api.revokeMembership).toHaveBeenCalledWith('b');
   });
 
-  it('finds a photographer by email, sends once, and clears the form', async () => {
-    api.lookupPhotographer.mockResolvedValue(person('p9', 'Grace Mutoni'));
-    api.sendInvitation.mockResolvedValue(inv({ id: 'n', invitee: person('p9', 'Grace Mutoni') }));
+  it('emails an invitation to any address, once, and clears the form', async () => {
+    api.sendInvitationByEmail.mockResolvedValue(inv({ id: 'n', role: 'COLLABORATOR', invitee: { id: null, name: 'grace@example.com', registered: false } }));
     await mount();
     await type('ws-email', 'grace@example.com');
-    await submit();
-    expect(api.lookupPhotographer).toHaveBeenCalledWith('grace@example.com');
-    expect(text()).toContain('Grace Mutoni');
     await type('ws-note', 'Weddings in June');
-    const send = byText('Send invitation')!;
-    // Two quick taps make one request.
+    // Two quick submits make one request.
     await act(async () => {
-      send.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      send.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const form = host.querySelector('form')!;
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     });
-    expect(api.sendInvitation).toHaveBeenCalledTimes(1);
-    expect(api.sendInvitation).toHaveBeenCalledWith('p9', 'Weddings in June');
-    expect(text()).toContain('Invitation sent to Grace Mutoni');
+    expect(api.sendInvitationByEmail).toHaveBeenCalledTimes(1);
+    expect(api.sendInvitationByEmail).toHaveBeenCalledWith('grace@example.com', 'Weddings in June');
+    expect(text()).toContain('Invitation emailed to grace@example.com');
+    expect(text()).toContain('expires in 7 days');
     expect((host.querySelector('#ws-email') as HTMLInputElement).value).toBe('');
   });
 
-  it('says plainly when no photographer matches, and when the server refuses a duplicate', async () => {
-    api.lookupPhotographer.mockRejectedValueOnce(new Error('No photographer account uses that email'));
+  it('says plainly when the server refuses an invitation, and does not claim it was sent', async () => {
+    api.sendInvitationByEmail.mockRejectedValue(new Error('An invitation to this email is already waiting. Use Resend to send it again.'));
     await mount();
-    await type('ws-email', 'nobody@example.com');
-    await submit();
-    expect(text()).toContain('No photographer account uses that email');
-    expect(byText('Send invitation')).toBeUndefined();
-
-    api.lookupPhotographer.mockResolvedValue(person('p9', 'Grace Mutoni'));
-    api.sendInvitation.mockRejectedValue(new Error('An invitation to this photographer is already waiting'));
     await type('ws-email', 'grace@example.com');
     await submit();
-    await click(byText('Send invitation'));
     expect(text()).toContain('already waiting');
-    // The invitation was not recorded as sent.
-    expect(text()).not.toContain('Invitation sent to');
+    expect(text()).not.toContain('Invitation emailed to');
+    // What was typed stays, so it can be corrected.
+    expect((host.querySelector('#ws-email') as HTMLInputElement).value).toBe('grace@example.com');
   });
 
   it('lets the invited photographer accept, once, and open the workspace', async () => {
@@ -179,7 +198,7 @@ describe('workspace access tab', () => {
     await mount();
     expect(text()).toContain('Invitations for you');
     expect(text()).toContain("Aline Uwase's workspace");
-    expect(text()).toContain('Withdrawals and transactions stay with them');
+    expect(text()).toContain('Money, the wallet and account settings stay with them');
     // The list is read again after the answer, and then shows the accepted workspace.
     api.listReceivedInvitations.mockResolvedValue([inv({ id: 'r1', status: 'ACCEPTED' })]);
     const accept = byText('Accept')!;

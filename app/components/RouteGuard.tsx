@@ -32,14 +32,14 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
   const { loading, hasAny, isOwner } = usePermissions();
-  const { isShared } = useWorkspace();
+  const { isShared, isCollaborator } = useWorkspace();
 
   const rule = useMemo(() => matchRouteRule(pathname), [pathname]);
 
   useEffect(() => {
     // Working in someone else's workspace: money, account and notification pages are not part of it. The server
     // refuses the matching calls too; this just keeps the user off pages that could only fail.
-    if (isShared && isBlockedInSharedWorkspace(pathname)) {
+    if (isShared && isBlockedInSharedWorkspace(pathname, isCollaborator)) {
       router.replace(`/user/not-authorized?required=workspace&from=${encodeURIComponent(pathname || '/')}`);
       return;
     }
@@ -60,7 +60,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     // offer "go back" without losing the original intent.
     const returnTo = pathname || '/';
     router.replace(`/user/not-authorized?required=${encodeURIComponent(rule.any.join(','))}&from=${encodeURIComponent(returnTo)}`);
-  }, [loading, rule, hasAny, isOwner, isShared, pathname, router]);
+  }, [loading, rule, hasAny, isOwner, isShared, isCollaborator, pathname, router]);
 
   return <>{children}</>;
 }

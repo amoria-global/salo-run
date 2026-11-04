@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({
   pathname: '/user/photographer/dashboard',
   shared: false,
+  collaborator: false,
+  hasOwn: true,
   active: null as null | { workspaceId: string; owner: { id: string; name: string; profilePicture: null } },
   replace: vi.fn(),
   switchTo: vi.fn(),
@@ -17,10 +19,10 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a> }));
 vi.mock('@/app/providers/WorkspaceProvider', () => ({
-  useWorkspace: () => ({ workspaces: state.active ? [state.active] : [], active: state.active, isShared: state.shared, loading: false, switchTo: state.switchTo, refresh: async () => {} }),
+  useWorkspace: () => ({ workspaces: state.active ? [state.active] : [], active: state.active, isShared: state.shared, isCollaborator: state.collaborator, hasOwnWorkspace: state.hasOwn, loading: false, switchTo: state.switchTo, refresh: async () => {} }),
 }));
 vi.mock('../../providers/WorkspaceProvider', () => ({
-  useWorkspace: () => ({ workspaces: state.active ? [state.active] : [], active: state.active, isShared: state.shared, loading: false, switchTo: state.switchTo, refresh: async () => {} }),
+  useWorkspace: () => ({ workspaces: state.active ? [state.active] : [], active: state.active, isShared: state.shared, isCollaborator: state.collaborator, hasOwnWorkspace: state.hasOwn, loading: false, switchTo: state.switchTo, refresh: async () => {} }),
 }));
 vi.mock('../../lib/usePermissions', () => ({
   usePermissions: () => ({ loading: false, isOwner: true, hasAny: () => true, hasPermission: () => true, roleName: 'Owner', organizationName: null }),
@@ -50,6 +52,8 @@ const render = async (el: React.ReactElement) => {
 beforeEach(() => {
   state.pathname = '/user/photographer/dashboard';
   state.shared = false;
+  state.collaborator = false;
+  state.hasOwn = true;
   state.active = null;
   state.replace.mockReset();
   state.switchTo.mockReset();
@@ -84,6 +88,23 @@ describe('route guard in a shared workspace', () => {
     }
   });
 
+  it('keeps the whole wallet away from a workspace collaborator, though an older member keeps the overview', async () => {
+    state.shared = true;
+    state.collaborator = true;
+    for (const p of ['wallet', 'wallet/movements', 'transaction', 'payroll-report']) {
+      state.replace.mockReset();
+      state.pathname = `/user/photographer/${p}`;
+      await render(<RouteGuard><div>page</div></RouteGuard>);
+      expect(state.replace, p).toHaveBeenCalledWith(expect.stringContaining('/user/not-authorized?required=workspace'));
+    }
+    for (const p of ['dashboard', 'events', 'clients', 'notifications', 'inbox', 'opportunities']) {
+      state.replace.mockReset();
+      state.pathname = `/user/photographer/${p}`;
+      await render(<RouteGuard><div>page</div></RouteGuard>);
+      expect(state.replace, p).not.toHaveBeenCalled();
+    }
+  });
+
   it('keeps the wallet open in the photographer own workspace', async () => {
     state.pathname = '/user/photographer/wallet';
     await render(<RouteGuard><div>wallet</div></RouteGuard>);
@@ -110,6 +131,18 @@ describe('workspace banner and switcher', () => {
     expect(state.switchTo).toHaveBeenCalledWith(null);
   });
 
+  it('tells a collaborator what stays with the owner and offers to switch, not to go back to a business they do not have', async () => {
+    state.shared = true;
+    state.active = OWNER;
+    state.collaborator = true;
+    state.hasOwn = false;
+    await render(<WorkspaceBanner />);
+    expect(host.textContent).toContain("You're working in Aline Uwase's workspace");
+    expect(host.textContent).toContain('Money, the wallet and account settings stay with the owner');
+    expect(host.textContent).toContain('Switch workspace');
+    expect(host.textContent).not.toContain('Back to my workspace');
+  });
+
   it('is invisible to a photographer who was never invited anywhere', async () => {
     await render(<WorkspaceSwitcher />);
     expect(host.textContent).toBe('');
@@ -119,7 +152,7 @@ describe('workspace banner and switcher', () => {
     state.active = OWNER;
     await render(<WorkspaceSwitcher />);
     const select = host.querySelector('select') as HTMLSelectElement;
-    expect(Array.from(select.options).map((o) => o.textContent)).toEqual(['My workspace', "Aline Uwase's workspace"]);
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual(['My business', "Aline Uwase's workspace"]);
     await act(async () => {
       select.value = 'o1';
       select.dispatchEvent(new Event('change', { bubbles: true }));

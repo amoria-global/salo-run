@@ -23,9 +23,13 @@ function reply(status: number, body: unknown) {
 
 beforeEach(() => {
   window.localStorage.clear();
+  setActiveWorkspaceId(null); // also clears the workspace cookie the choice is mirrored in
   sent.length = 0;
 });
-afterEach(() => window.localStorage.clear());
+afterEach(() => {
+  window.localStorage.clear();
+  setActiveWorkspaceId(null);
+});
 
 describe('dashboardAuthFetch with a workspace selected', () => {
   it('names the workspace on a work call and not on a personal one', async () => {
