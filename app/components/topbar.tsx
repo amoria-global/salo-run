@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
+import { useWorkspace } from "../providers/WorkspaceProvider";
 import { useCurrency } from "../context/CurrencyContext";
 import { useLanguage } from "../context/LanguageContext";
 import { getApiUrl } from '@/lib/api';
@@ -71,6 +72,8 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showKycModal, setShowKycModal] = useState(false);
+  // A workspace collaborator has no identity check of its own to complete: that belongs to the owner.
+  const { isCollaborator } = useWorkspace();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -916,7 +919,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         </div>
       )}
 
-      {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && user.customerType !== 'Viewer' && !pendingPaymentWarning && (() => {
+      {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && user.customerType !== 'Viewer' && !isCollaborator && !pendingPaymentWarning && (() => {
         const isPending = user.kycStatus === 'PENDING';
         const isRejected = user.kycStatus === 'REJECTED';
         const cfg = isRejected
