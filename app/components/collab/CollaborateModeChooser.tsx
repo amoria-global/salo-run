@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The first thing on the Collaborate page: two clearly different ways to work with another photographer.
+ * The first thing on the Collaborate page: two clearly different ways to work with other people.
  *  - Workspace access: they work in your whole business (bookings, clients, events, opportunities).
  *  - Album collaboration: they add photos to one album and see nothing else.
  * It is a radio group, so a keyboard or screen reader user hears "Share your whole workspace" and "Share one album"
@@ -27,8 +27,8 @@ export const COLLABORATE_OPTIONS: Option[] = [
     icon: 'bi-briefcase-fill',
     badge: 'Whole workspace',
     title: 'Workspace access',
-    lead: 'Let another photographer work in your business.',
-    points: ['They sign in with their own account', 'They handle bookings, clients and events with you', 'Withdrawals and transactions stay with you'],
+    lead: 'Let someone who helps run your business work in your workspace.',
+    points: ['They need no Connekyt account, only an email', 'They handle bookings, clients and events with you', 'Money, wallet and settings stay with you'],
   },
   {
     mode: 'albums',
@@ -49,7 +49,7 @@ export function CollaborateModeChooser({ mode, onChange }: { mode: CollaborateMo
   };
 
   return (
-    <div role="radiogroup" aria-label="How do you want to work with another photographer?" className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div role="radiogroup" aria-label="How do you want to work with other people?" className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
       {COLLABORATE_OPTIONS.map((o, i) => {
         const on = mode === o.mode;
         return (

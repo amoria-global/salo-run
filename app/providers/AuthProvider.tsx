@@ -215,6 +215,8 @@ function clearAuthFromStorage(): void {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
     document.cookie = 'userRole=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    document.cookie = 'ckws=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    localStorage.removeItem('connekyt:workspace');
     document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   } catch (error) {
     console.error('[Dashboard Auth] Failed to clear auth storage:', error);
@@ -426,6 +428,15 @@ const PROFILE_ENDPOINTS = [
   { endpoint: '/api/remote/customer/profile', role: 'customer' },
 ];
 
+// A collaborator login has no profile of its own and the photographer/customer profile routes refuse it, so it is asked
+// first, and only when it could be one: a workspace was chosen (cookie set when the sign-in site hands one over) or the
+// last known role says so. Every other account answers action 0 and the usual endpoints follow.
+const COLLABORATOR_ENDPOINT = { endpoint: '/api/remote/collaborator/me', role: 'collaborator' };
+function profileEndpoints() {
+  const mayBeCollaborator = typeof document !== 'undefined' && /(?:^|; )(ckws|userRole=collaborator)/.test(document.cookie);
+  return mayBeCollaborator ? [COLLABORATOR_ENDPOINT, ...PROFILE_ENDPOINTS] : PROFILE_ENDPOINTS;
+}
+
 /**
  * Fetch user profile using Bearer token.
  * Tries photographer, coordinator, and customer endpoints in order.
@@ -436,7 +447,7 @@ async function fetchUserProfile(token: string | null): Promise<{ user: Dashboard
     // Try each role endpoint until one succeeds
     let got401 = false;
     let gotServerError = false;
-    for (const { endpoint, role } of PROFILE_ENDPOINTS) {
+    for (const { endpoint, role } of profileEndpoints()) {
       const { user, status } = await tryFetchProfile(endpoint, token, role);
       if (user) return { user, reason: 'success' };
       if (status === 401) { got401 = true; break; }
@@ -450,7 +461,7 @@ async function fetchUserProfile(token: string | null): Promise<{ user: Dashboard
     if (got401) {
       const renewed = await attemptDashboardTokenRefresh();
       if (renewed) {
-        for (const { endpoint, role } of PROFILE_ENDPOINTS) {
+        for (const { endpoint, role } of profileEndpoints()) {
           const { user } = await tryFetchProfile(endpoint, null, role);
           if (user) return { user, reason: 'success' };
         }
