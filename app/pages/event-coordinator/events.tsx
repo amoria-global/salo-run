@@ -15,8 +15,10 @@ import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import EventConfirmModal from '../../components/EventConfirmModal';
 import EventQrWizard from '../../components/EventQrWizard';
-import EventCoverageChoice from '../../components/EventCoverageChoice';
-import { selfStreamFeeError, type EventCoverage } from '@/lib/events/selfStream';
+import HostEntryTiles from '../../components/HostEntryTiles';
+import SelfStreamLink from '../../components/SelfStreamLink';
+import { useHostEntry } from '../../components/useHostEntry';
+import { selfStreamFeeError } from '@/lib/events/selfStream';
 import OwnerGoLive from '../../components/live/OwnerGoLive';
 import { canOwnerGoLive } from '@/lib/events/ownerGoLive';
 import RebookWizard from '../../components/RebookWizard';
@@ -369,6 +371,7 @@ const MyEventsPage = () => {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'published' | 'past' | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const { canHost, caption: hostedCaption } = useHostEntry();
   // Post My Event (hybrid booking), the same flow clients have.
   const [showBookingModeSelector, setShowBookingModeSelector] = useState(false);
   const [showHybridWizard, setShowHybridWizard] = useState(false);
@@ -689,7 +692,7 @@ const MyEventsPage = () => {
             setCreateTags(savedDraft.createTags || []);
             setCreatePhotographerId(savedDraft.createPhotographerId || '');
             setCreatePackageId(savedDraft.createPackageId || '');
-            setCreateEventVisibility(savedDraft.createEventVisibility || 'PUBLIC');
+            setCreateEventVisibility('PUBLIC');
             setCreateBannerImagePreview(savedDraft.createBannerImagePreview || null);
 
             // Show notice that draft was restored
@@ -1744,6 +1747,7 @@ const MyEventsPage = () => {
               }}>
                 Create and manage your events.
               </p>
+              {canHost ? <HostEntryTiles caption={hostedCaption} basePath="/user/event-coordinator/host" /> : null}
             </div>
             <button onClick={() => setShowBookingModeSelector(true)} className="ck-btn ck-btn-primary mobile-create-btn">
               <i className="bi bi-plus-lg" /> New event
@@ -2546,16 +2550,9 @@ const MyEventsPage = () => {
             </div>
           </div>
 
+          {/* The form is for an event a photographer covers. Streaming it yourself is Go live (Host an event). */}
+          <SelfStreamLink href="/user/event-coordinator/host?new=1" color={colors.textSecondary} linkColor={colors.brandAccent} />
           {/* Section: Photographer Assignment */}
-          <EventCoverageChoice
-            value={(createEventVisibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC') as EventCoverage}
-            onChange={(v) => {
-              setCreateEventVisibility(v);
-              setSubmitError(null);
-              if (v === 'PRIVATE') { setCreatePhotographerId(''); setCreatePackageId(''); setPhotographerAssignMode('none'); }
-            }}
-            colors={colors}
-          />
           {createEventVisibility !== 'PRIVATE' ? (
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>

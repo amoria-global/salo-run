@@ -29,7 +29,7 @@ const TABS: { key: HostedBucket; label: string }[] = [
   { key: 'upcoming', label: 'Upcoming' }, { key: 'live', label: 'Live' }, { key: 'ended', label: 'Ended' },
 ];
 
-export default function HostedEventsPage() {
+export default function HostedEventsPage({ profilePath = '/user/photographer/profile' }: { profilePath?: string } = {}) {
   const { colors, actualTheme } = useTheme();
   const apiUrl = getApiUrl();
   const fetcher = dashboardAuthFetch as (url: string, init?: RequestInit) => Promise<Response>;
@@ -70,8 +70,8 @@ export default function HostedEventsPage() {
       <Notice
         colors={colors}
         title="Hosting is not available"
-        body={elig.reason === 'NOT_A_PHOTOGRAPHER'
-          ? 'Hosting your own events is for photographer accounts.'
+        body={elig.reason === 'ROLE_CANNOT_HOST' || elig.reason === 'NOT_A_PHOTOGRAPHER'
+          ? 'Hosting your own events is not available for this account type.'
           : 'Hosting your own events is not available yet. We will let you know when it is.'}
       />
     );
@@ -130,6 +130,7 @@ export default function HostedEventsPage() {
           apiUrl={apiUrl}
           fetcher={fetcher}
           colors={colors}
+          profilePath={profilePath}
           onClose={() => setShowForm(false)}
           onDone={(id, goLive) => {
             setShowForm(false);
@@ -257,9 +258,9 @@ function Notice({ colors, title, body, action }: { colors: Colors; title: string
   );
 }
 
-function HostForm({ elig, apiUrl, fetcher, colors, onClose, onDone }: {
+function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone }: {
   elig: HostingEligibility; apiUrl: string; fetcher: (u: string, i?: RequestInit) => Promise<Response>;
-  colors: Colors; onClose: () => void; onDone: (eventId: string, goLive: boolean) => void;
+  colors: Colors; profilePath: string; onClose: () => void; onDone: (eventId: string, goLive: boolean) => void;
 }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(todayYmd());
@@ -362,7 +363,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, onClose, onDone }: {
         {!elig.canHostPaid ? (
           <p style={{ margin: 0, color: colors.textSecondary, fontSize: '0.88rem' }}>
             Paid events need your identity verification to be approved first. Free events are open to you now.{' '}
-            <Link href="/user/photographer/profile" style={{ color: colors.brandAccent, fontWeight: 700 }}>Verify my identity</Link>
+            <Link href={profilePath} style={{ color: colors.brandAccent, fontWeight: 700 }}>Verify my identity</Link>
           </p>
         ) : null}
         {paid ? (
