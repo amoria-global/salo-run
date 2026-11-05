@@ -14,6 +14,7 @@ import { PermissionProvider } from "./lib/usePermissions";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 import PasswordChangeGate from "./components/PasswordChangeGate";
 import PlatformAlert from "./components/PlatformAlert";
+import ErrorHost from "./components/errors/ErrorHost";
 import AppInstallWizard from "./components/AppInstallWizard";
 
 const pragatiNarrow = Pragati_Narrow({
@@ -56,6 +57,8 @@ export default function RootLayout({
                     {children}
                     {/* Global platform alert: replaces native browser alert() with brand-styled modal. */}
                     <PlatformAlert />
+                    {/* Toasts and decision dialogs raised by showError() from any page. */}
+                    <ErrorHost />
                     {/* Get-the-app wizard for a collaboration invite opened on a phone. */}
                     <Suspense fallback={null}>
                       <AppInstallWizard />
