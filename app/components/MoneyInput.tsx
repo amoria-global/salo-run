@@ -55,6 +55,7 @@ export default function MoneyInput({
   onFocus,
   id,
   hideLabel,
+  keepAmountOnCurrencyChange = true,
 }: {
   label: string;
   required?: boolean;
@@ -78,6 +79,8 @@ export default function MoneyInput({
   id?: string;
   /** The label stays for screen readers but is not drawn (the surrounding form already shows one). */
   hideLabel?: boolean;
+  /** Keep the typed amount when the currency changes (the default). Off where the amount is a payment: the same number in another currency is a different sum of money. */
+  keepAmountOnCurrencyChange?: boolean;
 }) {
   const { colors } = useTheme();
   const { currency: accountCode } = useCurrency();
@@ -129,8 +132,8 @@ export default function MoneyInput({
     if (c && nextId !== currencyId) {
       recordCurrencyUse(c.code);
       onCurrencyChange(nextId);
-      // The amount is kept; only digits a zero-decimal currency cannot carry are dropped.
-      if (value) onChange(rawFromInput(value, c.code));
+      // By default the amount is kept and only digits a zero-decimal currency cannot carry are dropped.
+      if (value) onChange(keepAmountOnCurrencyChange ? rawFromInput(value, c.code) : '');
     }
     setOpen(false);
     setQuery('');
