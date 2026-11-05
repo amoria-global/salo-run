@@ -14,7 +14,7 @@
 
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
-export type HostingReason = 'HOSTING_DISABLED' | 'NOT_A_PHOTOGRAPHER' | 'KYC_REQUIRED_FOR_PAID';
+export type HostingReason = 'HOSTING_DISABLED' | 'NOT_A_PHOTOGRAPHER' | 'ROLE_CANNOT_HOST' | 'KYC_REQUIRED_FOR_PAID';
 
 export type HostingEligibility = {
   enabled: boolean;
@@ -57,7 +57,7 @@ import { getEventStatus, type EventStatus } from '@/lib/events/eventStatus';
 
 export type HostedBucket = 'upcoming' | 'live' | 'ended';
 
-const REASONS: HostingReason[] = ['HOSTING_DISABLED', 'NOT_A_PHOTOGRAPHER', 'KYC_REQUIRED_FOR_PAID'];
+const REASONS: HostingReason[] = ['HOSTING_DISABLED', 'NOT_A_PHOTOGRAPHER', 'ROLE_CANNOT_HOST', 'KYC_REQUIRED_FOR_PAID'];
 const BASE = '/api/remote/photographer/hosted-events';
 
 type Raw = Record<string, unknown>;
