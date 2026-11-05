@@ -1,23 +1,18 @@
-// Mobile Money (Rwanda) rejects collections below 100 RWF.
-// For all other currencies the minimum is 1 unit (e.g. $1 USD, 1 EUR).
-export const MIN_EVENT_PRICE_RWF = 100;
-export const MIN_EVENT_PRICE_OTHER = 1;
+import { cachedPaymentLimit, priceError } from '@/lib/paymentLimits';
+
+// The minimum is per currency and comes from the backend (GET /payments/limits), the same figure the server enforces.
+// Until it has loaded, only a malformed amount is refused and the server judges the rest.
 
 /**
- * Returns true when the price is invalid (below the currency-specific minimum).
- * A price of 0 (free event) is always valid. this only checks paid events.
+ * The message for a paid event price that cannot be accepted, or null. A price of 0 (free event) is always valid;
+ * this only checks paid events.
  */
-export const isEventPriceInvalid = (price: string, currencyCode: string): boolean => {
-  const n = parseFloat(price.replace(/[^\d.]/g, ''));
-  if (isNaN(n) || n === 0) return false;
-  const min = currencyCode === 'RWF' ? MIN_EVENT_PRICE_RWF : MIN_EVENT_PRICE_OTHER;
-  return n < min;
+export const eventPriceError = (price: string, currencyCode: string): string | null => {
+  const cleaned = price.replace(/[^\d.]/g, '');
+  const n = parseFloat(cleaned);
+  if (isNaN(n) || n === 0) return null;
+  return priceError(cleaned, cachedPaymentLimit(currencyCode));
 };
 
-/**
- * Returns the human-readable minimum price string for error messages.
- */
-export const getMinEventPriceLabel = (currencyCode: string): string => {
-  if (currencyCode === 'RWF') return `${MIN_EVENT_PRICE_RWF} RWF`;
-  return `${MIN_EVENT_PRICE_OTHER} ${currencyCode}`;
-};
+/** True when the price is invalid (below the currency-specific minimum). */
+export const isEventPriceInvalid = (price: string, currencyCode: string): boolean => eventPriceError(price, currencyCode) !== null;

@@ -1,20 +1,13 @@
 'use client';
 
 import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
+import { cachedPaymentLimit, priceError, priceHint, priceStep, usePaymentLimit } from '@/lib/paymentLimits';
 import React, { useState, useRef, useEffect } from 'react';
 
-// Mobile Money (Rwanda) rejects collections below 100 RWF. The minimum only
-// applies when the album is priced in RWF. other currencies pass through
-// different rails and do not share this constraint.
-export const MIN_PAID_ALBUM_PRICE_RWF = 100;
-
-export const isPaidAlbumPriceInvalid = (price: string, currencyCode: string): boolean => {
-  if (currencyCode !== 'RWF') return false;
-  const n = parseFloat(price);
-  if (isNaN(n)) return false;
-  return n < MIN_PAID_ALBUM_PRICE_RWF;
-};
-
+// The minimum price is per currency and comes from the backend (GET /payments/limits), the same figure the server
+// enforces. Until it has loaded only a malformed amount is refused and the server judges the rest.
+export const paidAlbumPriceError = (price: string, currencyCode: string): string | null =>
+  priceError(price, cachedPaymentLimit(currencyCode));
 
 interface CurrencyInfo {
   code: string;
@@ -70,8 +63,9 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
   const selectedCurrency = currencies.find(c => c.code === currencyId || (c.id || c.code) === currencyId);
   const selectedCode = selectedCurrency?.code || '';
   const selectedFlag = CURRENCY_FLAG_MAP[selectedCode] || '';
-  const priceInvalid = isPaidAlbumPriceInvalid(pricePerImage, selectedCode);
-  const isRwf = selectedCode === 'RWF';
+  const limit = usePaymentLimit(selectedCode);
+  const priceMsg = priceError(pricePerImage, limit);
+  const priceInvalid = priceMsg !== null;
 
   return (
     <div style={{ marginBottom: '1rem' }}>
@@ -207,11 +201,11 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
           <input
             id="pricePerImage"
             type="number"
-            min={isRwf ? MIN_PAID_ALBUM_PRICE_RWF : 0}
-            step={isRwf ? 1 : 0.01}
+            min={limit?.minimum ?? 0}
+            step={priceStep(selectedCode, limit)}
             value={pricePerImage}
             onChange={(e) => onPriceChange(e.target.value)}
-            placeholder={isRwf ? `Enter price (min ${MIN_PAID_ALBUM_PRICE_RWF})` : 'Enter price'}
+            placeholder={limit ? `Enter price (min ${limit.minimum})` : 'Enter price'}
             disabled={disabled}
             style={{
               flex: 1,
@@ -229,11 +223,11 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
             required
           />
         </div>
-        {priceInvalid && (
-          <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.35rem' }}>
-            Minimum price is {MIN_PAID_ALBUM_PRICE_RWF} RWF. Mobile Money collections below {MIN_PAID_ALBUM_PRICE_RWF} RWF are rejected by the payment provider.
-          </div>
-        )}
+        {priceMsg ? (
+          <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.35rem' }}>{priceMsg}</div>
+        ) : priceHint(limit) ? (
+          <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.35rem' }}>{priceHint(limit)}</div>
+        ) : null}
       </div>
 
       {/* Commission Notice */}

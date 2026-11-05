@@ -44,7 +44,7 @@ describe('EventCoverageChoice', () => {
     expect(picked).toHaveBeenCalledWith('PRIVATE');
     expect(host.querySelector('input')).not.toBeNull();
     expect(host.textContent).toContain('Live stream fee');
-    expect(host.textContent).toContain('at least 100');
+    expect(host.textContent).toContain('above the minimum for the currency you pick');
     expect(host.querySelector('img')?.getAttribute('src')).toBe('/flags/rw.svg');
   });
 
