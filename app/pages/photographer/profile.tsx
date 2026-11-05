@@ -1,6 +1,6 @@
 "use client";
 
-import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
+import MoneyInput from '../../components/MoneyInput';
 import { MatchingProfileCard } from '../../components/hybrid/MatchingProfile';
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -2112,53 +2112,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed',
   };
 
-  // Reusable currency dropdown for a package, identical in look/behaviour to
-  // the main Price→Currency selector. Bound to the SAME pkg.currencyId (a
-  // package has one currency. the extra photo/video prices are charged in
-  // it too), so picking a currency on any of them keeps them in sync.
-  // `ddKey` is a unique open-state key so multiple dropdowns on the same
-  // package card don't all open at once.
-  const renderPkgCurrencyDropdown = (pkg: DeliveryPackage, ddKey: string) => {
-    const allOpts = currencies.length > 0
-      ? currencies.map(c => ({ val: c.id, code: c.code, name: c.name }))
-      : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }];
-    const selectedCode = allOpts.find(o => o.val === pkg.currencyId || o.code === pkg.currencyId)?.code || '';
-    const isDropdownOpen = openCurrencyPkgId === ddKey;
-    return (
-      <div ref={(el) => { currencyDropdownRefs.current[ddKey] = el; }} style={{ position: 'relative' }}>
-        <button type="button" disabled={!isPackageEditEnabled} onClick={() => isPackageEditEnabled && setOpenCurrencyPkgId(isDropdownOpen ? null : ddKey)}
-          style={{ ...pkgSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed', opacity: isPackageEditEnabled ? 1 : 0.6, width: '100%', textAlign: 'left' }}>
-          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`/flags/${CURRENCY_FLAG_MAP[selectedCode]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
-          <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-            <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        {isDropdownOpen && (
-          <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
-            {allOpts.map(opt => {
-              const flag = CURRENCY_FLAG_MAP[opt.code] || '';
-              const isSelected = pkg.currencyId === opt.val || pkg.currencyId === opt.code;
-              return (
-                <button key={opt.val} type="button" onClick={() => { updatePackage(pkg.id, 'currencyId', opt.val); setOpenCurrencyPkgId(null); }}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
-                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
-                  onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                    <span style={{ fontWeight: '600' }}>{opt.code}</span>
-                    {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
-                  </div>
-                  {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
+  // Package prices: the price and its currency are one field (MoneyInput). A package has ONE currency, so the main
+  // price and the extra photo and video prices all edit the same pkg.currencyId. Packages are not held to the listing
+  // minimum by the server, so the field shows no minimum.
+  const pkgMoneyCurrencies = currencies.map((c) => ({ value: c.id as string, code: c.code, name: c.name }));
+  const pkgMoneyCurrencyId = (pkg: DeliveryPackage) =>
+    pkgMoneyCurrencies.find((o) => o.value === pkg.currencyId || o.code === pkg.currencyId)?.value ?? '';
 
   const errorMessageStyle = {
     color: '#EF4444',
@@ -4818,55 +4777,19 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                               {/* Row 2: Price + Currency + Price Unit + Duration */}
                               <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
-                                <div>
-                                  <label style={labelStyle}>Price *</label>
-                                  <input type="number" min="0" value={pkg.price}
-                                    onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)}
-                                    placeholder="Enter price" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
-                                </div>
-                                <div>
-                                  <label style={labelStyle}>Currency *</label>
-                                  {(() => {
-                                    const allOpts = currencies.length > 0
-                                      ? currencies.map(c => ({ val: c.id, code: c.code, name: c.name }))
-                                      : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }];
-                                    const selectedCode = allOpts.find(o => o.val === pkg.currencyId || o.code === pkg.currencyId)?.code || '';
-                                    const isDropdownOpen = openCurrencyPkgId === pkg.id;
-                                    return (
-                                      <div ref={(el) => { currencyDropdownRefs.current[pkg.id] = el; }} style={{ position: 'relative' }}>
-                                        <button type="button" disabled={!isPackageEditEnabled} onClick={() => isPackageEditEnabled && setOpenCurrencyPkgId(isDropdownOpen ? null : pkg.id)}
-                                          style={{ ...pkgSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed', opacity: isPackageEditEnabled ? 1 : 0.6, width: '100%', textAlign: 'left' }}>
-                                          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`/flags/${CURRENCY_FLAG_MAP[selectedCode]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                          <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
-                                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                                            <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                          </svg>
-                                        </button>
-                                        {isDropdownOpen && (
-                                          <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
-                                            {allOpts.map(opt => {
-                                              const flag = CURRENCY_FLAG_MAP[opt.code] || '';
-                                              const isSelected = pkg.currencyId === opt.val || pkg.currencyId === opt.code;
-                                              return (
-                                                <button key={opt.val} type="button" onClick={() => { updatePackage(pkg.id, 'currencyId', opt.val); setOpenCurrencyPkgId(null); }}
-                                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
-                                                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
-                                                  onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                                >
-                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                                    <span style={{ fontWeight: '600' }}>{opt.code}</span>
-                                                    {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
-                                                  </div>
-                                                  {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                                </button>
-                                              );
-                                            })}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })()}
+                                <div style={{ gridColumn: 'span 2' }}>
+                                  <MoneyInput
+                                    label="Price *"
+                                    value={String(pkg.price ?? '')}
+                                    onChange={(v) => updatePackage(pkg.id, 'price', v)}
+                                    currencyId={pkgMoneyCurrencyId(pkg)}
+                                    onCurrencyChange={(id) => updatePackage(pkg.id, 'currencyId', id)}
+                                    currencies={pkgMoneyCurrencies}
+                                    placeholder="Enter price"
+                                    disabled={!isPackageEditEnabled}
+                                    showLimits={false}
+                                    showQuickPick={false}
+                                  />
                                 </div>
                                 <div>
                                   <label style={labelStyle}>Price Unit *</label>
@@ -5006,32 +4929,34 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       same as the main Price field. All three
                                       dropdowns edit the one pkg.currencyId. */}
                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                    <div>
-                                      <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Price per extra photo</label>
-                                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                          <input type="number" min="0" value={pkg.extraPhotoPrice}
-                                            onChange={(e) => updatePackage(pkg.id, 'extraPhotoPrice', e.target.value)}
-                                            placeholder="e.g. 500" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
-                                        </div>
-                                        <div style={{ flex: '0 0 116px' }}>
-                                          {renderPkgCurrencyDropdown(pkg, `${pkg.id}:xphoto`)}
-                                        </div>
+                                      <div>
+                                        <MoneyInput
+                                          label="Price per extra photo"
+                                          value={String(pkg.extraPhotoPrice ?? '')}
+                                          onChange={(v) => updatePackage(pkg.id, 'extraPhotoPrice', v)}
+                                          currencyId={pkgMoneyCurrencyId(pkg)}
+                                          onCurrencyChange={(id) => updatePackage(pkg.id, 'currencyId', id)}
+                                          currencies={pkgMoneyCurrencies}
+                                          placeholder="e.g. 500"
+                                          disabled={!isPackageEditEnabled}
+                                          showLimits={false}
+                                          showQuickPick={false}
+                                        />
                                       </div>
-                                    </div>
-                                    <div>
-                                      <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Price per extra video</label>
-                                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                          <input type="number" min="0" value={pkg.extraVideoPrice}
-                                            onChange={(e) => updatePackage(pkg.id, 'extraVideoPrice', e.target.value)}
-                                            placeholder="e.g. 1000" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
-                                        </div>
-                                        <div style={{ flex: '0 0 116px' }}>
-                                          {renderPkgCurrencyDropdown(pkg, `${pkg.id}:xvideo`)}
-                                        </div>
+                                      <div>
+                                        <MoneyInput
+                                          label="Price per extra video"
+                                          value={String(pkg.extraVideoPrice ?? '')}
+                                          onChange={(v) => updatePackage(pkg.id, 'extraVideoPrice', v)}
+                                          currencyId={pkgMoneyCurrencyId(pkg)}
+                                          onCurrencyChange={(id) => updatePackage(pkg.id, 'currencyId', id)}
+                                          currencies={pkgMoneyCurrencies}
+                                          placeholder="e.g. 1000"
+                                          disabled={!isPackageEditEnabled}
+                                          showLimits={false}
+                                          showQuickPick={false}
+                                        />
                                       </div>
-                                    </div>
                                   </div>
                                   <span style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.4rem', display: 'block' }}>
                                     Set the price clients pay for each additional photo or video beyond the included amount in their photobook.
@@ -5501,53 +5426,19 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     <option value="Diamond">Diamond</option>
                                   </select>
                                 </div>
-                                <div>
-                                  <label style={labelStyle}>Price *</label>
-                                  <input type="number" min="0" step="0.01" value={pkg.price}
-                                    onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)}
-                                    placeholder="e.g. 50000" disabled={!isStudioPackageEditEnabled} style={studioPkgInputStyle} />
-                                </div>
-                                <div>
-                                  <label style={labelStyle}>Currency *</label>
-                                  {(() => {
-                                    const ddKey = `studio-pkg-${pkg.id}`;
-                                    const allOpts = currencies.length > 0
-                                      ? currencies.map(c => ({ val: c.id, code: c.code, name: c.name }))
-                                      : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }];
-                                    const selectedCode = allOpts.find(o => o.val === pkg.currencyId || o.code === pkg.currencyId)?.code || '';
-                                    const isOpen = openCurrencyPkgId === ddKey;
-                                    return (
-                                      <div ref={(el) => { currencyDropdownRefs.current[ddKey] = el; }} style={{ position: 'relative' }}>
-                                        <button type="button" disabled={!isStudioPackageEditEnabled} onClick={() => isStudioPackageEditEnabled && setOpenCurrencyPkgId(isOpen ? null : ddKey)}
-                                          style={{ ...studioPkgSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isStudioPackageEditEnabled ? 'pointer' : 'not-allowed', width: '100%', textAlign: 'left' }}>
-                                          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`/flags/${CURRENCY_FLAG_MAP[selectedCode]}.svg`} alt="" style={{ width: 18, height: 14, objectFit: 'cover', borderRadius: 2 }} />}
-                                          <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
-                                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                            <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                          </svg>
-                                        </button>
-                                        {isOpen && (
-                                          <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: 200, zIndex: 100 }}>
-                                            {allOpts.map(opt => {
-                                              const flag = CURRENCY_FLAG_MAP[opt.code] || '';
-                                              const isSelected = pkg.currencyId === opt.val || pkg.currencyId === opt.code;
-                                              return (
-                                                <button key={opt.val} type="button" onClick={() => { updatePackage(pkg.id, 'currencyId', opt.val); setOpenCurrencyPkgId(null); }}
-                                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? accentBg : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? 600 : 400, cursor: 'pointer', gap: '0.5rem' }}>
-                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />}
-                                                    <span style={{ fontWeight: 600 }}>{opt.code}</span>
-                                                    {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
-                                                  </div>
-                                                  {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                                </button>
-                                              );
-                                            })}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })()}
+                                <div style={{ gridColumn: 'span 2' }}>
+                                  <MoneyInput
+                                    label="Price *"
+                                    value={String(pkg.price ?? '')}
+                                    onChange={(v) => updatePackage(pkg.id, 'price', v)}
+                                    currencyId={pkgMoneyCurrencyId(pkg)}
+                                    onCurrencyChange={(id) => updatePackage(pkg.id, 'currencyId', id)}
+                                    currencies={pkgMoneyCurrencies}
+                                    placeholder="e.g. 50000"
+                                    disabled={!isStudioPackageEditEnabled}
+                                    showLimits={false}
+                                    showQuickPick={false}
+                                  />
                                 </div>
                                 <div>
                                   <label style={labelStyle}>Photos included</label>
