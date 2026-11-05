@@ -1,5 +1,6 @@
 'use client';
 
+import { usePaymentLimit, priceError, priceHint, priceStep } from '@/lib/paymentLimits';
 import CurrencySelect from '../../components/CurrencySelect';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
@@ -577,6 +578,10 @@ function CreateContentAlbumModal({
   const [category, setCategory] = useState('');
   const [pricePerImage, setPricePerImage] = useState('');
   const [currencyId, setCurrencyId] = useState(defaultCurrencyId || '');
+  // The minimum is per currency and comes from the backend, so USD 4 is judged as USD, never as "below 100".
+  const currencyCode = currencies.find(c => (c.id || c.code) === currencyId)?.code;
+  const priceLimit = usePaymentLimit(currencyCode);
+  const priceMsg = priceError(pricePerImage, priceLimit);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [images, setImages] = useState<File[]>([]);
@@ -620,7 +625,7 @@ function CreateContentAlbumModal({
     setError(null);
     if (!title.trim()) { setError('Title is required'); return; }
     if (!category) { setError('Pick a category'); return; }
-    if (!pricePerImage || Number(pricePerImage) < 100) { setError('Price per image must be at least 100'); return; }
+    if (!pricePerImage || priceMsg) { setError(priceMsg ?? 'Enter a price per image'); return; }
     if (!currencyId) { setError('Pick a currency'); return; }
     if (images.length === 0) { setError('Upload at least one photo'); return; }
 
@@ -687,7 +692,8 @@ function CreateContentAlbumModal({
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <label style={lbl}>Price per image
-              <input type="number" min={100} step="1" value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} placeholder="e.g. 500" required />
+              <input type="number" min={priceLimit?.minimum ?? 0} step={priceStep(currencyCode, priceLimit)} value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} placeholder="e.g. 500" required />
+              {priceMsg ? <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{priceMsg}</div> : priceHint(priceLimit) ? <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', opacity: 0.7 }}>{priceHint(priceLimit)}</div> : null}
             </label>
             <label style={lbl}>Currency
               <CurrencySelect value={currencyId} onChange={setCurrencyId} style={inp} required placeholder="- Pick -" options={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))} />
@@ -890,6 +896,9 @@ function EditContentAlbumModal({
     const match = currencies.find(c => c.code === code);
     return match ? (match.id || match.code) : '';
   });
+  const currencyCode = currencies.find(c => (c.id || c.code) === currencyId)?.code;
+  const priceLimit = usePaymentLimit(currencyCode);
+  const priceMsg = priceError(pricePerImage, priceLimit);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<ContentImageDto[]>(album.images || []);
@@ -953,7 +962,7 @@ function EditContentAlbumModal({
     e.preventDefault();
     setError(null);
     if (!title.trim()) { setError('Title is required'); return; }
-    if (!pricePerImage || Number(pricePerImage) < 100) { setError('Price per image must be at least 100'); return; }
+    if (!pricePerImage || priceMsg) { setError(priceMsg ?? 'Enter a price per image'); return; }
     if (!currencyId) { setError('Pick a currency'); return; }
     const totalAfter = existingImages.length + newImages.length;
     if (totalAfter === 0) { setError('Album must have at least one photo'); return; }
@@ -1054,7 +1063,8 @@ function EditContentAlbumModal({
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <label style={lbl}>Price per image
-              <input type="number" min={100} step="1" value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} required />
+              <input type="number" min={priceLimit?.minimum ?? 0} step={priceStep(currencyCode, priceLimit)} value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} required />
+              {priceMsg ? <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{priceMsg}</div> : priceHint(priceLimit) ? <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', opacity: 0.7 }}>{priceHint(priceLimit)}</div> : null}
             </label>
             <label style={lbl}>Currency
               <CurrencySelect value={currencyId} onChange={setCurrencyId} style={inp} required placeholder="- Pick -" options={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))} />

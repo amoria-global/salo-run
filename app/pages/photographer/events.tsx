@@ -33,7 +33,8 @@ import HostEntryTiles from '../../components/HostEntryTiles';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import HostLivePage from '../../components/live/HostLivePage';
 import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
-import PaidAlbumForm, { MIN_PAID_ALBUM_PRICE_RWF, isPaidAlbumPriceInvalid } from '../../components/PaidAlbumForm';
+import PaidAlbumForm, { paidAlbumPriceError } from '../../components/PaidAlbumForm';
+import { priceError, priceHint, usePaymentLimit } from '@/lib/paymentLimits';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import FreeAlbumForm from '../../components/FreeAlbumForm';
 import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
@@ -580,7 +581,11 @@ const PhotographerEventsPage = () => {
   const [paidAlbumPrice, setPaidAlbumPrice] = useState('');
   const [paidAlbumCurrencyId, setPaidAlbumCurrencyId] = useState('');
   const paidAlbumCurrencyCode = currencies.find(c => c.code === paidAlbumCurrencyId || (c.id || c.code) === paidAlbumCurrencyId)?.code || '';
-  const paidAlbumPriceInvalid = isPaidAlbumPriceInvalid(paidAlbumPrice, paidAlbumCurrencyCode);
+  const paidAlbumPriceMsg = paidAlbumPriceError(paidAlbumPrice, paidAlbumCurrencyCode);
+  // Find-My-Photos price: judged in its own currency, same minimum the server enforces.
+  const faceAICurrencyCode = currencies.find(c => (c.id || c.code) === faceAICurrency)?.code;
+  const faceAILimit = usePaymentLimit(faceAICurrencyCode);
+  const faceAIMsg = faceAIPrice ? priceError(faceAIPrice, faceAILimit) : null;
   const [freeAlbumEmail, setFreeAlbumEmail] = useState('');
   // Optional free-album download cap + price per extra image (blank = all free).
   // freeExtraCurrencyId required by the backend when freeExtraPrice > 0 so
@@ -1588,8 +1593,8 @@ const PhotographerEventsPage = () => {
         platformAlert('Please fill in price and currency for PAID album');
         return;
       }
-      if (paidAlbumPriceInvalid) {
-        platformAlert(`Minimum price for a PAID album in RWF is ${MIN_PAID_ALBUM_PRICE_RWF}. Mobile Money collections below ${MIN_PAID_ALBUM_PRICE_RWF} RWF are rejected by the payment provider.`);
+      if (paidAlbumPriceMsg) {
+        platformAlert(paidAlbumPriceMsg);
         return;
       }
     }
@@ -3723,7 +3728,7 @@ const PhotographerEventsPage = () => {
                     disabled={
                       !albumTitle ||
                       (createAlbumMode === 'event' && !createAlbumEventId) ||
-                      (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || paidAlbumPriceInvalid)) ||
+                      (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || !!paidAlbumPriceMsg)) ||
                       (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
                       !selectedFiles || selectedFiles.length === 0 ||
                       isUploadingAlbum
@@ -3733,7 +3738,7 @@ const PhotographerEventsPage = () => {
                       opacity: (
                         !albumTitle ||
                         (createAlbumMode === 'event' && !createAlbumEventId) ||
-                        (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || paidAlbumPriceInvalid)) ||
+                        (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || !!paidAlbumPriceMsg)) ||
                         (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
                         !selectedFiles || selectedFiles.length === 0 ||
                         isUploadingAlbum
@@ -4581,11 +4586,13 @@ const PhotographerEventsPage = () => {
                         </div>
                       )}
                     </div>
-                    <input type="number" min={selectedAlbum.isStandalone ? 0 : 1} step="0.01" value={faceAIPrice} onChange={e => setFaceAIPrice(e.target.value)} placeholder={selectedAlbum.isStandalone ? 'Free if empty' : 'Min 1.00'} style={{ ...inputStyle, flex: 1 }} />
+                    <input type="number" min={faceAILimit?.minimum ?? 0} step={faceAILimit?.wholeNumbersOnly ? 1 : 0.01} value={faceAIPrice} onChange={e => setFaceAIPrice(e.target.value)} placeholder={selectedAlbum.isStandalone ? 'Free if empty' : (faceAILimit ? `Min ${faceAILimit.minimum}` : 'Enter price')} style={{ ...inputStyle, flex: 1 }} />
                   </div>
-                  {faceAIPrice && parseFloat(faceAIPrice) < 1 && !selectedAlbum.isStandalone && (
-                    <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Minimum price is 1.00</p>
-                  )}
+                  {faceAIMsg ? (
+                    <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>{faceAIMsg}</p>
+                  ) : priceHint(faceAILimit) ? (
+                    <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0.35rem 0 0 0' }}>{priceHint(faceAILimit)}</p>
+                  ) : null}
                 </div>
                 {/* Upload Button */}
                 <button onClick={async () => {
@@ -4629,19 +4636,19 @@ const PhotographerEventsPage = () => {
                   if (!selectedAlbum.inviteCode) return true;
                   if (selectedAlbum.isStandalone) {
                     // Standalone: price optional, but if provided must be valid
-                    if (faceAIPrice && parseFloat(faceAIPrice) > 0 && !faceAICurrency) return true;
+                    if (faceAIPrice && parseFloat(faceAIPrice) > 0 && (!faceAICurrency || faceAIMsg)) return true;
                     return false;
                   }
                   // Event album: price + currency required
-                  return !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency;
+                  return !faceAIPrice || !!faceAIMsg || !faceAICurrency;
                 })()} style={(() => {
                   const isDisabled = (() => {
                     if (!selectedAlbum.inviteCode) return true;
                     if (selectedAlbum.isStandalone) {
-                      if (faceAIPrice && parseFloat(faceAIPrice) > 0 && !faceAICurrency) return true;
+                      if (faceAIPrice && parseFloat(faceAIPrice) > 0 && (!faceAICurrency || faceAIMsg)) return true;
                       return false;
                     }
-                    return !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency;
+                    return !faceAIPrice || !!faceAIMsg || !faceAICurrency;
                   })();
                   return { ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: isDisabled ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', borderColor: isDisabled ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.6 : 1 };
                 })()}>
