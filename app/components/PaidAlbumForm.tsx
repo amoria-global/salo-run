@@ -1,8 +1,8 @@
 'use client';
 
-import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
-import { cachedPaymentLimit, priceError, priceHint, priceStep, usePaymentLimit } from '@/lib/paymentLimits';
-import React, { useState, useRef, useEffect } from 'react';
+import { cachedPaymentLimit, priceError } from '@/lib/paymentLimits';
+import MoneyInput from './MoneyInput';
+import React from 'react';
 
 // The minimum price is per currency and comes from the backend (GET /payments/limits), the same figure the server
 // enforces. Until it has loaded only a malformed amount is refused and the server judges the rest.
@@ -47,25 +47,8 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
     background: '#ffffff',
   },
 }) => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const selectedCurrency = currencies.find(c => c.code === currencyId || (c.id || c.code) === currencyId);
   const selectedCode = selectedCurrency?.code || '';
-  const selectedFlag = CURRENCY_FLAG_MAP[selectedCode] || '';
-  const limit = usePaymentLimit(selectedCode);
-  const priceMsg = priceError(pricePerImage, limit);
-  const priceInvalid = priceMsg !== null;
 
   return (
     <div style={{ marginBottom: '1rem' }}>
@@ -86,149 +69,19 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
         </div>
       </div>
 
-      {/* Price Per Image + Currency (side by side) */}
-      <div style={{ marginBottom: '1rem' }}>
-        <label
-          style={{
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            color: colors.textPrimary,
-            display: 'block',
-            marginBottom: '0.35rem',
-          }}
-        >
-          Price Per Image *
-        </label>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {/* Custom currency dropdown with flag images */}
-          <div ref={dropdownRef} style={{ position: 'relative', minWidth: '120px' }}>
-            <button
-              type="button"
-              onClick={() => !disabled && setShowDropdown(!showDropdown)}
-              disabled={disabled}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                width: '100%',
-                textAlign: 'left' as const,
-                padding: '0.6rem 0.75rem',
-                fontSize: '0.85rem',
-                border: `1px solid ${colors.border}`,
-                borderRadius: '0.4rem',
-                background: colors.background,
-                color: colors.textPrimary,
-                outline: 'none',
-                transition: 'border-color 0.2s',
-              }}
-            >
-              {selectedFlag && (
-                <img
-                  src={`/flags/${selectedFlag}.svg`}
-                  alt=""
-                  style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }}
-                />
-              )}
-              <span style={{ flex: 1, fontSize: '0.85rem' }}>{selectedCode || 'Currency'}</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {showDropdown && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 0.35rem)',
-                left: 0,
-                backgroundColor: colors.background,
-                borderRadius: '0.75rem',
-                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
-                border: `2px solid ${colors.border}`,
-                padding: '0.4rem',
-                minWidth: '200px',
-                zIndex: 100,
-                maxHeight: '220px',
-                overflowY: 'auto',
-              }}>
-                {(currencies.length > 0 ? currencies : [
-                  { code: 'USD', name: 'US Dollar', symbol: '$', flag: '', rate: 1 },
-                  { code: 'RWF', name: 'Rwandan Franc', symbol: 'RF', flag: '', rate: 1 },
-                  { code: 'EUR', name: 'Euro', symbol: '€', flag: '', rate: 1 },
-                  { code: 'GBP', name: 'British Pound', symbol: '£', flag: '', rate: 1 },
-                  { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', flag: '', rate: 1 },
-                ]).map((c) => {
-                  const flag = CURRENCY_FLAG_MAP[c.code] || '';
-                  const isSelected = currencyId === c.code || currencyId === (c as CurrencyInfo & { id?: string }).id;
-                  return (
-                    <button
-                      key={c.code}
-                      type="button"
-                      onClick={() => { onCurrencyChange(c.code); setShowDropdown(false); }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: '0.5rem 0.65rem',
-                        borderRadius: '0.5rem',
-                        border: 'none',
-                        background: isSelected ? '#EFF6FF' : 'transparent',
-                        color: colors.textPrimary,
-                        fontSize: '0.85rem',
-                        fontWeight: isSelected ? 600 : 400,
-                        cursor: 'pointer',
-                        gap: '0.5rem',
-                      }}
-                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
-                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                        <span style={{ fontWeight: 600 }}>{c.code}</span>
-                        {c.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{c.name}</span>}
-                      </div>
-                      {isSelected && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                          <path d="M20 6L9 17L4 12" stroke="#083A85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          <input
-            id="pricePerImage"
-            type="number"
-            min={limit?.minimum ?? 0}
-            step={priceStep(selectedCode, limit)}
-            value={pricePerImage}
-            onChange={(e) => onPriceChange(e.target.value)}
-            placeholder={limit ? `Enter price (min ${limit.minimum})` : 'Enter price'}
-            disabled={disabled}
-            style={{
-              flex: 1,
-              padding: '0.6rem 0.75rem',
-              fontSize: '0.85rem',
-              border: `1px solid ${priceInvalid ? '#ef4444' : colors.border}`,
-              borderRadius: '0.4rem',
-              background: colors.background,
-              color: colors.textPrimary,
-              outline: 'none',
-              transition: 'border-color 0.2s',
-            }}
-            onFocus={(e) => (e.target.style.borderColor = priceInvalid ? '#ef4444' : '#3b82f6')}
-            onBlur={(e) => (e.target.style.borderColor = priceInvalid ? '#ef4444' : colors.border)}
-            required
-          />
-        </div>
-        {priceMsg ? (
-          <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.35rem' }}>{priceMsg}</div>
-        ) : priceHint(limit) ? (
-          <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.35rem' }}>{priceHint(limit)}</div>
-        ) : null}
-      </div>
+      {/* Price and currency in one field */}
+      <MoneyInput
+        label="Price Per Image"
+        required
+        id="pricePerImage"
+        value={pricePerImage}
+        onChange={onPriceChange}
+        currencyId={selectedCurrency ? (selectedCurrency.code) : ''}
+        onCurrencyChange={onCurrencyChange}
+        currencies={currencies.map((c) => ({ value: c.code, code: c.code, name: c.name }))}
+        placeholder="Enter price per photo"
+        disabled={disabled}
+      />
 
       {/* Commission Notice */}
       <div

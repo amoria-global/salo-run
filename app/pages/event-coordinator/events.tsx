@@ -1,5 +1,6 @@
 "use client";
 
+import MoneyInput from '../../components/MoneyInput';
 import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
 import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
 import { invitesOn, wishInvitesError } from '@/lib/wishes/wishInvites';
@@ -2413,63 +2414,16 @@ const MyEventsPage = () => {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee</label>
-                <div style={{ display: 'flex', gap: '0' }}>
-                  <input
-                    type="text"
-                    value={createPrice}
-                    onChange={(e) => setCreatePrice(formatNumberWithCommas(e.target.value))}
-                    placeholder="e.g., 15,000"
-                    style={{
-                      flex: 1,
-                      padding: '0.625rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      borderRight: 'none',
-                      borderRadius: '0.5rem 0 0 0.5rem',
-                      fontSize: '0.9rem',
-                      color: colors.textPrimary,
-                      backgroundColor: colors.bgCard
-                    }}
-                  />
-                  <div ref={createCurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
-                    <button type="button" onClick={() => setCreateCurrencyOpen(!createCurrencyOpen)} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%',
-                      padding: '0.625rem 0.5rem', border: `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0 0.5rem 0.5rem 0', borderLeft: 'none',
-                      fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary,
-                      backgroundColor: colors.bgTertiary, cursor: 'pointer',
-                    }}>
-                      {CURRENCY_FLAG_MAP[createPriceCurrency] && <img src={`/flags/${CURRENCY_FLAG_MAP[createPriceCurrency]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
-                      <span style={{ flex: 1, textAlign: 'left' }}>{createPriceCurrency}</span>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: createCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                        <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
-                    {createCurrencyOpen && (
-                      <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', right: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
-                        {currencyOptions.map(opt => {
-                          const flag = CURRENCY_FLAG_MAP[opt.value] || '';
-                          const isSelected = createPriceCurrency === opt.value;
-                          const extra = opt.label !== opt.value ? opt.label.replace(opt.value, '').replace(/^\s*-\s*/, '') : '';
-                          return (
-                            <button key={opt.value} type="button" onClick={() => { setCreatePriceCurrency(opt.value); setCreateCurrencyOpen(false); }}
-                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
-                              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
-                              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                <span style={{ fontWeight: '600' }}>{opt.value}</span>
-                                {extra && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{extra}</span>}
-                              </div>
-                              {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <MoneyInput
+                  label="Live Stream Access Fee"
+                  value={createPrice.replace(/,/g, '')}
+                  onChange={(v) => setCreatePrice(formatNumberWithCommas(v))}
+                  currencyId={createPriceCurrency}
+                  onCurrencyChange={setCreatePriceCurrency}
+                  currencies={currencyOptions.map((o) => ({ value: o.value, code: o.value, name: o.label !== o.value ? o.label.replace(o.value, '').replace(/^\s*-\s*/, '') : o.value }))}
+                  placeholder="e.g., 15,000"
+                  wholeNumbersOnly
+                />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
@@ -3898,63 +3852,16 @@ const MyEventsPage = () => {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee</label>
-                  <div style={{ display: 'flex', gap: '0' }}>
-                    <input
-                      type="text"
-                      value={editPrice}
-                      onChange={(e) => setEditPrice(formatNumberWithCommas(e.target.value))}
-                      placeholder="e.g., 15,000"
-                      style={{
-                        flex: 1,
-                        padding: '0.625rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRight: 'none',
-                        borderRadius: '0.5rem 0 0 0.5rem',
-                        fontSize: '0.9rem',
-                        color: colors.textPrimary,
-                        backgroundColor: colors.bgCard
-                      }}
-                    />
-                    <div ref={editCurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
-                      <button type="button" onClick={() => setEditCurrencyOpen(!editCurrencyOpen)} style={{
-                        display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%',
-                        padding: '0.625rem 0.5rem', border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0 0.5rem 0.5rem 0', borderLeft: 'none',
-                        fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary,
-                        backgroundColor: colors.bgTertiary, cursor: 'pointer',
-                      }}>
-                        {CURRENCY_FLAG_MAP[editPriceCurrency] && <img src={`/flags/${CURRENCY_FLAG_MAP[editPriceCurrency]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
-                        <span style={{ flex: 1, textAlign: 'left' }}>{editPriceCurrency}</span>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: editCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                          <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                      {editCurrencyOpen && (
-                        <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', right: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
-                          {currencyOptions.map(opt => {
-                            const flag = CURRENCY_FLAG_MAP[opt.value] || '';
-                            const isSelected = editPriceCurrency === opt.value;
-                            const extra = opt.label !== opt.value ? opt.label.replace(opt.value, '').replace(/^\s*-\s*/, '') : '';
-                            return (
-                              <button key={opt.value} type="button" onClick={() => { setEditPriceCurrency(opt.value); setEditCurrencyOpen(false); }}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
-                                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
-                                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                  <span style={{ fontWeight: '600' }}>{opt.value}</span>
-                                  {extra && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{extra}</span>}
-                                </div>
-                                {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <MoneyInput
+                    label="Live Stream Access Fee"
+                    value={editPrice.replace(/,/g, '')}
+                    onChange={(v) => setEditPrice(formatNumberWithCommas(v))}
+                    currencyId={editPriceCurrency}
+                    onCurrencyChange={setEditPriceCurrency}
+                    currencies={currencyOptions.map((o) => ({ value: o.value, code: o.value, name: o.label !== o.value ? o.label.replace(o.value, '').replace(/^\s*-\s*/, '') : o.value }))}
+                    placeholder="e.g., 15,000"
+                    wholeNumbersOnly
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>

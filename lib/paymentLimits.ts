@@ -14,6 +14,8 @@ export type PaymentLimit = {
   minimum: string;
   decimals: number;
   wholeNumbersOnly: boolean;
+  /** The exchange-rate feed is older than the stale window; the minimum then carries a wider margin. */
+  rateStale?: boolean;
 };
 
 /** Currencies with no minor unit. Used only before the backend has answered, so typing is already right. */
@@ -37,7 +39,13 @@ export function parsePaymentLimit(res: unknown, currency: string): PaymentLimit 
   const d = r?.data;
   if (!r || r.action !== 1 || !d || typeof d.minimum !== 'string') return null;
   const decimals = typeof d.decimals === 'number' ? d.decimals : isWholeNumberCurrency(currency) ? 0 : 2;
-  return { currency: String(d.currency ?? currency).toUpperCase(), minimum: d.minimum, decimals, wholeNumbersOnly: decimals === 0 };
+  return {
+    currency: String(d.currency ?? currency).toUpperCase(),
+    minimum: d.minimum,
+    decimals,
+    wholeNumbersOnly: decimals === 0,
+    rateStale: d.rateStale === true,
+  };
 }
 
 export function fetchPaymentLimit(currency: string): Promise<PaymentLimit | null> {
@@ -74,6 +82,22 @@ export function usePaymentLimit(currency: string | undefined | null): PaymentLim
     };
   }, [currency]);
   return cachedPaymentLimit(currency);
+}
+
+/** The limit for a currency and whether its first answer is still on the way. Cached, so it never refetches. */
+export function usePaymentLimitState(currency: string | undefined | null): { limit: PaymentLimit | null; loading: boolean } {
+  const limit = usePaymentLimit(currency);
+  const code = currency ? currency.toUpperCase() : '';
+  const [settled, setSettled] = useState<string>('');
+  useEffect(() => {
+    if (!code || cache.has(code)) return;
+    let live = true;
+    void fetchPaymentLimit(code).then(() => live && setSettled(code));
+    return () => {
+      live = false;
+    };
+  }, [code]);
+  return { limit, loading: !!code && !limit && settled !== code };
 }
 
 /** The message to show on the field, or null when the amount is fine (or still empty). */

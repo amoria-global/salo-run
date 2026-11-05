@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import CurrencySelect from './CurrencySelect';
+import MoneyInput from './MoneyInput';
 import { coverageHint, type EventCoverage } from '@/lib/events/selfStream';
 
 type Colors = {
@@ -41,22 +41,20 @@ export default function EventCoverageChoice({
       </div>
       <p style={{ margin: '0.6rem 0 0', fontSize: '0.82rem', lineHeight: 1.45, color: colors.textSecondary }}>{coverageHint(value)}</p>
       {value === 'PRIVATE' && showFee ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 8, marginTop: '0.75rem', alignItems: 'end' }}>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>
-            Live stream fee *
-            <input
-              inputMode="numeric" value={fee} onChange={(e) => onFee?.(e.target.value)} placeholder="e.g., 2000" aria-invalid={!!error}
-              style={{ display: 'block', width: '100%', marginTop: 6, padding: '0.625rem', border: `2px solid ${error ? '#DC2626' : colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, background: colors.bgSecondary }}
-            />
-          </label>
-          <CurrencySelect
-            value={currencyCode} onChange={(c) => onCurrency?.(c)} placeholder="Currency"
-            options={currencies.map((c) => ({ value: c.code, code: c.code, name: c.name }))}
-            style={{ padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, background: colors.bgSecondary }}
+        <div style={{ marginTop: '0.75rem' }}>
+          <MoneyInput
+            label="Live stream fee"
+            required
+            value={fee}
+            onChange={(v) => onFee?.(v)}
+            currencyId={currencyCode}
+            onCurrencyChange={(c) => onCurrency?.(c)}
+            currencies={currencies.map((c) => ({ value: c.code, code: c.code, name: c.name }))}
+            placeholder="e.g., 2000"
+            error={error ?? undefined}
           />
         </div>
       ) : null}
-      {error ? <p role="alert" style={{ margin: '0.5rem 0 0', fontSize: '0.82rem', color: '#DC2626' }}>{error}</p> : null}
     </div>
   );
 }
