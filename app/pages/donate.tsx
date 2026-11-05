@@ -1,6 +1,6 @@
 'use client';
 
-import CurrencyFlag from '../components/CurrencyFlag';
+import MoneyInput from '../components/MoneyInput';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
@@ -338,29 +338,6 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
             </div>
           </div>
 
-          {/* Currency */}
-          {currencyList.length > 1 && (
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: colors.textSecondary, display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {tl('Currency')}
-              </label>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {currencyList.slice(0, 6).map(code => (
-                  <button key={code} onClick={() => { setCurrency(code); setCustomAmount(''); }} style={{
-                    padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
-                    border: `2px solid ${currency === code ? accent : colors.borderPrimary}`,
-                    background: currency === code ? (actualTheme === 'dark' ? `${accent}15` : `${accent}08`) : colors.bgCard,
-                    color: currency === code ? accent : colors.textSecondary,
-                    display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  }}>
-                    <CurrencyFlag code={code} width={16} />
-                    {code}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Amount Tiers */}
           <div style={{ marginBottom: '12px' }}>
             <label style={{ fontSize: '13px', fontWeight: 600, color: colors.textSecondary, display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -384,21 +361,21 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
             </div>
           </div>
 
-          {/* Custom amount */}
+          {/* Custom amount: one field, the currency inside it. The suggested tiers above follow the currency. */}
           <div style={{ marginBottom: '20px' }}>
-            <div onClick={() => { setIsCustom(true); setSelectedTier(null); }} style={{
-              display: 'flex', alignItems: 'center', border: `2px solid ${isCustom ? accent : colors.borderPrimary}`,
-              borderRadius: '10px', overflow: 'hidden', background: isCustom ? (actualTheme === 'dark' ? `${accent}10` : `${accent}05`) : colors.bgCard, transition: 'all 0.2s',
-            }}>
-              <span style={{ padding: '10px 14px', fontSize: '13px', fontWeight: 600, color: colors.textSecondary, background: colors.bgTertiary, borderRight: `1px solid ${colors.borderPrimary}` }}>
-                {currency}
-              </span>
-              <input type="number" placeholder={tl("Custom amount")} value={customAmount}
-                onChange={e => { setCustomAmount(e.target.value); setIsCustom(true); setSelectedTier(null); }}
-                onFocus={() => { setIsCustom(true); setSelectedTier(null); }}
-                style={{ flex: 1, padding: '10px 14px', border: 'none', outline: 'none', fontSize: '14px', fontWeight: 500, background: 'transparent', color: colors.textPrimary }} min="1"
-              />
-            </div>
+            <MoneyInput
+              label={tl('Custom amount')}
+              value={customAmount}
+              onChange={(v) => { setCustomAmount(v); setIsCustom(true); setSelectedTier(null); }}
+              onFocus={() => { setIsCustom(true); setSelectedTier(null); }}
+              currencyId={currency}
+              onCurrencyChange={(code) => { setCurrency(code); setCustomAmount(''); }}
+              currencies={currencyList.map((code) => ({ value: code, code, name: currencies.find((c) => c.code === code)?.name || code }))}
+              placeholder={tl('Custom amount')}
+              showLimits={false}
+              showQuickPick={false}
+              keepAmountOnCurrencyChange={false}
+            />
           </div>
 
           {/* Divider */}
