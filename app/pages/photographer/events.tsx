@@ -1,5 +1,6 @@
 "use client";
 
+import MoneyInput from '../../components/MoneyInput';
 import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { hasActiveStream } from '../../lib/streamState';
@@ -34,7 +35,7 @@ import { getPlatformConfig } from '@/lib/platformConfig';
 import HostLivePage from '../../components/live/HostLivePage';
 import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
 import PaidAlbumForm, { paidAlbumPriceError } from '../../components/PaidAlbumForm';
-import { priceError, priceHint, usePaymentLimit } from '@/lib/paymentLimits';
+import { priceError, usePaymentLimit } from '@/lib/paymentLimits';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import FreeAlbumForm from '../../components/FreeAlbumForm';
 import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
@@ -4546,53 +4547,16 @@ const PhotographerEventsPage = () => {
                     Price Per Image {selectedAlbum.isStandalone ? '(optional)' : <span style={{ color: '#EF4444' }}>*</span>}
                   </label>
                   <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0 0 0.55rem 0' }}>{selectedAlbum.isStandalone ? 'Optionally set a price per photo. Leave empty for free downloads.' : 'Set the price users will pay to download each photo on Find-My-Photos.'}</p>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <div ref={faceAICurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
-                      <button type="button" onClick={() => setShowFaceAICurrencyDropdown(!showFaceAICurrencyDropdown)}
-                        style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', width: '100%', textAlign: 'left' as const, padding: '0.75rem' }}>
-                        {(() => {
-                          const selCode = currencies.find(c => (c.id || c.code) === faceAICurrency)?.code || '';
-                          return (
-                            <>
-                              {CURRENCY_FLAG_MAP[selCode] && <img src={`/flags/${CURRENCY_FLAG_MAP[selCode]}.svg`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
-                              <span style={{ flex: 1, fontSize: '0.85rem' }}>{selCode || 'Currency'}</span>
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: showFaceAICurrencyDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                                <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            </>
-                          );
-                        })()}
-                      </button>
-                      {showFaceAICurrencyDropdown && (
-                        <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
-                          {(currencies.length > 0 ? currencies.map(c => ({ val: c.id || c.code, code: c.code, name: c.name })) : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }]).map(opt => {
-                            const flag = CURRENCY_FLAG_MAP[opt.code] || '';
-                            const isSelected = faceAICurrency === opt.val;
-                            return (
-                              <button key={opt.val} type="button" onClick={() => { setFaceAICurrency(opt.val); setShowFaceAICurrencyDropdown(false); }}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
-                                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
-                                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  {flag && <img src={`/flags/${flag}.svg`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                  <span style={{ fontWeight: '600' }}>{opt.code}</span>
-                                  {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
-                                </div>
-                                {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    <input type="number" min={faceAILimit?.minimum ?? 0} step={faceAILimit?.wholeNumbersOnly ? 1 : 0.01} value={faceAIPrice} onChange={e => setFaceAIPrice(e.target.value)} placeholder={selectedAlbum.isStandalone ? 'Free if empty' : (faceAILimit ? `Min ${faceAILimit.minimum}` : 'Enter price')} style={{ ...inputStyle, flex: 1 }} />
-                  </div>
-                  {faceAIMsg ? (
-                    <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>{faceAIMsg}</p>
-                  ) : priceHint(faceAILimit) ? (
-                    <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0.35rem 0 0 0' }}>{priceHint(faceAILimit)}</p>
-                  ) : null}
+                  <MoneyInput
+                    label="Price per image"
+                    hideLabel
+                    value={faceAIPrice}
+                    onChange={setFaceAIPrice}
+                    currencyId={faceAICurrency}
+                    onCurrencyChange={setFaceAICurrency}
+                    currencies={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))}
+                    placeholder={selectedAlbum.isStandalone ? 'Free if empty' : 'Enter price'}
+                  />
                 </div>
                 {/* Upload Button */}
                 <button onClick={async () => {

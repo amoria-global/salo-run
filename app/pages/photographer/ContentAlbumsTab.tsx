@@ -1,7 +1,7 @@
 'use client';
 
-import { usePaymentLimit, priceError, priceHint, priceStep } from '@/lib/paymentLimits';
-import CurrencySelect from '../../components/CurrencySelect';
+import { usePaymentLimit, priceError } from '@/lib/paymentLimits';
+import MoneyInput from '../../components/MoneyInput';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { Can, usePermissions } from '@/app/lib/usePermissions';
@@ -690,15 +690,16 @@ function CreateContentAlbumModal({
               ))}
             </select>
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <label style={lbl}>Price per image
-              <input type="number" min={priceLimit?.minimum ?? 0} step={priceStep(currencyCode, priceLimit)} value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} placeholder="e.g. 500" required />
-              {priceMsg ? <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{priceMsg}</div> : priceHint(priceLimit) ? <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', opacity: 0.7 }}>{priceHint(priceLimit)}</div> : null}
-            </label>
-            <label style={lbl}>Currency
-              <CurrencySelect value={currencyId} onChange={setCurrencyId} style={inp} required placeholder="- Pick -" options={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))} />
-            </label>
-          </div>
+          <MoneyInput
+            label="Price per image"
+            required
+            value={pricePerImage}
+            onChange={setPricePerImage}
+            currencyId={currencyId}
+            onCurrencyChange={setCurrencyId}
+            currencies={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))}
+            placeholder="e.g. 500"
+          />
 
           {/* Cover image - drag-drop zone with preview */}
           <div style={{ marginTop: 14 }}>
@@ -1061,15 +1062,16 @@ function EditContentAlbumModal({
           <label style={lbl}>Description (optional)
             <textarea value={description} onChange={e => setDescription(e.target.value)} style={{ ...inp, minHeight: 70, resize: 'vertical' }} />
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <label style={lbl}>Price per image
-              <input type="number" min={priceLimit?.minimum ?? 0} step={priceStep(currencyCode, priceLimit)} value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} required />
-              {priceMsg ? <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{priceMsg}</div> : priceHint(priceLimit) ? <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', opacity: 0.7 }}>{priceHint(priceLimit)}</div> : null}
-            </label>
-            <label style={lbl}>Currency
-              <CurrencySelect value={currencyId} onChange={setCurrencyId} style={inp} required placeholder="- Pick -" options={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))} />
-            </label>
-          </div>
+          <MoneyInput
+            label="Price per image"
+            required
+            value={pricePerImage}
+            onChange={setPricePerImage}
+            currencyId={currencyId}
+            onCurrencyChange={setCurrencyId}
+            currencies={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))}
+            placeholder="e.g. 500"
+          />
 
           {/* Cover image */}
           <div style={{ marginTop: 14 }}>

@@ -6,6 +6,9 @@ vi.mock('../context/ThemeContext', () => ({
   useTheme: () => ({ colors: { bgSecondary: '#fff', bgTertiary: '#eee', textPrimary: '#000', textSecondary: '#444', borderPrimary: '#ccc' } }),
 }));
 
+vi.mock('../context/CurrencyContext', () => ({ useCurrency: () => ({ currency: 'RWF' }) }));
+vi.mock('@/lib/api', () => ({ getApiUrl: () => 'https://api.test' }));
+
 import EventCoverageChoice from './EventCoverageChoice';
 import type { EventCoverage } from '@/lib/events/selfStream';
 
@@ -23,8 +26,11 @@ function Harness({ showFee, onPick }: { showFee: boolean; onPick?: (v: EventCove
 
 let root: Root;
 let host: HTMLDivElement;
-beforeEach(() => { host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host); });
-afterEach(() => { act(() => root.unmount()); host.remove(); });
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ json: async () => ({ action: 0 }) })));
+  host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host);
+});
+afterEach(() => { act(() => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 
 const button = (label: string) => [...host.querySelectorAll('button')].find((b) => b.textContent === label) as HTMLButtonElement;
 

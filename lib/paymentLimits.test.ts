@@ -54,10 +54,10 @@ describe('fetching', () => {
     const ok = { action: 1, data: { currency: 'USD', minimum: '0.08', decimals: 2, wholeNumbersOnly: false } };
     const fetchMock = vi.fn().mockResolvedValue({ json: async () => ok });
     vi.stubGlobal('fetch', fetchMock);
-    expect(await fetchPaymentLimit('usd')).toEqual(usd);
+    expect(await fetchPaymentLimit('usd')).toEqual({ ...usd, rateStale: false });
     await fetchPaymentLimit('USD');
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(cachedPaymentLimit('USD')).toEqual(usd);
+    expect(cachedPaymentLimit('USD')).toEqual({ ...usd, rateStale: false });
 
     expect(parsePaymentLimit({ action: 0, message: 'no rate' }, 'KES')).toBeNull();
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
