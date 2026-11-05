@@ -24,7 +24,8 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { StatCard } from '../../components/dashboard/StatCard';
 import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
-import { isEventPriceInvalid, getMinEventPriceLabel } from '../../components/eventPriceValidation';
+import { eventPriceError } from '../../components/eventPriceValidation';
+import { usePaymentLimit } from '@/lib/paymentLimits';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import BookingModeSelectorModal from '../../components/hybrid/BookingModeSelectorModal';
 import HybridEventWizardModal from '../../components/hybrid/HybridEventWizardModal';
@@ -490,6 +491,7 @@ const MyEventsPage = () => {
   const [editCountry, setEditCountry] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editPriceCurrency, setEditPriceCurrency] = useState('RWF');
+  usePaymentLimit(editPriceCurrency); // fills the cache the fee validators read
   const [editGroupDiscount, setEditGroupDiscount] = useState('');
   const [editMaxGuests, setEditMaxGuests] = useState('');
   const [editOrganizer, setEditOrganizer] = useState('');
@@ -516,6 +518,7 @@ const MyEventsPage = () => {
   const [createCountry, setCreateCountry] = useState('Rwanda');
   const [createPrice, setCreatePrice] = useState('');
   const [createPriceCurrency, setCreatePriceCurrency] = useState('RWF');
+  usePaymentLimit(createPriceCurrency);
   const [createGroupDiscount, setCreateGroupDiscount] = useState('');
   const [createMaxGuests, setCreateMaxGuests] = useState('');
   const [createOrganizer, setCreateOrganizer] = useState('');
@@ -1166,8 +1169,8 @@ const MyEventsPage = () => {
     if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
 
     // Currency-aware minimum stream access fee
-    if (isEventPriceInvalid(editPrice || '', editPriceCurrency)) {
-      setSubmitError(`Live Stream Access Fee must be at least ${getMinEventPriceLabel(editPriceCurrency)}.`);
+    if (eventPriceError(editPrice || '', editPriceCurrency)) {
+      setSubmitError(eventPriceError(editPrice || '', editPriceCurrency) ?? 'Enter a valid price.');
       return;
     }
 
@@ -1457,8 +1460,8 @@ const MyEventsPage = () => {
     if (createEventVisibility === 'PRIVATE') {
       const feeError = selfStreamFeeError(createPrice, createPriceCurrency || 'RWF');
       if (feeError) { setSubmitError(feeError); return; }
-    } else if (isEventPriceInvalid(createPrice, createPriceCurrency)) {
-      setSubmitError(`Live Stream Access Fee must be at least ${getMinEventPriceLabel(createPriceCurrency)}.`);
+    } else if (eventPriceError(createPrice || '', createPriceCurrency)) {
+      setSubmitError(eventPriceError(createPrice || '', createPriceCurrency) ?? 'Enter a valid price.');
       return;
     }
 
