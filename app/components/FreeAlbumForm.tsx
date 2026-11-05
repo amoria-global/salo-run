@@ -1,6 +1,6 @@
 'use client';
 
-import CurrencySelect from './CurrencySelect';
+import MoneyInput from './MoneyInput';
 import React from 'react';
 
 interface FreeAlbumFormProps {
@@ -134,53 +134,25 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
             style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem', border: `1px solid ${colors.border}`, borderRadius: '0.4rem', background: colors.background, color: colors.textPrimary, outline: 'none' }}
           />
         </div>
-        <div style={{ flex: 1 }}>
-          <label htmlFor="freeExtraPrice" style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>
-            Price per extra image
-          </label>
-          <input
-            id="freeExtraPrice"
-            type="number"
-            min={0}
-            step="0.01"
-            value={pricePerExtraImage}
-            onChange={(e) => onPricePerExtraImageChange && onPricePerExtraImageChange(e.target.value)}
-            placeholder="Blank = no extras"
-            disabled={disabled}
-            style={{ width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem', border: `1px solid ${colors.border}`, borderRadius: '0.4rem', background: colors.background, color: colors.textPrimary, outline: 'none' }}
-          />
-        </div>
       </div>
-      {/* Currency selector. required when there's an extras price set,
-          otherwise the client cap+pay flow on knockout refuses to charge.
-          Pre-filled from props (typically the photographer's last-picked
-          paid-album currency) so they don't have to re-pick every time. */}
-      {pricePerExtraImage && pricePerExtraImage.trim() !== '' && (
-        <div style={{ marginTop: '0.75rem' }}>
-          <label htmlFor="freeExtraCurrency" style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>
-            Currency for extras
-          </label>
-          <CurrencySelect
-            id="freeExtraCurrency"
-            value={currencyId}
-            onChange={(v) => onCurrencyChange && onCurrencyChange(v)}
-            disabled={disabled}
-            placeholder="Pick a currency…"
-            options={currencies.map((c) => ({ value: c.id || c.code, code: c.code, name: c.name }))}
-            style={{
-              width: '100%', padding: '0.6rem 0.75rem', fontSize: '0.85rem',
-              border: `1px solid ${!currencyId ? '#f59e0b' : colors.border}`,
-              borderRadius: '0.4rem', background: colors.background,
-              color: colors.textPrimary, outline: 'none',
-            }}
-          />
-          {!currencyId && (
-            <div style={{ fontSize: '0.7rem', color: '#b45309', marginTop: '0.25rem' }}>
-              A currency is required when charging for extras.
-            </div>
-          )}
-        </div>
-      )}
+      {/* Price per extra image and its currency in one field. The currency is required once a price is set,
+          otherwise the client cap+pay flow on knockout refuses to charge. Pre-filled from props (typically the
+          photographer's last-picked paid-album currency). */}
+      <div style={{ marginTop: '0.75rem' }}>
+        <MoneyInput
+          label="Price per extra image"
+          id="freeExtraPrice"
+          value={pricePerExtraImage}
+          onChange={(v) => onPricePerExtraImageChange && onPricePerExtraImageChange(v)}
+          currencyId={currencyId}
+          onCurrencyChange={(v) => onCurrencyChange && onCurrencyChange(v)}
+          currencies={currencies.map((c) => ({ value: c.id || c.code, code: c.code, name: c.name }))}
+          placeholder="Blank = no extras"
+          showQuickPick={false}
+          disabled={disabled}
+          error={pricePerExtraImage && pricePerExtraImage.trim() !== '' && !currencyId ? 'A currency is required when charging for extras.' : undefined}
+        />
+      </div>
       <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.35rem' }}>
         Leave both blank for a fully free album. Set a cap and the recipient gets that many
         free; selecting more charges the price per extra image (paid like a paid album).

@@ -7,7 +7,7 @@
  * continent price, which beats the default. Anywhere without a rule pays the
  * default, so existing events/packages are unaffected until an owner opts in.
  */
-import CurrencySelect from './CurrencySelect';
+import MoneyInput from './MoneyInput';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
@@ -226,22 +226,15 @@ export default function GeoPricingManager({
               ))}
             </div>
 
-            <div className="flex gap-2">
-              <input
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                inputMode="decimal"
-                placeholder="Price"
-                className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
-              />
-              <CurrencySelect
-                value={effectiveCurrencyId}
-                onChange={setCurrencyId}
-                placeholder="Currency"
-                options={currencies.map((c) => ({ value: c.id, code: c.code }))}
-                style={{ borderRadius: 8, border: '1px solid #e2e8f0', padding: '0.5rem 0.75rem', fontSize: '0.875rem', background: '#fff', color: '#111827' }}
-              />
-            </div>
+            <MoneyInput
+              label="Price"
+              value={price}
+              onChange={setPrice}
+              currencyId={effectiveCurrencyId}
+              onCurrencyChange={setCurrencyId}
+              currencies={currencies.map((c) => ({ value: c.id, code: c.code, name: c.name }))}
+              placeholder="Price"
+            />
 
             {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
