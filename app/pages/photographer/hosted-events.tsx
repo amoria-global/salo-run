@@ -9,6 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { dashboardAuthFetch } from '../../providers/AuthProvider';
+import { confirmYear } from '../../lib/farFutureDate';
 import { useTheme } from '../../context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
 import OwnerGoLive from '../../components/live/OwnerGoLive';
@@ -300,6 +301,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
       if (found.wishInvites && !found.cover && !found.title && !found.price) focusWishInvitesField();
       return;
     }
+    if (!confirmYear(date)) return;
     inFlight.current = true;
     setBusy(true);
     setFailure(null);

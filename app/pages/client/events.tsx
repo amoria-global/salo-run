@@ -12,6 +12,7 @@ import Link from 'next/link';
 import localforage from 'localforage';
 import { useRouter, useSearchParams } from 'next/navigation';
 import GetStartedModal from '../../components/events/GetStartedModal';
+import { confirmYear } from '../../lib/farFutureDate';
 import { useGetStarted } from '../../lib/useGetStarted';
 import { CREATE_LABEL } from '../../lib/getStarted';
 import Sidebar from '../../components/sidebar';
@@ -1284,6 +1285,7 @@ const MyEventsPage = () => {
     }
 
     // Currency-aware minimum stream access fee
+    if (!confirmYear(editDate)) return;
     if (eventPriceError(editPrice || '', editPriceCurrency)) {
       setSubmitError(eventPriceError(editPrice || '', editPriceCurrency) ?? 'Enter a valid price.');
       return;
@@ -1579,6 +1581,8 @@ const MyEventsPage = () => {
       else focusEventField(firstBlocked);
       return;
     }
+
+    if (!confirmYear(createDate)) return;
 
     // Currency-aware minimum stream access fee
     if (createEventVisibility === 'PRIVATE') {
