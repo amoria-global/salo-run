@@ -93,7 +93,7 @@ export function MatchingProfileForm({ onSaved, compact }: { onSaved?: (p: Hybrid
         </div>
       )}
       {error && <Notice tone="error">{error}</Notice>}
-      {profile?.pendingInstagramHandle && <Notice tone="warning">{`Waiting for admin approval: @${profile.pendingInstagramHandle}. Your current Instagram stays until it is approved.`}</Notice>}
+      {(profile?.pendingInstagramHandle || profile?.pendingInstagramRemoval) && <Notice tone="warning">{profile.pendingInstagramHandle ? `Waiting for admin approval: @${profile.pendingInstagramHandle}. Your current Instagram stays until it is approved.` : "Waiting for admin approval to remove your Instagram. Your current Instagram stays until it is approved."}</Notice>}
       {status && !error && <Notice tone={status.tone}>{saved && profile?.instagramStatus === 'PENDING' ? 'Saved. Thank you!' : status.text}</Notice>}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" onClick={save} disabled={saving || !profile} className="hy-focus"
