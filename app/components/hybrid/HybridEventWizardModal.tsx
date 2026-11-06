@@ -2,7 +2,7 @@
 
 import { WishInvitesField, focusWishInvitesField } from '../wishes/WishInvitesField';
 import { wishInvitesError } from '@/lib/wishes/wishInvites';
-import { confirmYear } from '@/lib/farFutureDate';
+import { confirmYear } from '../../lib/farFutureDate';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
