@@ -14,7 +14,7 @@ export type GetStartedAction = { key: GetStartedKey; title: string; body: string
 
 const ALL: Record<GetStartedKey, GetStartedAction> = {
   'create-event': { key: 'create-event', title: 'Create event', body: 'Book a photographer for your event', icon: 'bi-calendar-event', tone: '59,130,246' },
-  'go-live': { key: 'go-live', title: 'Go live', body: 'Host and stream an event yourself', icon: 'bi-broadcast', tone: '255,0,51' },
+  'go-live': { key: 'go-live', title: 'Host an event', body: 'Host and stream an event yourself', icon: 'bi-broadcast', tone: '255,0,51' },
   'new-album': { key: 'new-album', title: 'New album', body: 'Upload, share or sell photos', icon: 'bi-images', tone: '34,199,217' },
 };
 
@@ -33,7 +33,7 @@ export function getStartedActions(role: GetStartedRole, o: { canHost: boolean; c
 }
 
 /** The label of the header create button for each section tab. */
-export const CREATE_LABEL = { events: 'Create event', albums: 'New album', photobooks: 'New photobook', content: 'New post' } as const;
+export const CREATE_LABEL = { events: 'Create event', host: 'Host an event', albums: 'New album', photobooks: 'New photobook', content: 'New post' } as const;
 
 /** Whether the modal should open by itself now. */
 export function shouldAutoOpen(s: { actions: number; listLoaded: boolean; hasItems: boolean; dismissed: boolean | null; shownThisSession: boolean }): boolean {
@@ -52,4 +52,9 @@ export function shownThisSession(): boolean {
 export function markShown(): void {
   shownInMemory = true;
   try { window.sessionStorage.setItem(SHOWN_KEY, '1'); } catch { /* private mode: memory only */ }
+}
+/** Forget that the modal was shown (tests, and a sign-out that should start the next account fresh). */
+export function resetShown(): void {
+  shownInMemory = false;
+  try { window.sessionStorage.removeItem(SHOWN_KEY); } catch { /* ignore */ }
 }
