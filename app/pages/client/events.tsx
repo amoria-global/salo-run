@@ -1,6 +1,10 @@
 "use client";
 
 import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
+import { AttendanceField, eventFieldId, focusEventField } from '../../components/events/AttendanceField';
+import { FieldError, invalidFieldProps } from '../../components/errors/FieldError';
+import { useUserProfile } from '../../context/UserProfileContext';
+import { attendanceFromSaved, firstInvalidField, locationPayload, maxGuestsPayload, validateEventForm, type AttendanceChoice } from '@/lib/events/eventFormRules';
 import { invitesOn, wishInvitesError } from '@/lib/wishes/wishInvites';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
@@ -240,6 +244,8 @@ interface Event {
   eventVisibility?: string;
   /** Whether viewers may invite others to send wishes. Undefined on a server that predates the setting (treated as on). */
   allowWishInvites?: boolean;
+  /** IN_PERSON, HYBRID or STREAM_ONLY as saved; the edit form preselects it. */
+  attendanceMode?: string;
   guestCount: number;
   maxGuests: number;
   status: EventStatus;
@@ -348,6 +354,7 @@ const MyEventsPage = () => {
   const { formatPrice, currencies } = useCurrency();
   const { colors, actualTheme } = useTheme();
   const { token, user } = useDashboardAuth();
+  const { profile } = useUserProfile();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'published' | 'past' | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -457,6 +464,8 @@ const MyEventsPage = () => {
   const [editAddress, setEditAddress] = useState('');
   const [editCity, setEditCity] = useState('');
   const [editCountry, setEditCountry] = useState('');
+  // The saved mode is preselected when an event is opened for editing.
+  const [editAttendance, setEditAttendance] = useState<AttendanceChoice | null>(null);
   const [editPrice, setEditPrice] = useState('');
   const [editPriceCurrency, setEditPriceCurrency] = useState('RWF');
   usePaymentLimit(editPriceCurrency); // fills the cache the fee validators read
@@ -482,7 +491,13 @@ const MyEventsPage = () => {
   const [createVenueName, setCreateVenueName] = useState('');
   const [createAddress, setCreateAddress] = useState('');
   const [createCity, setCreateCity] = useState('');
-  const [createCountry, setCreateCountry] = useState('Rwanda');
+  // Empty until the person types one: the form shows the country of their profile instead of a hardcoded one.
+  const [createCountry, setCreateCountry] = useState('');
+  // How guests attend: no default on a new event, so the choice is required (see lib/events/eventFormRules).
+  const [createAttendance, setCreateAttendance] = useState<AttendanceChoice | null>(null);
+  const [createShowMore, setCreateShowMore] = useState(false);
+  // Errors stay hidden until the first click on Create, then follow the form live as each field is fixed.
+  const [createShowErrors, setCreateShowErrors] = useState(false);
   const [createPrice, setCreatePrice] = useState('');
   const [createPriceCurrency, setCreatePriceCurrency] = useState('RWF');
   usePaymentLimit(createPriceCurrency);
@@ -700,7 +715,7 @@ const MyEventsPage = () => {
             setCreateVenueName(savedDraft.createVenueName || '');
             setCreateAddress(savedDraft.createAddress || '');
             setCreateCity(savedDraft.createCity || '');
-            setCreateCountry(savedDraft.createCountry || 'Rwanda');
+            setCreateCountry(savedDraft.createCountry || '');
             setCreatePrice(savedDraft.createPrice || '');
             setCreateMaxGuests(savedDraft.createMaxGuests || '');
             setCreateOrganizer(savedDraft.createOrganizer || '');
@@ -870,6 +885,7 @@ const MyEventsPage = () => {
             hasLiveStream: (evt.hasLiveStream as boolean) ?? false,
             isPublished: evt.isPublished === true,
             eventVisibility: typeof evt.eventVisibility === 'string' ? evt.eventVisibility : undefined,
+            attendanceMode: typeof evt.attendanceMode === 'string' ? evt.attendanceMode : undefined,
             allowWishInvites: typeof evt.allowWishInvites === 'boolean' ? evt.allowWishInvites : undefined,
             guestCount: (evt.guestCount as number) || 0,
             maxGuests: (evt.maxGuests as number) || 0,
@@ -1201,6 +1217,7 @@ const MyEventsPage = () => {
     setEditEvent(event);
     // The saved value; an event from before the setting reads as on.
     setEditWishInvites(invitesOn(event.allowWishInvites));
+    setEditAttendance(attendanceFromSaved(event.attendanceMode, event.location.address));
     setEditTitle(event.title);
     setEditDescription(event.description);
     setEditEventType(event.eventType);
@@ -1238,7 +1255,28 @@ const MyEventsPage = () => {
   };
 
   const handleEditEvent = async () => {
-    if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
+    if (!editEvent) return;
+    const editRules = validateEventForm(
+      {
+        hasCover: true,
+        title: editTitle,
+        category: String(editCategory ?? ''),
+        eventDate: editDate,
+        startTime: editTime,
+        attendance: editAttendance,
+        venueName: editVenueName,
+        city: editCity,
+        wishInvites: editWishInvites,
+      },
+      { legacyLocation: true },
+    );
+    const editBlocked = firstInvalidField(editRules);
+    if (editBlocked) {
+      setSubmitError(editRules[editBlocked] ?? null);
+      if (editBlocked === 'wishInvites') focusWishInvitesField();
+      else focusEventField(editBlocked);
+      return;
+    }
 
     // Currency-aware minimum stream access fee
     if (eventPriceError(editPrice || '', editPriceCurrency)) {
@@ -1281,13 +1319,15 @@ const MyEventsPage = () => {
         eventDate: editDate,
         startTime: editTime ? parseTimeToApiString(editTime) : null,
         endTime: editEndTime ? parseTimeToApiString(editEndTime) : null,
-        location: capitalizeWords([editVenueName, editAddress, editCity, editCountry].filter(Boolean).join(', ')),
+        location: capitalizeWords(locationPayload(editAttendance, { venueName: editVenueName, address: editAddress, city: editCity, country: editCountry }) ?? ''),
+        attendanceMode: editAttendance ?? undefined,
         eventOrganizer: capitalizeWords(editOrganizer),
         eventTags: editTags.length > 0 ? editTags.join(',') : editCategory,
         price: editNumericPrice ? Number(editNumericPrice) : 0,
         priceCurrency: editPriceCurrency || 'RWF',
         allowWishInvites: editWishInvites === true,
-        maxGuests: editMaxGuests ? Number(editMaxGuests.replace(/[^\d]/g, '')) : 0,
+        // Empty means no limit and sends nothing. Only clearing a limit that was set sends 0, the one way to remove it.
+        maxGuests: maxGuestsPayload(editMaxGuests) ?? ((editEvent.maxGuests ?? 0) > 0 ? 0 : undefined),
       };
       const validEditPhotographerId = (editPhotographerId && isValidUUID(editPhotographerId)) ? editPhotographerId : null;
       if (validEditPhotographerId) {
@@ -1395,7 +1435,10 @@ const MyEventsPage = () => {
     setCreateVenueName('');
     setCreateAddress('');
     setCreateCity('');
-    setCreateCountry('Rwanda');
+    setCreateCountry('');
+    setCreateAttendance(null);
+    setCreateShowMore(false);
+    setCreateShowErrors(false);
     setCreatePrice('');
     setCreateMaxGuests('');
     setCreateOrganizer('');
@@ -1502,25 +1545,35 @@ const MyEventsPage = () => {
     }
   };
 
+  // Which required fields still block Create, from the one shared rule set (lib/events/eventFormRules).
+  const createRules = validateEventForm({
+    hasCover: !!(createBannerImageFile || createBannerImagePreview),
+    title: createTitle,
+    category: String(createCategory ?? ''),
+    eventDate: createDate,
+    startTime: createTime,
+    attendance: createAttendance,
+    venueName: createVenueName,
+    city: createCity,
+    wishInvites: createWishInvites,
+  });
+  const createShown = createShowErrors ? createRules : {};
+  const createBlocked = Object.keys(createRules).length > 0;
+  const eventLabelStyle: React.CSSProperties = { display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' };
+  const eventInputStyle: React.CSSProperties = { width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary };
+
   // Handle create event
   const handleCreateEvent = async () => {
-    // Hard gate: a cover image is required before anything else can be validated.
-    if (!createBannerImageFile && !createBannerImagePreview) {
-      setSubmitError('A cover image is required before an event can be created. Please upload one above.');
+    // Every required field is checked together by the shared rules; the first blocked one is scrolled to and focused.
+    // Required fields are never inside "More options", so an error never needs it opened.
+    setCreateShowErrors(true);
+    const firstBlocked = firstInvalidField(createRules);
+    if (firstBlocked) {
+      setSubmitError(null);
+      if (firstBlocked === 'wishInvites') focusWishInvitesField();
+      else focusEventField(firstBlocked);
       return;
     }
-    const missingFields: string[] = [];
-    if (!createTitle) missingFields.push('Event Title');
-    if (!createCategory) missingFields.push('Category');
-    if (!createDate) missingFields.push('Date');
-    if (!createTime) missingFields.push('Start Time');
-    if (missingFields.length > 0) {
-      setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
-      return;
-    }
-    const missingInvites = wishInvitesError(createWishInvites);
-    setCreateWishInvitesErr(missingInvites ?? null);
-    if (missingInvites) { focusWishInvitesField(); return; }
 
     // Currency-aware minimum stream access fee
     if (createEventVisibility === 'PRIVATE') {
@@ -1539,7 +1592,8 @@ const MyEventsPage = () => {
       let backendEventId: string | null = null;
       if (user) {
         const apiUrl = getApiUrl();
-        const locationStr = [createVenueName, createAddress, createCity, createCountry].filter(Boolean).join(', ');
+        // Only an in person event has a venue; a stream-only event sends none.
+        const locationStr = locationPayload(createAttendance, { venueName: createVenueName, address: createAddress, city: createCity, country: createCountry || profile.country }) ?? '';
         const tagsStr = createTags.length > 0 ? createTags.join(',') : createCategory;
 
         const validPhotographerId = (createEventVisibility !== 'PRIVATE' && createPhotographerId && isValidUUID(createPhotographerId)) ? createPhotographerId : null;
@@ -1554,13 +1608,15 @@ const MyEventsPage = () => {
           endTime: createEndTime ? parseTimeToApiString(createEndTime) : parseTimeToApiString(createTime),
           eventDate: createDate,
           location: capitalizeWords(locationStr),
+          attendanceMode: createAttendance ?? undefined,
           eventOrganizer: capitalizeWords(createOrganizer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Organizer'),
           eventVisibility: createEventVisibility || 'PUBLIC',
           allowWishInvites: createWishInvites === true,
           eventTags: tagsStr,
           price: numericPrice ? Number(numericPrice) : 0,
           priceCurrency: createPriceCurrency || 'RWF',
-          maxGuests: createMaxGuests ? Number(createMaxGuests.replace(/[^\d]/g, '')) : 0,
+          // Empty means no limit: nothing is sent.
+          maxGuests: maxGuestsPayload(createMaxGuests),
           notes: '',
         };
 
@@ -2441,7 +2497,7 @@ const MyEventsPage = () => {
             </div>
           )}
           {/* Section: Event Image */}
-          <div style={{ marginBottom: '1.5rem' }}>
+          <div id={eventFieldId('cover')} style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{
                 width: 30, height: 30, borderRadius: 9,
@@ -2535,6 +2591,10 @@ const MyEventsPage = () => {
             </div>
           </div>
 
+          {createShown.cover ? (
+            <div style={{ marginTop: '-0.75rem', marginBottom: '1rem' }}><FieldError id="event-field-cover-error" message={createShown.cover} /></div>
+          ) : null}
+
           {/* Section: Basic Information */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
@@ -2553,15 +2613,17 @@ const MyEventsPage = () => {
             </div>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
-              <input type="text" value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+              <input id={eventFieldId('title')} type="text" value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} {...invalidFieldProps('event-field-title-error', createShown.title)} />
+              <FieldError id="event-field-title-error" message={createShown.title} />
             </div>
             <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Category *</label>
-                <select value={createCategory} onChange={(e) => setCreateCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
+                <select id={eventFieldId('category')} value={createCategory} onChange={(e) => setCreateCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
                   <option value="">Select category</option>
                   {eventCategories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
                 </select>
+                <FieldError id="event-field-category-error" message={createShown.category} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Type Status</label>
@@ -2594,13 +2656,15 @@ const MyEventsPage = () => {
             <div className="mobile-modal-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Date *</label>
-                <input type="date" value={createDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateError(''); setCreateDate(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
+                <input id={eventFieldId('eventDate')} type="date" value={createDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateError(''); setCreateDate(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
                 {dateError && <p style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{dateError}</p>}
+                <FieldError id="event-field-eventDate-error" message={dateError ? null : createShown.eventDate} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Start Time *</label>
-                <input type="time" value={createTime} onChange={(e) => { setTimeError(''); setCreateTime(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: timeError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
+                <input id={eventFieldId('startTime')} type="time" value={createTime} onChange={(e) => { setTimeError(''); setCreateTime(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: timeError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
                 {timeError && <p style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{timeError}</p>}
+                <FieldError id="event-field-startTime-error" message={timeError ? null : createShown.startTime} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>End Time</label>
@@ -2609,6 +2673,7 @@ const MyEventsPage = () => {
             </div>
           </div>
 
+          {/* Section: Where. Required: how guests attend and, in person, the venue name and city. */}
           {/* Section: Location */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
@@ -2616,22 +2681,53 @@ const MyEventsPage = () => {
                 <i className="bi bi-geo-alt-fill" style={{ fontSize: 13, color: '#10B981' }} />
               </div>
               <div>
-                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Venue</div>
-                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Location</span>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Attendance</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Where</span>
               </div>
             </div>
-            <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
-                <input type="text" value={createVenueName} onChange={(e) => setCreateVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+            <AttendanceField value={createAttendance} error={createShown.attendance} disabled={isSubmitting} onChange={(v) => setCreateAttendance(v)} />
+            {createAttendance === 'IN_PERSON' ? (
+              <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                <div>
+                  <label htmlFor={eventFieldId('venueName')} style={eventLabelStyle}>Venue Name *</label>
+                  <input id={eventFieldId('venueName')} type="text" value={createVenueName} onChange={(e) => setCreateVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={eventInputStyle} {...invalidFieldProps('event-field-venueName-error', createShown.venueName)} />
+                  <FieldError id="event-field-venueName-error" message={createShown.venueName} />
+                </div>
+                <div>
+                  <label htmlFor={eventFieldId('city')} style={eventLabelStyle}>City *</label>
+                  <input id={eventFieldId('city')} type="text" value={createCity} onChange={(e) => setCreateCity(e.target.value.replace(/,/g, ''))} placeholder="e.g., Kigali" style={eventInputStyle} {...invalidFieldProps('event-field-city-error', createShown.city)} />
+                  <FieldError id="event-field-city-error" message={createShown.city} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label htmlFor={eventFieldId('address')} style={eventLabelStyle}>Address (optional)</label>
+                  <input id={eventFieldId('address')} type="text" value={createAddress} onChange={(e) => setCreateAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={eventInputStyle} />
+                </div>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Location Address *</label>
-                <input type="text" value={createAddress} onChange={(e) => setCreateAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-              </div>
-            </div>
+            ) : null}
           </div>
 
+                    <div style={{ marginBottom: '1rem' }}>
+            <WishInvitesField value={createWishInvites} error={createShown.wishInvites} disabled={isSubmitting}
+              onChange={(v) => setCreateWishInvites(v)} />
+          </div>
+{/* More options: only optional fields. Required fields are never in here, so collapsing it cannot block Create. */}
+          <button
+            type="button"
+            onClick={() => setCreateShowMore((v) => !v)}
+            aria-expanded={createShowMore}
+            style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0.7rem 0.2rem', marginBottom: '1rem', background: 'none', border: 'none', borderBottom: `1px solid ${colors.borderPrimary}`, cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, color: colors.brandAccent }}
+          >
+            <span>More options (optional)</span>
+            <i className={`bi bi-chevron-${createShowMore ? 'up' : 'down'}`} aria-hidden="true" />
+          </button>
+          {createShowMore ? (
+            <div>
+          {createAttendance === 'IN_PERSON' ? (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label htmlFor="event-field-country" style={eventLabelStyle}>Country (optional)</label>
+              <input id="event-field-country" type="text" value={createCountry || profile.country} onChange={(e) => setCreateCountry(e.target.value.replace(/,/g, ''))} style={eventInputStyle} />
+            </div>
+          ) : null}
           {/* Section: Capacity */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
@@ -2644,8 +2740,8 @@ const MyEventsPage = () => {
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
-              <input type="number" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Max guests (optional)</label>
+              <input type="number" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="No limit" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
             </div>
           </div>
 
@@ -2661,7 +2757,7 @@ const MyEventsPage = () => {
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name *</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name (optional)</label>
               <input type="text" value={createOrganizer} onChange={(e) => setCreateOrganizer(e.target.value)} placeholder="e.g., Rwanda Basketball Federation" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
             </div>
           </div>
@@ -2674,7 +2770,7 @@ const MyEventsPage = () => {
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>About</div>
-                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Description</span>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Description (optional)</span>
               </div>
             </div>
             <textarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Describe your event in detail…" style={{ width: '100%', padding: '0.7rem 0.95rem', border: `1.5px solid ${colors.borderPrimary}`, borderRadius: 11, fontSize: '0.9rem', minHeight: 110, resize: 'vertical', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none' }} />
@@ -2688,7 +2784,7 @@ const MyEventsPage = () => {
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Discovery</div>
-                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Hash tags</span>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Hash tags (optional)</span>
               </div>
             </div>
             <div>
@@ -2964,12 +3060,10 @@ const MyEventsPage = () => {
               </div>
             </div>
           )}
+            </div>
+          ) : null}
 
           {/* Submit Error */}
-          <div style={{ marginBottom: '1rem' }}>
-            <WishInvitesField value={createWishInvites} error={createWishInvitesErr} disabled={isSubmitting}
-              onChange={(v) => { setCreateWishInvites(v); setCreateWishInvitesErr(null); }} />
-          </div>
           {submitError && (
             <div style={{
               padding: '0.7rem 0.95rem',
@@ -2995,36 +3089,32 @@ const MyEventsPage = () => {
             </button>
             <button
               onClick={handleCreateEvent}
-              disabled={isSubmitting || (!createBannerImageFile && !createBannerImagePreview)}
-              title={(!createBannerImageFile && !createBannerImagePreview) ? 'Upload a cover image to continue' : undefined}
+              disabled={isSubmitting}
+              aria-disabled={createBlocked || undefined}
+              title={createBlocked ? 'Some required fields are missing. Click to see which.' : undefined}
               style={{
                 padding: '0.65rem 1.3rem',
                 borderRadius: 11,
                 border: 'none',
-                background: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview))
+                background: (isSubmitting || createBlocked)
                   ? colors.bgTertiary
                   : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                color: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? colors.textSecondary : '#fff',
+                color: (isSubmitting || createBlocked) ? colors.textSecondary : '#fff',
                 fontSize: '0.9rem', fontWeight: 700,
-                cursor: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? 'not-allowed' : 'pointer',
-                opacity: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? 0.7 : 1,
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                opacity: (isSubmitting || createBlocked) ? 0.7 : 1,
                 display: 'inline-flex', alignItems: 'center', gap: 8,
-                boxShadow: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? 'none' : '0 6px 18px rgba(242,12,143,0.28)',
+                boxShadow: (isSubmitting || createBlocked) ? 'none' : '0 6px 18px rgba(242,12,143,0.28)',
                 letterSpacing: '-0.005em',
                 transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s',
               }}
-              onMouseEnter={(e) => { if (!isSubmitting && (createBannerImageFile || createBannerImagePreview)) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseEnter={(e) => { if (!isSubmitting && !createBlocked) e.currentTarget.style.transform = 'translateY(-1px)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
               {isSubmitting ? (
                 <>
                   <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
                   Creating…
-                </>
-              ) : (!createBannerImageFile && !createBannerImagePreview) ? (
-                <>
-                  <i className="bi bi-image-fill" style={{ fontSize: 13 }} />
-                  Cover image required
                 </>
               ) : (
                 <>
@@ -3991,7 +4081,7 @@ const MyEventsPage = () => {
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
-                <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                <input id={eventFieldId('title')} type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
               <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
@@ -4031,22 +4121,30 @@ const MyEventsPage = () => {
               </div>
             </div>
 
-            {/* Section: Location */}
+            {/* Section: Where. The same choice as the create form; in person asks for the venue. */}
+            
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <LocationIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Location</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Where</span>
               </div>
-              <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
-                  <input type="text" value={editVenueName} onChange={(e) => setEditVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+              <AttendanceField value={editAttendance} disabled={isSubmitting} onChange={(v) => setEditAttendance(v)} />
+              {editAttendance === 'IN_PERSON' ? (
+                <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                  <div>
+                    <label htmlFor={eventFieldId('venueName')} style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
+                    <input id={eventFieldId('venueName')} type="text" value={editVenueName} onChange={(e) => setEditVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                  </div>
+                  <div>
+                    <label htmlFor={eventFieldId('city')} style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>City</label>
+                    <input id={eventFieldId('city')} type="text" value={editCity} onChange={(e) => setEditCity(e.target.value.replace(/,/g, ''))} placeholder="e.g., Kigali" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label htmlFor={eventFieldId('address')} style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Address (optional)</label>
+                    <input id={eventFieldId('address')} type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                  </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Location Address *</label>
-                  <input type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-                </div>
-              </div>
+              ) : null}
             </div>
 
             {/* Section: Capacity */}
@@ -4056,8 +4154,8 @@ const MyEventsPage = () => {
                 <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Capacity</span>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
-                <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Max guests (optional)</label>
+                <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="No limit" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
             </div>
 
@@ -4068,7 +4166,7 @@ const MyEventsPage = () => {
                 <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Organizer</span>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name *</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name (optional)</label>
                 <input type="text" value={editOrganizer} onChange={(e) => setEditOrganizer(e.target.value)} placeholder="e.g., Rwanda Basketball Federation" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
             </div>

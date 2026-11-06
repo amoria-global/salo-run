@@ -266,6 +266,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
   const [date, setDate] = useState(todayYmd());
   const [startTime, setStartTime] = useState('');
   const [description, setDescription] = useState('');
+  const [showMore, setShowMore] = useState(false);
   const [location, setLocation] = useState('');
   const [paid, setPaid] = useState(false);
   const [price, setPrice] = useState('');
@@ -339,11 +340,11 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
     <div role="dialog" aria-modal="true" aria-label="Host an event" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 60, padding: 16 }}>
       <div style={{ background: colors.bgCard, borderRadius: 16, padding: 24, width: 'min(560px, 100%)', maxHeight: '90vh', overflow: 'auto', display: 'grid', gap: 14 }}>
         <h2 style={{ margin: 0, color: colors.textPrimary }}>Host an event</h2>
-        <label style={label}>Cover photo
+        <label style={label}>Cover photo *
           <input type="file" accept="image/*" disabled={busy} onChange={(e) => { setCover(e.target.files?.[0] ?? null); setErrors((x) => ({ ...x, cover: undefined })); }} />
           {err(errors.cover)}
         </label>
-        <label style={label}>Title
+        <label style={label}>Title *
           <input style={field} value={title} maxLength={120} disabled={busy} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Friday night live set" />
           {err(errors.title)}
         </label>
@@ -367,7 +368,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
           </p>
         ) : null}
         {paid ? (
-          <label style={label}>Price
+          <label style={label}>Price *
             <input style={field} inputMode="decimal" value={price} disabled={busy} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. 5000" />
             {err(errors.price)}
             {livePreview ? <span style={{ color: colors.textPrimary, fontWeight: 500 }}>{`You keep ${livePreview.hostPercent}% of each ticket, about ${Math.round(livePreview.hostEarnsPerTicket).toLocaleString()}. The platform keeps ${livePreview.platformPercent}%.`}</span> : null}
@@ -375,7 +376,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
         ) : null}
         <WishInvitesField value={wishInvites} disabled={busy} error={errors.wishInvites}
           onChange={(v) => { setWishInvites(v); setErrors((x) => ({ ...x, wishInvites: undefined })); }} />
-        <label style={label}>Date
+        <label style={label}>Date *
           <input style={field} type="date" min={todayYmd()} value={date} disabled={busy} onChange={(e) => setDate(e.target.value)} />
           {err(errors.date)}
         </label>
@@ -383,12 +384,22 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
           <input style={field} type="time" value={startTime} disabled={busy} onChange={(e) => setStartTime(e.target.value)} />
           {err(errors.startTime)}
         </label>
-        <label style={label}>Where (optional)
-          <input style={field} value={location} disabled={busy} onChange={(e) => setLocation(e.target.value)} />
-        </label>
-        <label style={label}>Description (optional)
-          <textarea style={field} rows={3} value={description} disabled={busy} onChange={(e) => setDescription(e.target.value)} />
-        </label>
+        {/* Only fields the server treats as optional live here, so collapsing it can never block publishing. */}
+        <button type="button" aria-expanded={showMore} onClick={() => setShowMore((v) => !v)}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 2px', background: 'none', border: 0, borderBottom: `1px solid ${colors.borderPrimary}`, cursor: 'pointer', fontWeight: 800, color: colors.brandAccent }}>
+          <span>More options (optional)</span>
+          <i className={`bi bi-chevron-${showMore ? 'up' : 'down'}`} aria-hidden="true" />
+        </button>
+        {showMore ? (
+          <div style={{ display: 'grid', gap: 14 }}>
+            <label style={label}>Where (optional)
+              <input style={field} value={location} disabled={busy} onChange={(e) => setLocation(e.target.value)} />
+            </label>
+            <label style={label}>Description (optional)
+              <textarea style={field} rows={3} value={description} disabled={busy} onChange={(e) => setDescription(e.target.value)} />
+            </label>
+          </div>
+        ) : null}
         <p style={{ margin: 0, color: colors.textSecondary, fontSize: '0.85rem' }}>
           When you go live your browser will ask for camera and microphone access. A steady connection keeps the stream smooth.
         </p>
