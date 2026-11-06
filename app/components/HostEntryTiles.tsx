@@ -30,7 +30,7 @@ function Tile({ href, tone, icon, title, caption, label }: { href: string; tone:
   );
 }
 
-export default function HostEntryTiles({ caption }: { caption: string }) {
+export default function HostEntryTiles({ caption, basePath = '/user/photographer/host' }: { caption: string; basePath?: string }) {
   return (
     <>
       <style>{`
@@ -41,8 +41,8 @@ export default function HostEntryTiles({ caption }: { caption: string }) {
         @media (prefers-reduced-motion: reduce) { .ck-host-tile { transition: none; } .ck-host-tile:active { transform: none; } }
       `}</style>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-        <Tile href="/user/photographer/host?new=1" tone="live" icon="bi-broadcast" title="Go live" caption="Host your own event" label="Go live. Host your own event" />
-        <Tile href="/user/photographer/host" tone="primary" icon="bi-collection" title="My hosted events" caption={caption} label={`My hosted events. ${caption}`} />
+        <Tile href={`${basePath}?new=1`} tone="live" icon="bi-broadcast" title="Go live" caption="Host your own event" label="Go live. Host your own event" />
+        <Tile href={basePath} tone="primary" icon="bi-collection" title="My hosted events" caption={caption} label={`My hosted events. ${caption}`} />
       </div>
     </>
   );
