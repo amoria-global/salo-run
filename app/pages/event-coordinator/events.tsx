@@ -14,6 +14,7 @@ import Link from 'next/link';
 import localforage from 'localforage';
 import { useRouter, useSearchParams } from 'next/navigation';
 import GetStartedModal from '../../components/events/GetStartedModal';
+import { confirmYear } from '../../lib/farFutureDate';
 import { useGetStarted } from '../../lib/useGetStarted';
 import { CREATE_LABEL } from '../../lib/getStarted';
 import GeoPricingManager from '@/app/components/GeoPricingManager';
@@ -1216,6 +1217,7 @@ const MyEventsPage = () => {
     }
 
     // Currency-aware minimum stream access fee
+    if (!confirmYear(editDate)) return;
     if (eventPriceError(editPrice || '', editPriceCurrency)) {
       setSubmitError(eventPriceError(editPrice || '', editPriceCurrency) ?? 'Enter a valid price.');
       return;
@@ -1523,6 +1525,8 @@ const MyEventsPage = () => {
       setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
       return;
     }
+
+    if (!confirmYear(createDate)) return;
 
     if (createEventVisibility === 'PRIVATE') {
       const feeError = selfStreamFeeError(createPrice, createPriceCurrency || 'RWF');
