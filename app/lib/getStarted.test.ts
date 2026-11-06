@@ -6,8 +6,8 @@ describe('Get started shortcuts by role', () => {
     expect(getStartedActions('client', { canHost: false }).map((a) => a.key)).toEqual(['create-event']);
     expect(getStartedActions('client', { canHost: true }).map((a) => a.key)).toEqual(['create-event', 'go-live']);
     expect(getStartedActions('coordinator', { canHost: false }).map((a) => a.key)).toEqual(['create-event']);
-    expect(getStartedActions('photographer', { canHost: true }).map((a) => a.key)).toEqual(['go-live', 'new-album']);
-    expect(getStartedActions('photographer', { canHost: false }).map((a) => a.key)).toEqual(['new-album']);
+    expect(getStartedActions('photographer', { canHost: true }).map((a) => a.key)).toEqual(['go-live', 'new-album', 'photobook']);
+    expect(getStartedActions('photographer', { canHost: false }).map((a) => a.key)).toEqual(['new-album', 'photobook']);
   });
 
   it('shows nothing to a team member without the create permission', () => {

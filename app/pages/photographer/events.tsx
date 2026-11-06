@@ -42,6 +42,7 @@ import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 import ContentAlbumsTab from './ContentAlbumsTab';
 import { useRouter } from 'next/navigation';
 import GetStartedModal from '../../components/events/GetStartedModal';
+import NewPhotobookModal from '../../components/events/NewPhotobookModal';
 import { useGetStarted } from '../../lib/useGetStarted';
 import { CREATE_LABEL } from '../../lib/getStarted';
 import LiveChatPreviewDrawer from '../../components/LiveChatPreviewDrawer';
@@ -468,6 +469,8 @@ const PhotographerEventsPage = () => {
   }, [activeTab]);
   const [events, setEvents] = useState<AssignedEvent[]>([]);
   const [eventsLoaded, setEventsLoaded] = useState(false);
+  const [showNewPhotobook, setShowNewPhotobook] = useState(false);
+  const [photobooksReload, setPhotobooksReload] = useState(0);
   const router = useRouter();
   const getStarted = useGetStarted({ role: 'photographer', canHost, canCreate: canCreateEvents, listLoaded: eventsLoaded, hasItems: events.length > 0 });
   const highlightId = useHighlightOnMount();
@@ -1025,7 +1028,7 @@ const PhotographerEventsPage = () => {
       }
     };
     loadPhotobooks();
-  }, [user?.id, apiUrl]);
+  }, [user?.id, apiUrl, photobooksReload]);
 
   // Fetch stream configs for events with live stream
   useEffect(() => {
@@ -2086,6 +2089,11 @@ const PhotographerEventsPage = () => {
                 {activeTab === 'events' && canHost && canCreateEvents ? (
                   <button type="button" onClick={() => router.push('/user/photographer/host?new=1')} className="ck-btn ck-btn-primary">
                     <i className="bi bi-plus-lg" aria-hidden="true" /> {CREATE_LABEL.host}
+                  </button>
+                ) : null}
+                {activeTab === 'photobooks' && canCreateEvents ? (
+                  <button type="button" onClick={() => setShowNewPhotobook(true)} className="ck-btn ck-btn-primary">
+                    <i className="bi bi-plus-lg" aria-hidden="true" /> {CREATE_LABEL.photobooks}
                   </button>
                 ) : null}
                 {activeTab === 'albums' && canCreateEvents ? (
@@ -3508,8 +3516,19 @@ const PhotographerEventsPage = () => {
           onPick={(key) => {
             getStarted.close();
             if (key === 'new-album') { setActiveTab('albums'); handleOpenCreateAlbum(); }
+            else if (key === 'photobook') { setActiveTab('photobooks'); setShowNewPhotobook(true); }
             else router.push('/user/photographer/host?new=1');
           }}
+        />
+      ) : null}
+
+      {showNewPhotobook ? (
+        <NewPhotobookModal
+          apiUrl={apiUrl}
+          albums={albums}
+          mediaIdMap={mediaIdMap}
+          onClose={() => setShowNewPhotobook(false)}
+          onCreated={() => { setShowNewPhotobook(false); setPhotobooksReload((n) => n + 1); }}
         />
       ) : null}
 
