@@ -29,8 +29,8 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
-import { bucketOf, getEligibility, listHostedEvents } from '@/lib/hosting/hostedEvents';
 import HostEntryTiles from '../../components/HostEntryTiles';
+import { useHostEntry } from '../../components/useHostEntry';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import HostLivePage from '../../components/live/HostLivePage';
 import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
@@ -436,23 +436,7 @@ const PhotographerEventsPage = () => {
   const apiUrl = getApiUrl();
 
   // Offered only when the server says this account can host its own events, so with the feature off nothing shows.
-  const [canHost, setCanHost] = useState(false);
-  const [hostedCaption, setHostedCaption] = useState('Upcoming, live and ended');
-  useEffect(() => {
-    const authFetch = dashboardAuthFetch as (u: string, i?: RequestInit) => Promise<Response>;
-    getEligibility(apiUrl, authFetch)
-      .then((e) => {
-        setCanHost(e.canHostFree);
-        if (!e.canHostFree) return;
-        // "1 upcoming · 0 live", from the same rule the hosted events tabs use.
-        return listHostedEvents(apiUrl, authFetch).then((list) => {
-          const now = Date.now();
-          const b = list.map((x) => bucketOf(x, now));
-          setHostedCaption(`${b.filter((x) => x === 'upcoming').length} upcoming \u00B7 ${b.filter((x) => x === 'live').length} live`);
-        });
-      })
-      .catch(() => setCanHost(false));
-  }, [apiUrl]);
+  const { canHost, caption: hostedCaption } = useHostEntry();
 
   // Live-chat preview drawer state. Set to {id, title} when the
   // photographer clicks the 'Chat' chip on a LIVE event card; drawer

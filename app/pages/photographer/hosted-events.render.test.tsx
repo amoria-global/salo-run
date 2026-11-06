@@ -59,10 +59,19 @@ describe('HostedEventsPage', () => {
     expect(buttonByText('Host an event')).toBeUndefined();
   });
 
-  it('tells a non-photographer that hosting is for photographers', async () => {
-    serve(elig({ canHostFree: false, reason: 'NOT_A_PHOTOGRAPHER' }));
+  it('tells an account that cannot host (a viewer) that hosting is not available for it', async () => {
+    serve(elig({ canHostFree: false, reason: 'ROLE_CANNOT_HOST' }));
     await mount();
-    expect(host.textContent).toContain('photographer accounts');
+    expect(host.textContent).toContain('not available for this account type');
+  });
+
+  it('sends a client or coordinator to their own profile to verify, not the photographer one', async () => {
+    serve(elig({ canHostPaid: false, reason: 'KYC_REQUIRED_FOR_PAID' }));
+    await act(async () => { root.render(<HostedEventsPage profilePath="/user/client/profile" />); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => { buttonByText('Host an event')!.click(); });
+    const link = [...host.querySelectorAll('a')].find((a) => a.textContent?.includes('Verify my identity'));
+    expect(link?.getAttribute('href')).toBe('/user/client/profile');
   });
 
   it('shows an error with a retry when eligibility cannot be read', async () => {
