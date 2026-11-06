@@ -12,7 +12,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import localforage from 'localforage';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import GetStartedModal from '../../components/events/GetStartedModal';
+import { useGetStarted } from '../../lib/useGetStarted';
+import { CREATE_LABEL } from '../../lib/getStarted';
 import GeoPricingManager from '@/app/components/GeoPricingManager';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
@@ -829,6 +832,8 @@ const MyEventsPage = () => {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const router = useRouter();
+  const getStarted = useGetStarted({ role: 'coordinator', canHost, listLoaded: !isLoadingEvents, hasItems: events.length > 0 });
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [publishingEventId, setPublishingEventId] = useState<string | null>(null);
   const [unpublishingEventId, setUnpublishingEventId] = useState<string | null>(null);
@@ -1810,9 +1815,14 @@ const MyEventsPage = () => {
               </p>
               {canHost ? <HostEntryTiles caption={hostedCaption} basePath="/user/event-coordinator/host" /> : null}
             </div>
-            <button onClick={() => setShowBookingModeSelector(true)} className="ck-btn ck-btn-primary mobile-create-btn">
-              <i className="bi bi-plus-lg" /> New event
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" onClick={getStarted.show} className="ck-btn ck-btn-ghost" aria-label="Show getting started" title="Show getting started">
+              <i className="bi bi-question-circle" aria-hidden="true" />
             </button>
+            <button onClick={() => setShowBookingModeSelector(true)} className="ck-btn ck-btn-primary mobile-create-btn">
+              <i className="bi bi-plus-lg" /> {CREATE_LABEL.events}
+            </button>
+            </div>
           </header>
 
           {/* Status Summary Cards */}
@@ -2230,6 +2240,21 @@ const MyEventsPage = () => {
           </div>
         )}
       </Modal>
+
+      {getStarted.open ? (
+        <GetStartedModal
+          actions={getStarted.actions}
+          createLabel={CREATE_LABEL.events}
+          initialDismissed={getStarted.dismissed}
+          onClose={getStarted.close}
+          onDismissChange={getStarted.setForever}
+          onPick={(key) => {
+            getStarted.close();
+            if (key === 'go-live') router.push('/user/event-coordinator/host?new=1');
+            else setShowBookingModeSelector(true);
+          }}
+        />
+      ) : null}
 
       <BookingModeSelectorModal
         isOpen={showBookingModeSelector}

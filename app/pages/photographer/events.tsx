@@ -40,6 +40,10 @@ import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import FreeAlbumForm from '../../components/FreeAlbumForm';
 import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 import ContentAlbumsTab from './ContentAlbumsTab';
+import { useRouter } from 'next/navigation';
+import GetStartedModal from '../../components/events/GetStartedModal';
+import { useGetStarted } from '../../lib/useGetStarted';
+import { CREATE_LABEL } from '../../lib/getStarted';
 import LiveChatPreviewDrawer from '../../components/LiveChatPreviewDrawer';
 import PhotographerOpportunitiesView from '../../components/hybrid/PhotographerOpportunitiesView';
 import { AlbumShareCard } from '../../components/albums/AlbumShareCard';
@@ -463,6 +467,9 @@ const PhotographerEventsPage = () => {
     localStorage.setItem('connekt_events_tab', activeTab);
   }, [activeTab]);
   const [events, setEvents] = useState<AssignedEvent[]>([]);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
+  const router = useRouter();
+  const getStarted = useGetStarted({ role: 'photographer', canHost, canCreate: canCreateEvents, listLoaded: eventsLoaded, hasItems: events.length > 0 });
   const highlightId = useHighlightOnMount();
   const highlightCardRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -910,6 +917,8 @@ const PhotographerEventsPage = () => {
         }
       } catch {
         setEvents([]);
+      } finally {
+        setEventsLoaded(true);
       }
     };
     loadEvents();
@@ -2070,6 +2079,21 @@ const PhotographerEventsPage = () => {
                 </p>
                 {canHost ? <HostEntryTiles caption={hostedCaption} /> : null}
               </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button type="button" onClick={getStarted.show} className="ck-btn ck-btn-ghost" aria-label="Show getting started" title="Show getting started">
+                  <i className="bi bi-question-circle" aria-hidden="true" />
+                </button>
+                {activeTab === 'events' && canHost ? (
+                  <button type="button" onClick={() => router.push('/user/photographer/host?new=1')} className="ck-btn ck-btn-primary">
+                    <i className="bi bi-plus-lg" aria-hidden="true" /> {CREATE_LABEL.events}
+                  </button>
+                ) : null}
+                {activeTab === 'albums' && canCreateEvents ? (
+                  <button type="button" onClick={() => handleOpenCreateAlbum()} className="ck-btn ck-btn-primary">
+                    <i className="bi bi-plus-lg" aria-hidden="true" /> {CREATE_LABEL.albums}
+                  </button>
+                ) : null}
+              </div>
             </header>
 
             {/* ==================== EVENTS TAB ==================== */}
@@ -2211,9 +2235,6 @@ const PhotographerEventsPage = () => {
                     <button onClick={() => setAlbumViewMode('grid')} style={{ ...smallActionBtn, borderColor: albumViewMode === 'grid' ? colors.brandPrimary : colors.borderPrimary }}><GridIcon active={albumViewMode === 'grid'} /></button>
                     <button onClick={() => setAlbumViewMode('list')} style={{ ...smallActionBtn, borderColor: albumViewMode === 'list' ? colors.brandPrimary : colors.borderPrimary }}><ListIcon active={albumViewMode === 'list'} /></button>
                   </div>
-                  <button onClick={() => handleOpenCreateAlbum()} className="ck-btn ck-btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <PlusIcon /> New Album
-                  </button>
                   <div className="ck-search" style={{ marginLeft: 'auto', minWidth: 240, maxWidth: 320 }}>
                     <i className="bi bi-search" />
                     <input placeholder="Search albums…" value={albumSearch} onChange={e => setAlbumSearch(e.target.value)} />
@@ -3476,6 +3497,21 @@ const PhotographerEventsPage = () => {
         </div>
         );
       })()}
+
+      {getStarted.open ? (
+        <GetStartedModal
+          actions={getStarted.actions}
+          createLabel={CREATE_LABEL.events}
+          initialDismissed={getStarted.dismissed}
+          onClose={getStarted.close}
+          onDismissChange={getStarted.setForever}
+          onPick={(key) => {
+            getStarted.close();
+            if (key === 'new-album') { setActiveTab('albums'); handleOpenCreateAlbum(); }
+            else router.push('/user/photographer/host?new=1');
+          }}
+        />
+      ) : null}
 
       {/* Create Album Modal */}
       {showCreateAlbumModal && (
