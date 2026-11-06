@@ -2083,9 +2083,9 @@ const PhotographerEventsPage = () => {
                 <button type="button" onClick={getStarted.show} className="ck-btn ck-btn-ghost" aria-label="Show getting started" title="Show getting started">
                   <i className="bi bi-question-circle" aria-hidden="true" />
                 </button>
-                {activeTab === 'events' && canHost ? (
+                {activeTab === 'events' && canHost && canCreateEvents ? (
                   <button type="button" onClick={() => router.push('/user/photographer/host?new=1')} className="ck-btn ck-btn-primary">
-                    <i className="bi bi-plus-lg" aria-hidden="true" /> {CREATE_LABEL.events}
+                    <i className="bi bi-plus-lg" aria-hidden="true" /> {CREATE_LABEL.host}
                   </button>
                 ) : null}
                 {activeTab === 'albums' && canCreateEvents ? (
@@ -3501,7 +3501,7 @@ const PhotographerEventsPage = () => {
       {getStarted.open ? (
         <GetStartedModal
           actions={getStarted.actions}
-          createLabel={CREATE_LABEL.events}
+          createLabel={CREATE_LABEL.host}
           initialDismissed={getStarted.dismissed}
           onClose={getStarted.close}
           onDismissChange={getStarted.setForever}

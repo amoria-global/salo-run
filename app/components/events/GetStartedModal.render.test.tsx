@@ -50,7 +50,7 @@ describe('Get started modal', () => {
     const { onPick } = mount();
     act(() => button('New album').click());
     expect(onPick).toHaveBeenLastCalledWith('new-album');
-    act(() => button('Go live').click());
+    act(() => button('Host an event').click());
     expect(onPick).toHaveBeenLastCalledWith('go-live');
   });
 
