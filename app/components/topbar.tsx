@@ -259,6 +259,8 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         // The reference of an album notification is the album's id, so it opens the album, not an event with that id.
         case 'album':
           dest = refId ? `/user/photographer/collaborate/albums/${refId}` : '/user/photographer/collaborate'; break;
+        // "Your stream is still live. End it?": the events page opens the stream controls for that event.
+        case 'stream_reminder': dest = refId ? `/user/photographer/events?event=${refId}&action=stream` : '/user/photographer/events'; break;
         case 'security': dest = '/user/photographer/profile'; break;
       }
     } else if (userRole === 'event-coordinator') {
