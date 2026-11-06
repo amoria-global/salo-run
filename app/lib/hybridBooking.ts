@@ -196,6 +196,8 @@ export interface SelectPhotographerResult {
 export interface HybridProfile {
   instagramHandle?: string;
   instagramStatus: 'NONE' | 'PENDING' | 'CONNECTED' | 'NOT_FOUND';
+  /** A replacement handle waiting for admin approval; instagramHandle stays live until then. */
+  pendingInstagramHandle?: string;
   city?: string;
   resolvedCity?: string;
   needsCity: boolean;
@@ -565,6 +567,7 @@ function mapProfile(data: Record<string, unknown> | undefined): HybridProfile {
   return {
     instagramHandle: str(data?.instagramHandle),
     instagramStatus: status === 'CONNECTED' || status === 'PENDING' || status === 'NOT_FOUND' ? status : 'NONE',
+    pendingInstagramHandle: str(data?.pendingInstagramHandle),
     city: str(data?.city),
     resolvedCity: str(data?.resolvedCity),
     needsCity: data?.needsCity === true,
