@@ -2,6 +2,7 @@
 
 import { WishInvitesField, focusWishInvitesField } from '../wishes/WishInvitesField';
 import { wishInvitesError } from '@/lib/wishes/wishInvites';
+import { confirmYear } from '../../lib/farFutureDate';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
@@ -213,6 +214,7 @@ export default function HybridEventWizardModal({ isOpen, onClose, onSuccess, exi
     if (step === 1) {
       const err = validateStep1();
       if (err) return setErrorMsg(err);
+      if (!confirmYear(date)) return;
       setStep(2);
     } else if (step === 2) {
       const err = validateStep2();
