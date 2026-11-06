@@ -198,6 +198,8 @@ export interface HybridProfile {
   instagramStatus: 'NONE' | 'PENDING' | 'CONNECTED' | 'NOT_FOUND';
   /** A replacement handle waiting for admin approval; instagramHandle stays live until then. */
   pendingInstagramHandle?: string;
+  /** The saved handle is waiting for an admin to approve removing it. */
+  pendingInstagramRemoval?: boolean;
   city?: string;
   resolvedCity?: string;
   needsCity: boolean;
@@ -568,6 +570,7 @@ function mapProfile(data: Record<string, unknown> | undefined): HybridProfile {
     instagramHandle: str(data?.instagramHandle),
     instagramStatus: status === 'CONNECTED' || status === 'PENDING' || status === 'NOT_FOUND' ? status : 'NONE',
     pendingInstagramHandle: str(data?.pendingInstagramHandle),
+    pendingInstagramRemoval: data?.pendingInstagramRemoval === true,
     city: str(data?.city),
     resolvedCity: str(data?.resolvedCity),
     needsCity: data?.needsCity === true,
