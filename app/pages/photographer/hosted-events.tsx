@@ -7,6 +7,7 @@
  * part-way keeps the event and the retry continues from the failed step.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import LocationRulesField, { useCurrencyChoices, useLocationRules } from '@/app/components/LocationRulesField';
 import Link from 'next/link';
 import { dashboardAuthFetch } from '../../providers/AuthProvider';
 import { confirmYear } from '../../lib/farFutureDate';
@@ -272,6 +273,9 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
   const [paid, setPaid] = useState(false);
   const [price, setPrice] = useState('');
   const [wishInvites, setWishInvites] = useState<boolean | null>(null);
+  // Location pricing & access: the rules ride with the event, so they save in the same transaction.
+  const geo = useLocationRules();
+  const currencyChoices = useCurrencyChoices();
   const [cover, setCover] = useState<File | null>(null);
   const [errors, setErrors] = useState<HostFormErrors>({});
   const [busy, setBusy] = useState(false);
@@ -301,6 +305,8 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
       if (found.wishInvites && !found.cover && !found.title && !found.price) focusWishInvitesField();
       return;
     }
+    // A rule typed into the new-rule row but not added would be lost on save: finish or cancel it first.
+    if (geo.blockSave()) return;
     if (!confirmYear(date)) return;
     inFlight.current = true;
     setBusy(true);
@@ -317,6 +323,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
           description: description.trim() || undefined, location: location.trim() || undefined,
           streamFee: paid ? priceNow : undefined,
           allowWishInvites: wishInvites === true,
+          geoRules: geo.payload(),
         },
         cover,
         progress.current,
@@ -324,6 +331,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
       progress.current = result.progress;
       setSaved(!!result.progress.eventId);
       if (result.status === 'failed') {
+        if (result.step === 'create' && result.field) geo.showServerError(result.field, result.message);
         setFailure(result.step === 'create' ? result.message : `${result.message} Your event is saved. Press the button again to continue where it stopped.`);
         return;
       }
@@ -378,6 +386,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
         ) : null}
         <WishInvitesField value={wishInvites} disabled={busy} error={errors.wishInvites}
           onChange={(v) => { setWishInvites(v); setErrors((x) => ({ ...x, wishInvites: undefined })); }} />
+        <LocationRulesField geo={geo} currencies={currencyChoices} disabled={busy} id="host-geo-rules" />
         <label style={label}>Date *
           <input style={field} type="date" min={todayYmd()} value={date} disabled={busy} onChange={(e) => setDate(e.target.value)} />
           {err(errors.date)}

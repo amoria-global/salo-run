@@ -1,60 +1,20 @@
 'use client';
 
 /**
- * Geo-pricing manager (owner) — set different stream/package prices per
- * location. Works for both an event's stream price (kind="event") and a
- * photographer package (kind="package"). Priority: a country price beats a
- * continent price, which beats the default. Anywhere without a rule pays the
- * default, so existing events/packages are unaffected until an owner opts in.
+ * Location pricing & access for an event or photographer package that already exists (kind="event" or "package"). It is the
+ * same inline field the event forms use, in a window, with one Save that applies only what changed, one rule at a time (the
+ * dedicated endpoints), and names each failure. An event's rules can also be edited in the event's own form, where they save
+ * with the event. A package takes prices only (its endpoints have no block).
+ *
+ * Priority: a country rule beats its continent, which beats the default price. On an event a block beats a price in the
+ * same place. Anywhere without a rule pays the default, so existing events and packages are unaffected until an owner opts in.
  */
-import MoneyInput from './MoneyInput';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import LocationRulesField, { fetchSavedRules, useCurrencyChoices, useLocationRules } from './LocationRulesField';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
-import { getCurrencies, type CurrencyInfo } from '@/lib/donationApi';
-import { useCurrency } from '@/app/context/CurrencyContext';
-
-const NAVY = '#083A85';
-const PINK = '#F20C8F';
-
-type Scope = 'COUNTRY' | 'CONTINENT';
-
-type Rule = {
-  id: string;
-  scopeType: Scope;
-  scopeValue: string;
-  price: number;
-  currencyId?: string;
-  currencyAbbreviation?: string;
-  currencySymbol?: string;
-};
-
-const CONTINENTS: { code: string; label: string }[] = [
-  { code: 'AF', label: 'Africa' },
-  { code: 'AS', label: 'Asia' },
-  { code: 'EU', label: 'Europe' },
-  { code: 'NA', label: 'North America' },
-  { code: 'SA', label: 'South America' },
-  { code: 'OC', label: 'Oceania' },
-];
-
-const COUNTRIES: { code: string; label: string }[] = [
-  { code: 'RW', label: 'Rwanda' }, { code: 'KE', label: 'Kenya' }, { code: 'UG', label: 'Uganda' },
-  { code: 'TZ', label: 'Tanzania' }, { code: 'BI', label: 'Burundi' }, { code: 'CD', label: 'DR Congo' },
-  { code: 'NG', label: 'Nigeria' }, { code: 'GH', label: 'Ghana' }, { code: 'ZA', label: 'South Africa' },
-  { code: 'ET', label: 'Ethiopia' }, { code: 'EG', label: 'Egypt' }, { code: 'MA', label: 'Morocco' },
-  { code: 'US', label: 'United States' }, { code: 'CA', label: 'Canada' }, { code: 'GB', label: 'United Kingdom' },
-  { code: 'FR', label: 'France' }, { code: 'DE', label: 'Germany' }, { code: 'BE', label: 'Belgium' },
-  { code: 'NL', label: 'Netherlands' }, { code: 'IT', label: 'Italy' }, { code: 'ES', label: 'Spain' },
-  { code: 'SE', label: 'Sweden' }, { code: 'CH', label: 'Switzerland' }, { code: 'IE', label: 'Ireland' },
-  { code: 'AE', label: 'United Arab Emirates' }, { code: 'SA', label: 'Saudi Arabia' }, { code: 'QA', label: 'Qatar' },
-  { code: 'IN', label: 'India' }, { code: 'CN', label: 'China' }, { code: 'JP', label: 'Japan' },
-  { code: 'SG', label: 'Singapore' }, { code: 'AU', label: 'Australia' }, { code: 'NZ', label: 'New Zealand' },
-  { code: 'BR', label: 'Brazil' }, { code: 'MX', label: 'Mexico' },
-];
-
-const labelFor = (r: Rule) =>
-  (r.scopeType === 'CONTINENT' ? CONTINENTS : COUNTRIES).find((o) => o.code === r.scopeValue)?.label ?? r.scopeValue;
+import { useTheme } from '../context/ThemeContext';
+import { diffRules, type LocationRule } from '@/lib/geoRules';
 
 export default function GeoPricingManager({
   open,
@@ -69,182 +29,124 @@ export default function GeoPricingManager({
   targetId: string;
   name?: string;
 }) {
-  const { formatPrice } = useCurrency();
+  const { colors } = useTheme();
   const base = useMemo(
     () => `${getApiUrl()}/api/remote/${kind === 'package' ? 'packages' : 'events'}/${targetId}/geo-prices`,
     [kind, targetId],
   );
+  const geo = useLocationRules({ initiallyOpen: true });
+  const { hydrate } = geo;
+  const currencies = useCurrencyChoices();
 
+  const [saved, setSaved] = useState<LocationRule[]>([]);
   const [loading, setLoading] = useState(false);
-  const [rules, setRules] = useState<Rule[]>([]);
-  const [defaultPrice, setDefaultPrice] = useState<number | null>(null);
-  const [defaultCurrency, setDefaultCurrency] = useState<string | undefined>();
-  const [currencies, setCurrencies] = useState<CurrencyInfo[]>([]);
-
-  const [scope, setScope] = useState<Scope>('CONTINENT');
-  const [scopeValue, setScopeValue] = useState('');
-  const [price, setPrice] = useState('');
-  const [currencyId, setCurrencyId] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     try {
-      const res = await dashboardAuthFetch(base);
-      const json = await res.json();
-      const d = json?.data ?? {};
-      setDefaultPrice(typeof d.defaultPrice === 'number' ? d.defaultPrice : null);
-      setDefaultCurrency(d.defaultCurrencyAbbreviation ?? undefined);
-      setCurrencyId((prev) => prev || d.defaultCurrencyId || '');
-      setRules(Array.isArray(d.rules) ? d.rules : []);
-    } catch {
-      setError('Could not load geo-pricing.');
+      const rules = await fetchSavedRules(kind, targetId);
+      setSaved(rules);
+      hydrate(rules);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Could not load the saved rules.');
     } finally {
       setLoading(false);
     }
-  }, [base]);
+  }, [kind, targetId, hydrate]);
 
   useEffect(() => {
-    if (!open) return;
-    load();
-    getCurrencies().then((r) => r.success && r.data && setCurrencies(r.data));
-  }, [open, load]);
+    if (open && targetId) void load();
+  }, [open, targetId, load]);
 
-  const options = scope === 'CONTINENT' ? CONTINENTS : COUNTRIES;
-  const effectiveCurrencyId = currencyId;
+  const changes = useMemo(() => diffRules(saved, geo.rules), [saved, geo.rules]);
+  const dirty = changes.upserts.length + changes.deletes.length > 0;
 
-  const save = async () => {
-    setError(null);
-    if (!scopeValue) return setError('Pick a region.');
-    const p = Number(price);
-    if (!price || Number.isNaN(p) || p < 0) return setError('Enter a valid price.');
-    setSaving(true);
-    try {
-      const res = await dashboardAuthFetch(base, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scopeType: scope, scopeValue, price: p, currencyId: effectiveCurrencyId || undefined }),
-      });
-      const json = await res.json();
-      if (json?.action !== 1) throw new Error(json?.message || 'Could not save the price.');
-      setScopeValue('');
-      setPrice('');
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save the price.');
-    } finally {
-      setSaving(false);
-    }
+  const call = async (url: string, method: 'POST' | 'DELETE', body?: unknown) => {
+    const res = await dashboardAuthFetch(url, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json?.action === 0) throw new Error(json?.message || 'That change could not be saved.');
   };
 
-  const remove = async (rule: Rule) => {
-    if (!confirm(`Remove the price for ${labelFor(rule)}?`)) return;
-    try {
-      const res = await dashboardAuthFetch(`${base}/${rule.id}`, { method: 'DELETE' });
-      const json = await res.json();
-      if (json?.action !== 1) throw new Error();
-      load();
-    } catch {
-      setError('Could not remove the price.');
+  const save = async () => {
+    if (geo.blockSave() || !dirty) return;
+    setSaving(true);
+    setError(null);
+    const jobs = [
+      ...changes.upserts.map((r) =>
+        call(
+          base,
+          'POST',
+          kind === 'package' || r.action === 'PRICE'
+            ? { scopeType: r.scopeType, scopeValue: r.scopeValue, ...(kind === 'event' ? { action: 'PRICE' } : {}), price: r.price ?? 0, currencyId: r.currencyId }
+            : { scopeType: r.scopeType, scopeValue: r.scopeValue, action: 'BLOCK' },
+        ),
+      ),
+      ...changes.deletes.map((r) => call(`${base}/${r.id}`, 'DELETE')),
+    ];
+    const results = await Promise.allSettled(jobs);
+    const failed = results.filter((x): x is PromiseRejectedResult => x.status === 'rejected');
+    if (failed.length > 0) {
+      const why = failed[0].reason instanceof Error ? failed[0].reason.message : 'A change could not be saved.';
+      setError(failed.length === 1 ? why : `${failed.length} changes could not be saved. ${why}`);
     }
+    // Reload either way, so the window always shows what the server has.
+    await load();
+    setSaving(false);
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" style={{ background: 'rgba(2,8,23,0.55)' }}>
-      <div className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" style={{ background: colors.bgOverlay }}>
+      <div
+        className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-2xl shadow-2xl"
+        style={{ background: colors.bgModal, color: colors.textPrimary }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Location pricing and access"
+      >
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${colors.borderPrimary}` }}>
           <div>
-            <h2 className="text-lg font-bold" style={{ color: NAVY }}>Geo pricing</h2>
-            <p className="text-xs text-slate-500">{name ? `${name} · ` : ''}Different prices by location</p>
+            <h2 className="text-lg font-bold" style={{ color: colors.brandPrimary }}>Location pricing &amp; access</h2>
+            <p className="text-xs" style={{ color: colors.textTertiary }}>{name ? `${name} · ` : ''}Different prices by location{kind === 'event' ? ', or block a place' : ''}</p>
           </div>
-          <button onClick={onClose} className="grid place-items-center w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500" aria-label="Close">✕</button>
+          <button onClick={onClose} className="grid place-items-center w-8 h-8 rounded-full" style={{ color: colors.textTertiary }} aria-label="Close">✕</button>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
-          <div className="rounded-xl p-3 text-sm" style={{ background: '#EEF2FB', color: NAVY }}>
-            A <b>country</b> price beats a <b>continent</b> price, which beats your{' '}
-            <b>default{defaultPrice != null ? ` (${formatPrice(defaultPrice, defaultCurrency ?? undefined)})` : ''}</b>.
-            Anywhere without a rule pays the default.
-          </div>
+        <div className="px-6 py-5 space-y-4">
+          {loading && saved.length === 0 ? (
+            <p className="text-sm" style={{ color: colors.textTertiary }}>Loading…</p>
+          ) : loadError ? (
+            <p className="text-sm" style={{ color: colors.statusError }}>
+              {loadError}{' '}
+              <button type="button" onClick={() => void load()} style={{ color: colors.brandPrimary, fontWeight: 700 }}>Try again</button>
+            </p>
+          ) : (
+            <LocationRulesField geo={geo} currencies={currencies} allowBlock={kind === 'event'} disabled={saving} id="geo-manager" />
+          )}
 
-          {/* Existing rules */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-700 mb-2">Location prices</h3>
-            {loading ? (
-              <p className="text-sm text-slate-400">Loading…</p>
-            ) : rules.length === 0 ? (
-              <p className="text-sm text-slate-400">No location prices yet — everyone pays your default.</p>
-            ) : (
-              <div className="divide-y divide-slate-100 rounded-xl border border-slate-100">
-                {rules.map((r) => (
-                  <div key={r.id} className="flex items-center gap-3 px-3 py-2.5">
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: r.scopeType === 'CONTINENT' ? '#EEF2FB' : '#FCE7F3', color: r.scopeType === 'CONTINENT' ? NAVY : PINK }}>
-                      {r.scopeType === 'CONTINENT' ? 'Continent' : 'Country'}
-                    </span>
-                    <span className="flex-1 text-sm font-medium text-slate-800 truncate">{labelFor(r)}</span>
-                    <span className="text-sm font-bold" style={{ color: NAVY }}>
-                      {formatPrice(r.price, r.currencyAbbreviation ?? defaultCurrency ?? undefined)}
-                    </span>
-                    <button onClick={() => remove(r)} className="text-slate-400 hover:text-rose-600 text-sm" aria-label="Remove">🗑</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {error ? <p className="text-sm" style={{ color: colors.statusError }}>{error}</p> : null}
 
-          {/* Add rule */}
-          <div className="rounded-xl border border-slate-100 p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-700">Add a location price</h3>
-            <div className="inline-flex rounded-full bg-slate-100 p-1">
-              {(['CONTINENT', 'COUNTRY'] as Scope[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => { setScope(s); setScopeValue(''); }}
-                  className="px-4 py-1.5 rounded-full text-sm font-semibold transition"
-                  style={scope === s ? { background: 'white', color: NAVY, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' } : { color: '#64748b' }}
-                >
-                  {s === 'CONTINENT' ? 'Continent' : 'Country'}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {options.map((o) => (
-                <button
-                  key={o.code}
-                  onClick={() => setScopeValue(o.code)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border transition"
-                  style={scopeValue === o.code ? { background: NAVY, color: 'white', borderColor: NAVY } : { background: 'white', color: '#334155', borderColor: '#e2e8f0' }}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-
-            <MoneyInput
-              label="Price"
-              value={price}
-              onChange={setPrice}
-              currencyId={effectiveCurrencyId}
-              onCurrencyChange={setCurrencyId}
-              currencies={currencies.map((c) => ({ value: c.id, code: c.code, name: c.name }))}
-              placeholder="Price"
-            />
-
-            {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-
+          <div className="flex justify-end gap-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ color: colors.textSecondary }}>
+              Close
+            </button>
             <button
-              onClick={save}
-              disabled={saving}
-              className="w-full rounded-lg py-2.5 text-sm font-bold text-white transition disabled:opacity-60"
-              style={{ background: NAVY }}
+              onClick={() => void save()}
+              disabled={!dirty || saving || !!loadError}
+              data-testid="geo-manager-save"
+              className="px-5 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+              style={{ background: colors.brandPrimary, color: colors.textInverse }}
             >
-              {saving ? 'Saving…' : 'Save price'}
+              {saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}
             </button>
           </div>
         </div>

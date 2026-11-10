@@ -1,6 +1,7 @@
 "use client";
 
 import MoneyInput from '../../components/MoneyInput';
+import LocationRulesField, { fetchSavedRules, useCurrencyChoices, useLocationRules } from '../../components/LocationRulesField';
 import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
 import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
 import { AttendanceField, eventFieldId, focusEventField } from '../../components/events/AttendanceField';
@@ -540,6 +541,12 @@ const MyEventsPage = () => {
   // Errors stay hidden until the first click on Create, then follow the form live as each field is fixed.
   const [createShowErrors, setCreateShowErrors] = useState(false);
   const [createPrice, setCreatePrice] = useState('');
+  // Location pricing & access: the rules save WITH the event (create and edit), in one transaction.
+  const geoCreate = useLocationRules();
+  const geoEdit = useLocationRules();
+  const currencyChoices = useCurrencyChoices();
+  // On an edit the saved rules must be read before they are sent; a failed read sends nothing, so they are never wiped.
+  const [editRulesLoaded, setEditRulesLoaded] = useState(false);
   const [createPriceCurrency, setCreatePriceCurrency] = useState('RWF');
   usePaymentLimit(createPriceCurrency);
   const [createGroupDiscount, setCreateGroupDiscount] = useState('');
@@ -1189,6 +1196,14 @@ const MyEventsPage = () => {
     setEditPhotographerId(event.photographerId || '');
     setEditPhotographerAssignMode('none');
     setEditPhotographerSearchQuery('');
+    geoEdit.reset();
+    setEditRulesLoaded(false);
+    fetchSavedRules('event', String(event.id))
+      .then((rules) => {
+        geoEdit.hydrate(rules);
+        setEditRulesLoaded(true);
+      })
+      .catch(() => undefined);
     setShowEditModal(true);
   };
 
@@ -1222,6 +1237,9 @@ const MyEventsPage = () => {
       setSubmitError(eventPriceError(editPrice || '', editPriceCurrency) ?? 'Enter a valid price.');
       return;
     }
+
+    // A rule typed into the new-rule row but not added would be lost on save: finish or cancel it first.
+    if (geoEdit.blockSave()) return;
 
     // Calculate duration from start and end time
     let calculatedDuration = editDuration;
@@ -1316,6 +1334,7 @@ const MyEventsPage = () => {
       if (validEditPhotographerId) {
         editPayload.photographerId = validEditPhotographerId;
       }
+      if (editRulesLoaded) editPayload.geoRules = geoEdit.payload();
       Object.keys(editPayload).forEach(key => {
         if (editPayload[key] === undefined || editPayload[key] === null) delete editPayload[key];
       });
@@ -1326,11 +1345,11 @@ const MyEventsPage = () => {
       });
       if (!editRes.ok) {
         const errData = await editRes.json().catch(() => ({}));
-        throw new Error(errData.message || `Failed to update event: ${editRes.status}`);
+        throw Object.assign(new Error(errData.message || `Failed to update event: ${editRes.status}`), { field: errData.field });
       }
       const editResult = await editRes.json().catch(() => null);
       if (editResult && editResult.action === 0) {
-        throw new Error(editResult.message || 'Failed to update event.');
+        throw Object.assign(new Error(editResult.message || 'Failed to update event.'), { field: editResult.field });
       }
       // Upload banner image if a new file was selected
       if (editBannerImageFile) {
@@ -1356,6 +1375,12 @@ const MyEventsPage = () => {
       await fetchMyEvents();
     } catch (err) {
       console.error('Failed to update event:', err);
+      // A refused location rule names its row: show it there and keep the form open.
+      const ruleField = (err as { field?: unknown } | null)?.field;
+      if (typeof ruleField === 'string' && ruleField.startsWith('geoRules')) {
+        geoEdit.showServerError(ruleField, err instanceof Error ? err.message : 'That location rule cannot be saved.');
+        return;
+      }
       platformAlert(err instanceof Error ? err.message : 'Failed to update event. Please try again.');
     }
 
@@ -1365,6 +1390,7 @@ const MyEventsPage = () => {
 
   // Reset create form
   const resetCreateForm = (clearDraft: boolean = true) => {
+    geoCreate.reset();
     setCreateWishInvites(null);
     setCreateWishInvitesErr(null);
     setCreateTitle('');
@@ -1528,6 +1554,9 @@ const MyEventsPage = () => {
 
     if (!confirmYear(createDate)) return;
 
+    // A rule typed into the new-rule row but not added would be lost on save: finish or cancel it first.
+    if (geoCreate.blockSave()) { setSubmitError(null); return; }
+
     if (createEventVisibility === 'PRIVATE') {
       const feeError = selfStreamFeeError(createPrice, createPriceCurrency || 'RWF');
       if (feeError) { setSubmitError(feeError); return; }
@@ -1594,6 +1623,8 @@ const MyEventsPage = () => {
           payload.escrowPercentage = createEscrowPercentage;
         }
 
+        payload.geoRules = geoCreate.payload();
+
         // Strip any undefined/null values to prevent backend "id must not be null" errors
         Object.keys(payload).forEach(key => {
           if (payload[key] === undefined || payload[key] === null) delete payload[key];
@@ -1640,13 +1671,18 @@ const MyEventsPage = () => {
           }
         } else {
           const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Failed to create event. Please try again.');
+          throw Object.assign(new Error(errorData.message || 'Failed to create event. Please try again.'), { field: errorData.field });
         }
       } else {
         throw new Error('Authentication required. Please log in again.');
       }
     } catch (error) {
       console.error('Event creation error:', error);
+      // A refused location rule names its row: show it there.
+      const ruleField = (error as { field?: unknown } | null)?.field;
+      if (typeof ruleField === 'string' && ruleField.startsWith('geoRules')) {
+        geoCreate.showServerError(ruleField, error instanceof Error ? error.message : 'That location rule cannot be saved.');
+      }
       setSubmitError(error instanceof Error ? error.message : 'Failed to create event. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -2537,6 +2573,10 @@ const MyEventsPage = () => {
                   wholeNumbersOnly
                 />
               </div>
+            </div>
+
+            <div style={{ marginTop: '1rem' }}>
+              <LocationRulesField geo={geoCreate} currencies={currencyChoices} disabled={isSubmitting} id="create-geo-rules" />
             </div>
 
             {/* Group Stream Discount */}
@@ -3996,6 +4036,10 @@ const MyEventsPage = () => {
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Max guests (optional)</label>
                   <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="No limit" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 </div>
+              </div>
+
+              <div style={{ marginTop: '1rem' }}>
+                <LocationRulesField geo={geoEdit} currencies={currencyChoices} disabled={!editRulesLoaded} id="edit-geo-rules" />
               </div>
 
               {/* Group Stream Discount */}
