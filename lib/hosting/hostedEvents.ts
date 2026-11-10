@@ -34,6 +34,8 @@ export type HostedEventInput = {
   streamFeeCurrencyId?: string;
   /** Required by the server: whether viewers may invite others to send wishes. */
   allowWishInvites: boolean;
+  /** Location rules, saved with the event in one go. Leave out for none. */
+  geoRules?: GeoRulePayload[];
 };
 
 export type HostedEvent = {
@@ -53,6 +55,7 @@ export type HostedEvent = {
 
 export type EarningsPreview = { hostPercent: string; platformPercent: string; hostEarnsPerTicket: number };
 import { wishInvitesError } from '@/lib/wishes/wishInvites';
+import type { GeoRulePayload } from '@/lib/geoRules';
 import { getEventStatus, type EventStatus } from '@/lib/events/eventStatus';
 
 export type HostedBucket = 'upcoming' | 'live' | 'ended';
@@ -63,9 +66,12 @@ const BASE = '/api/remote/photographer/hosted-events';
 type Raw = Record<string, unknown>;
 
 class HostError extends Error {
-  constructor(message: string) {
+  /** The form field the server named in its refusal (a location rule: geoRules[1].price), if it named one. */
+  field?: string;
+  constructor(message: string, field?: string) {
     super(message);
     this.name = 'HostError';
+    this.field = field;
   }
 }
 
@@ -73,7 +79,7 @@ async function envelope(res: Response, fallback: string): Promise<Raw> {
   const body = (await res.json().catch(() => ({}))) as Raw;
   // HTTP 200 with action 0 is a refusal.
   if (!res.ok || body.action === 0) {
-    throw new HostError(typeof body.message === 'string' && body.message ? body.message : fallback);
+    throw new HostError(typeof body.message === 'string' && body.message ? body.message : fallback, typeof body.field === 'string' ? body.field : undefined);
   }
   return body;
 }
@@ -177,7 +183,7 @@ export type HostDeps = {
 };
 export type HostResult =
   | { status: 'done'; eventId: string; progress: HostProgress }
-  | { status: 'failed'; step: 'create' | 'cover' | 'publish'; message: string; progress: HostProgress };
+  | { status: 'failed'; step: 'create' | 'cover' | 'publish'; message: string; field?: string; progress: HostProgress };
 
 const messageOf = (e: unknown, fallback: string) =>
   e instanceof Error && e.message ? e.message : fallback;
@@ -197,7 +203,7 @@ export async function runHostFlow(
     try {
       progress.eventId = (await deps.create(input)).id;
     } catch (e) {
-      return { status: 'failed', step: 'create', message: messageOf(e, 'Could not create the event.'), progress };
+      return { status: 'failed', step: 'create', message: messageOf(e, 'Could not create the event.'), field: (e as { field?: string } | null)?.field, progress };
     }
   }
   if (!progress.coverDone) {

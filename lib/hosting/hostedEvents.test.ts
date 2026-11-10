@@ -77,6 +77,23 @@ describe('runHostFlow', () => {
   });
 });
 
+describe('location rules', () => {
+  it('sends the rules to the server with the event, exactly as given', async () => {
+    const f = vi.fn().mockResolvedValue(json({ action: 1, data: { id: 'ev9' } }));
+    const rules = [{ scopeType: 'COUNTRY' as const, scopeValue: 'FR', action: 'BLOCK' as const }];
+    await createHostedEvent('https://api', f, { ...input, geoRules: rules });
+    expect(JSON.parse(String(f.mock.calls[0][1].body)).geoRules).toEqual(rules);
+  });
+
+  it('keeps the field the server named for a refused rule, and nothing else runs', async () => {
+    const f = vi.fn().mockResolvedValue(json({ action: 0, message: 'The minimum is RWF 100.', field: 'geoRules[1].price' }, false));
+    const d = deps({ create: (i: HostedEventInput) => createHostedEvent('https://api', f, i) });
+    const r = await runHostFlow(d, { ...input, geoRules: [{ scopeType: 'COUNTRY', scopeValue: 'KE', action: 'BLOCK' }] }, cover);
+    expect(r).toMatchObject({ status: 'failed', step: 'create', message: 'The minimum is RWF 100.', field: 'geoRules[1].price' });
+    expect(d.uploadCover).not.toHaveBeenCalled();
+  });
+});
+
 describe('validateHostForm and bucketOf', () => {
   const ok = { title: 'Rooftop set', date: '2026-11-10', startTime: '', paid: false, price: '', allowWishInvites: true as boolean | null };
   it('requires a Wish invites choice, and accepts either one', () => {
