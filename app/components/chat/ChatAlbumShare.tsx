@@ -636,7 +636,7 @@ function AlbumShareModal({
                 cursor: selected.length && !sending ? 'pointer' : 'not-allowed',
               }}
             >
-              {sending ? 'Sending…' : selected.length <= 1 ? 'Send 1 album' : `Send ${selected.length} albums`}
+              {sending ? 'Sending…' : selected.length === 0 ? 'Send albums' : selected.length === 1 ? 'Send 1 album' : `Send ${selected.length} albums`}
             </button>
           </div>
         ) : null}
