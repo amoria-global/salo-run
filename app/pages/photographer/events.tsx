@@ -3610,7 +3610,7 @@ const PhotographerEventsPage = () => {
           onDismissChange={getStarted.setForever}
           onPick={(key) => {
             getStarted.close();
-            if (key === 'new-album') { setActiveTab('albums'); handleOpenCreateAlbum(); }
+            if (key === 'new-album') { setActiveTab('albums'); handleSellPhotos(); }
             else if (key === 'photobook') { setActiveTab('photobooks'); setShowNewPhotobook(true); }
             else router.push('/user/photographer/host?new=1');
           }}

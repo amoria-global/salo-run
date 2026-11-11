@@ -24,6 +24,8 @@ describe('photographer Events page: Sell photos', () => {
     expect(handler).toContain("setStandaloneAlbumType('PAID')");
     expect(handler).toContain('setSellPreset(true)');
     expect(SOURCE).toContain("params.get('sell') !== '1'");
+    // The Get started row for a photographer is Sell photos too, and opens the same preset.
+    expect(SOURCE).toContain("if (key === 'new-album') { setActiveTab('albums'); handleSellPhotos(); }");
   });
 
   it('every other way to open the album form clears the preset', () => {
