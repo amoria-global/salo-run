@@ -34,7 +34,7 @@ describe('Get started modal', () => {
     expect(text).toContain('Get started with Events');
     expect(text).toContain('What would you like to do first?');
     expect(text).toContain('Host and stream an event yourself');
-    expect(text).toContain('Upload, share or sell photos');
+    expect(text).toContain('Upload photos for buyers to find');
     expect(text).not.toContain('Book a photographer for your event');
     expect(text).toContain('+ Create event');
     expect(document.querySelector('input[type="checkbox"]')).not.toBeNull();
@@ -48,7 +48,7 @@ describe('Get started modal', () => {
 
   it('a row picks its flow; the primary button runs the first action', () => {
     const { onPick } = mount();
-    act(() => button('New album').click());
+    act(() => button('Sell photos').click());
     expect(onPick).toHaveBeenLastCalledWith('new-album');
     act(() => button('Host an event').click());
     expect(onPick).toHaveBeenLastCalledWith('go-live');

@@ -48,6 +48,11 @@ import { CREATE_LABEL } from '../../lib/getStarted';
 import LiveChatPreviewDrawer from '../../components/LiveChatPreviewDrawer';
 import PhotographerOpportunitiesView from '../../components/hybrid/PhotographerOpportunitiesView';
 import { AlbumShareCard } from '../../components/albums/AlbumShareCard';
+import { FieldError, invalidFieldProps, invalidFieldStyle } from '../../components/errors/FieldError';
+import {
+  describePublishFailure, LISTING_NOTE, notVisibleBadge, publishOutcome, sellFieldErrors, SELL_FORM_NOTE, SELL_SUBTITLE,
+  type PublishOutcome, type SellField,
+} from '../../../lib/albums/sellPhotos';
 import { albumShareUrl } from '@/lib/albums/albumShare';
 
 
@@ -592,7 +597,11 @@ const PhotographerEventsPage = () => {
   const [freeExtraCurrencyId, setFreeExtraCurrencyId] = useState('');
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
-  const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; albumId?: string; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number; rejected?: string[] } | null>(null);
+  const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; albumId?: string; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number; rejected?: string[]; outcome?: PublishOutcome; price?: string; currencyId?: string } | null>(null);
+  // "Sell photos" presets the album form to a standalone PAID album, which is what Find my photos lists.
+  const [sellPreset, setSellPreset] = useState(false);
+  const [sellErrors, setSellErrors] = useState<Partial<Record<SellField, string>>>({});
+  const [retryingPublish, setRetryingPublish] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   // Tracks which album card's Copy Link button just flashed "Copied" —
@@ -1533,6 +1542,7 @@ const PhotographerEventsPage = () => {
   };
 
   const handleOpenCreateAlbum = async (eventId?: string) => {
+    setSellPreset(false); setSellErrors({});
     if (eventId) {
       const event = events.find(e => e.id === eventId);
       if (event) {
@@ -1556,6 +1566,56 @@ const PhotographerEventsPage = () => {
     setCreateAlbumMode('event'); setStandaloneLocation(''); setStandaloneDate('');
     setSelectedFiles(null); setSelectedCoverIndex(0); setShowCreateAlbumModal(true);
   };
+
+  // The photographer's own one-click sale: the existing album form, preset to a PAID standalone album.
+  const handleSellPhotos = () => {
+    void handleOpenCreateAlbum();
+    setCreateAlbumMode('standalone');
+    setStandaloneAlbumType('PAID');
+    setSellPreset(true);
+  };
+
+  // Retry publishing: publish only, never re-upload. The album and its photos are already saved.
+  const retryPublishAlbum = async () => {
+    const m = albumSuccessModal;
+    if (!m?.albumId || retryingPublish) return;
+    setRetryingPublish(true);
+    let outcome: PublishOutcome;
+    let inviteCode = m.inviteCode;
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${m.albumId}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(m.price && m.currencyId ? { pricePerImage: parseFloat(m.price), currencyId: m.currencyId } : {}),
+      });
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.action !== 0) {
+        inviteCode = json?.data?.inviteCode || inviteCode;
+        outcome = publishOutcome({ published: true, facesIndexed: typeof json?.data?.facesIndexed === 'number' ? json.data.facesIndexed : undefined });
+      } else {
+        outcome = publishOutcome({ failure: describePublishFailure({ status: res.status, body: json }) });
+      }
+    } catch {
+      outcome = publishOutcome({ failure: describePublishFailure({ networkError: true }) });
+    }
+    setAlbumSuccessModal(prev => (prev ? { ...prev, outcome, inviteCode } : prev));
+    if (outcome.state === 'listed') {
+      setAlbums(prev => prev.map(a => (a.id === m.albumId ? { ...a, faceRecognitionEnabled: true, inviteCode: inviteCode || a.inviteCode } : a)));
+    }
+    setRetryingPublish(false);
+  };
+
+  // Deep link from Home and the Get started sheet: /user/photographer/events?sell=1
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sell') !== '1') return;
+    params.delete('sell');
+    const rest = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''));
+    handleSellPhotos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleEventSelectForAlbum = async (eventId: string) => {
     const event = events.find(e => e.id === eventId);
@@ -1584,6 +1644,12 @@ const PhotographerEventsPage = () => {
     if (!isStandalone && (!event || !albumTitle)) return;
     if (isStandalone && !albumTitle) return;
 
+    // Sell photos: every missing condition shows next to its field, so an album never silently fails to appear.
+    if (sellPreset) {
+      const errs = sellFieldErrors({ title: albumTitle, price: paidAlbumPrice, currencyId: paidAlbumCurrencyId, priceMsg: paidAlbumPriceMsg, photoCount: selectedFiles?.length ?? 0 });
+      setSellErrors(errs);
+      if (Object.keys(errs).length > 0) return;
+    }
     // Validate PAID/FREE album fields
     if (isStandalone && standaloneAlbumType === 'PAID') {
       if (!paidAlbumPrice || !paidAlbumCurrencyId) {
@@ -1704,19 +1770,23 @@ const PhotographerEventsPage = () => {
       }
     }
 
-    // 3. Auto-publish PAID standalone albums to Face AI
+    // 3. Auto-publish PAID standalone albums to Face AI. A failure is shown with its real reason and a retry that only
+    // publishes again (never re-uploads); it is never swallowed, so an album cannot silently stay invisible.
     let publishedToFaceAI = false;
+    let facesIndexed: number | undefined;
+    let publishFailure: ReturnType<typeof describePublishFailure> | undefined;
     if (isStandalone && standaloneAlbumType === 'PAID' && backendAlbumId) {
       try {
-        setUploadProgress('Publishing to Face AI...');
+        setUploadProgress('Preparing your photos for Find my photos... this can take a minute for a large album');
         const pubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${backendAlbumId}/publish`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pricePerImage: parseFloat(paidAlbumPrice), currencyId: paidAlbumCurrencyId }),
         });
-        if (pubRes.ok) {
-          const pubResult = await pubRes.json();
+        const pubResult = await pubRes.json().catch(() => null);
+        if (pubRes.ok && pubResult?.action !== 0) {
           backendInviteCode = pubResult?.data?.inviteCode || backendInviteCode;
+          facesIndexed = typeof pubResult?.data?.facesIndexed === 'number' ? pubResult.data.facesIndexed : undefined;
           publishedToFaceAI = true;
           // If publish didn't return an invite code, generate one
           if (!backendInviteCode) {
@@ -1726,10 +1796,15 @@ const PhotographerEventsPage = () => {
                 const codeResult = await codeRes.json();
                 backendInviteCode = codeResult?.data?.inviteCode || codeResult?.data?.code || '';
               }
-            } catch { /* ignore */ }
+            } catch (err) { console.error('Invite code request failed:', err); }
           }
+        } else {
+          publishFailure = describePublishFailure({ status: pubRes.status, body: pubResult });
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        console.error('Publish to Find my photos failed:', err);
+        publishFailure = describePublishFailure({ networkError: true });
+      }
     }
 
     const newAlbum: Album = {
@@ -1762,6 +1837,9 @@ const PhotographerEventsPage = () => {
         accessCode: backendAccessCode || undefined,
         photoCount: albumImages.length,
         rejected: rejectedMessages.length > 0 ? rejectedMessages : undefined,
+        outcome: standaloneAlbumType === 'PAID' ? publishOutcome({ published: publishedToFaceAI, facesIndexed, failure: publishFailure }) : undefined,
+        price: standaloneAlbumType === 'PAID' ? paidAlbumPrice : undefined,
+        currencyId: standaloneAlbumType === 'PAID' ? paidAlbumCurrencyId : undefined,
       });
     }
 
@@ -2086,9 +2164,10 @@ const PhotographerEventsPage = () => {
                 <button type="button" onClick={getStarted.show} className="ck-btn ck-btn-ghost" aria-label="Show getting started" title="Show getting started">
                   <i className="bi bi-question-circle" aria-hidden="true" />
                 </button>
-                {activeTab === 'events' && canHost && canCreateEvents ? (
-                  <button type="button" onClick={() => router.push('/user/photographer/host?new=1')} className="ck-btn ck-btn-primary">
-                    <i className="bi bi-plus-lg" aria-hidden="true" /> {CREATE_LABEL.host}
+                {/* Host an event here duplicated the Go live tile above, so this is the photographer's own sale instead. */}
+                {activeTab === 'events' && canCreateEvents ? (
+                  <button type="button" onClick={handleSellPhotos} className="ck-btn ck-btn-primary" title={SELL_SUBTITLE}>
+                    <i className="bi bi-tag-fill" aria-hidden="true" /> Sell photos
                   </button>
                 ) : null}
                 {activeTab === 'photobooks' && canCreateEvents ? (
@@ -2416,6 +2495,14 @@ const PhotographerEventsPage = () => {
                                 <i className="bi bi-arrow-clockwise" style={{ fontSize: 11 }} /> Resend
                               </button>
                             ) : null}
+                            {notVisibleBadge(album) && (
+                              <button onClick={() => handleOpenFaceAI(album)} data-testid="not-visible-badge" title="This album is saved but buyers cannot find it yet" style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0.42rem 0.65rem', fontSize: '0.7rem', fontWeight: 700,
+                                background: 'transparent', color: colors.textPrimary, border: '1px solid #F5B400', borderRadius: 9, cursor: 'pointer',
+                              }}>
+                                <i className="bi bi-eye-slash" style={{ fontSize: 11 }} /> {notVisibleBadge(album)} · Publish
+                              </button>
+                            )}
                             {!(album.isStandalone && album.albumType === 'standalone' && !album.faceRecognitionEnabled && !album.inviteCode) && (
                               album.faceRecognitionEnabled ? (
                                 <span onClick={() => handleOpenFaceAI(album)} title="Album is live on Find-My-Photos" style={{
@@ -2671,6 +2758,14 @@ const PhotographerEventsPage = () => {
                               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                               ><i className="bi bi-arrow-clockwise" style={{ fontSize: 11 }} /> Resend</button>
                             ) : null}
+                            {notVisibleBadge(album) && (
+                              <button onClick={() => handleOpenFaceAI(album)} data-testid="not-visible-badge" title="This album is saved but buyers cannot find it yet" style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0.4rem 0.7rem', fontSize: '0.76rem', fontWeight: 700,
+                                background: 'transparent', color: colors.textPrimary, border: '1px solid #F5B400', borderRadius: 9, cursor: 'pointer',
+                              }}>
+                                <i className="bi bi-eye-slash" style={{ fontSize: 11 }} /> {notVisibleBadge(album)} · Publish
+                              </button>
+                            )}
                             {!(album.isStandalone && !album.faceRecognitionEnabled && !album.inviteCode) && (
                               album.faceRecognitionEnabled ? (
                                 <span onClick={() => handleOpenFaceAI(album)} style={{
@@ -3515,7 +3610,7 @@ const PhotographerEventsPage = () => {
           onDismissChange={getStarted.setForever}
           onPick={(key) => {
             getStarted.close();
-            if (key === 'new-album') { setActiveTab('albums'); handleOpenCreateAlbum(); }
+            if (key === 'new-album') { setActiveTab('albums'); handleSellPhotos(); }
             else if (key === 'photobook') { setActiveTab('photobooks'); setShowNewPhotobook(true); }
             else router.push('/user/photographer/host?new=1');
           }}
@@ -3549,8 +3644,8 @@ const PhotographerEventsPage = () => {
                   <i className="bi bi-plus-circle-fill" style={{ fontSize: 16, color: '#fff' }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 1 }}>New collection</div>
-                  <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Create Album</h2>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 1 }}>{sellPreset ? SELL_SUBTITLE : 'New collection'}</div>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>{sellPreset ? 'Sell photos' : 'Create Album'}</h2>
                 </div>
               </div>
               <button onClick={() => setShowCreateAlbumModal(false)} aria-label="Close" style={{
@@ -3564,7 +3659,9 @@ const PhotographerEventsPage = () => {
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textSecondary; }}
               ><i className="bi bi-x-lg" style={{ fontSize: 13 }} /></button>
             </div>
-            {/* Album Type Toggle */}
+            {/* Album Type Toggle (hidden for Sell photos: it is always a standalone PAID album) */}
+            {!sellPreset && (
+            <>
             <div style={{ display: 'flex', gap: 8, marginBottom: '1.1rem' }}>
               <button onClick={() => { setCreateAlbumMode('event'); setCreateAlbumEventId(''); setAlbumTitle(''); setAlbumDescription(''); setAlbumCategory(''); setUploadedImagePreviews([]); setSelectedFiles(null); }} style={{
                 flex: 1, padding: '0.8rem 0.9rem',
@@ -3609,6 +3706,8 @@ const PhotographerEventsPage = () => {
                 Personal Album
               </button>
             </div>
+            </>
+            )}
             {createAlbumMode === 'standalone' && (
               <>
                 <div style={{
@@ -3627,15 +3726,17 @@ const PhotographerEventsPage = () => {
                     background: 'linear-gradient(180deg, #8B5CF6 0%, #F20C8F 100%)',
                   }} />
                   <i className="bi bi-info-circle-fill" style={{ fontSize: 14, color: '#8B5CF6', flexShrink: 0, marginLeft: 4 }} />
-                  <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }}>
-                    Personal albums can be <strong style={{ color: '#083A85', fontWeight: 700 }}>PAID</strong> with facial recognition enabled, or <strong style={{ color: '#059669', fontWeight: 700 }}>FREE</strong> with private email access.
+                  <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }} data-testid="sell-note">
+                    {sellPreset ? SELL_FORM_NOTE : (<>Personal albums can be <strong style={{ color: '#083A85', fontWeight: 700 }}>PAID</strong> with facial recognition enabled, or <strong style={{ color: '#059669', fontWeight: 700 }}>FREE</strong> with private email access.</>)}
                   </span>
                 </div>
                 {/* Album Type Selector */}
+                {!sellPreset && (
                 <AlbumTypeSelector
                   selectedType={standaloneAlbumType}
                   onChange={setStandaloneAlbumType}
                 />
+                )}
               </>
             )}
             {/* Select Event (event mode only) */}
@@ -3652,7 +3753,8 @@ const PhotographerEventsPage = () => {
               <>
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Album Title <span style={{ color: '#EF4444' }}>*</span></label>
-                  <input value={albumTitle} onChange={e => setAlbumTitle(e.target.value)} style={inputStyle} placeholder="Enter album title" />
+                  <input value={albumTitle} onChange={e => { setAlbumTitle(e.target.value); if (sellErrors.title) setSellErrors(p => ({ ...p, title: undefined })); }} style={{ ...inputStyle, ...(sellErrors.title ? invalidFieldStyle(colors.statusError) : null) }} placeholder="Enter album title" {...invalidFieldProps('sell-title-error', sellErrors.title)} />
+                  <FieldError id="sell-title-error" message={sellErrors.title} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div>
@@ -3716,6 +3818,7 @@ const PhotographerEventsPage = () => {
                         colors={{ textPrimary: colors.textPrimary, textSecondary: colors.textSecondary, border: colors.borderPrimary, background: colors.bgTertiary }}
                       />
                     )}
+                    {sellPreset && <FieldError id="sell-price-error" message={sellErrors.price} />}
                   </>
                 )}
                 {/* Image Upload */}
@@ -3747,8 +3850,9 @@ const PhotographerEventsPage = () => {
                     </div>
                     <p style={{ fontSize: '0.88rem', color: colors.textPrimary, margin: '0.5rem 0 0 0', fontWeight: 700, letterSpacing: '-0.005em' }}>Click to upload photos</p>
                     <p style={{ fontSize: '0.76rem', color: colors.textSecondary, margin: '2px 0 0 0' }}>or drag & drop your files here</p>
-                    <input id="album-file-input" type="file" multiple accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+                    <input id="album-file-input" type="file" multiple accept="image/*" onChange={(e) => { handleFileSelect(e); if (sellErrors.photos) setSellErrors(p => ({ ...p, photos: undefined })); }} style={{ display: 'none' }} {...invalidFieldProps('sell-photos-error', sellErrors.photos)} />
                   </div>
+                  <FieldError id="sell-photos-error" message={sellErrors.photos} />
                   {uploadedImagePreviews.length > 0 && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginTop: '0.75rem' }}>
                       {uploadedImagePreviews.map((preview, i) => (
@@ -3766,26 +3870,26 @@ const PhotographerEventsPage = () => {
                   <button
                     onClick={handleCreateAlbum}
                     disabled={
+                      isUploadingAlbum || (!sellPreset && (
                       !albumTitle ||
                       (createAlbumMode === 'event' && !createAlbumEventId) ||
                       (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || !!paidAlbumPriceMsg)) ||
                       (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
-                      !selectedFiles || selectedFiles.length === 0 ||
-                      isUploadingAlbum
+                      !selectedFiles || selectedFiles.length === 0
+                      ))
                     }
                     style={{
                       ...primaryBtn,
-                      opacity: (
+                      opacity: (isUploadingAlbum || (!sellPreset && (
                         !albumTitle ||
                         (createAlbumMode === 'event' && !createAlbumEventId) ||
                         (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || !!paidAlbumPriceMsg)) ||
                         (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
-                        !selectedFiles || selectedFiles.length === 0 ||
-                        isUploadingAlbum
-                      ) ? 0.5 : 1
+                        !selectedFiles || selectedFiles.length === 0
+                      ))) ? 0.5 : 1
                     }}
                   >
-                    {isUploadingAlbum ? (uploadProgress || 'Uploading...') : (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' ? 'Publish to Face AI' : createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' ? 'Create & Send Invitation' : 'Create Album')}
+                    {isUploadingAlbum ? (uploadProgress || 'Uploading...') : sellPreset ? 'Upload and publish' : (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' ? 'Publish to Face AI' : createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' ? 'Create & Send Invitation' : 'Create Album')}
                   </button>
                 </div>
               </>
@@ -3828,28 +3932,37 @@ const PhotographerEventsPage = () => {
             {/* Success icon */}
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: albumSuccessModal.type === 'paid' ? 'rgba(59,130,246,0.1)' : 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke={albumSuccessModal.type === 'paid' ? '#3B82F6' : '#10B981'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d={albumSuccessModal.outcome?.state === 'failed' ? 'M12 7v6m0 4h.01' : 'M5 13l4 4L19 7'} stroke={albumSuccessModal.outcome?.state === 'failed' ? '#EF4444' : albumSuccessModal.type === 'paid' ? '#3B82F6' : '#10B981'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
 
             <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 0.35rem' }}>
-              {albumSuccessModal.type === 'paid' ? 'Published to Face AI' : 'Album Created & Invitation Sent'}
+              {albumSuccessModal.type === 'paid' ? (albumSuccessModal.outcome?.headline ?? 'Published to Face AI') : 'Album Created & Invitation Sent'}
             </h2>
             <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.25rem' }}>
               {albumSuccessModal.type === 'paid'
-                ? `"${albumSuccessModal.title}" is now live on Find My Photos with ${albumSuccessModal.photoCount} photos.`
+                ? `"${albumSuccessModal.title}": ${albumSuccessModal.photoCount} photo${albumSuccessModal.photoCount === 1 ? '' : 's'} uploaded.`
                 : `"${albumSuccessModal.title}" has been created and an invitation has been sent.`}
             </p>
+            {albumSuccessModal.type === 'paid' && albumSuccessModal.outcome && (
+              <div data-testid="publish-status" role="status" aria-live="polite" style={{
+                textAlign: 'left' as const, marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: 10, fontSize: '0.85rem', lineHeight: 1.5, color: colors.textPrimary,
+                border: `1px solid ${albumSuccessModal.outcome.state === 'failed' ? colors.statusError : albumSuccessModal.outcome.warn ? '#F5B400' : '#10B981'}`,
+              }}>
+                {retryingPublish ? 'Preparing your photos. This can take a minute for a large album.' : albumSuccessModal.outcome.status}
+                {albumSuccessModal.outcome.state === 'listed' && <div style={{ marginTop: 6, fontSize: '0.78rem', color: colors.textSecondary }}>{LISTING_NOTE}</div>}
+              </div>
+            )}
 
             {/* Details card */}
             <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.5rem 1.25rem', marginBottom: '1.25rem', textAlign: 'center' as const }}>
-              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
+              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && albumSuccessModal.outcome?.state !== 'failed' && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.5rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Invite Code</div>
                   <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#3B82F6', letterSpacing: '0.2em', fontFamily: 'monospace' }}>{albumSuccessModal.inviteCode}</div>
                 </div>
               )}
-              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
+              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && albumSuccessModal.outcome?.state !== 'failed' && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Find My Photos Link</div>
                   {/* Hardcoded host matches the URL MailService bakes into
@@ -3894,7 +4007,7 @@ const PhotographerEventsPage = () => {
               </div>
             </div>
 
-            {albumSuccessModal.albumId && (
+            {albumSuccessModal.albumId && albumSuccessModal.outcome?.state !== 'failed' && (
               <AlbumShareCard
                 albumId={albumSuccessModal.albumId}
                 title={albumSuccessModal.title}
@@ -3929,7 +4042,12 @@ const PhotographerEventsPage = () => {
                 Link = the same URL the invitation email's button uses.
                 Paid: ?code=<inviteCode>. Free: ?code=<accessCode>. */}
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {(albumSuccessModal.inviteCode || albumSuccessModal.accessCode) && (
+              {albumSuccessModal.outcome?.state === 'failed' && (
+                <button onClick={retryPublishAlbum} disabled={retryingPublish} style={{ ...primaryBtn, minWidth: '150px', opacity: retryingPublish ? 0.6 : 1 }}>
+                  {retryingPublish ? 'Publishing...' : 'Retry publishing'}
+                </button>
+              )}
+              {(albumSuccessModal.inviteCode || albumSuccessModal.accessCode) && albumSuccessModal.outcome?.state !== 'failed' && (
                 <button
                   onClick={() => {
                     const code = albumSuccessModal.type === 'paid' ? albumSuccessModal.inviteCode : albumSuccessModal.accessCode;
@@ -3950,7 +4068,7 @@ const PhotographerEventsPage = () => {
                 // email: the code is the secret and the server resolves the
                 // recipient from it.
                 let link: string | null = null;
-                if (albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode) {
+                if (albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && albumSuccessModal.outcome?.state !== 'failed') {
                   link = `https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.inviteCode}`;
                 } else if (albumSuccessModal.type === 'free' && albumSuccessModal.accessCode) {
                   link = `https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.accessCode}`;

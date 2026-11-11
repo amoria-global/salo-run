@@ -9,6 +9,10 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import CompleteProfileModal from '../../components/CompleteProfileModal';
+import HostEntryTiles from '../../components/HostEntryTiles';
+import { useHostEntry } from '../../components/useHostEntry';
+import { usePermissions } from '@/app/lib/usePermissions';
+import { SELL_PHOTOS_QUERY, SELL_SUBTITLE } from '../../../lib/albums/sellPhotos';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import {
@@ -189,6 +193,9 @@ const PhotographerDashboard = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
+  // The same two entries the mobile Home has: Sell photos, and Go live with My hosted events (the server decides who can host).
+  const { hasPermission } = usePermissions();
+  const { canHost, caption: hostedCaption } = useHostEntry();
   const router = useRouter();
 
   // Redirect pending/rejected photographers to their profile page
@@ -911,7 +918,19 @@ const PhotographerDashboard = () => {
               }}>
                 {staticMessage}
               </p>
+              {canHost && !isShared ? <HostEntryTiles caption={hostedCaption} /> : null}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+              {hasPermission('events.create') && !isShared ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/user/photographer/events?${SELL_PHOTOS_QUERY}`)}
+                  title={SELL_SUBTITLE}
+                  className="ck-btn ck-btn-primary"
+                  data-testid="home-sell-photos"
+                >
+                  <i className="bi bi-tag-fill" aria-hidden="true" /> Sell photos
+                </button>
+              ) : null}
               <button
                 onClick={toggleComparisonMode}
                 title={isComparisonMode ? 'Exit comparison mode' : 'Set target goals and compare them against your real stats to track progress'}
