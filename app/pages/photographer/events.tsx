@@ -42,6 +42,7 @@ import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 import ContentAlbumsTab from './ContentAlbumsTab';
 import { useRouter } from 'next/navigation';
 import GetStartedModal from '../../components/events/GetStartedModal';
+import SellChooserModal from '../../components/events/SellChooserModal';
 import NewPhotobookModal from '../../components/events/NewPhotobookModal';
 import { useGetStarted } from '../../lib/useGetStarted';
 import { CREATE_LABEL } from '../../lib/getStarted';
@@ -600,6 +601,9 @@ const PhotographerEventsPage = () => {
   const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; albumId?: string; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number; rejected?: string[]; outcome?: PublishOutcome; price?: string; currencyId?: string } | null>(null);
   // "Sell photos" presets the album form to a standalone PAID album, which is what Find my photos lists.
   const [sellPreset, setSellPreset] = useState(false);
+  // Every Sell photos entry opens this chooser first; the album forms open from its two options.
+  const [showSellChooser, setShowSellChooser] = useState(false);
+  const [contentCreateSignal, setContentCreateSignal] = useState(0);
   const [sellErrors, setSellErrors] = useState<Partial<Record<SellField, string>>>({});
   const [retryingPublish, setRetryingPublish] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
@@ -1568,12 +1572,20 @@ const PhotographerEventsPage = () => {
   };
 
   // The photographer's own one-click sale: the existing album form, preset to a PAID standalone album.
-  const handleSellPhotos = () => {
+  const startEventSale = () => {
     void handleOpenCreateAlbum();
     setCreateAlbumMode('standalone');
     setStandaloneAlbumType('PAID');
     setSellPreset(true);
   };
+
+  // Stock & content: the existing content album form, on the Content tab. No face scanning, no face credits.
+  const startContentSale = () => {
+    setActiveTab('content');
+    setContentCreateSignal((n) => n + 1);
+  };
+
+  const handleSellPhotos = () => setShowSellChooser(true);
 
   // Retry publishing: publish only, never re-upload. The album and its photos are already saved.
   const retryPublishAlbum = async () => {
@@ -3219,6 +3231,7 @@ const PhotographerEventsPage = () => {
             {/* ==================== CONTENT TAB ==================== */}
             {activeTab === 'content' && (
               <ContentAlbumsTab
+                openCreateSignal={contentCreateSignal}
                 currencies={currencies as any}
                 defaultCurrencyId={paidAlbumCurrencyId}
               />
@@ -3626,6 +3639,17 @@ const PhotographerEventsPage = () => {
         );
       })()}
 
+      {showSellChooser ? (
+        <SellChooserModal
+          onClose={() => setShowSellChooser(false)}
+          onPick={(key) => {
+            setShowSellChooser(false);
+            if (key === 'event') startEventSale();
+            else startContentSale();
+          }}
+        />
+      ) : null}
+
       {getStarted.open ? (
         <GetStartedModal
           actions={getStarted.actions}
@@ -3635,7 +3659,7 @@ const PhotographerEventsPage = () => {
           onDismissChange={getStarted.setForever}
           onPick={(key) => {
             getStarted.close();
-            if (key === 'new-album') { setActiveTab('albums'); handleSellPhotos(); }
+            if (key === 'new-album') handleSellPhotos();
             else if (key === 'photobook') { setActiveTab('photobooks'); setShowNewPhotobook(true); }
             else router.push('/user/photographer/host?new=1');
           }}

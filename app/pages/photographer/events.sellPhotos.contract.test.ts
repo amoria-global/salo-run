@@ -18,18 +18,18 @@ describe('photographer Events page: Sell photos', () => {
   });
 
   it('opens the existing album form preset to a standalone PAID album', () => {
-    const handler = SOURCE.slice(SOURCE.indexOf('const handleSellPhotos'), SOURCE.indexOf('// Retry publishing'));
+    const handler = SOURCE.slice(SOURCE.indexOf('const startEventSale'), SOURCE.indexOf('// Stock & content'));
     expect(handler).toContain('handleOpenCreateAlbum()');
     expect(handler).toContain("setCreateAlbumMode('standalone')");
     expect(handler).toContain("setStandaloneAlbumType('PAID')");
     expect(handler).toContain('setSellPreset(true)');
     expect(SOURCE).toContain("params.get('sell') !== '1'");
-    // The Get started row for a photographer is Sell photos too, and opens the same preset.
-    expect(SOURCE).toContain("if (key === 'new-album') { setActiveTab('albums'); handleSellPhotos(); }");
+    // The Get started row for a photographer is Sell photos too, and opens the chooser like every other entry.
+    expect(SOURCE).toContain("if (key === 'new-album') handleSellPhotos();");
   });
 
   it('every other way to open the album form clears the preset', () => {
-    const open = SOURCE.slice(SOURCE.indexOf('const handleOpenCreateAlbum'), SOURCE.indexOf('const handleSellPhotos'));
+    const open = SOURCE.slice(SOURCE.indexOf('const handleOpenCreateAlbum'), SOURCE.indexOf('const startEventSale'));
     expect(open).toContain('setSellPreset(false)');
   });
 
