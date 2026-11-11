@@ -50,7 +50,7 @@ import PhotographerOpportunitiesView from '../../components/hybrid/PhotographerO
 import { AlbumShareCard } from '../../components/albums/AlbumShareCard';
 import { FieldError, invalidFieldProps, invalidFieldStyle } from '../../components/errors/FieldError';
 import {
-  describePublishFailure, LISTING_NOTE, notVisibleBadge, publishOutcome, sellFieldErrors, SELL_FORM_NOTE, SELL_SUBTITLE,
+  describePublishFailure, LISTING_NOTE, notVisibleBadge, outcomeFromIndexing, publishOutcome, sellFieldErrors, SELL_FORM_NOTE, SELL_SUBTITLE,
   type PublishOutcome, type SellField,
 } from '../../../lib/albums/sellPhotos';
 import { albumShareUrl } from '@/lib/albums/albumShare';
@@ -1591,7 +1591,11 @@ const PhotographerEventsPage = () => {
       const json = await res.json().catch(() => null);
       if (res.ok && json?.action !== 0) {
         inviteCode = json?.data?.inviteCode || inviteCode;
-        outcome = publishOutcome({ published: true, facesIndexed: typeof json?.data?.facesIndexed === 'number' ? json.data.facesIndexed : undefined });
+        outcome = publishOutcome({
+          published: true,
+          facesIndexed: typeof json?.data?.facesIndexed === 'number' ? json.data.facesIndexed : undefined,
+          indexing: json?.data?.indexing === true ? { total: Number(json.data.indexingTotal) || 0, done: Number(json.data.indexingDone) || 0 } : undefined,
+        });
       } else {
         outcome = publishOutcome({ failure: describePublishFailure({ status: res.status, body: json }) });
       }
@@ -1604,6 +1608,24 @@ const PhotographerEventsPage = () => {
     }
     setRetryingPublish(false);
   };
+
+  // A large album is indexed in the background: follow it while the result modal is open, until it is ready or has failed.
+  const preparingAlbumId = albumSuccessModal?.outcome?.state === 'preparing' ? albumSuccessModal.albumId : undefined;
+  useEffect(() => {
+    if (!preparingAlbumId) return;
+    let stopped = false;
+    const timer = setInterval(async () => {
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${preparingAlbumId}/face-status`);
+        const json = await res.json().catch(() => null);
+        const next = outcomeFromIndexing(json?.data?.indexing);
+        if (!stopped && next) setAlbumSuccessModal(prev => (prev && prev.albumId === preparingAlbumId ? { ...prev, outcome: next } : prev));
+      } catch {
+        // A missed poll is not a failure: the next one will say.
+      }
+    }, 4000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [preparingAlbumId, apiUrl]);
 
   // Deep link from Home and the Get started sheet: /user/photographer/events?sell=1
   useEffect(() => {
@@ -1774,6 +1796,7 @@ const PhotographerEventsPage = () => {
     // publishes again (never re-uploads); it is never swallowed, so an album cannot silently stay invisible.
     let publishedToFaceAI = false;
     let facesIndexed: number | undefined;
+    let indexingProgress: { total: number; done: number } | undefined;
     let publishFailure: ReturnType<typeof describePublishFailure> | undefined;
     if (isStandalone && standaloneAlbumType === 'PAID' && backendAlbumId) {
       try {
@@ -1787,6 +1810,8 @@ const PhotographerEventsPage = () => {
         if (pubRes.ok && pubResult?.action !== 0) {
           backendInviteCode = pubResult?.data?.inviteCode || backendInviteCode;
           facesIndexed = typeof pubResult?.data?.facesIndexed === 'number' ? pubResult.data.facesIndexed : undefined;
+          // A large album is published at once and indexed in the background; the result modal follows its progress.
+          if (pubResult?.data?.indexing === true) indexingProgress = { total: Number(pubResult.data.indexingTotal) || 0, done: Number(pubResult.data.indexingDone) || 0 };
           publishedToFaceAI = true;
           // If publish didn't return an invite code, generate one
           if (!backendInviteCode) {
@@ -1837,7 +1862,7 @@ const PhotographerEventsPage = () => {
         accessCode: backendAccessCode || undefined,
         photoCount: albumImages.length,
         rejected: rejectedMessages.length > 0 ? rejectedMessages : undefined,
-        outcome: standaloneAlbumType === 'PAID' ? publishOutcome({ published: publishedToFaceAI, facesIndexed, failure: publishFailure }) : undefined,
+        outcome: standaloneAlbumType === 'PAID' ? publishOutcome({ published: publishedToFaceAI, facesIndexed, indexing: indexingProgress, failure: publishFailure }) : undefined,
         price: standaloneAlbumType === 'PAID' ? paidAlbumPrice : undefined,
         currencyId: standaloneAlbumType === 'PAID' ? paidAlbumCurrencyId : undefined,
       });
@@ -3947,10 +3972,15 @@ const PhotographerEventsPage = () => {
             {albumSuccessModal.type === 'paid' && albumSuccessModal.outcome && (
               <div data-testid="publish-status" role="status" aria-live="polite" style={{
                 textAlign: 'left' as const, marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: 10, fontSize: '0.85rem', lineHeight: 1.5, color: colors.textPrimary,
-                border: `1px solid ${albumSuccessModal.outcome.state === 'failed' ? colors.statusError : albumSuccessModal.outcome.warn ? '#F5B400' : '#10B981'}`,
+                border: `1px solid ${albumSuccessModal.outcome.state === 'failed' ? colors.statusError : albumSuccessModal.outcome.state === 'preparing' ? '#3B82F6' : albumSuccessModal.outcome.warn ? '#F5B400' : '#10B981'}`,
               }}>
                 {retryingPublish ? 'Preparing your photos. This can take a minute for a large album.' : albumSuccessModal.outcome.status}
-                {albumSuccessModal.outcome.state === 'listed' && <div style={{ marginTop: 6, fontSize: '0.78rem', color: colors.textSecondary }}>{LISTING_NOTE}</div>}
+                {albumSuccessModal.outcome.state === 'preparing' && albumSuccessModal.outcome.total > 0 && (
+                  <div role="progressbar" aria-valuemin={0} aria-valuemax={albumSuccessModal.outcome.total} aria-valuenow={Math.min(albumSuccessModal.outcome.done, albumSuccessModal.outcome.total)} style={{ marginTop: 8, height: 6, borderRadius: 3, background: colors.bgTertiary, overflow: 'hidden' }}>
+                    <div style={{ height: 6, borderRadius: 3, background: '#3B82F6', width: `${Math.round((Math.min(albumSuccessModal.outcome.done, albumSuccessModal.outcome.total) / albumSuccessModal.outcome.total) * 100)}%`, transition: 'width 0.4s' }} />
+                  </div>
+                )}
+                {albumSuccessModal.outcome.state !== 'failed' && <div style={{ marginTop: 6, fontSize: '0.78rem', color: colors.textSecondary }}>{LISTING_NOTE}</div>}
               </div>
             )}
 

@@ -75,3 +75,18 @@ describe('photographer Events page: publishing is never silent', () => {
     expect(SOURCE.split('· Publish').length - 1).toBe(2);
   });
 });
+
+describe('photographer Events page: large albums are indexed in the background', () => {
+  it('carries the indexing totals from the publish answer and follows face-status while the modal is open', () => {
+    expect(SOURCE).toContain("pubResult?.data?.indexing === true");
+    expect(SOURCE).toContain('/face-status`');
+    expect(SOURCE).toContain('outcomeFromIndexing(json?.data?.indexing)');
+    expect(SOURCE).toContain("albumSuccessModal?.outcome?.state === 'preparing'");
+  });
+
+  it('shows a progress bar and keeps the listing note while preparing, and stops polling when it is done or failed', () => {
+    expect(SOURCE).toContain('role="progressbar"');
+    expect(SOURCE).toContain("return () => { stopped = true; clearInterval(timer); };");
+  });
+});
+

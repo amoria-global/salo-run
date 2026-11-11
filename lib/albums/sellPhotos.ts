@@ -49,9 +49,32 @@ export function describePublishFailure(r: { status?: number; body?: { message?: 
 
 export type PublishOutcome =
   | { state: 'listed'; headline: string; status: string; facesIndexed: number; warn: boolean }
+  | { state: 'preparing'; headline: string; status: string; total: number; done: number }
   | { state: 'failed'; headline: string; status: string; failure: PublishFailure };
 
-export function publishOutcome(r: { published?: boolean; facesIndexed?: number; failure?: PublishFailure }): PublishOutcome {
+/** A large album is published at once and indexed in the background: say how far it has got. */
+export function preparingOutcome(total: number, done: number): PublishOutcome {
+  const status = total > 0
+    ? `Preparing ${Math.min(done, total)} of ${total} photos. Buyers can already find the ones that are ready.`
+    : 'Preparing your photos. Buyers can already find the ones that are ready.';
+  return { state: 'preparing', headline: LISTED_HEADLINE, status, total, done };
+}
+
+/** What a face-status poll means for the result. Null while the status says nothing about background indexing. */
+export function outcomeFromIndexing(s: { status?: string; total?: number; done?: number } | null | undefined): PublishOutcome | null {
+  if (!s) return null;
+  const total = typeof s.total === 'number' ? s.total : 0;
+  const done = typeof s.done === 'number' ? s.done : 0;
+  if (s.status === 'INDEXING') return preparingOutcome(total, done);
+  if (s.status === 'DONE') return publishOutcome({ published: true, facesIndexed: done });
+  if (s.status === 'FAILED') {
+    return publishOutcome({ failure: { kind: 'other', message: 'Preparing the photos did not finish. Click Retry publishing and it starts again. Nothing is uploaded twice.' } });
+  }
+  return null;
+}
+
+export function publishOutcome(r: { published?: boolean; facesIndexed?: number; indexing?: { total: number; done: number }; failure?: PublishFailure }): PublishOutcome {
+  if (r.published && r.indexing) return preparingOutcome(r.indexing.total, r.indexing.done);
   if (r.published) {
     const n = r.facesIndexed ?? 0;
     return n > 0
