@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { describePublishFailure, LISTED_HEADLINE, notVisibleBadge, publishOutcome, sellFieldErrors } from './sellPhotos';
+import { describePublishFailure, LISTED_HEADLINE, notVisibleBadge, outcomeFromIndexing, preparingOutcome, publishOutcome, sellFieldErrors } from './sellPhotos';
 
 const ok = { title: 'Kigali', price: '2000', currencyId: 'RWF', priceMsg: null, photoCount: 3 };
 
@@ -71,5 +71,28 @@ describe('notVisibleBadge', () => {
     expect(notVisibleBadge({ isStandalone: true, faceRecognitionEnabled: true })).toBeNull();
     expect(notVisibleBadge({ isStandalone: true, isFreeAlbum: true })).toBeNull();
     expect(notVisibleBadge({ albumType: 'event' })).toBeNull();
+  });
+});
+
+describe('a large album indexed in the background', () => {
+  it('a published album still being indexed says how far it got, not "no faces"', () => {
+    const o = publishOutcome({ published: true, facesIndexed: 0, indexing: { total: 120, done: 15 } });
+    expect(o).toMatchObject({ state: 'preparing', headline: LISTED_HEADLINE, total: 120, done: 15 });
+    expect(o.status).toBe('Preparing 15 of 120 photos. Buyers can already find the ones that are ready.');
+  });
+  it('never shows more done than total, and an unknown total reads cleanly', () => {
+    expect(preparingOutcome(10, 14).status).toContain('Preparing 10 of 10');
+    expect(preparingOutcome(0, 0).status).toBe('Preparing your photos. Buyers can already find the ones that are ready.');
+  });
+  it('polling: INDEXING stays preparing, DONE is listed, FAILED is a failure with Retry publishing', () => {
+    expect(outcomeFromIndexing({ status: 'INDEXING', total: 40, done: 20 })).toMatchObject({ state: 'preparing', done: 20 });
+    expect(outcomeFromIndexing({ status: 'DONE', total: 40, done: 40 })).toMatchObject({ state: 'listed', warn: false, facesIndexed: 40 });
+    const failed = outcomeFromIndexing({ status: 'FAILED', total: 40, done: 12 });
+    expect(failed).toMatchObject({ state: 'failed' });
+    expect(failed?.status).toMatch(/Retry publishing/);
+  });
+  it('a status that says nothing about background indexing changes nothing', () => {
+    expect(outcomeFromIndexing(undefined)).toBeNull();
+    expect(outcomeFromIndexing({ status: 'WHAT' })).toBeNull();
   });
 });
