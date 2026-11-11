@@ -9,6 +9,10 @@ import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { checkMessageContent, checkMessageWithHistory } from '@/lib/messageFilter';
+import { ChatThreadFrame, ChatLayoutStyles } from '../../components/chat/ChatThreadFrame';
+import { SpecialMessage, ShareAlbumButton } from '../../components/chat/ChatAlbumShare';
+import { lastMessagePreview, partnerProfileHref } from '../../components/chat/chatShared';
+import { useWorkspace } from '../../providers/WorkspaceProvider';
 
 const normalizeImg = (url: string | undefined | null): string => {
   if (!url || url === 'null' || url.endsWith('/null')) return '';
@@ -111,7 +115,8 @@ interface Message {
   senderName: string;
   senderImage: string;
   content: string;
-  type: 'text' | 'image' | 'file' | 'booking_request' | 'system';
+  type: 'text' | 'image' | 'file' | 'booking_request' | 'system' | 'removed' | 'album_share';
+  albumShare?: { albumIds: string[]; note?: string };
   attachments?: { type: string; url: string; name: string; size: number }[];
   isRead: boolean;
   createdAt: string;
@@ -122,6 +127,7 @@ interface Conversation {
   participants: Participant[];
   lastMessage?: {
     content: string;
+    type?: string;
     senderId: string;
     createdAt: string;
   };
@@ -176,6 +182,9 @@ const InboxPage = () => {
   };
 
   const currentUserId = user?.id || '';
+  const { isShared, isCollaborator } = useWorkspace();
+  // Albums belong to the photographer. A workspace session acts for the owner, so it never offers the "+".
+  const canShareAlbums = !isShared && !isCollaborator;
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   conversationsRef.current = conversations;
@@ -235,6 +244,7 @@ const InboxPage = () => {
                     senderImage: normalizeImg(m.senderImage || m.sender?.image),
                     content: m.content || m.message || '',
                     type: (m.type || 'text') as Message['type'],
+                    albumShare: m.albumShare && Array.isArray(m.albumShare.albumIds) ? { albumIds: m.albumShare.albumIds.map(String), note: m.albumShare.note || undefined } : undefined,
                     attachments: m.attachments || [],
                     isRead: m.isRead ?? true,
                     createdAt: m.createdAt || m.sentAt || new Date().toISOString(),
@@ -568,7 +578,8 @@ const InboxPage = () => {
   const otherParticipant = selectedConv ? getOtherParticipant(selectedConv) : null;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div className="chat-viewport" style={{ display: 'flex', backgroundColor: colors.bgPrimary }}>
+      <ChatLayoutStyles />
       <style>{`
         @media (max-width: 768px) {
           .mobile-inbox-container {
@@ -615,16 +626,6 @@ const InboxPage = () => {
             border-radius: 0.5rem !important;
             transition: all 0.2s ease !important;
           }
-          .mobile-messages-area {
-            padding: 1.5rem 1rem !important;
-            padding-bottom: 8rem !important;
-          }
-          .mobile-message-input-container {
-            padding: 1rem !important;
-            padding-bottom: 5rem !important;
-            background: rgba(8, 58, 133, 0.02) !important;
-            border-top: 2px solid rgba(8, 58, 133, 0.1) !important;
-          }
           .mobile-message-input-container input {
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
             border: 2px solid rgba(8, 58, 133, 0.15) !important;
@@ -668,14 +669,6 @@ const InboxPage = () => {
           .mobile-filter-tabs button {
             font-size: 0.75rem !important;
             padding: 0.5rem 0.75rem !important;
-          }
-          .mobile-messages-area {
-            padding: 1rem 0.75rem !important;
-            padding-bottom: 10rem !important;
-          }
-          .mobile-message-input-container {
-            padding: 0.75rem !important;
-            padding-bottom: 7rem !important;
           }
         }
         @media (min-width: 769px) {
@@ -850,7 +843,7 @@ const InboxPage = () => {
                           maxWidth: '200px'
                         }}>
                           {conv.lastMessage?.senderId === currentUserId && 'You: '}
-                          {conv.lastMessage?.content}
+                          {lastMessagePreview(conv.lastMessage)}
                         </p>
                         {conv.unreadCount > 0 && (
                           <span style={{
@@ -954,9 +947,15 @@ const InboxPage = () => {
                   </div>
 
                 {/* Messages */}
-                <div className="mobile-messages-area" style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: colors.bgTertiary }}>
-                  {selectedConv.messages.map((message, index) => {
+                <ChatThreadFrame
+                  messages={selectedConv.messages}
+                  endRef={messagesEndRef}
+                  partner={{ name: otherParticipant.name, image: otherParticipant.image, userType: otherParticipant.userType, profileHref: partnerProfileHref(otherParticipant) }}
+                  renderMessage={(message, index) => {
                     const isOwn = message.senderId === currentUserId;
+                    if (message.type === 'removed' || message.type === 'album_share') {
+                      return <SpecialMessage message={message} isOwn={isOwn} time={formatMessageTime(message.createdAt)} />;
+                    }
                     const showAvatar = index === 0 || selectedConv.messages[index - 1].senderId !== message.senderId;
                     const isEditing = editingMessageId === message.id;
 
@@ -966,7 +965,7 @@ const InboxPage = () => {
                         style={{
                           display: 'flex',
                           justifyContent: isOwn ? 'flex-end' : 'flex-start',
-                          marginBottom: '0.75rem'
+                          marginBottom: '0.4rem'
                         }}
                         onMouseEnter={() => setHoveredMessageId(message.id)}
                         onMouseLeave={() => setHoveredMessageId(null)}
@@ -1141,9 +1140,8 @@ const InboxPage = () => {
                         </div>
                       </div>
                     );
-                  })}
-                  <div ref={messagesEndRef} />
-                </div>
+                  }}
+                />
 
                 {/* Message Input */}
                 <div className="mobile-message-input-container" style={{ padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}`, position: 'relative' }}>
@@ -1279,6 +1277,13 @@ const InboxPage = () => {
                   )}
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    {canShareAlbums && otherParticipant ? (
+                      <ShareAlbumButton
+                        partnerId={otherParticipant.id}
+                        partnerName={otherParticipant.name}
+                        onSent={() => { void loadMessages(otherParticipant.id); void fetchConversations(); }}
+                      />
+                    ) : null}
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                       style={{
