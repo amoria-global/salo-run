@@ -33,5 +33,15 @@ describe('initiateGalleryRestorePayment', () => {
     reply({ action: 0, code: 'AMBIGUOUS', message: 'We could not confirm whether the payment prompt was sent. Check your phone before trying again.' });
     const r = await initiateGalleryRestorePayment('g1', '0788', 'MTN', 'MOBILE_MONEY');
     expect(r.error).toContain('Check your phone');
+    expect(r.ambiguous).toBe(true);
+  });
+
+  it('flags an attempt that is still open as not retryable, and a plain refusal as retryable', async () => {
+    reply({ action: 0, code: 'IN_PROGRESS', message: 'A restore payment for this album is already in progress. Check your phone before trying again.' });
+    expect((await initiateGalleryRestorePayment('g1', '0788', 'MTN', 'MOBILE_MONEY')).ambiguous).toBe(true);
+    reply({ action: 0, message: 'The operator you chose does not match this phone number.' });
+    const plain = await initiateGalleryRestorePayment('g1', '0788', 'AIRTEL', 'MOBILE_MONEY');
+    expect(plain.success).toBe(false);
+    expect(plain.ambiguous).toBeUndefined();
   });
 });

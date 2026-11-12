@@ -249,7 +249,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
       const phone = selectedPaymentMethod === 'card' ? '' : (paymentPhone?.digits ?? '');
       const country = payCountry ?? undefined;
 
-      let result;
+      let result: Awaited<ReturnType<typeof initiateBookingPayment>> & { ambiguous?: boolean };
       if (isArchive && payment?.galleryId && !payment?.eventId) {
         result = await initiateGalleryRestorePayment(payment.galleryId, phone, telecom, methodType, undefined, country);
       } else if (isArchive && payment?.eventId) {
@@ -279,7 +279,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
       }
 
       if (!result.success || !result.data) {
-        failPayment('declined', result.error || 'Payment could not be initiated. Please check your payment details and try again.');
+        // An outcome we cannot vouch for never reads as a plain decline with a Retry button.
+        failPayment(result.ambiguous ? 'unknown' : 'declined', result.error || 'Payment could not be initiated. Please check your payment details and try again.');
         return;
       }
 

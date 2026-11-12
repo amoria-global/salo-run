@@ -216,7 +216,7 @@ export async function initiateGalleryRestorePayment(
   redirectUrl?: string,
   /** ISO-2 country code. Drives backend gateway selection. */
   country?: string
-): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
+): Promise<{ success: boolean; data?: XentriPayResponse; error?: string; ambiguous?: boolean }> {
   try {
     const body: Record<string, unknown> = { paymentMethod };
     if (phone) body.phone = phone;
@@ -241,8 +241,10 @@ export async function initiateGalleryRestorePayment(
       };
     }
     // A prompt that may already be on the phone is never offered again as a plain retry.
-    if (result?.code === 'AMBIGUOUS') {
-      return { success: false, error: result.message };
+    // AMBIGUOUS: the prompt may already be on the phone. IN_PROGRESS: an earlier attempt is still open. Either way the
+    // caller must not offer a plain retry, so it is flagged for the "not confirmed yet" view.
+    if (result?.code === 'AMBIGUOUS' || result?.code === 'IN_PROGRESS') {
+      return { success: false, error: result.message, ambiguous: true };
     }
     return { success: false, error: sanitizeErrorMessage(result?.message, 'Failed to start the restore payment. Please try again.') };
   } catch (error) {
