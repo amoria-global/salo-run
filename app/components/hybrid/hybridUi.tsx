@@ -59,7 +59,7 @@ export function TierBadge({ tier }: { tier: RecommendationTier }) {
         background: t.bg, color: t.color, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.02em',
       }}
     >
-      <i className={`bi ${tier === 'HIGH' ? 'bi-stars' : tier === 'MEDIUM' ? 'bi-hand-thumbs-up' : 'bi-check2'}`} aria-hidden />
+      <i className={`bi ${t.icon || (tier === 'HIGH' ? 'bi-stars' : tier === 'MEDIUM' ? 'bi-hand-thumbs-up' : 'bi-check2')}`} aria-hidden />
       {t.label}
     </span>
   );

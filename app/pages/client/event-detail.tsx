@@ -447,6 +447,18 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
             }));
 
           setPayments(eventPayments);
+          if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pay') === '1') {
+            const pendingPayment = eventPayments.find(
+              (p) => (p.status || '').toUpperCase() === 'PENDING' || (p.status || '').toUpperCase() === 'PARTIAL'
+            );
+            if (pendingPayment) {
+              setSelectedPayNowPayment(convertToPayNowPayment(pendingPayment));
+              setShowPayNowModal(true);
+              const url = new URL(window.location.href);
+              url.searchParams.delete('pay');
+              window.history.replaceState({}, '', url.toString());
+            }
+          }
         }
       } catch {
         // Payments fetch failure is non-critical

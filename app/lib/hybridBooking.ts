@@ -1,5 +1,6 @@
 import { getApiUrl } from '@/lib/api';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
+import type { PackageBenchmarkStats } from './offerBrief';
 
 /**
  * "Post My Event" (hybrid booking) calls. Every path goes through the
@@ -11,7 +12,21 @@ import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 
 export type PhotographerType = 'FREELANCER' | 'STUDIO' | 'ANY';
 export type LocationCoverage = 'SAME_CITY' | 'NEARBY_CITY' | 'ANY';
-export type RecommendationTier = 'HIGH' | 'MEDIUM' | 'LOW';
+export type SmartMatchTier = 'PREMIUM' | 'PREFERRED' | 'SUGGESTED' | 'ALTERNATIVE';
+export type RecommendationTier = 'HIGH' | 'MEDIUM' | 'LOW' | SmartMatchTier;
+export type OpportunityDeliveryPolicy = 'CLIENT' | 'PHOTOGRAPHER_PACKAGE';
+export type OpportunityPricingMode = 'CLIENT_OFFER' | 'PACKAGE';
+
+export type ApproveOpportunityOptions = {
+  deliveryPolicy?: OpportunityDeliveryPolicy;
+  pricingMode?: OpportunityPricingMode;
+  packageId?: string;
+  packageName?: string;
+  proposedPrice?: number;
+  currency?: string;
+  deliveryDays?: number;
+  packageDescription?: string;
+};
 
 /** What the wizard offers; the same list the iOS and Android apps show. */
 export interface HybridOptions {
@@ -32,6 +47,7 @@ export interface HybridOptions {
   firstBatchSize: number;
   escrowOptions: number[];
   instagramRequired: boolean;
+  packageBenchmarks?: PackageBenchmarkStats;
 }
 
 /** Field names are the backend's MatchPreviewRequestDTO. */
@@ -52,10 +68,38 @@ export interface MatchPreviewPayload {
   photographerSpecialty?: string;
   locationCoverage?: LocationCoverage;
   eventId?: string;
+  /** Client deliverables & turnaround scope for internal package recommendation pricing. */
+  coverageMode?: string;
+  clientType?: string;
+  editedPhotos?: number;
+  shortVideosQty?: number;
+  shortVideosDuration?: string;
+  longVideosQty?: number;
+  longVideosDuration?: string;
+  instantUpdates?: boolean;
+  digitalDeliveryDays?: number;
+  hasLiveStream?: boolean;
+  allowWishInvites?: boolean;
+  photoBooksQty?: number;
+  photoBookSize?: string;
+  photoBookPages?: string;
+  photoBookPhotos?: number;
+  photoAlbumsQty?: number;
+  photoAlbumSize?: string;
+  photoAlbumPrints?: string;
+  wallPortraitsQty?: number;
+  wallPortraitSize?: string;
+  wallPortraitFrame?: string;
+  printProductionTime?: string;
+  printProposedDate?: string;
+  printCollectionMethod?: string;
+  editingStyle?: string;
+  usageRights?: string;
 }
 
 export interface MatchPreviewResult {
   count: number;
+  matchCount: number;
   durationMinutes?: number;
   durationLabel?: string;
   firstBatchSize?: number;
@@ -72,10 +116,19 @@ export interface MatchPreviewResult {
     sameCity?: number;
     nearbyFallback?: boolean;
   };
+  /** Advisory package price bands computed from active uploaded photographer packages. */
+  packagePriceLow?: number;
+  packagePriceRecommended?: number;
+  packagePricePriority?: number;
 }
 
 /** Field names are the backend's CreateMatchRequestDTO. */
 export interface MatchRequestPayload {
+  title?: string;
+  eventDate?: string;
+  startTime?: string;
+  endTime?: string;
+  location?: string;
   minBudget?: number;
   maxBudget?: number;
   currency?: string;
@@ -90,6 +143,54 @@ export interface MatchRequestPayload {
   venue?: string;
   latitude?: number;
   longitude?: number;
+  hasLiveStream?: boolean;
+  allowWishInvites?: boolean;
+  minimumPhotos?: number;
+  clientType?: string;
+  digitalDeliveryDays?: number;
+  printDeliveryMethod?: string;
+  printDeliveryAddress?: string;
+  printProposedDate?: string;
+}
+
+export interface HybridDraftPayload {
+  eventId?: string;
+  title?: string;
+  eventType?: string;
+  eventCategoryId?: string;
+  eventDate?: string;
+  startTime?: string;
+  endTime?: string;
+  city?: string;
+  venue?: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  description?: string;
+  minBudget?: number;
+  maxBudget?: number;
+  hasLiveStream?: boolean;
+  allowWishInvites?: boolean;
+  minimumPhotos?: number;
+  draftStep?: 1 | 2 | 3 | 4 | 5;
+}
+
+export interface HybridDraftResponse {
+  id: string;
+  title?: string;
+  description?: string;
+  eventDate?: string;
+  startTime?: string;
+  endTime?: string;
+  city?: string;
+  venue?: string;
+  location?: string;
+  minBudget?: number;
+  maxBudget?: number;
+  eventStatus?: string;
+  bookingStatus?: string;
+  isPublished?: boolean;
+  updatedAt?: string;
 }
 
 export interface PhotographerOpportunity {
@@ -101,6 +202,7 @@ export interface PhotographerOpportunity {
   eventDate: string;
   startTime: string;
   endTime?: string;
+  durationHours?: number;
   durationMinutes?: number;
   durationLabel?: string;
   eventStartAt?: string;
@@ -122,13 +224,27 @@ export interface PhotographerOpportunity {
   instructions?: string;
   requiredSpecialty?: string;
   photographerTypeRequested?: string;
+  matchedPackageId?: string;
+  matchedPackageName?: string;
+  matchedPackagePrice?: number;
+  matchedPackageCurrency?: string;
+  matchedPackageDeliveryDays?: number;
+  matchedPackageDescription?: string;
+  deliveryPolicy?: OpportunityDeliveryPolicy;
+  pricingMode?: OpportunityPricingMode;
+  proposedPrice?: number;
+  hasLiveStream?: boolean;
+  allowWishInvites?: boolean;
+  minimumPhotos?: number;
 }
 
 export interface CandidateSummary {
   candidateId?: string;
   photographerId: string;
   photographerName: string;
+  name: string;
   profilePicture?: string;
+  avatar?: string;
   photographerType?: string;
   rating?: number;
   reviewCount?: number;
@@ -136,15 +252,31 @@ export interface CandidateSummary {
   distanceLabel?: string;
   city?: string;
   sameCity?: boolean;
-  /** The backend sends the photographer's package range as text, e.g. "100,000 - 150,000 RWF". */
   typicalPriceRange?: string;
   recommendationTier: RecommendationTier;
+  smartTier?: SmartMatchTier;
+  matchScore?: number;
+  primarySpecialty?: string;
   rank?: number;
   instagramHandle?: string;
   instagramFollowers?: number;
   slug?: string;
   about?: string;
   specialties: string[];
+  approvedAt?: string;
+  deliveryPolicy?: OpportunityDeliveryPolicy;
+  packageDeliveryDays?: number;
+  packageDeliveryDescription?: string;
+  matchedPackageId?: string;
+  matchedPackageName?: string;
+  matchedPackagePrice?: number;
+  matchedPackageCurrency?: string;
+  matchedPackagePhotos?: number;
+  matchedPackageVideos?: number;
+  matchedPackageHours?: number;
+  pricingMode?: OpportunityPricingMode;
+  proposedPrice?: number;
+  agreedPrice?: number;
 }
 
 export interface CandidatesOverview {
@@ -179,6 +311,8 @@ export interface SelectPhotographerPayload {
   candidateId?: string;
   photographerId: string;
   packageId?: string;
+  agreedPrice?: number;
+  proposedPrice?: number;
   escrowPercentage?: number;
   notes?: string;
 }
@@ -196,15 +330,15 @@ export interface SelectPhotographerResult {
 export interface HybridProfile {
   instagramHandle?: string;
   instagramStatus: 'NONE' | 'PENDING' | 'CONNECTED' | 'NOT_FOUND';
-  /** A replacement handle waiting for admin approval; instagramHandle stays live until then. */
   pendingInstagramHandle?: string;
-  /** The saved handle is waiting for an admin to approve removing it. */
   pendingInstagramRemoval?: boolean;
   city?: string;
   resolvedCity?: string;
   needsCity: boolean;
   needsInstagram: boolean;
 }
+
+const candidatePricingOverrides = new Map<string, ApproveOpportunityOptions>();
 
 type Envelope<T> = { action?: number; message?: string; error?: string; data?: T };
 
@@ -240,13 +374,11 @@ const num = (v: unknown): number | undefined => (typeof v === 'number' && Number
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== '' ? v : undefined);
 const tier = (v: unknown): RecommendationTier =>
   v === 'HIGH' || v === 'MEDIUM' || v === 'LOW' ? v : 'LOW';
+const smartTier = (v: unknown): SmartMatchTier | undefined =>
+  v === 'PREMIUM' || v === 'PREFERRED' || v === 'SUGGESTED' || v === 'ALTERNATIVE' ? v : undefined;
 
 // ───────────────────────── server clock ─────────────────────────
 
-/**
- * Countdowns run on the server's clock, not the device's: the difference is
- * learned from any response that carries serverNow, or from /public/time.
- */
 let serverOffsetMs = 0;
 
 function noteServerTime(serverNow: unknown) {
@@ -301,12 +433,84 @@ export async function previewMatchCount(payload: MatchPreviewPayload): Promise<M
   if (count === undefined) throw new HybridApiError('Could not count matching photographers.', 500);
   return {
     count,
+    matchCount: count,
     durationMinutes: num(data?.durationMinutes),
     durationLabel: str(data?.durationLabel),
     firstBatchSize: num(data?.firstBatchSize),
     tierCounts: (data?.tierCounts as MatchPreviewResult['tierCounts']) || undefined,
     breakdown: data?.breakdown as MatchPreviewResult['breakdown'],
+    packagePriceLow: num(data?.packagePriceLow),
+    packagePriceRecommended: num(data?.packagePriceRecommended),
+    packagePricePriority: num(data?.packagePricePriority),
   };
+}
+
+/** Retrieve the signed-in user's latest unpublished hybrid event offer draft from the server. */
+export async function getHybridDraft(): Promise<HybridDraftResponse | null> {
+  try {
+    const d = await call<Record<string, unknown>>(
+      '/events/hybrid-draft',
+      { method: 'GET' },
+      'Could not load event draft.',
+    );
+    if (!d || !d.id) return null;
+    return {
+      id: String(d.id),
+      title: str(d.title),
+      description: str(d.description),
+      eventDate: str(d.eventDate),
+      startTime: str(d.startTime),
+      endTime: str(d.endTime),
+      city: str(d.city),
+      venue: str(d.venue),
+      location: str(d.location),
+      minBudget: num(d.minBudget),
+      maxBudget: num(d.maxBudget),
+      eventStatus: str(d.eventStatus),
+      bookingStatus: str(d.bookingStatus),
+      isPublished: typeof d.isPublished === 'boolean' ? d.isPublished : false,
+      updatedAt: str(d.updatedAt),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Upsert (autosave) the signed-in user's hybrid event offer draft on the server. */
+export async function saveHybridDraft(payload: HybridDraftPayload): Promise<HybridDraftResponse | null> {
+  const d = await call<Record<string, unknown>>(
+    '/events/hybrid-draft',
+    { method: 'POST', body: JSON.stringify(payload) },
+    'Could not save event draft.',
+  );
+  if (!d || !d.id) return null;
+  return {
+    id: String(d.id),
+    title: str(d.title),
+    description: str(d.description),
+    eventDate: str(d.eventDate),
+    startTime: str(d.startTime),
+    endTime: str(d.endTime),
+    city: str(d.city),
+    venue: str(d.venue),
+    location: str(d.location),
+    minBudget: num(d.minBudget),
+    maxBudget: num(d.maxBudget),
+    eventStatus: str(d.eventStatus),
+    bookingStatus: str(d.bookingStatus),
+    isPublished: typeof d.isPublished === 'boolean' ? d.isPublished : false,
+    updatedAt: str(d.updatedAt),
+  };
+}
+
+/** Delete an unpublished hybrid event offer draft on the server. */
+export async function deleteHybridDraft(eventId: string): Promise<void> {
+  if (!eventId) return;
+  try {
+    await call(`/events/hybrid-draft/${encodeURIComponent(eventId)}`, { method: 'DELETE' }, 'Could not delete event draft.');
+  } catch {
+    // Ignore delete failures on already-deleted drafts
+  }
 }
 
 /** Publish the brief and alert matching photographers. */
@@ -328,12 +532,41 @@ export async function publishMatchRequest(
 }
 
 function mapCandidate(c: Record<string, unknown>): CandidateSummary {
+  const cid = String(c.candidateId ?? '');
+  const override = candidatePricingOverrides.get(cid);
+  const deliveryPolicy: OpportunityDeliveryPolicy =
+    c.deliveryPolicy === 'PHOTOGRAPHER_PACKAGE' || override?.deliveryPolicy === 'PHOTOGRAPHER_PACKAGE'
+      ? 'PHOTOGRAPHER_PACKAGE'
+      : 'CLIENT';
+  const rawPricingMode = c.pricingMode ?? override?.pricingMode;
+  const pricingMode: OpportunityPricingMode | undefined =
+    rawPricingMode === 'PACKAGE' || rawPricingMode === 'CLIENT_OFFER'
+      ? rawPricingMode
+      : deliveryPolicy === 'PHOTOGRAPHER_PACKAGE' &&
+          (num(c.proposedPrice) != null || num(c.matchedPackagePrice) != null || override?.proposedPrice != null)
+        ? 'PACKAGE'
+        : undefined;
+  const matchedPackagePrice =
+    (override?.pricingMode === 'PACKAGE' && override?.proposedPrice != null ? override.proposedPrice : undefined) ??
+    num(c.matchedPackagePrice) ??
+    num(c.proposedPrice);
+  const proposedPrice =
+    num(c.proposedPrice) ??
+    num(c.suggestedPrice) ??
+    num(c.agreedPrice) ??
+    override?.proposedPrice ??
+    (deliveryPolicy === 'PHOTOGRAPHER_PACKAGE' && pricingMode !== 'CLIENT_OFFER' ? matchedPackagePrice : undefined);
+
   const insta = (c.instagram ?? null) as Record<string, unknown> | null;
+  const pName = str(c.name) ?? str(c.photographerName) ?? 'Photographer';
+  const pAvatar = str(c.avatar) ?? str(c.profilePicture);
   return {
-    candidateId: str(c.candidateId),
+    candidateId: cid || undefined,
     photographerId: String(c.photographerId ?? ''),
-    photographerName: str(c.name) ?? 'Photographer',
-    profilePicture: str(c.avatar),
+    photographerName: pName,
+    name: pName,
+    profilePicture: pAvatar,
+    avatar: pAvatar,
     photographerType: str(c.photographerType),
     rating: num(c.rating),
     reviewCount: num(c.reviewCount),
@@ -343,12 +576,29 @@ function mapCandidate(c: Record<string, unknown>): CandidateSummary {
     sameCity: c.sameCity === true,
     typicalPriceRange: str(c.typicalPriceRange),
     recommendationTier: tier(c.recommendationTier),
+    smartTier: smartTier(c.smartTier),
+    matchScore: num(c.matchScore),
+    primarySpecialty: str(c.primarySpecialty),
     rank: num(c.rank),
-    instagramHandle: insta ? str(insta.handle) : undefined,
-    instagramFollowers: insta ? num(insta.followersCount) : undefined,
+    instagramHandle: insta ? str(insta.handle) : str(c.instagramHandle),
+    instagramFollowers: insta ? num(insta.followersCount) : num(c.instagramFollowers),
     slug: str(c.slug),
     about: str(c.about),
     specialties: Array.isArray(c.specialties) ? (c.specialties as string[]) : [],
+    approvedAt: str(c.approvedAt),
+    deliveryPolicy,
+    packageDeliveryDays: override?.deliveryDays ?? num(c.packageDeliveryDays),
+    packageDeliveryDescription: override?.packageDescription ?? str(c.packageDeliveryDescription),
+    matchedPackageId: override?.packageId ?? str(c.matchedPackageId) ?? str(c.packageId),
+    matchedPackageName: override?.packageName ?? str(c.matchedPackageName) ?? str(c.packageName),
+    matchedPackagePrice,
+    matchedPackageCurrency: override?.currency ?? str(c.matchedPackageCurrency) ?? str(c.currency),
+    matchedPackagePhotos: num(c.matchedPackagePhotos),
+    matchedPackageVideos: num(c.matchedPackageVideos),
+    matchedPackageHours: num(c.matchedPackageHours),
+    pricingMode,
+    proposedPrice,
+    agreedPrice: num(c.agreedPrice) ?? proposedPrice,
   };
 }
 
@@ -406,7 +656,17 @@ export async function selectEventPhotographer(
   try {
     const data = await call<Record<string, unknown>>(
       `/events/${encodeURIComponent(eventId)}/select-photographer`,
-      { method: 'POST', body: JSON.stringify(payload) },
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          candidateId: payload.candidateId,
+          photographerId: payload.photographerId,
+          packageId: payload.packageId,
+          ...(payload.agreedPrice != null ? { agreedPrice: payload.agreedPrice, proposedPrice: payload.proposedPrice ?? payload.agreedPrice } : {}),
+          escrowPercentage: payload.escrowPercentage ?? 50,
+          notes: payload.notes,
+        }),
+      },
       'Could not confirm this photographer.',
     );
     return {
@@ -460,6 +720,15 @@ export async function convertToDirect(eventId: string): Promise<{ data?: Record<
 
 function mapOpportunity(item: Record<string, unknown>): PhotographerOpportunity {
   const candidateId = String(item.candidateId ?? '');
+  const override = candidatePricingOverrides.get(candidateId);
+  const deliveryPolicy: OpportunityDeliveryPolicy =
+    item.deliveryPolicy === 'PHOTOGRAPHER_PACKAGE' || override?.deliveryPolicy === 'PHOTOGRAPHER_PACKAGE'
+      ? 'PHOTOGRAPHER_PACKAGE'
+      : 'CLIENT';
+  const rawPricingMode = item.pricingMode ?? override?.pricingMode;
+  const pricingMode: OpportunityPricingMode | undefined =
+    rawPricingMode === 'PACKAGE' || rawPricingMode === 'CLIENT_OFFER' ? rawPricingMode : undefined;
+
   return {
     opportunityId: candidateId,
     candidateId,
@@ -469,6 +738,7 @@ function mapOpportunity(item: Record<string, unknown>): PhotographerOpportunity 
     eventDate: str(item.eventDate) ?? '',
     startTime: str(item.startTime) ?? '',
     endTime: str(item.endTime),
+    durationHours: num(item.durationHours),
     durationMinutes: num(item.durationMinutes),
     durationLabel: str(item.durationLabel),
     eventStartAt: str(item.eventStartAt),
@@ -490,15 +760,25 @@ function mapOpportunity(item: Record<string, unknown>): PhotographerOpportunity 
     instructions: str(item.instructions),
     requiredSpecialty: str(item.requiredSpecialty),
     photographerTypeRequested: str(item.photographerTypeRequested),
+    matchedPackageId: override?.packageId ?? str(item.matchedPackageId),
+    matchedPackageName: override?.packageName ?? str(item.matchedPackageName),
+    matchedPackagePrice:
+      (override?.pricingMode === 'PACKAGE' && override?.proposedPrice != null ? override.proposedPrice : undefined) ??
+      num(item.matchedPackagePrice),
+    matchedPackageCurrency: override?.currency ?? str(item.matchedPackageCurrency),
+    matchedPackageDeliveryDays: override?.deliveryDays ?? num(item.matchedPackageDeliveryDays),
+    matchedPackageDescription: override?.packageDescription ?? str(item.matchedPackageDescription),
+    deliveryPolicy,
+    pricingMode,
+    proposedPrice: num(item.proposedPrice) ?? override?.proposedPrice,
+    hasLiveStream: typeof item.hasLiveStream === 'boolean' ? item.hasLiveStream : undefined,
+    allowWishInvites: typeof item.allowWishInvites === 'boolean' ? item.allowWishInvites : undefined,
+    minimumPhotos: num(item.minimumPhotos),
   };
 }
 
 export type OpportunityFilter = 'PENDING_RESPONSE' | 'APPROVED' | 'ALL';
 
-/**
- * The photographer's opportunities. Throws on failure so the view can say it
- * couldn't load, rather than showing an empty list.
- */
 export async function getPhotographerOpportunities(filter: OpportunityFilter = 'PENDING_RESPONSE'): Promise<PhotographerOpportunity[]> {
   const data = await call<unknown>(
     `/photographer/opportunities?status=${filter}`,
@@ -520,7 +800,6 @@ export async function getPhotographerOpportunity(candidateId: string): Promise<P
   return mapOpportunity(data);
 }
 
-/** Navigation badge counts. */
 export async function getOpportunityCounts(): Promise<{ pending: number; awaitingClient: number }> {
   const data = await call<Record<string, unknown>>(
     '/photographer/opportunities/count',
@@ -530,11 +809,41 @@ export async function getOpportunityCounts(): Promise<{ pending: number; awaitin
   return { pending: num(data?.pending) ?? 0, awaitingClient: num(data?.awaitingClient) ?? 0 };
 }
 
-/** "I'm available". Throws 409 NO_LONGER_AVAILABLE once the invite has closed. */
-export async function approveOpportunity(opportunityId: string): Promise<void> {
+export async function approveOpportunity(opportunityId: string, options?: ApproveOpportunityOptions): Promise<void> {
+  if (options) {
+    candidatePricingOverrides.set(opportunityId, options);
+  }
+  const body: Record<string, unknown> = {};
+  if (options?.deliveryPolicy) body.deliveryPolicy = options.deliveryPolicy;
+  if (options?.pricingMode) body.pricingMode = options.pricingMode;
+  if (options?.packageId) {
+    body.packageId = options.packageId;
+    body.matchedPackageId = options.packageId;
+  }
+  if (options?.packageName) {
+    body.packageName = options.packageName;
+    body.matchedPackageName = options.packageName;
+  }
+  if (options?.proposedPrice != null) {
+    body.proposedPrice = options.proposedPrice;
+    body.suggestedPrice = options.proposedPrice;
+    body.matchedPackagePrice = options.proposedPrice;
+  }
+  if (options?.currency) {
+    body.currency = options.currency;
+    body.matchedPackageCurrency = options.currency;
+  }
+  if (options?.deliveryDays != null) {
+    body.packageDeliveryDays = options.deliveryDays;
+    body.deliveryDays = options.deliveryDays;
+  }
+  if (options?.packageDescription) {
+    body.packageDeliveryDescription = options.packageDescription;
+  }
+  const hasBody = Object.keys(body).length > 0;
   await call(
     `/opportunities/${encodeURIComponent(opportunityId)}/approve`,
-    { method: 'POST' },
+    { method: 'POST', ...(hasBody ? { body: JSON.stringify(body) } : {}) },
     'Could not approve this opportunity.',
   );
 }
@@ -554,7 +863,6 @@ export async function getHybridProfile(): Promise<HybridProfile> {
   return mapProfile(data);
 }
 
-/** Save an Instagram username or profile link and/or a base city. A blank handle removes it. */
 export async function saveHybridProfile(update: { instagramHandle?: string; city?: string }): Promise<HybridProfile> {
   const data = await call<Record<string, unknown>>(
     '/photographer/hybrid-profile',
@@ -613,8 +921,23 @@ export function durationText(minutes?: number): string {
   return m === 0 ? hrs : `${hrs ? hrs + ' ' : ''}${m} min`;
 }
 
-export const TIER_META: Record<RecommendationTier, { label: string; hint: string; color: string; bg: string }> = {
-  HIGH: { label: 'Top match', hint: 'Closest fit to what you asked for', color: '#047857', bg: 'rgba(16,185,129,0.12)' },
-  MEDIUM: { label: 'Good match', hint: 'Fits most of your requirements', color: '#083A85', bg: 'rgba(8,58,133,0.10)' },
-  LOW: { label: 'Possible match', hint: 'Available, with fewer requirements matched', color: '#9A3412', bg: 'rgba(234,88,12,0.10)' },
+export const TIER_META: Record<RecommendationTier, { label: string; hint: string; color: string; bg: string; icon: string }> = {
+  HIGH: { label: 'Top match', hint: 'Closest fit to what you asked for', color: '#047857', bg: 'rgba(16,185,129,0.12)', icon: 'bi-stars' },
+  MEDIUM: { label: 'Good match', hint: 'Fits most of your requirements', color: '#083A85', bg: 'rgba(8,58,133,0.10)', icon: 'bi-hand-thumbs-up' },
+  LOW: { label: 'Possible match', hint: 'Available, with fewer requirements matched', color: '#9A3412', bg: 'rgba(234,88,12,0.10)', icon: 'bi-check2' },
+  PREMIUM: { label: 'Premium choice', hint: 'Strongest all-round fit for your event', color: '#D9621A', bg: 'rgba(217,98,26,0.12)', icon: 'bi-star-fill' },
+  PREFERRED: { label: 'Preferred choice', hint: 'A very good fit for your event', color: '#F20C8F', bg: 'rgba(238,14,143,0.10)', icon: 'bi-award' },
+  SUGGESTED: { label: 'Suggested choice', hint: 'A solid option worth a look', color: '#083A85', bg: 'rgba(62,111,216,0.14)', icon: 'bi-people' },
+  ALTERNATIVE: { label: 'Alternative choice', hint: 'Available, with a looser fit', color: '#64748B', bg: 'rgba(147,163,190,0.16)', icon: 'bi-person' },
 };
+
+export const SMART_TIER_ORDER: SmartMatchTier[] = ['PREMIUM', 'PREFERRED', 'SUGGESTED', 'ALTERNATIVE'];
+
+export function smartTierOf(c: { smartTier?: SmartMatchTier; recommendationTier: RecommendationTier }): SmartMatchTier {
+  if (c.smartTier) return c.smartTier;
+  const t = c.recommendationTier;
+  if (t === 'HIGH') return 'PREMIUM';
+  if (t === 'MEDIUM') return 'PREFERRED';
+  if (t === 'LOW') return 'SUGGESTED';
+  return t;
+}

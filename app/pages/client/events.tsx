@@ -745,13 +745,28 @@ const MyEventsPage = () => {
     restoreDraft();
   }, [showCreateModal]);
 
-  // Sidebar "Post My Event" and the landing page link here with ?post=1.
+  // Sidebar "Post My Event" and the landing page link here with ?post=1, ?mode=select, or ?candidates=<eventId>.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const url = new URL(window.location.href);
+    let changed = false;
     if (params.get('post') === '1') {
       openPostWizard(null);
-      const url = new URL(window.location.href);
       url.searchParams.delete('post');
+      changed = true;
+    }
+    if (params.get('mode') === 'select') {
+      setShowBookingModeSelector(true);
+      url.searchParams.delete('mode');
+      changed = true;
+    }
+    const candidatesEventId = params.get('candidates');
+    if (candidatesEventId && isValidUUID(candidatesEventId)) {
+      setCandidateModalEvent({ id: candidatesEventId, title: 'Your Event Offer', status: 'OPEN_FOR_INTEREST' } as Event);
+      url.searchParams.delete('candidates');
+      changed = true;
+    }
+    if (changed) {
       window.history.replaceState({}, '', url.toString());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -4481,8 +4496,8 @@ const MyEventsPage = () => {
             const id = candidateModalEvent.id;
             setCandidateModalEvent(null);
             fetchMyEvents();
-            // The first payment is made on the event page, as for every booking.
-            window.location.href = `/user/client/events/${id}`;
+            // Redirect to the event page with ?pay=1 so the escrow deposit PayNowModal opens immediately.
+            window.location.href = `/user/client/events/${id}?pay=1`;
           }}
           onRepost={() => openPostWizard(candidateModalEvent)}
           onConvertedToDirect={() => {
