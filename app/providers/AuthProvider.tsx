@@ -433,8 +433,29 @@ const PROFILE_ENDPOINTS = [
 // last known role says so. Every other account answers action 0 and the usual endpoints follow.
 const COLLABORATOR_ENDPOINT = { endpoint: '/api/remote/collaborator/me', role: 'collaborator' };
 function profileEndpoints() {
-  const mayBeCollaborator = typeof document !== 'undefined' && /(?:^|; )(ckws|userRole=collaborator)/.test(document.cookie);
-  return mayBeCollaborator ? [COLLABORATOR_ENDPOINT, ...PROFILE_ENDPOINTS] : PROFILE_ENDPOINTS;
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return PROFILE_ENDPOINTS;
+  }
+  const mayBeCollaborator = /(?:^|; )(ckws|userRole=collaborator)/.test(document.cookie);
+  const path = window.location.pathname;
+  const cookie = document.cookie.toLowerCase();
+
+  let ordered = PROFILE_ENDPOINTS;
+  if (path.includes('/client') || /(?:^|; )userrole=(client|customer|user)\b/.test(cookie)) {
+    ordered = [
+      PROFILE_ENDPOINTS[2], // customer first
+      PROFILE_ENDPOINTS[0],
+      PROFILE_ENDPOINTS[1],
+    ];
+  } else if (path.includes('/event-coordinator') || /(?:^|; )userrole=(event-coordinator|event_coordinator|coordinator|ec)\b/.test(cookie)) {
+    ordered = [
+      PROFILE_ENDPOINTS[1], // coordinator first
+      PROFILE_ENDPOINTS[2],
+      PROFILE_ENDPOINTS[0],
+    ];
+  }
+
+  return mayBeCollaborator ? [COLLABORATOR_ENDPOINT, ...ordered] : ordered;
 }
 
 /**
@@ -531,6 +552,16 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       // profile data only (name, role, etc.). it does NOT contain a JWT.
       const storedUserStr = typeof window !== 'undefined'
           ? localStorage.getItem(AUTH_USER_KEY) : null;
+      if (storedUserStr) {
+        try {
+          const cachedUser = JSON.parse(storedUserStr);
+          if (cachedUser && cachedUser.id) {
+            setUser(cachedUser);
+          }
+        } catch {
+          // ignore malformed cache
+        }
+      }
 
       // Always attempt the profile fetch. no Bearer token needed; the cookie
       // carries auth. If it succeeds, we're authenticated. If it 401s, we're
@@ -579,7 +610,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         }
       } else {
         // reason === 'unauthorized': cookie is missing/expired.
-        // Leave user null; fetchUserProfile already redirected photographers.
+        // Clear any stale cached user; fetchUserProfile already redirected photographers.
+        setUser(null);
+        clearAuthFromStorage();
       }
 
       setIsLoading(false);

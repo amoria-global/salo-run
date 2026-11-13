@@ -964,13 +964,11 @@ const MyEventsPage = () => {
     } finally {
       setIsLoadingEvents(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchMyEvents();
-    }
-  }, [user, fetchMyEvents]);
+    fetchMyEvents();
+  }, [user?.id, fetchMyEvents]);
 
   const handlePublishEvent = async (eventId: string) => {
     // Gate on `user` rather than `token`. cookie-only sessions (no Bearer
@@ -2311,7 +2309,7 @@ const MyEventsPage = () => {
           setShowHybridWizard(false);
           setHybridWizardEvent(null);
           fetchMyEvents();
-          if (invited) setCandidateModalEvent({ id: eventId } as Event);
+          if (invited) setCandidateModalEvent({ id: eventId } as unknown as Event);
         }}
       />
 
