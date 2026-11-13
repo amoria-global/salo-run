@@ -205,6 +205,54 @@ export async function initiateArchivePayment(
 }
 
 /**
+ * Pay the archive fee to restore a locked standalone (PAID or FREE) album. The server sets the price; nothing about the
+ * amount is sent. Owner only.
+ */
+export async function initiateGalleryRestorePayment(
+  albumId: string,
+  phone: string,
+  telecomProvider: string,
+  paymentMethod: string,
+  redirectUrl?: string,
+  /** ISO-2 country code. Drives backend gateway selection. */
+  country?: string
+): Promise<{ success: boolean; data?: XentriPayResponse; error?: string; ambiguous?: boolean }> {
+  try {
+    const body: Record<string, unknown> = { paymentMethod };
+    if (phone) body.phone = phone;
+    if (telecomProvider) body.telecomProvider = telecomProvider;
+    if (redirectUrl) body.redirectUrl = redirectUrl;
+    if (country) body.country = country;
+    const response = await dashboardAuthFetch(
+      `${getApiUrl()}/api/remote/photographer/albums/${encodeURIComponent(albumId)}/restore-payment`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    );
+    const result = await response.json().catch(() => null);
+    if (result?.action === 1 && result.data) {
+      return {
+        success: true,
+        data: {
+          refid: result.data.refid,
+          tid: result.data.tid,
+          paymentUrl: result.data.paymentUrl,
+          status: result.data.status || 'PENDING',
+          message: result.message,
+        },
+      };
+    }
+    // A prompt that may already be on the phone is never offered again as a plain retry.
+    // AMBIGUOUS: the prompt may already be on the phone. IN_PROGRESS: an earlier attempt is still open. Either way the
+    // caller must not offer a plain retry, so it is flagged for the "not confirmed yet" view.
+    if (result?.code === 'AMBIGUOUS' || result?.code === 'IN_PROGRESS') {
+      return { success: false, error: result.message, ambiguous: true };
+    }
+    return { success: false, error: sanitizeErrorMessage(result?.message, 'Failed to start the restore payment. Please try again.') };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+/**
  * Initiate tip payment via XentriPay
  */
 export async function initiateTipPayment(
@@ -388,10 +436,15 @@ export function pollPaymentStatus(
     onError: (error: string) => void;
   },
   intervalMs: number = 2000,
-  maxAttempts: number = 150
+  maxAttempts: number = 150,
+  // Card sessions often report FAILED right after creation while the buyer is
+  // still on the gateway page. Inside this window FAILED means "still
+  // pending", as in the landing app's poller.
+  gracePeriodMs: number = 0
 ): () => void {
   let attempts = 0;
   let stopped = false;
+  const startedAt = Date.now();
 
   const poll = async () => {
     if (stopped) return;
@@ -419,6 +472,14 @@ export function pollPaymentStatus(
       }
 
       if (status === 'FAILED') {
+        if (Date.now() - startedAt < gracePeriodMs) {
+          if (attempts >= maxAttempts) {
+            callbacks.onError('Payment is taking longer than expected. Please check your payment history.');
+            return;
+          }
+          setTimeout(poll, intervalMs);
+          return;
+        }
         callbacks.onFailure(response.data!);
         return;
       }

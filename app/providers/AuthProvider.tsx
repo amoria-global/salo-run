@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useSearchParams, usePathname } from 'next/navigation';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
+import { WORKSPACE_LOST_EVENT, WORKSPACE_NOT_AVAILABLE, setActiveWorkspaceId, workspaceHeaders } from '../lib/workspace';
 
 /**
  * Availability time structure from API
@@ -214,6 +215,8 @@ function clearAuthFromStorage(): void {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
     document.cookie = 'userRole=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    document.cookie = 'ckws=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    localStorage.removeItem('connekyt:workspace');
     document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   } catch (error) {
     console.error('[Dashboard Auth] Failed to clear auth storage:', error);
@@ -425,6 +428,15 @@ const PROFILE_ENDPOINTS = [
   { endpoint: '/api/remote/customer/profile', role: 'customer' },
 ];
 
+// A collaborator login has no profile of its own and the photographer/customer profile routes refuse it, so it is asked
+// first, and only when it could be one: a workspace was chosen (cookie set when the sign-in site hands one over) or the
+// last known role says so. Every other account answers action 0 and the usual endpoints follow.
+const COLLABORATOR_ENDPOINT = { endpoint: '/api/remote/collaborator/me', role: 'collaborator' };
+function profileEndpoints() {
+  const mayBeCollaborator = typeof document !== 'undefined' && /(?:^|; )(ckws|userRole=collaborator)/.test(document.cookie);
+  return mayBeCollaborator ? [COLLABORATOR_ENDPOINT, ...PROFILE_ENDPOINTS] : PROFILE_ENDPOINTS;
+}
+
 /**
  * Fetch user profile using Bearer token.
  * Tries photographer, coordinator, and customer endpoints in order.
@@ -435,7 +447,7 @@ async function fetchUserProfile(token: string | null): Promise<{ user: Dashboard
     // Try each role endpoint until one succeeds
     let got401 = false;
     let gotServerError = false;
-    for (const { endpoint, role } of PROFILE_ENDPOINTS) {
+    for (const { endpoint, role } of profileEndpoints()) {
       const { user, status } = await tryFetchProfile(endpoint, token, role);
       if (user) return { user, reason: 'success' };
       if (status === 401) { got401 = true; break; }
@@ -449,7 +461,7 @@ async function fetchUserProfile(token: string | null): Promise<{ user: Dashboard
     if (got401) {
       const renewed = await attemptDashboardTokenRefresh();
       if (renewed) {
-        for (const { endpoint, role } of PROFILE_ENDPOINTS) {
+        for (const { endpoint, role } of profileEndpoints()) {
           const { user } = await tryFetchProfile(endpoint, null, role);
           if (user) return { user, reason: 'success' };
         }
@@ -893,6 +905,9 @@ export async function dashboardAuthFetch(
   if (currentToken) {
     headers['Authorization'] = `Bearer ${currentToken}`;
   }
+  // Working inside another photographer's workspace: the call names it, and the server checks the membership on every
+  // request. Calls about the signed-in person themself never carry it.
+  const sentWorkspace = Object.keys(Object.assign(headers, workspaceHeaders(url))).some((k) => k.toLowerCase() === 'x-workspace-id');
 
   // credentials: 'include' makes the browser send the amoria_auth HttpOnly
   // cookie on this cross-origin request. Backend CORS allow-list is strict
@@ -948,6 +963,20 @@ export async function dashboardAuthFetch(
       return response;
     }
     response = await fetchWithRetry(url, { ...options, headers, credentials: 'include' });
+  }
+
+  // A revoked or unknown workspace is refused with one fixed message. Drop it and fall back to the user's own
+  // workspace, so a stale selection can never leave the app stuck on errors.
+  if (sentWorkspace && response.status === 403 && typeof window !== 'undefined') {
+    try {
+      const body = await response.clone().json();
+      if (body?.message === WORKSPACE_NOT_AVAILABLE) {
+        setActiveWorkspaceId(null);
+        window.dispatchEvent(new Event(WORKSPACE_LOST_EVENT));
+      }
+    } catch {
+      /* not JSON: leave the response as it is */
+    }
   }
 
   return response;

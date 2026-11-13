@@ -7,11 +7,13 @@ import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import EventConfirmModal from '../components/EventConfirmModal';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { validateAccountDetails } from '@/lib/xentripay';
 import InternationalPhoneInput, { type PhoneValue } from '../components/phone/InternationalPhoneInput';
 import { parsePhone } from '@/lib/phone/phoneKit';
+import TwoFactorMethods from '../components/TwoFactorMethods';
 
 // API response type
 interface ApiResponse<T = unknown> {
@@ -144,6 +146,7 @@ const TabParamHandler = ({
 
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
   const { theme, setTheme, actualTheme, colors } = useTheme();
+  const { language, setLanguage, languages } = useLanguage();
   const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications' | 'security'>('appearance');
   const { user, updateUser } = useDashboardAuth();
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
@@ -188,27 +191,9 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
   const [isSavingPreference, setIsSavingPreference] = useState(false);
 
-  // Withdrawal verification method
-  const [withdrawalVerificationMethod, setWithdrawalVerificationMethod] = useState(
-    user?.preferredWithdrawalVerification || 'EMAIL_OTP'
-  );
-  const [isSavingVerificationMethod, setIsSavingVerificationMethod] = useState(false);
-  const [verificationMethodMessage, setVerificationMethodMessage] = useState('');
 
   // Two-factor authentication states
   const [totpEnabled, setTotpEnabled] = useState(user?.twoFactorEnabled || false);
-  const [totpRequired, setTotpRequired] = useState(false);
-  const [totpStep, setTotpStep] = useState<'idle' | 'setup' | 'verify'>('idle');
-  const [totpQrCode, setTotpQrCode] = useState('');
-  const [totpSecret, setTotpSecret] = useState('');
-  const [totpCode, setTotpCode] = useState(['', '', '', '', '', '']);
-  const [totpLoading, setTotpLoading] = useState(false);
-  const [totpMessage, setTotpMessage] = useState('');
-  const [totpMessageType, setTotpMessageType] = useState<'success' | 'error'>('success');
-  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
-  const [disableCode, setDisableCode] = useState(['', '', '', '', '', '']);
-  const totpInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
-  const disableInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
 
   // Notification settings states
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -328,201 +313,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     }
   }, [userType, preferencesBasePath]);
 
-  // Save withdrawal verification method
-  const saveVerificationMethod = useCallback(async (method: string) => {
-    setIsSavingVerificationMethod(true);
-    setVerificationMethodMessage('');
-    try {
-      const apiUrl = getApiUrl();
-      // The photographer/customer handler lives on CustomerProfileController
-      // (@RequestMapping "/api/remote/customer/profile"), so the path needs
-      // the "/profile" segment. without it Spring matched no handler and
-      // returned "No static resource ...". The coordinator handler is on
-      // CoordinatorController ("/api/remote/coordinator"), no /profile there.
-      const basePath = userType === 'event-coordinator'
-        ? '/api/remote/coordinator/withdrawal-verification-method'
-        : '/api/remote/customer/profile/withdrawal-verification-method';
-      const response = await dashboardAuthFetch(`${apiUrl}${basePath}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ method }),
-      });
-      const result: ApiResponse = await response.json();
-      if (response.ok && result.action === 1) {
-        setWithdrawalVerificationMethod(method);
-        updateUser({ preferredWithdrawalVerification: method });
-        setVerificationMethodMessage('Verification method updated successfully');
-      } else {
-        setVerificationMethodMessage(result.message || 'Failed to update verification method');
-        // Revert selection
-        setWithdrawalVerificationMethod(user?.preferredWithdrawalVerification || 'EMAIL_OTP');
-      }
-    } catch (err) {
-      console.error('Failed to save verification method:', err);
-      setVerificationMethodMessage('Failed to update verification method');
-      setWithdrawalVerificationMethod(user?.preferredWithdrawalVerification || 'EMAIL_OTP');
-    } finally {
-      setIsSavingVerificationMethod(false);
-      setTimeout(() => setVerificationMethodMessage(''), 4000);
-    }
-  }, [userType, user, updateUser]);
-
-  // Load TOTP status when security tab is active
-  useEffect(() => {
-    if (activeTab !== 'security') return;
-    const fetchTotpStatus = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/totp/status`);
-        if (!response.ok) return;
-        const result = await response.json();
-        if (result.action === 1) {
-          setTotpEnabled(result.twoFactorEnabled);
-          setTotpRequired(result.twoFactorRequired);
-        }
-      } catch { /* silent */ }
-    };
-    fetchTotpStatus();
-  }, [activeTab]);
-
-  // Auto-start setup if redirected with setup2fa flag
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('setup2fa') === 'true' && !totpEnabled && totpStep === 'idle') {
-      handleTotpSetup();
-    }
-  }, [totpEnabled, totpRequired]);
-
-  const handleTotpSetup = useCallback(async () => {
-    setTotpLoading(true);
-    setTotpMessage('');
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/totp/setup`, {
-        method: 'POST',
-      });
-      const result = await response.json();
-      if (result.action === 1) {
-        setTotpQrCode(result.qrCode);
-        setTotpSecret(result.secret);
-        setTotpStep('setup');
-        setTotpCode(['', '', '', '', '', '']);
-      } else {
-        setTotpMessage(result.message || 'Failed to start setup');
-        setTotpMessageType('error');
-      }
-    } catch {
-      setTotpMessage('Failed to start setup');
-      setTotpMessageType('error');
-    } finally {
-      setTotpLoading(false);
-    }
-  }, []);
-
-  const handleTotpEnable = useCallback(async () => {
-    const code = totpCode.join('');
-    if (code.length !== 6) return;
-    setTotpLoading(true);
-    setTotpMessage('');
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/totp/enable`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      });
-      const result = await response.json();
-      if (result.action === 1) {
-        setTotpEnabled(true);
-        setTotpStep('idle');
-        setTotpMessage('Two-factor authentication enabled successfully');
-        setTotpMessageType('success');
-        updateUser({ twoFactorEnabled: true });
-      } else {
-        setTotpMessage(result.message || 'Invalid code');
-        setTotpMessageType('error');
-      }
-    } catch {
-      setTotpMessage('Failed to enable 2FA');
-      setTotpMessageType('error');
-    } finally {
-      setTotpLoading(false);
-      setTimeout(() => setTotpMessage(''), 5000);
-    }
-  }, [totpCode, updateUser]);
-
-  const handleTotpDisable = useCallback(async () => {
-    const code = disableCode.join('');
-    if (code.length !== 6) return;
-    setTotpLoading(true);
-    setTotpMessage('');
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/totp/disable`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      });
-      const result = await response.json();
-      if (result.action === 1) {
-        setTotpEnabled(false);
-        setShowDisableConfirm(false);
-        setDisableCode(['', '', '', '', '', '']);
-        setTotpMessage(result.message || 'Two-factor authentication disabled. Withdrawals are paused until you turn it back on.');
-        setTotpMessageType('success');
-        updateUser({ twoFactorEnabled: false });
-      } else {
-        setTotpMessage(result.message || 'Failed to disable');
-        setTotpMessageType('error');
-      }
-    } catch {
-      setTotpMessage('Failed to disable 2FA');
-      setTotpMessageType('error');
-    } finally {
-      setTotpLoading(false);
-      setTimeout(() => setTotpMessage(''), 5000);
-    }
-  }, [disableCode, updateUser]);
-
-  const handleTotpCodeChange = (index: number, value: string, refs: React.MutableRefObject<(HTMLInputElement | null)[]>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    if (value && !/^\d$/.test(value)) return;
-    setter(prev => {
-      const next = [...prev];
-      next[index] = value;
-      return next;
-    });
-    if (value && index < 5) {
-      refs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleTotpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>, refs: React.MutableRefObject<(HTMLInputElement | null)[]>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    if (e.key === 'Backspace') {
-      setter(prev => {
-        if (!prev[index] && index > 0) {
-          refs.current[index - 1]?.focus();
-          return prev;
-        }
-        const next = [...prev];
-        next[index] = '';
-        return next;
-      });
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      refs.current[index - 1]?.focus();
-    } else if (e.key === 'ArrowRight' && index < 5) {
-      refs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleTotpPaste = (e: React.ClipboardEvent, refs: React.MutableRefObject<(HTMLInputElement | null)[]>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length > 0) {
-      setter(pasted.split('').concat(Array(6 - pasted.length).fill('')));
-      refs.current[Math.min(pasted.length, 5)]?.focus();
-    }
-  };
 
   // Load bank providers when modal opens
   useEffect(() => {
@@ -1155,6 +945,88 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       : `You've selected ${theme} mode manually`}
                   </p>
                 </div>
+              </div>
+
+              {/* Language Selection */}
+              <div style={{ height: 1, background: colors.borderPrimary, margin: '1.75rem 0 1.5rem' }} />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: '1.25rem' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 11,
+                  background: 'rgba(8,58,133,0.10)',
+                  border: '1px solid rgba(8,58,133,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <i className="bi bi-translate" style={{ fontSize: 17, color: '#083A85' }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>LANGUAGE</div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                    App language
+                  </h2>
+                  <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
+                    Choose your preferred language across the web and mobile experience.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem', maxWidth: '680px' }}>
+                {languages.map((langOpt) => {
+                  const isSelected = language === langOpt.code;
+                  return (
+                    <button
+                      key={langOpt.code}
+                      type="button"
+                      onClick={() => {
+                        setLanguage(langOpt.code);
+                        savePreference('language', langOpt.code);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem',
+                        padding: '0.85rem 1rem',
+                        borderRadius: '0.65rem',
+                        border: isSelected
+                          ? `2px solid ${colors.brandPrimary}`
+                          : `1.5px solid ${colors.borderPrimary}`,
+                        backgroundColor: isSelected
+                          ? actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(8, 58, 133, 0.06)'
+                          : colors.bgTertiary,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }} data-no-translate>
+                        <img
+                          src={`https://flagcdn.com/w40/${langOpt.flag}.png`}
+                          alt={langOpt.label}
+                          style={{ width: 24, height: 17, objectFit: 'cover', borderRadius: 3, flexShrink: 0 }}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isSelected ? colors.brandPrimary : colors.textPrimary }}>
+                            {langOpt.nativeLabel}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
+                            {langOpt.label}
+                          </div>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <div style={{
+                          width: 22, height: 22, borderRadius: '50%',
+                          backgroundColor: colors.brandPrimary,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'white', flexShrink: 0,
+                        }}>
+                          <CheckIcon />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1895,302 +1767,18 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     Two-factor authentication
                   </h2>
                   <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
-                    Add an extra layer of security by requiring a code from your authenticator app when signing in. It is required to withdraw funds.
+                    Add an extra layer of security by asking for a code when you sign in, from an authenticator app or sent to your email. It is required to withdraw funds.
                   </p>
                 </div>
               </div>
 
-              {/* Mandatory banner */}
-              {totpRequired && !totpEnabled && (
-                <div style={{
-                  position: 'relative',
-                  overflow: 'hidden',
-                  padding: '0.85rem 1rem 0.85rem 1.1rem',
-                  borderRadius: 11, marginBottom: '1rem',
-                  background: actualTheme === 'dark' ? 'rgba(245,158,11,0.10)' : '#FFFBEB',
-                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.32)' : '#FDE68A'}`,
-                  display: 'flex', alignItems: 'flex-start', gap: 10,
-                }}>
-                  <span aria-hidden style={{
-                    position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
-                    background: 'linear-gradient(180deg, #F59E0B 0%, #F20C8F 130%)',
-                  }} />
-                  <i className="bi bi-exclamation-triangle-fill" style={{ color: '#D97706', fontSize: 16, marginTop: 1, flexShrink: 0 }} />
-                  <p style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', margin: 0, lineHeight: 1.5 }}>
-                    Your wallet has funds. Turn on two-factor authentication to withdraw them.
-                  </p>
-                </div>
-              )}
-
-              {/* Status message */}
-              {totpMessage && (
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  borderRadius: 10,
-                  marginBottom: '1rem',
-                  fontSize: '0.85rem',
-                  background: totpMessageType === 'success'
-                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.14)' : '#DCFCE7')
-                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : '#FEE2E2'),
-                  color: totpMessageType === 'success'
-                    ? (actualTheme === 'dark' ? '#4ADE80' : '#166534')
-                    : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
-                  border: `1px solid ${totpMessageType === 'success'
-                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.35)' : '#BBF7D0')
-                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : '#FECACA')}`,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}>
-                  <i className={`bi ${totpMessageType === 'success' ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}`} style={{ fontSize: 13 }} />
-                  {totpMessage}
-                </div>
-              )}
-
-              {/* Idle state: show enable or disable button */}
-              {totpStep === 'idle' && !totpEnabled && (
-                <button
-                  onClick={handleTotpSetup}
-                  disabled={totpLoading}
-                  className="ck-btn ck-btn-primary"
-                  style={{
-                    padding: '0.6rem 1.2rem',
-                    fontSize: '0.88rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    cursor: totpLoading ? 'not-allowed' : 'pointer',
-                    opacity: totpLoading ? 0.7 : 1,
-                  }}
-                >
-                  {totpLoading ? (
-                    <>
-                      <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
-                      Setting up…
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-shield-lock-fill" style={{ fontSize: 13 }} />
-                      {totpRequired ? 'Set up now' : 'Enable 2FA'}
-                    </>
-                  )}
-                </button>
-              )}
-
-              {/* Enabled state: show disable button */}
-              {totpStep === 'idle' && totpEnabled && !showDisableConfirm && (
-                <button
-                  onClick={() => { setShowDisableConfirm(true); setDisableCode(['', '', '', '', '', '']); }}
-                  style={{
-                    padding: '0.6rem 1.2rem', borderRadius: 10,
-                    background: 'transparent',
-                    color: '#DC2626',
-                    border: '1px solid #DC2626',
-                    fontWeight: 600, fontSize: '0.85rem',
-                    cursor: 'pointer', transition: 'all 0.18s',
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  <i className="bi bi-shield-slash" style={{ fontSize: 13 }} />
-                  Disable 2FA
-                </button>
-              )}
-
-              {/* Disable confirmation: enter TOTP code to disable */}
-              {showDisableConfirm && (
-                <div style={{ marginTop: '0.5rem' }}>
-                  {/* Withdrawal warning: 2FA is what unlocks withdrawals */}
-                  <div role="alert" style={{
-                    position: 'relative', overflow: 'hidden',
-                    padding: '0.85rem 1rem 0.85rem 1.1rem',
-                    borderRadius: 11, marginBottom: '1rem',
-                    background: actualTheme === 'dark' ? 'rgba(220,38,38,0.12)' : '#FEF2F2',
-                    border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : '#FECACA'}`,
-                    display: 'flex', alignItems: 'flex-start', gap: 10,
-                  }}>
-                    <span aria-hidden style={{
-                      position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
-                      background: 'linear-gradient(180deg, #DC2626 0%, #F20C8F 130%)',
-                    }} />
-                    <i className="bi bi-wallet2" aria-hidden style={{ color: '#DC2626', fontSize: 16, marginTop: 1, flexShrink: 0 }} />
-                    <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', lineHeight: 1.5 }}>
-                      <strong style={{ display: 'block', marginBottom: 2 }}>Disabling 2FA will disable withdrawals</strong>
-                      {totpRequired
-                        ? 'Your wallet has funds. Two-factor authentication protects them, so you will not be able to withdraw until you turn it back on. Your balance stays safe in your wallet.'
-                        : 'Two-factor authentication protects the money in your wallet. While it is off, you will not be able to withdraw any funds you earn.'}
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
-                    Enter a code from your authenticator app to disable 2FA:
-                  </p>
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '1rem' }}>
-                    {disableCode.map((digit, i) => (
-                      <input
-                        key={i}
-                        ref={el => { disableInputRefs.current[i] = el; }}
-                        type="text" inputMode="numeric" maxLength={1} value={digit}
-                        onChange={e => handleTotpCodeChange(i, e.target.value, disableInputRefs, setDisableCode)}
-                        onKeyDown={e => handleTotpKeyDown(i, e, disableInputRefs, setDisableCode)}
-                        onPaste={e => handleTotpPaste(e, disableInputRefs, setDisableCode)}
-                        style={{
-                          width: '44px', height: '50px', textAlign: 'center', fontSize: '1.25rem',
-                          fontWeight: '700', borderRadius: '0.5rem',
-                          border: `2px solid ${digit ? '#DC2626' : colors.borderPrimary}`,
-                          backgroundColor: colors.bgTertiary, color: colors.textPrimary,
-                          outline: 'none', transition: 'border-color 0.2s',
-                        }}
-                        onFocus={e => { e.currentTarget.style.borderColor = '#DC2626'; }}
-                        onBlur={e => { if (!digit) e.currentTarget.style.borderColor = colors.borderPrimary; }}
-                      />
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    <button
-                      onClick={handleTotpDisable}
-                      disabled={totpLoading || disableCode.some(d => !d)}
-                      style={{
-                        padding: '0.55rem 1.1rem', borderRadius: 10,
-                        background: '#DC2626', color: '#fff', border: 'none',
-                        fontWeight: 600, fontSize: '0.85rem',
-                        cursor: (totpLoading || disableCode.some(d => !d)) ? 'not-allowed' : 'pointer',
-                        opacity: (totpLoading || disableCode.some(d => !d)) ? 0.6 : 1,
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        boxShadow: '0 4px 12px rgba(220,38,38,0.20)',
-                      }}
-                    >
-                      {totpLoading ? (
-                        <>
-                          <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#fff' }} />
-                          Disabling…
-                        </>
-                      ) : (
-                        <>
-                          <i className="bi bi-shield-slash-fill" style={{ fontSize: 13 }} />
-                          Confirm disable
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => { setShowDisableConfirm(false); setDisableCode(['', '', '', '', '', '']); }}
-                      className="ck-btn ck-btn-soft"
-                      style={{
-                        padding: '0.55rem 1.1rem',
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Setup step: show QR code */}
-              {totpStep === 'setup' && (
-                <div>
-                  <div style={{
-                    backgroundColor: actualTheme === 'dark' ? '#1F2937' : '#F9FAFB',
-                    borderRadius: '0.75rem', padding: '1.5rem',
-                    border: `1px solid ${colors.borderPrimary}`, textAlign: 'center',
-                    marginBottom: '1.25rem',
-                  }}>
-                    <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1rem' }}>
-                      Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
-                    </p>
-                    {totpQrCode && (
-                      <div style={{ display: 'inline-block', padding: '0.75rem', backgroundColor: 'white', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-                        <img src={totpQrCode} alt="TOTP QR Code" style={{ width: '200px', height: '200px' }} />
-                      </div>
-                    )}
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
-                        Or enter this key manually:
-                      </p>
-                      <div
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                          padding: '0.5rem 1rem', backgroundColor: colors.bgTertiary,
-                          borderRadius: '0.375rem', border: `1px solid ${colors.borderPrimary}`,
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => {
-                          navigator.clipboard.writeText(totpSecret);
-                          setTotpMessage('Secret copied to clipboard');
-                          setTotpMessageType('success');
-                          setTimeout(() => setTotpMessage(''), 2000);
-                        }}
-                      >
-                        <code style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, letterSpacing: '0.05em' }}>
-                          {totpSecret}
-                        </code>
-                        <i className="bi bi-clipboard" style={{ fontSize: '0.85rem', color: colors.textSecondary }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <p style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '600', marginBottom: '0.75rem' }}>
-                    Enter the 6-digit code from your app:
-                  </p>
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '1rem' }}>
-                    {totpCode.map((digit, i) => (
-                      <input
-                        key={i}
-                        ref={el => { totpInputRefs.current[i] = el; }}
-                        type="text" inputMode="numeric" maxLength={1} value={digit}
-                        onChange={e => handleTotpCodeChange(i, e.target.value, totpInputRefs, setTotpCode)}
-                        onKeyDown={e => handleTotpKeyDown(i, e, totpInputRefs, setTotpCode)}
-                        onPaste={e => handleTotpPaste(e, totpInputRefs, setTotpCode)}
-                        style={{
-                          width: '44px', height: '50px', textAlign: 'center', fontSize: '1.25rem',
-                          fontWeight: '700', borderRadius: '0.5rem',
-                          border: `2px solid ${digit ? '#083A85' : colors.borderPrimary}`,
-                          backgroundColor: colors.bgTertiary, color: colors.textPrimary,
-                          outline: 'none', transition: 'border-color 0.2s',
-                        }}
-                        onFocus={e => { e.currentTarget.style.borderColor = '#083A85'; }}
-                        onBlur={e => { if (!digit) e.currentTarget.style.borderColor = colors.borderPrimary; }}
-                      />
-                    ))}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    <button
-                      onClick={handleTotpEnable}
-                      disabled={totpLoading || totpCode.some(d => !d)}
-                      className="ck-btn ck-btn-primary"
-                      style={{
-                        padding: '0.6rem 1.2rem',
-                        fontSize: '0.88rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        cursor: (totpLoading || totpCode.some(d => !d)) ? 'not-allowed' : 'pointer',
-                        opacity: (totpLoading || totpCode.some(d => !d)) ? 0.6 : 1,
-                      }}
-                    >
-                      {totpLoading ? (
-                        <>
-                          <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
-                          Verifying…
-                        </>
-                      ) : (
-                        <>
-                          <i className="bi bi-check2-circle" style={{ fontSize: 13 }} />
-                          Verify &amp; enable
-                        </>
-                      )}
-                    </button>
-                    {!totpRequired && (
-                      <button
-                        onClick={() => { setTotpStep('idle'); setTotpCode(['', '', '', '', '', '']); setTotpMessage(''); }}
-                        className="ck-btn ck-btn-soft"
-                        style={{ padding: '0.6rem 1.2rem', fontSize: '0.88rem' }}
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
+              <TwoFactorMethods
+                theme={{ colors, dark: actualTheme === 'dark' }}
+                onStatus={(st) => {
+                  setTotpEnabled(st.enabled);
+                  if (st.enabled !== !!user?.twoFactorEnabled) updateUser({ twoFactorEnabled: st.enabled });
+                }}
+              />
             </div>
 
             {/* Withdrawal Verification Card */}
@@ -2219,193 +1807,24 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     Withdrawal verification
                   </h2>
                   <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
-                    Choose how to verify your identity before each withdrawal is processed.
+                    Every withdrawal is confirmed with a code sent to your email.
                   </p>
                 </div>
               </div>
 
-              {verificationMethodMessage && (
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  borderRadius: 10,
-                  marginBottom: '1rem',
-                  fontSize: '0.85rem',
-                  background: verificationMethodMessage.includes('success')
-                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.14)' : '#DCFCE7')
-                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : '#FEE2E2'),
-                  color: verificationMethodMessage.includes('success')
-                    ? (actualTheme === 'dark' ? '#4ADE80' : '#166534')
-                    : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
-                  border: `1px solid ${verificationMethodMessage.includes('success')
-                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.35)' : '#BBF7D0')
-                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : '#FECACA')}`,
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                }}>
-                  <i className={`bi ${verificationMethodMessage.includes('success') ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}`} style={{ fontSize: 13 }} />
-                  {verificationMethodMessage}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {([
-                  {
-                    value: 'EMAIL_OTP',
-                    label: 'Email OTP',
-                    description: 'Receive a 6-digit code via email to verify each withdrawal',
-                    icon: 'bi-envelope',
-                    requiresKyc: false,
-                  },
-                  {
-                    value: 'SMS_OTP',
-                    label: 'SMS OTP',
-                    description: 'Receive a 6-digit code via SMS to verify each withdrawal',
-                    icon: 'bi-phone',
-                    requiresKyc: false,
-                  },
-                  {
-                    value: 'FACE_SCAN',
-                    label: 'Face Scan',
-                    description: 'Verify your identity with a live selfie compared to your KYC photo',
-                    icon: 'bi-person-bounding-box',
-                    requiresKyc: true,
-                  },
-                  {
-                    value: 'FACE_SCAN_WITH_OTP',
-                    label: 'Face Scan + OTP',
-                    description: 'Maximum security: both face scan and OTP code required',
-                    icon: 'bi-shield-check',
-                    requiresKyc: true,
-                  },
-                ] as const).map((option) => {
-                  const isSelected = withdrawalVerificationMethod === option.value;
-                  const kycNotApproved = option.requiresKyc && user?.kycStatus !== 'APPROVED';
-                  const isDisabled = isSavingVerificationMethod || kycNotApproved;
-
-                  return (
-                    <button
-                      key={option.value}
-                      data-ck-shape="card"
-                      onClick={() => !isDisabled && saveVerificationMethod(option.value)}
-                      disabled={isDisabled}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '0.85rem',
-                        padding: '0.95rem 1rem',
-                        background: isSelected
-                          ? (actualTheme === 'dark'
-                              ? 'linear-gradient(135deg, rgba(8,58,133,0.30) 0%, rgba(242,12,143,0.14) 100%)'
-                              : 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.04) 100%)')
-                          : colors.bgCard,
-                        borderRadius: 11,
-                        border: `${isSelected ? '1.5px' : '1px'} solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
-                        cursor: isDisabled ? 'not-allowed' : 'pointer',
-                        opacity: kycNotApproved ? 0.5 : 1,
-                        textAlign: 'left',
-                        transition: 'all 0.18s',
-                        width: '100%',
-                        boxShadow: isSelected ? '0 4px 12px rgba(8,58,133,0.10)' : 'none',
-                      }}
-                    >
-                      <div style={{
-                        width: 38, height: 38, borderRadius: 10,
-                        background: isSelected
-                          ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
-                          : (actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : 'rgba(8,58,133,0.08)'),
-                        border: `1px solid ${isSelected ? 'transparent' : 'rgba(8,58,133,0.20)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <i className={`bi ${option.icon}`} style={{
-                          fontSize: '1.05rem',
-                          color: isSelected ? '#fff' : '#083A85',
-                        }} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontSize: '0.92rem',
-                          fontWeight: 700,
-                          color: colors.textPrimary,
-                          marginBottom: '0.25rem',
-                          letterSpacing: '-0.01em',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          flexWrap: 'wrap',
-                        }}>
-                          {option.label}
-                          {isSelected && (
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 4,
-                              fontSize: '0.66rem', fontWeight: 700, color: '#fff',
-                              background: '#F20C8F',
-                              padding: '2px 8px',
-                              borderRadius: 9999,
-                              letterSpacing: '0.04em', textTransform: 'uppercase',
-                            }}>
-                              <i className="bi bi-check" style={{ fontSize: 10 }} /> Active
-                            </span>
-                          )}
-                          {isSavingVerificationMethod && isSelected && (
-                            <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.4' }}>
-                          {option.description}
-                        </div>
-                        {kycNotApproved && (
-                          <div style={{
-                            fontSize: '0.8rem',
-                            color: '#DC2626',
-                            marginTop: '0.35rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                          }}>
-                            <i className="bi bi-exclamation-circle" style={{ fontSize: '0.75rem' }} />
-                            Requires approved KYC verification
-                          </div>
-                        )}
-                      </div>
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        border: `2px solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        marginTop: '0.25rem',
-                      }}>
-                        {isSelected && (
-                          <div style={{
-                            width: '10px',
-                            height: '10px',
-                            borderRadius: '50%',
-                            backgroundColor: '#083A85',
-                          }} />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
               <div style={{
-                marginTop: '1.25rem',
-                padding: '0.875rem 1rem',
-                backgroundColor: actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.15)' : 'rgba(8, 58, 133, 0.04)',
-                borderRadius: '0.75rem',
-                border: `1px solid ${actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.3)' : 'rgba(8, 58, 133, 0.1)'}`,
+                display: 'flex', alignItems: 'flex-start', gap: '0.875rem',
+                padding: '1rem 1.1rem', borderRadius: '0.9rem',
+                border: '2px solid #083A85',
+                backgroundColor: actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.18)' : 'rgba(8, 58, 133, 0.05)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-                  <i className="bi bi-info-circle" style={{ color: '#083A85', fontSize: '0.9rem', marginTop: '0.1rem' }} />
-                  <p style={{ fontSize: '0.825rem', color: colors.textSecondary, margin: 0, lineHeight: '1.5' }}>
-                    Each time you request a withdrawal, you will be asked to verify using your chosen method.
-                    Face scan options require an approved KYC with a selfie on file.
+                <i className="bi bi-envelope-check" style={{ fontSize: 20, color: '#083A85', marginTop: 2 }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary }}>Email code</div>
+                  <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
+                    When you confirm a withdrawal we email a 6-digit code to {user?.email || 'your account email'}.
+                    Enter it to finish. You can ask for a new code on the confirmation step, and you get an email
+                    again once the withdrawal is completed.
                   </p>
                 </div>
               </div>

@@ -5,13 +5,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
+import { useWorkspace } from "../providers/WorkspaceProvider";
 import { useCurrency } from "../context/CurrencyContext";
+import { useLanguage } from "../context/LanguageContext";
 import { getApiUrl } from '@/lib/api';
 import PayNowModal from './UnlockModal';
 import type { Payment } from './UnlockModal';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import KycVerificationModal from './KycVerificationModal';
+import {
+  desktopAlertPermission,
+  freshUnread,
+  playAlert,
+  requestDesktopAlerts,
+  showDesktopAlert,
+  strongestAlert,
+} from '@/app/lib/notificationAlerts';
 
 interface NotificationItem {
   id: string;
@@ -53,13 +63,17 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const router = useRouter();
   const role = userRole;
   const { currency, setCurrency, formatPrice, currencies } = useCurrency();
+  const { language, setLanguage, languages } = useLanguage();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [expandedNotifId, setExpandedNotifId] = useState<string | null>(null);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const [isLangOpen, setIsLangOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showKycModal, setShowKycModal] = useState(false);
+  // A workspace collaborator has no identity check of its own to complete: that belongs to the owner.
+  const { isCollaborator } = useWorkspace();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -88,7 +102,13 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  // Notification ids from the previous poll; null until the first one, so the
+  // backlog on page load doesn't ring.
+  const seenNotifIdsRef = useRef<Set<string> | null>(null);
+  const [desktopAlerts, setDesktopAlerts] = useState<NotificationPermission | 'unsupported'>('unsupported');
+  useEffect(() => { setDesktopAlerts(desktopAlertPermission()); }, []);
   const currencyRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
   const availabilityRef = useRef<HTMLDivElement>(null);
 
   const getUserDisplayName = () => {
@@ -111,14 +131,22 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         const data = await notifRes.value.json();
         if (data.action === 1 && (Array.isArray(data.data) || data.data?.content)) {
           const items = Array.isArray(data.data) ? data.data : data.data?.content || [];
-          setNotifications(items.map((n: any) => ({
+          const mapped: NotificationItem[] = items.map((n: any) => ({
             id: n.id, type: n.type || 'system',
             title: n.title || '', message: n.message || '',
             time: n.createdAt ? formatTimeAgo(n.createdAt) : '',
             read: n.isRead ?? true,
             actionUrl: n.link || undefined,
             referenceId: n.referenceId || undefined,
-          })));
+          }));
+          // Ring or chime for what arrived since the last poll, and show it
+          // as a desktop notification if the tab is in the background.
+          const fresh = freshUnread(seenNotifIdsRef.current, mapped);
+          seenNotifIdsRef.current = new Set(mapped.map((n) => n.id));
+          const kind = strongestAlert(fresh);
+          if (kind) playAlert(kind);
+          fresh.slice(0, 3).forEach((n) => showDesktopAlert(n, (url) => router.push(url)));
+          setNotifications(mapped);
         }
       }
       if (countRes.status === 'fulfilled' && countRes.value.ok) {
@@ -126,7 +154,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         if (data.action === 1) setUnreadCount(data.data ?? 0);
       }
     } catch { /* silent */ }
-  }, [user, userRole]);
+  }, [user, userRole, router]);
 
   const fetchFinancials = useCallback(async () => {
     if (!user) return;
@@ -225,9 +253,14 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
       switch (t) {
         case 'payment': case 'tip': case 'bonus': case 'withdrawal': dest = '/user/photographer/transaction'; break;
         case 'booking': case 'event':
-        case 'album': case 'media':
+        case 'media':
         case 'streaming': case 'photobook':
           dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
+        // The reference of an album notification is the album's id, so it opens the album, not an event with that id.
+        case 'album':
+          dest = refId ? `/user/photographer/collaborate/albums/${refId}` : '/user/photographer/collaborate'; break;
+        // "Your stream is still live. End it?": the events page opens the stream controls for that event.
+        case 'stream_reminder': dest = refId ? `/user/photographer/events?event=${refId}&action=stream` : '/user/photographer/events'; break;
         case 'security': dest = '/user/photographer/profile'; break;
       }
     } else if (userRole === 'event-coordinator') {
@@ -236,7 +269,8 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
           dest = refId ? `/user/event-coordinator/events/${refId}` : '/user/event-coordinator/events'; break;
         case 'payment': case 'streamfee': case 'streaming':
           dest = refId ? `/user/event-coordinator/payments/${refId}` : '/user/event-coordinator/payments'; break;
-        case 'album': case 'media': dest = '/user/event-coordinator/gallery'; break;
+        case 'album': dest = refId ? `/user/event-coordinator/gallery/albums/${refId}` : '/user/event-coordinator/gallery'; break;
+        case 'media': dest = '/user/event-coordinator/gallery'; break;
         case 'photographer': dest = '/user/event-coordinator/home'; break;
         case 'security': dest = '/user/event-coordinator/profile'; break;
       }
@@ -247,7 +281,8 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         case 'payment':
           dest = refId ? `/user/client/payments/${refId}` : '/user/client/payments'; break;
         case 'gift': dest = '/user/client/payments'; break;
-        case 'album': case 'media': dest = '/user/client/gallery'; break;
+        case 'album': dest = refId ? `/user/client/gallery/albums/${refId}` : '/user/client/gallery'; break;
+        case 'media': dest = '/user/client/gallery'; break;
         case 'photographer': dest = '/user/client/photographers'; break;
         case 'security': dest = '/user/client/profile'; break;
         case 'streaming': dest = '/user/client/streams'; break;
@@ -276,6 +311,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsDropdownOpen(false);
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) setIsNotificationsOpen(false);
       if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) setIsCurrencyOpen(false);
+      if (langRef.current && !langRef.current.contains(event.target as Node)) setIsLangOpen(false);
       if (availabilityRef.current && !availabilityRef.current.contains(event.target as Node)) setIsAvailabilityOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -525,6 +561,51 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
             <i className={`bi ${actualTheme === 'dark' ? 'bi-sun' : 'bi-moon'}`} style={{ fontSize: 15 }} />
           </button>
 
+          <div ref={langRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              aria-label="Change language"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px', borderRadius: 9999,
+                border: '1px solid var(--ck-stroke)', background: 'var(--ck-surface)',
+                color: 'var(--ck-text)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              <img src={`https://flagcdn.com/w40/${languages.find(l => l.code === language)?.flag || 'gb'}.png`} alt=""
+                style={{ width: 18, height: 14, objectFit: 'cover', borderRadius: 2 }} />
+              <span data-no-translate>{language.toUpperCase()}</span>
+              <i className="bi bi-chevron-down" style={{ fontSize: 10, transform: isLangOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms' }} />
+            </button>
+            {isLangOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                background: 'var(--ck-surface)', borderRadius: 14, boxShadow: 'var(--ck-shadow-lg)',
+                border: '1px solid var(--ck-stroke)', padding: 6, minWidth: 210, zIndex: 50,
+              }}>
+                {languages.map((l) => (
+                  <button key={l.code} onClick={() => { setLanguage(l.code); setIsLangOpen(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none',
+                      background: language === l.code ? 'var(--ck-surface-muted)' : 'transparent',
+                      color: 'var(--ck-text)', fontSize: '0.85rem',
+                      fontWeight: language === l.code ? 600 : 500, cursor: 'pointer', gap: 8,
+                    }}
+                    onMouseEnter={(e) => { if (language !== l.code) e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
+                    onMouseLeave={(e) => { if (language !== l.code) e.currentTarget.style.background = 'transparent'; }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }} data-no-translate>
+                      <img src={`https://flagcdn.com/w40/${l.flag}.png`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />
+                      <span style={{ fontWeight: 700 }}>{l.nativeLabel}</span>
+                      <span style={{ color: 'var(--ck-text-soft)', fontSize: '0.78rem' }}>{l.label}</span>
+                    </span>
+                    {language === l.code && <i className="bi bi-check-lg" style={{ color: 'var(--ck-blue)' }} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div ref={currencyRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
@@ -535,7 +616,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                 color: 'var(--ck-text)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
               }}
             >
-              <img src={`https://flagcdn.com/w40/${currencies.find(c => c.code === currency)?.flag}.png`} alt=""
+              <img src={`/flags/${currencies.find(c => c.code === currency)?.flag}.svg`} alt=""
                 style={{ width: 18, height: 14, objectFit: 'cover', borderRadius: 2 }} />
               {currency}
               <i className="bi bi-chevron-down" style={{ fontSize: 10, transform: isCurrencyOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms' }} />
@@ -558,7 +639,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                     onMouseEnter={(e) => { if (currency !== c.code) e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
                     onMouseLeave={(e) => { if (currency !== c.code) e.currentTarget.style.background = 'transparent'; }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <img src={`https://flagcdn.com/w40/${c.flag}.png`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />
+                      <img src={`/flags/${c.flag}.svg`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />
                       <span style={{ fontWeight: 700 }}>{c.code}</span>
                       <span style={{ color: 'var(--ck-text-soft)' }}>{c.name}</span>
                     </span>
@@ -606,6 +687,18 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                       </span>
                     )}
                   </div>
+                  {desktopAlerts === 'default' && (
+                    <button
+                      onClick={async () => setDesktopAlerts(await requestDesktopAlerts())}
+                      title="Get a desktop notification and sound for new booking requests, even when this tab is in the background"
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--ck-blue)',
+                        fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      <i className="bi bi-bell" /> Enable desktop alerts
+                    </button>
+                  )}
                   {unreadCount > 0 && (
                     <button onClick={markAllAsRead} style={{
                       background: 'none', border: 'none', color: 'var(--ck-blue)',
@@ -828,7 +921,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         </div>
       )}
 
-      {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && user.customerType !== 'Viewer' && !pendingPaymentWarning && (() => {
+      {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && user.customerType !== 'Viewer' && !isCollaborator && !pendingPaymentWarning && (() => {
         const isPending = user.kycStatus === 'PENDING';
         const isRejected = user.kycStatus === 'REJECTED';
         const cfg = isRejected

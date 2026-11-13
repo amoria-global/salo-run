@@ -1,6 +1,9 @@
 "use client";
 
+import MoneyInput from '../../components/MoneyInput';
+import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { hasActiveStream } from '../../lib/streamState';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import EventConfirmModal from '../../components/EventConfirmModal';
@@ -8,24 +11,51 @@ import EventQrWizard from '../../components/EventQrWizard';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
+import StandaloneAlbumRestore from '../../components/StandaloneAlbumRestore';
+import { EmptyResult, EventRowShell, EventsCalendar, EventsToolbar, GroupedEvents, SectionTabsBar, type CalendarMode, type EventsLayout } from '../../components/events/EventsBrowser';
+import { countsOf, dayFilter, emptyInfo, filterEvents, groupEvents, type DateFilter, type StatusFilter } from '@/lib/events/eventsFilter';
+
+// What the user last chose this session. A fresh visit opens on List, All and Any date, so only the layout and the calendar
+// mode are remembered, and only until the tab is closed.
+const webSession: { layout: EventsLayout; calMode: CalendarMode } = { layout: 'list', calMode: 'month' };
+const SECTION_TABS = [
+  { key: 'events', label: 'Events', icon: 'bi-calendar-event' },
+  { key: 'opportunities', label: 'Opportunities', icon: 'bi-broadcast' },
+  { key: 'albums', label: 'Albums', icon: 'bi-images' },
+  { key: 'photobooks', label: 'Photobooks', icon: 'bi-book' },
+  { key: 'content', label: 'Content', icon: 'bi-newspaper' },
+] as const;
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import HostEntryTiles from '../../components/HostEntryTiles';
+import { useHostEntry } from '../../components/useHostEntry';
 import { getPlatformConfig } from '@/lib/platformConfig';
-import StreamPreview from '../../components/StreamPreview';
+import HostLivePage from '../../components/live/HostLivePage';
 import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
-import PaidAlbumForm, { MIN_PAID_ALBUM_PRICE_RWF, isPaidAlbumPriceInvalid } from '../../components/PaidAlbumForm';
+import PaidAlbumForm, { paidAlbumPriceError } from '../../components/PaidAlbumForm';
+import { priceError, usePaymentLimit } from '@/lib/paymentLimits';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import FreeAlbumForm from '../../components/FreeAlbumForm';
 import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 import ContentAlbumsTab from './ContentAlbumsTab';
+import { useRouter } from 'next/navigation';
+import GetStartedModal from '../../components/events/GetStartedModal';
+import SellChooserModal from '../../components/events/SellChooserModal';
+import NewPhotobookModal from '../../components/events/NewPhotobookModal';
+import { useGetStarted } from '../../lib/useGetStarted';
+import { CREATE_LABEL } from '../../lib/getStarted';
 import LiveChatPreviewDrawer from '../../components/LiveChatPreviewDrawer';
 import PhotographerOpportunitiesView from '../../components/hybrid/PhotographerOpportunitiesView';
+import { AlbumShareCard } from '../../components/albums/AlbumShareCard';
+import { FieldError, invalidFieldProps, invalidFieldStyle } from '../../components/errors/FieldError';
+import {
+  describePublishFailure, LISTING_NOTE, notVisibleBadge, outcomeFromIndexing, publishOutcome, sellFieldErrors, SELL_FORM_NOTE, SELL_SUBTITLE,
+  type PublishOutcome, type SellField,
+} from '../../../lib/albums/sellPhotos';
+import { albumShareUrl } from '@/lib/albums/albumShare';
 
-const CURRENCY_FLAG_MAP: Record<string, string> = {
-  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
-};
 
 // ============================================
 // ICONS
@@ -315,6 +345,7 @@ interface AssignedEvent {
   packageName: string;
   packageId: string;
   hasLiveStream: boolean;
+  streamStatus?: string;
   isPublished: boolean;
   guestCount: number;
   maxGuests: number;
@@ -365,6 +396,9 @@ interface Album {
   expiresAt: string;
   albumType?: 'event' | 'standalone';
   isStandalone?: boolean;
+  /** Archived: locked after its access ran out. The photographer keeps read-only access and can restore it. */
+  isLocked?: boolean;
+  lockedAt?: string | null;
   // Standalone free-album fields. recipientEmail is the email captured at
   // album creation (already auto-sent then); "Send" on these is a Resend
   // via POST /albums/{id}/send-free. no event/eventId needed.
@@ -412,6 +446,9 @@ const PhotographerEventsPage = () => {
   const canCreateEvents = hasPermission('events.create');
   const apiUrl = getApiUrl();
 
+  // Offered only when the server says this account can host its own events, so with the feature off nothing shows.
+  const { canHost, caption: hostedCaption } = useHostEntry();
+
   // Live-chat preview drawer state. Set to {id, title} when the
   // photographer clicks the 'Chat' chip on a LIVE event card; drawer
   // closes by setting back to null. Single instance shared across
@@ -437,6 +474,11 @@ const PhotographerEventsPage = () => {
     localStorage.setItem('connekt_events_tab', activeTab);
   }, [activeTab]);
   const [events, setEvents] = useState<AssignedEvent[]>([]);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
+  const [showNewPhotobook, setShowNewPhotobook] = useState(false);
+  const [photobooksReload, setPhotobooksReload] = useState(0);
+  const router = useRouter();
+  const getStarted = useGetStarted({ role: 'photographer', canHost, canCreate: canCreateEvents, listLoaded: eventsLoaded, hasItems: events.length > 0 });
   const highlightId = useHighlightOnMount();
   const highlightCardRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -444,8 +486,26 @@ const PhotographerEventsPage = () => {
       highlightCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [highlightId, events.length]);
-  const [eventFilter, setEventFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
+  const [eventFilter, setEventFilter] = useState<StatusFilter>('all');
   const [eventSearch, setEventSearch] = useState('');
+  const [eventDate, setEventDate] = useState<DateFilter>(null);
+  const [eventsLayout, setEventsLayoutState] = useState<EventsLayout>(webSession.layout);
+  const [calMode, setCalModeState] = useState<CalendarMode>(webSession.calMode);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+  const setEventsLayout = (l: EventsLayout) => {
+    webSession.layout = l;
+    setEventsLayoutState(l);
+    // Back to the list means no date filter at all.
+    if (l === 'list') setEventDate(null);
+  };
+  const setCalMode = (m: CalendarMode) => {
+    webSession.calMode = m;
+    setCalModeState(m);
+  };
   const [selectedEvent, setSelectedEvent] = useState<AssignedEvent | null>(null);
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
   const [showStreamPreview, setShowStreamPreview] = useState(false);
@@ -508,6 +568,8 @@ const PhotographerEventsPage = () => {
   const [copiedInviteCode, setCopiedInviteCode] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [viewerAlbum, setViewerAlbum] = useState<Album | null>(null);
+  const [restoreAlbum, setRestoreAlbum] = useState<Album | null>(null);
+  const [albumsReload, setAlbumsReload] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -520,7 +582,11 @@ const PhotographerEventsPage = () => {
   const [paidAlbumPrice, setPaidAlbumPrice] = useState('');
   const [paidAlbumCurrencyId, setPaidAlbumCurrencyId] = useState('');
   const paidAlbumCurrencyCode = currencies.find(c => c.code === paidAlbumCurrencyId || (c.id || c.code) === paidAlbumCurrencyId)?.code || '';
-  const paidAlbumPriceInvalid = isPaidAlbumPriceInvalid(paidAlbumPrice, paidAlbumCurrencyCode);
+  const paidAlbumPriceMsg = paidAlbumPriceError(paidAlbumPrice, paidAlbumCurrencyCode);
+  // Find-My-Photos price: judged in its own currency, same minimum the server enforces.
+  const faceAICurrencyCode = currencies.find(c => (c.id || c.code) === faceAICurrency)?.code;
+  const faceAILimit = usePaymentLimit(faceAICurrencyCode);
+  const faceAIMsg = faceAIPrice ? priceError(faceAIPrice, faceAILimit) : null;
   const [freeAlbumEmail, setFreeAlbumEmail] = useState('');
   // Optional free-album download cap + price per extra image (blank = all free).
   // freeExtraCurrencyId required by the backend when freeExtraPrice > 0 so
@@ -532,7 +598,14 @@ const PhotographerEventsPage = () => {
   const [freeExtraCurrencyId, setFreeExtraCurrencyId] = useState('');
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
-  const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number; rejected?: string[] } | null>(null);
+  const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; albumId?: string; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number; rejected?: string[]; outcome?: PublishOutcome; price?: string; currencyId?: string } | null>(null);
+  // "Sell photos" presets the album form to a standalone PAID album, which is what Find my photos lists.
+  const [sellPreset, setSellPreset] = useState(false);
+  // Every Sell photos entry opens this chooser first; the album forms open from its two options.
+  const [showSellChooser, setShowSellChooser] = useState(false);
+  const [contentCreateSignal, setContentCreateSignal] = useState(0);
+  const [sellErrors, setSellErrors] = useState<Partial<Record<SellField, string>>>({});
+  const [retryingPublish, setRetryingPublish] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   // Tracks which album card's Copy Link button just flashed "Copied" —
@@ -581,15 +654,7 @@ const PhotographerEventsPage = () => {
   // Returns null when the album doesn't have the required pieces yet —
   // the card hides the Copy Link button entirely in that case so it
   // never offers a broken link.
-  const buildAlbumLink = (album: Album): string | null => {
-    if (album.isFreeAlbum && album.accessCode) {
-      return `https://connekyt.com/user/find-my-photos?code=${album.accessCode}`;
-    }
-    if (album.inviteCode) {
-      return `https://connekyt.com/user/find-my-photos?code=${album.inviteCode}`;
-    }
-    return null;
-  };
+  const buildAlbumLink = (album: Album): string | null => albumShareUrl(album);
 
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
@@ -778,6 +843,8 @@ const PhotographerEventsPage = () => {
       accessCode: a.accessCode || '',
       location: a.location || '',
       albumDate: a.albumDate || '',
+      isLocked: a.isLocked === true,
+      lockedAt: a.lockedAt || null,
     };
     return { album, imageIds };
   };
@@ -826,7 +893,11 @@ const PhotographerEventsPage = () => {
               organizerName: e.organizerName || '',
               packageName: e.packageName || '',
               packageId: e.packageId || '',
-              hasLiveStream: e.hasLiveStream || false,
+              // A stream can exist on an event whose package has no live-stream
+              // flag (free events). Keep the flag for the entitlement, and carry
+              // the real stream state so the card never hides a running stream.
+              hasLiveStream: e.hasLiveStream || hasActiveStream(e.streamStatus) || false,
+              streamStatus: e.streamStatus || '',
               isPublished: e.isPublished === true || e.eventStatus === 'PUBLISHED' || e.isEventPublished === true || false,
               guestCount: e.guestCount || 0,
               maxGuests: e.maxGuests || 0,
@@ -862,6 +933,8 @@ const PhotographerEventsPage = () => {
         }
       } catch {
         setEvents([]);
+      } finally {
+        setEventsLoaded(true);
       }
     };
     loadEvents();
@@ -929,7 +1002,7 @@ const PhotographerEventsPage = () => {
       }
     };
     loadAlbums();
-  }, [user?.id, apiUrl]);
+  }, [user?.id, apiUrl, albumsReload]);
 
   // Fetch received photobooks
   useEffect(() => {
@@ -968,7 +1041,7 @@ const PhotographerEventsPage = () => {
       }
     };
     loadPhotobooks();
-  }, [user?.id, apiUrl]);
+  }, [user?.id, apiUrl, photobooksReload]);
 
   // Fetch stream configs for events with live stream
   useEffect(() => {
@@ -987,7 +1060,7 @@ const PhotographerEventsPage = () => {
               let hlsUrl = '';
               let streamType = '';
               try {
-                const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${event.id}`);
+                const pubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/public/events/${event.id}`);
                 if (pubRes.ok) {
                   const pubData = await pubRes.json();
                   hlsUrl = pubData.data?.hlsManifestUrl || '';
@@ -1242,7 +1315,7 @@ const PhotographerEventsPage = () => {
             let pubStreamType = '';
             let pubWhepUrl = '';
             try {
-              const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${eventId}`);
+              const pubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/public/events/${eventId}`);
               if (pubRes.ok) {
                 const pubData = await pubRes.json();
                 pubStreamType = pubData.data?.streamType || '';
@@ -1473,6 +1546,7 @@ const PhotographerEventsPage = () => {
   };
 
   const handleOpenCreateAlbum = async (eventId?: string) => {
+    setSellPreset(false); setSellErrors({});
     if (eventId) {
       const event = events.find(e => e.id === eventId);
       if (event) {
@@ -1496,6 +1570,86 @@ const PhotographerEventsPage = () => {
     setCreateAlbumMode('event'); setStandaloneLocation(''); setStandaloneDate('');
     setSelectedFiles(null); setSelectedCoverIndex(0); setShowCreateAlbumModal(true);
   };
+
+  // The photographer's own one-click sale: the existing album form, preset to a PAID standalone album.
+  const startEventSale = () => {
+    void handleOpenCreateAlbum();
+    setCreateAlbumMode('standalone');
+    setStandaloneAlbumType('PAID');
+    setSellPreset(true);
+  };
+
+  // Stock & content: the existing content album form, on the Content tab. No face scanning, no face credits.
+  const startContentSale = () => {
+    setActiveTab('content');
+    setContentCreateSignal((n) => n + 1);
+  };
+
+  const handleSellPhotos = () => setShowSellChooser(true);
+
+  // Retry publishing: publish only, never re-upload. The album and its photos are already saved.
+  const retryPublishAlbum = async () => {
+    const m = albumSuccessModal;
+    if (!m?.albumId || retryingPublish) return;
+    setRetryingPublish(true);
+    let outcome: PublishOutcome;
+    let inviteCode = m.inviteCode;
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${m.albumId}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(m.price && m.currencyId ? { pricePerImage: parseFloat(m.price), currencyId: m.currencyId } : {}),
+      });
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.action !== 0) {
+        inviteCode = json?.data?.inviteCode || inviteCode;
+        outcome = publishOutcome({
+          published: true,
+          facesIndexed: typeof json?.data?.facesIndexed === 'number' ? json.data.facesIndexed : undefined,
+          indexing: json?.data?.indexing === true ? { total: Number(json.data.indexingTotal) || 0, done: Number(json.data.indexingDone) || 0 } : undefined,
+        });
+      } else {
+        outcome = publishOutcome({ failure: describePublishFailure({ status: res.status, body: json }) });
+      }
+    } catch {
+      outcome = publishOutcome({ failure: describePublishFailure({ networkError: true }) });
+    }
+    setAlbumSuccessModal(prev => (prev ? { ...prev, outcome, inviteCode } : prev));
+    if (outcome.state === 'listed') {
+      setAlbums(prev => prev.map(a => (a.id === m.albumId ? { ...a, faceRecognitionEnabled: true, inviteCode: inviteCode || a.inviteCode } : a)));
+    }
+    setRetryingPublish(false);
+  };
+
+  // A large album is indexed in the background: follow it while the result modal is open, until it is ready or has failed.
+  const preparingAlbumId = albumSuccessModal?.outcome?.state === 'preparing' ? albumSuccessModal.albumId : undefined;
+  useEffect(() => {
+    if (!preparingAlbumId) return;
+    let stopped = false;
+    const timer = setInterval(async () => {
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${preparingAlbumId}/face-status`);
+        const json = await res.json().catch(() => null);
+        const next = outcomeFromIndexing(json?.data?.indexing);
+        if (!stopped && next) setAlbumSuccessModal(prev => (prev && prev.albumId === preparingAlbumId ? { ...prev, outcome: next } : prev));
+      } catch {
+        // A missed poll is not a failure: the next one will say.
+      }
+    }, 4000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [preparingAlbumId, apiUrl]);
+
+  // Deep link from Home and the Get started sheet: /user/photographer/events?sell=1
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sell') !== '1') return;
+    params.delete('sell');
+    const rest = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''));
+    handleSellPhotos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleEventSelectForAlbum = async (eventId: string) => {
     const event = events.find(e => e.id === eventId);
@@ -1524,14 +1678,20 @@ const PhotographerEventsPage = () => {
     if (!isStandalone && (!event || !albumTitle)) return;
     if (isStandalone && !albumTitle) return;
 
+    // Sell photos: every missing condition shows next to its field, so an album never silently fails to appear.
+    if (sellPreset) {
+      const errs = sellFieldErrors({ title: albumTitle, price: paidAlbumPrice, currencyId: paidAlbumCurrencyId, priceMsg: paidAlbumPriceMsg, photoCount: selectedFiles?.length ?? 0 });
+      setSellErrors(errs);
+      if (Object.keys(errs).length > 0) return;
+    }
     // Validate PAID/FREE album fields
     if (isStandalone && standaloneAlbumType === 'PAID') {
       if (!paidAlbumPrice || !paidAlbumCurrencyId) {
         platformAlert('Please fill in price and currency for PAID album');
         return;
       }
-      if (paidAlbumPriceInvalid) {
-        platformAlert(`Minimum price for a PAID album in RWF is ${MIN_PAID_ALBUM_PRICE_RWF}. Mobile Money collections below ${MIN_PAID_ALBUM_PRICE_RWF} RWF are rejected by the payment provider.`);
+      if (paidAlbumPriceMsg) {
+        platformAlert(paidAlbumPriceMsg);
         return;
       }
     }
@@ -1644,19 +1804,26 @@ const PhotographerEventsPage = () => {
       }
     }
 
-    // 3. Auto-publish PAID standalone albums to Face AI
+    // 3. Auto-publish PAID standalone albums to Face AI. A failure is shown with its real reason and a retry that only
+    // publishes again (never re-uploads); it is never swallowed, so an album cannot silently stay invisible.
     let publishedToFaceAI = false;
+    let facesIndexed: number | undefined;
+    let indexingProgress: { total: number; done: number } | undefined;
+    let publishFailure: ReturnType<typeof describePublishFailure> | undefined;
     if (isStandalone && standaloneAlbumType === 'PAID' && backendAlbumId) {
       try {
-        setUploadProgress('Publishing to Face AI...');
+        setUploadProgress('Preparing your photos for Find my photos... this can take a minute for a large album');
         const pubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${backendAlbumId}/publish`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pricePerImage: parseFloat(paidAlbumPrice), currencyId: paidAlbumCurrencyId }),
         });
-        if (pubRes.ok) {
-          const pubResult = await pubRes.json();
+        const pubResult = await pubRes.json().catch(() => null);
+        if (pubRes.ok && pubResult?.action !== 0) {
           backendInviteCode = pubResult?.data?.inviteCode || backendInviteCode;
+          facesIndexed = typeof pubResult?.data?.facesIndexed === 'number' ? pubResult.data.facesIndexed : undefined;
+          // A large album is published at once and indexed in the background; the result modal follows its progress.
+          if (pubResult?.data?.indexing === true) indexingProgress = { total: Number(pubResult.data.indexingTotal) || 0, done: Number(pubResult.data.indexingDone) || 0 };
           publishedToFaceAI = true;
           // If publish didn't return an invite code, generate one
           if (!backendInviteCode) {
@@ -1666,10 +1833,15 @@ const PhotographerEventsPage = () => {
                 const codeResult = await codeRes.json();
                 backendInviteCode = codeResult?.data?.inviteCode || codeResult?.data?.code || '';
               }
-            } catch { /* ignore */ }
+            } catch (err) { console.error('Invite code request failed:', err); }
           }
+        } else {
+          publishFailure = describePublishFailure({ status: pubRes.status, body: pubResult });
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        console.error('Publish to Find my photos failed:', err);
+        publishFailure = describePublishFailure({ networkError: true });
+      }
     }
 
     const newAlbum: Album = {
@@ -1695,12 +1867,16 @@ const PhotographerEventsPage = () => {
     if (isStandalone) {
       setAlbumSuccessModal({
         type: standaloneAlbumType === 'PAID' ? 'paid' : 'free',
+        albumId: backendAlbumId,
         title: albumTitle,
         inviteCode: backendInviteCode || undefined,
         email: standaloneAlbumType === 'FREE' ? freeAlbumEmail : undefined,
         accessCode: backendAccessCode || undefined,
         photoCount: albumImages.length,
         rejected: rejectedMessages.length > 0 ? rejectedMessages : undefined,
+        outcome: standaloneAlbumType === 'PAID' ? publishOutcome({ published: publishedToFaceAI, facesIndexed, indexing: indexingProgress, failure: publishFailure }) : undefined,
+        price: standaloneAlbumType === 'PAID' ? paidAlbumPrice : undefined,
+        currencyId: standaloneAlbumType === 'PAID' ? paidAlbumCurrencyId : undefined,
       });
     }
 
@@ -1919,11 +2095,6 @@ const PhotographerEventsPage = () => {
     return () => window.removeEventListener('keydown', handleBrowseKeyDown);
   }, [handleBrowseKeyDown]);
 
-  const filteredEvents = events.filter(e => {
-    const matchesFilter = eventFilter === 'all' || e.status === eventFilter;
-    const matchesSearch = e.title.toLowerCase().includes(eventSearch.toLowerCase()) || e.clientName.toLowerCase().includes(eventSearch.toLowerCase()) || e.eventType.toLowerCase().includes(eventSearch.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
   const filteredAlbums = albums.filter(a => {
     // Content albums live exclusively in the Content tab - exclude
     // them from the Albums tab so they don't appear in both places.
@@ -1938,22 +2109,26 @@ const PhotographerEventsPage = () => {
     const matchesSearch = a.title.toLowerCase().includes(albumSearch.toLowerCase()) || a.clientName.toLowerCase().includes(albumSearch.toLowerCase()) || a.category.toLowerCase().includes(albumSearch.toLowerCase());
     return matchesFilter && matchesSearch;
   });
-  const completedEvents = events.filter(e => e.status === 'completed');
-  const eventCounts = { all: events.length, upcoming: events.filter(e => e.status === 'upcoming').length, ongoing: events.filter(e => e.status === 'ongoing').length, completed: completedEvents.length };
+  // The shared Events model: statuses from getEventStatus, so the chips, their counts and the rows always agree.
+  const eventItems = events.map((e) => ({
+    id: e.id,
+    title: e.title,
+    clientName: e.clientName,
+    category: e.eventType,
+    eventDate: (e.date || '').slice(0, 10),
+    startTime: e.startTime,
+    endTime: e.endTime,
+    eventStatus: e.status === 'pending' ? 'UPCOMING' : e.status.toUpperCase(),
+    streamStatus: e.streamStatus,
+    hasLiveStream: e.hasLiveStream,
+    src: e,
+  }));
+  const eventFilters = { status: eventFilter, date: eventDate, search: eventSearch };
+  const eventCounts = countsOf(eventItems, { date: eventDate, search: eventSearch }, nowMs);
+  const visibleItems = filterEvents(eventItems, eventFilters, nowMs);
+  const groupedItems = groupEvents(visibleItems, nowMs);
+  const emptyHelp = emptyInfo(eventItems, eventFilters, nowMs);
 
-  const viewToggleBtnStyle = (isActive: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '10px 18px',
-    background: isActive ? 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)' : 'transparent',
-    color: isActive ? '#ffffff' : 'var(--ck-text-soft)',
-    border: 'none', borderRadius: 10,
-    fontSize: '0.88rem', fontWeight: 700, letterSpacing: '-0.005em',
-    cursor: 'pointer',
-    transition: 'background 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease',
-    boxShadow: isActive ? '0 4px 12px rgba(8, 58, 133, 0.30)' : 'none',
-    whiteSpace: 'nowrap',
-    transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
-  });
   const filterBtnStyle = (isActive: boolean): React.CSSProperties => ({
     padding: '8px 16px', borderRadius: 9, border: 'none',
     backgroundColor: isActive ? 'var(--ck-surface)' : 'transparent',
@@ -1997,7 +2172,12 @@ const PhotographerEventsPage = () => {
           <Topbar userRole="photographer" />
           <div className="events-page-main" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
 
-            {/* Page Header + View Toggle */}
+            {/* One bar of equal tabs at the top of the content area */}
+            <div style={{ marginBottom: '1rem', maxWidth: 760 }}>
+              <SectionTabsBar tabs={SECTION_TABS} value={activeTab} onChange={setActiveTab} />
+            </div>
+
+            {/* Page Header */}
             <header className="events-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{
@@ -2015,474 +2195,114 @@ const PhotographerEventsPage = () => {
                     ? 'Browse and manage your created photo albums.'
                     : 'Curate and share photobooks with your clients.'}
                 </p>
+                {canHost ? <HostEntryTiles caption={hostedCaption} /> : null}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-                <span style={{
-                  fontSize: '0.65rem', fontWeight: 700, color: 'var(--ck-text-muted)',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                }}>View</span>
-                <div role="tablist" aria-label="Switch view" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  background: 'var(--ck-surface)', border: '1px solid var(--ck-stroke)',
-                  padding: 4, borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                }}>
-                  <button onClick={() => setActiveTab('events')} role="tab" aria-selected={activeTab === 'events'} style={viewToggleBtnStyle(activeTab === 'events')}>
-                    <i className="bi bi-calendar-event" style={{ fontSize: 15 }} /> Events
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button type="button" onClick={getStarted.show} className="ck-btn ck-btn-ghost" aria-label="Show getting started" title="Show getting started">
+                  <i className="bi bi-question-circle" aria-hidden="true" />
+                </button>
+                {/* Host an event here duplicated the Go live tile above, so this is the photographer's own sale instead. */}
+                {activeTab === 'events' && canCreateEvents ? (
+                  <button type="button" onClick={handleSellPhotos} className="ck-btn ck-btn-primary" title={SELL_SUBTITLE}>
+                    <i className="bi bi-tag-fill" aria-hidden="true" /> Sell photos
                   </button>
-                  <button onClick={() => setActiveTab('opportunities')} role="tab" aria-selected={activeTab === 'opportunities'} style={viewToggleBtnStyle(activeTab === 'opportunities')}>
-                    <i className="bi bi-broadcast" style={{ fontSize: 15 }} /> Opportunities
+                ) : null}
+                {activeTab === 'photobooks' && canCreateEvents ? (
+                  <button type="button" onClick={() => setShowNewPhotobook(true)} className="ck-btn ck-btn-primary">
+                    <i className="bi bi-plus-lg" aria-hidden="true" /> {CREATE_LABEL.photobooks}
                   </button>
-                  <button onClick={() => setActiveTab('albums')} role="tab" aria-selected={activeTab === 'albums'} style={viewToggleBtnStyle(activeTab === 'albums')}>
-                    <i className="bi bi-images" style={{ fontSize: 15 }} /> Albums
+                ) : null}
+                {activeTab === 'albums' && canCreateEvents ? (
+                  <button type="button" onClick={() => handleOpenCreateAlbum()} className="ck-btn ck-btn-primary">
+                    <i className="bi bi-plus-lg" aria-hidden="true" /> {CREATE_LABEL.albums}
                   </button>
-                  <button onClick={() => setActiveTab('photobooks')} role="tab" aria-selected={activeTab === 'photobooks'} style={viewToggleBtnStyle(activeTab === 'photobooks')}>
-                    <i className="bi bi-book" style={{ fontSize: 15 }} /> Photobooks
-                  </button>
-                  <button onClick={() => setActiveTab('content')} role="tab" aria-selected={activeTab === 'content'} style={viewToggleBtnStyle(activeTab === 'content')}>
-                    <i className="bi bi-newspaper" style={{ fontSize: 15 }} /> Content
-                  </button>
-                </div>
+                ) : null}
               </div>
             </header>
 
             {/* ==================== EVENTS TAB ==================== */}
             {activeTab === 'events' && (
               <>
-                {/* Stat Cards */}
-                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginBottom: '1.25rem' }}>
-                  {([
-                    { label: 'Total Events', value: eventCounts.all, accent: '#083A85', icon: 'bi-calendar3', tint: 'rgba(8,58,133,0.10)' },
-                    { label: 'Upcoming', value: eventCounts.upcoming, accent: '#F59E0B', icon: 'bi-hourglass-split', tint: 'rgba(245,158,11,0.12)' },
-                    { label: 'Ongoing', value: eventCounts.ongoing, accent: '#3B82F6', icon: 'bi-broadcast-pin', tint: 'rgba(59,130,246,0.12)' },
-                    { label: 'Completed', value: eventCounts.completed, accent: '#10B981', icon: 'bi-check2-circle', tint: 'rgba(16,185,129,0.12)' },
-                  ] as const).map(stat => (
-                    <div
-                      key={stat.label}
-                      className="ck-card"
-                      style={{ position: 'relative', overflow: 'hidden', padding: '14px 16px 16px' }}
-                    >
-                      <span aria-hidden style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                        background: `linear-gradient(90deg, ${stat.accent} 0%, #F20C8F 130%)`,
-                      }} />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                          width: 38, height: 38, borderRadius: 10,
-                          background: stat.tint,
-                          border: `1px solid ${stat.accent}33`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <i className={`bi ${stat.icon}`} style={{ fontSize: 16, color: stat.accent }} />
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginBottom: 2, fontWeight: 600 }}>{stat.label}</div>
-                          <div style={{ fontSize: '1.45rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>{stat.value}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div style={{ display: 'grid', gap: 14, marginBottom: '1.25rem' }}>
+                  <EventsToolbar
+                    counts={eventCounts}
+                    status={eventFilter}
+                    onStatus={setEventFilter}
+                    date={eventDate}
+                    onClearDate={() => setEventDate(null)}
+                    onPickDate={() => setEventsLayout('calendar')}
+                    layout={eventsLayout}
+                    onLayout={setEventsLayout}
+                    search={eventSearch}
+                    onSearch={setEventSearch}
+                  />
+                  {eventsLayout === 'calendar' ? <EventsCalendar events={eventItems} date={eventDate} onSelect={setEventDate} mode={calMode} onMode={setCalMode} /> : null}
                 </div>
 
-                {/* Filters + Search */}
-                <div className="events-page-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-                  <div className="ck-tabs">
-                    {(['all', 'upcoming', 'ongoing', 'completed'] as const).map(f => (
-                      <button key={f} onClick={() => setEventFilter(f)} className={`ck-tab ${eventFilter === f ? 'is-active' : ''}`}>
-                        <span>{f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}</span>
-                        <span style={{
-                          marginLeft: 6,
-                          backgroundColor: eventFilter === f ? 'rgba(255,255,255,0.22)' : 'rgba(8,58,133,0.10)',
-                          color: eventFilter === f ? '#fff' : '#083A85',
-                          padding: '0.06rem 0.42rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                        }}>
-                          {eventCounts[f]}
-                        </span>
-                      </button>
-                    ))}
+                {events.length === 0 ? (
+                  <div role="status" style={{ textAlign: 'center', padding: '28px 12px', color: colors.textSecondary }}>
+                    <strong style={{ display: 'block', color: colors.textPrimary, fontSize: '1.05rem' }}>No events found</strong>
+                    Events you’re assigned to will appear here.
                   </div>
-                  <div className="ck-search" style={{ marginLeft: 'auto', minWidth: 240, maxWidth: 320 }}>
-                    <i className="bi bi-search" />
-                    <input placeholder="Search events…" value={eventSearch} onChange={e => setEventSearch(e.target.value)} />
-                  </div>
-                </div>
-
-                {/* Event Cards Grid */}
-                <div className="events-page-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem' }}>
-                  {filteredEvents.map(event => {
-                    const badge = getStatusBadge(event.status);
-                    const streamCfg = event.hasLiveStream ? streamConfigs[event.id] : null;
-                    const isLive = streamCfg?.connectionStatus === 'connected';
-                    const isHighlighted = highlightId != null && String(event.id) === highlightId;
-                    return (
-                      /* Outer glow wrapper. blurred image border */
-                      <div
-                        key={event.id}
-                        ref={isHighlighted ? highlightCardRef : null}
-                        className={isHighlighted ? 'notif-highlight-pop' : undefined}
-                        style={{ position: 'relative', height: '450px', borderRadius: '1.25rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                      >
-                        <img src={event.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                        {/* Inner card. clickable to open details */}
-                        <div
-                          onClick={() => { setSelectedEvent(event); setShowEventDetailModal(true); }}
-                          style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
-                        >
-                          {/* Full-bleed cover image */}
-                          <img src={event.coverImage || '/coverr.jpg'} alt={event.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                          {/* Gradient overlay */}
-                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
-
-                          {/* TOP: date badge + status badge + live badge */}
-                          <div style={{ position: 'absolute', top: '0.7rem', left: '0.7rem', right: '0.7rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
-                            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                              <div style={{
-                                background: 'rgba(0,0,0,0.55)',
-                                backdropFilter: 'blur(8px)',
-                                WebkitBackdropFilter: 'blur(8px)',
-                                color: 'white',
-                                padding: '0.28rem 0.7rem',
-                                borderRadius: 9999,
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                letterSpacing: '0.02em',
-                                display: 'inline-flex', alignItems: 'center', gap: 5,
-                                border: '1px solid rgba(255,255,255,0.18)',
-                              }}>
-                                <i className="bi bi-calendar3" style={{ fontSize: 10 }} />
-                                {formatDate(event.date)}
-                              </div>
-                              <div style={{
-                                backgroundColor: badge.bg, color: badge.color,
-                                padding: '0.28rem 0.65rem',
-                                borderRadius: 9999,
-                                fontSize: '0.65rem',
-                                fontWeight: 700,
-                                letterSpacing: '0.06em',
-                                textTransform: 'uppercase',
-                                border: '1px solid rgba(255,255,255,0.25)',
-                                boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-                              }}>{badge.label}</div>
-                            </div>
-                            {event.hasLiveStream && event.status !== 'completed' && (
-                              <div style={{
-                                background: isLive
-                                  ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
-                                  : 'rgba(0,0,0,0.55)',
-                                backdropFilter: 'blur(8px)',
-                                WebkitBackdropFilter: 'blur(8px)',
-                                color: 'white',
-                                padding: '0.28rem 0.65rem',
-                                borderRadius: 9999,
-                                fontSize: '0.65rem',
-                                fontWeight: 800,
-                                letterSpacing: '0.06em',
-                                textTransform: 'uppercase',
-                                display: 'inline-flex', alignItems: 'center', gap: 5,
-                                animation: isLive ? 'pulse 2s infinite' : 'none',
-                                border: '1px solid rgba(255,255,255,0.25)',
-                                boxShadow: isLive ? '0 4px 12px rgba(220,38,38,0.40)' : '0 4px 10px rgba(0,0,0,0.20)',
-                              }}>
-                                {isLive && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px #fff' }} />}
-                                <i className="bi bi-broadcast-pin" style={{ fontSize: 10 }} /> {isLive ? 'LIVE' : 'Stream'}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Viewer count for live */}
-                          {isLive && streamCfg && event.status !== 'completed' && (
-                            <div style={{ position: 'absolute', top: '2.5rem', right: '0.6rem', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '2rem', fontSize: '0.65rem', fontWeight: 600, pointerEvents: 'none' }}>{streamCfg.viewerCount.toLocaleString()} viewers</div>
-                          )}
-
-                          {/* Live-chat preview trigger - sits under the
-                              viewer count chip on a LIVE card so the
-                              photographer can read what viewers are
-                              saying without opening the public watch
-                              URL. Read-only; replies still go through
-                              the viewer side. */}
-                          {isLive && event.status !== 'completed' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setChatPreview({ id: event.id, title: event.title });
-                              }}
-                              title="View live chat"
-                              style={{
-                                position: 'absolute',
-                                top: '4.5rem',
-                                right: '0.6rem',
-                                backgroundColor: 'rgba(8, 58, 133, 0.85)',
-                                backdropFilter: 'blur(6px)',
-                                border: '1px solid rgba(255,255,255,0.25)',
-                                color: '#fff',
-                                padding: '0.2rem 0.6rem',
-                                borderRadius: '2rem',
-                                fontSize: '0.65rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                boxShadow: '0 4px 10px rgba(0,0,0,0.30)',
-                              }}
-                            >
-                              <i className="bi bi-chat-square-text-fill" style={{ fontSize: 10 }} />
-                              Chat
-                            </button>
-                          )}
-
-                          {/* MIDDLE-BOTTOM: title + location over image */}
-                          <div style={{ position: 'absolute', bottom: '6.2rem', left: 0, right: 0, padding: '0 0.8rem' }}>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.25rem', marginTop: '-0.5rem' }}>
-                              {event.title}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z" stroke="rgba(255,255,255,0.85)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                                <circle cx="12" cy="10" r="3" stroke="rgba(255,255,255,0.85)" strokeWidth="3"/>
-                              </svg>
-                              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[event.location.city, event.location.country].filter(Boolean).join(', ') || event.location.address || 'No location'}</span>
-                            </div>
-                          </div>
-
-                          {/* FOOTER BAR: frosted glass */}
-                          <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
-                            {/* Client avatar + name + time */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
-                                {event.clientImage ? (
-                                  <img src={event.clientImage} alt={event.clientName} style={{ width: 34, height: 34, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.45)', objectFit: 'cover', flexShrink: 0, boxShadow: '0 3px 8px rgba(0,0,0,0.30)' }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
-                                ) : null}
-                                <div style={{
-                                  width: 34, height: 34, borderRadius: '50%',
-                                  padding: 2,
-                                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                                  display: event.clientImage ? 'none' : 'flex',
-                                  alignItems: 'center', justifyContent: 'center',
-                                  flexShrink: 0,
-                                  boxShadow: '0 4px 10px rgba(8,58,133,0.36), 0 0 0 1px rgba(255,255,255,0.18)',
-                                }}>
-                                  <div style={{
-                                    width: '100%', height: '100%', borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #0a4da8 0%, #DB0A7F 100%)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: '#fff',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 800,
-                                    letterSpacing: '-0.01em',
-                                    textShadow: '0 1px 2px rgba(0,0,0,0.30)',
-                                    boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.18)',
-                                  }}>
-                                    {event.clientName.charAt(0).toUpperCase()}
-                                  </div>
-                                </div>
-                                <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.clientName}</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'rgba(255,255,255,0.12)', padding: '0.2rem 0.6rem', borderRadius: '2rem', fontSize: '0.67rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600, flexShrink: 0 }}>
-                                <ClockIcon /> {formatTime(event.startTime)}
-                              </div>
-                            </div>
-                            {/* Action buttons */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
-                              {event.bookingStatus?.toUpperCase() === 'PENDING' ? (
-                                <>
-                                  <button onClick={() => openBookingAction(event, 'accept')} style={{
-                                    flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                    padding: '0.42rem 0', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                    color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                    boxShadow: '0 4px 10px rgba(16,185,129,0.32)',
-                                    transition: 'transform 0.15s',
-                                  }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                  >
-                                    <i className="bi bi-check2-circle" style={{ fontSize: 12 }} /> Accept
-                                  </button>
-                                  <button onClick={() => openBookingAction(event, 'decline')} style={{
-                                    flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                    padding: '0.42rem 0', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                                    color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                    boxShadow: '0 4px 10px rgba(220,38,38,0.30)',
-                                    transition: 'transform 0.15s',
-                                  }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                  >
-                                    <i className="bi bi-x-circle-fill" style={{ fontSize: 12 }} /> Deny
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  {event.isPublished && event.bookingStatus?.toUpperCase() === 'ACCEPTED' && (
-                                    <button
-                                      onClick={() => setQrEvent({ id: event.id, title: event.title })}
-                                      style={{
-                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                        padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                        background: 'transparent', color: 'inherit', border: '1px solid currentColor',
-                                        borderRadius: 9, cursor: 'pointer',
-                                      }}
-                                    >
-                                      <i className="bi bi-qr-code" style={{ fontSize: 11 }} /> QR code
-                                    </button>
-                                  )}
-                                  {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
-                                    <button onClick={() => {
-                                      setSelectedEvent(event);
-                                      if (!event.isPublished) {
-                                        setShowUnpublishedModal(true);
-                                      } else {
-                                        setShowStreamPreview(true);
-                                      }
-                                    }} style={{
-                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: isLive
-                                        ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
-                                        : 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-                                      color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                      boxShadow: isLive ? '0 4px 10px rgba(220,38,38,0.36)' : '0 4px 10px rgba(139,92,246,0.32)',
-                                      animation: isLive ? 'pulse 2s infinite' : 'none',
-                                      transition: 'transform 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                    >
-                                      <i className="bi bi-broadcast-pin" style={{ fontSize: 11 }} /> {isLive ? 'LIVE' : 'Live Stream'}
-                                    </button>
-                                  )}
-                                  {/* Create Album requires events.create - owner always passes; restricted team member without the perm sees the event but no create CTA. */}
-                                  {canCreateEvents && (event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
-                                    <button onClick={() => {
-                                      if (!event.isPublished) {
-                                        setSelectedEvent(event);
-                                        setShowUnpublishedModal(true);
-                                      } else {
-                                        handleOpenCreateAlbum(event.id);
-                                      }
-                                    }} style={{
-                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                                      color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                      boxShadow: '0 4px 10px rgba(8,58,133,0.32)',
-                                      transition: 'transform 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                    >
-                                      <i className="bi bi-plus-circle-fill" style={{ fontSize: 11 }} /> Create Album
-                                    </button>
-                                  )}
-                                  {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && !canCreateAlbumForEvent(event.id) && eventHasAlbum(event.id).sent && (
-                                    <div style={{
-                                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                      color: 'white', borderRadius: 9,
-                                      boxShadow: '0 4px 10px rgba(16,185,129,0.30)',
-                                    }}>
-                                      <i className="bi bi-send-check-fill" style={{ fontSize: 11 }} /> Album Sent
-                                    </div>
-                                  )}
-                                  {event.hasLiveStream && event.status === 'ongoing' && (
-                                    <button onClick={() => setMarkCompleteTarget(event)} style={{
-                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                      color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer',
-                                      boxShadow: '0 4px 10px rgba(16,185,129,0.30)',
-                                      transition: 'transform 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                                    >
-                                      <i className="bi bi-check2-all" style={{ fontSize: 12 }} /> Complete
-                                    </button>
-                                  )}
-                                  {event.bookingStatus?.toUpperCase() === 'ACCEPTED' && (
-                                    <div style={{
-                                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                                      padding: '0.42rem 0.65rem', borderRadius: 9,
-                                      fontSize: '0.7rem', color: 'white', fontWeight: 700, letterSpacing: '-0.005em',
-                                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                      boxShadow: '0 4px 10px rgba(16,185,129,0.28)',
-                                    }}>
-                                      <i className="bi bi-check2-circle" style={{ fontSize: 11 }} /> Accepted
-                                    </div>
-                                  )}
-                                  {canDismissEvent(event) && (
-                                    <button onClick={() => { setEventToDismiss(event); setShowDismissEventModal(true); }} title="Dismiss Event" style={{
-                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                      padding: '0.42rem 0.55rem',
-                                      background: 'rgba(220,38,38,0.85)',
-                                      backdropFilter: 'blur(6px)',
-                                      color: 'white', border: '1px solid rgba(255,255,255,0.18)',
-                                      borderRadius: 9, cursor: 'pointer',
-                                      transition: 'transform 0.15s, background 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(220,38,38,0.85)'; }}
-                                    >
-                                      <i className="bi bi-trash3-fill" style={{ fontSize: 11 }} />
-                                    </button>
-                                  )}
-                                  <div style={{
-                                    marginLeft: 'auto',
-                                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                                    background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                                    padding: '0.42rem 0.7rem', borderRadius: 9,
-                                    fontSize: '0.7rem', color: 'white', fontWeight: 700, letterSpacing: '-0.005em',
-                                    flexShrink: 0,
-                                    boxShadow: '0 4px 10px rgba(8,58,133,0.30)',
-                                  }}>
-                                    <i className="bi bi-box-seam-fill" style={{ fontSize: 11 }} /> {event.packageName}
-                                  </div>
-                                </>
+                ) : visibleItems.length === 0 ? (
+                  <EmptyResult
+                    info={emptyHelp}
+                    canShowAll={!!eventDate || eventFilter !== 'all' || !!eventSearch}
+                    showAllLabel={eventDate ? 'Show all dates' : 'Show all events'}
+                    onShowAll={() => { if (eventDate) setEventDate(null); else { setEventFilter('all'); setEventSearch(''); } }}
+                    onJump={() => emptyHelp.nextDay && setEventDate(dayFilter(emptyHelp.nextDay))}
+                  />
+                ) : (
+                  <GroupedEvents
+                    groups={groupedItems}
+                    renderRow={(item, st) => {
+                      const event = item.src;
+                      const streamCfg = event.hasLiveStream ? streamConfigs[event.id] : null;
+                      const isLive = streamCfg?.connectionStatus === 'connected';
+                      const pending = event.bookingStatus?.toUpperCase() === 'PENDING';
+                      const small: React.CSSProperties = { minHeight: 36, padding: '0 12px', borderRadius: 9, border: '1px solid currentColor', background: 'transparent', cursor: 'pointer', font: 'inherit', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5, color: colors.textPrimary };
+                      const wd = event.date ? new Date(event.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short' }) : '';
+                      const meta = [wd, event.startTime ? formatTime(event.startTime) : '', event.location.address || event.location.city].filter(Boolean).join(' · ');
+                      return (
+                        <EventRowShell
+                          key={event.id}
+                          day={item.eventDate || null}
+                          title={event.title}
+                          meta={meta}
+                          status={st}
+                          pending={pending}
+                          onOpen={() => { setSelectedEvent(event); setShowEventDetailModal(true); }}
+                          actions={pending ? (
+                            <>
+                              <button type="button" onClick={() => openBookingAction(event, 'accept')} style={{ ...small, color: '#10B981' }}><i className="bi bi-check2-circle" aria-hidden="true" /> Accept</button>
+                              <button type="button" onClick={() => openBookingAction(event, 'decline')} style={{ ...small, color: '#EF4444' }}><i className="bi bi-x-circle-fill" aria-hidden="true" /> Deny</button>
+                            </>
+                          ) : (
+                            <>
+                              {event.isPublished && event.bookingStatus?.toUpperCase() === 'ACCEPTED' && (
+                                <button type="button" onClick={() => setQrEvent({ id: event.id, title: event.title })} style={small}><i className="bi bi-qr-code" aria-hidden="true" /> QR code</button>
                               )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {filteredEvents.length === 0 && (
-                  <div className="ck-empty" style={{
-                    background: colors.bgCard,
-                    border: `1px solid ${colors.borderPrimary}`,
-                    borderRadius: 16,
-                    padding: '3.5rem 1.5rem',
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 12,
-                  }}>
-                    <div style={{
-                      width: 64, height: 64, borderRadius: 18,
-                      background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.10) 100%)',
-                      border: '1px solid var(--ck-stroke)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <i className="bi bi-calendar3" style={{ fontSize: 26, color: '#083A85' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>No events found</div>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: colors.textSecondary }}>
-                        {eventFilter === 'all' ? 'Events you’re assigned to will appear here.' : `Try a different filter or search term.`}
-                      </p>
-                    </div>
-                  </div>
+                              {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
+                                <button type="button" onClick={() => { setSelectedEvent(event); if (!event.isPublished) setShowUnpublishedModal(true); else setShowStreamPreview(true); }} style={{ ...small, color: isLive ? '#EF4444' : '#A78BFA' }}><i className="bi bi-broadcast-pin" aria-hidden="true" /> {isLive ? 'LIVE' : 'Live Stream'}</button>
+                              )}
+                              {canCreateEvents && (event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
+                                <button type="button" onClick={() => { if (!event.isPublished) { setSelectedEvent(event); setShowUnpublishedModal(true); } else handleOpenCreateAlbum(event.id); }} style={{ ...small, color: '#7fa8ff' }}><i className="bi bi-plus-circle-fill" aria-hidden="true" /> Create Album</button>
+                              )}
+                              {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && !canCreateAlbumForEvent(event.id) && eventHasAlbum(event.id).sent && (
+                                <span style={{ ...small, cursor: 'default', color: '#10B981' }}><i className="bi bi-send-check-fill" aria-hidden="true" /> Album Sent</span>
+                              )}
+                              {event.hasLiveStream && event.status === 'ongoing' && (
+                                <button type="button" onClick={() => setMarkCompleteTarget(event)} style={small}><i className="bi bi-check2-all" aria-hidden="true" /> Mark complete</button>
+                              )}
+                              {canDismissEvent(event) && (
+                                <button type="button" title="Dismiss Event" aria-label={'Dismiss ' + event.title} onClick={() => { setEventToDismiss(event); setShowDismissEventModal(true); }} style={{ ...small, color: colors.textSecondary }}><i className="bi bi-eye-slash" aria-hidden="true" /></button>
+                              )}
+                            </>
+                          )}
+                        />
+                      );
+                    }}
+                  />
                 )}
               </>
             )}
@@ -2539,9 +2359,6 @@ const PhotographerEventsPage = () => {
                     <button onClick={() => setAlbumViewMode('grid')} style={{ ...smallActionBtn, borderColor: albumViewMode === 'grid' ? colors.brandPrimary : colors.borderPrimary }}><GridIcon active={albumViewMode === 'grid'} /></button>
                     <button onClick={() => setAlbumViewMode('list')} style={{ ...smallActionBtn, borderColor: albumViewMode === 'list' ? colors.brandPrimary : colors.borderPrimary }}><ListIcon active={albumViewMode === 'list'} /></button>
                   </div>
-                  <button onClick={() => handleOpenCreateAlbum()} className="ck-btn ck-btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <PlusIcon /> New Album
-                  </button>
                   <div className="ck-search" style={{ marginLeft: 'auto', minWidth: 240, maxWidth: 320 }}>
                     <i className="bi bi-search" />
                     <input placeholder="Search albums…" value={albumSearch} onChange={e => setAlbumSearch(e.target.value)} />
@@ -2568,6 +2385,17 @@ const PhotographerEventsPage = () => {
                       >
                         {/* Full-bleed cover image spanning entire inner card */}
                         <img src={album.coverImage || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                        {album.isLocked && (
+                          <button
+                            type="button"
+                            title="This album is archived. Restore it to open it to buyers again."
+                            onClick={(e) => { e.stopPropagation(); setRestoreAlbum(album); }}
+                            style={{ position: 'absolute', top: '3.4rem', left: '0.7rem', zIndex: 3, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(8,58,133,0.92)', color: '#fff', padding: '5px 11px', borderRadius: 9999, fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer' }}
+                          >
+                            <i className="bi bi-lock-fill" style={{ fontSize: 11 }} />
+                            Archived · Restore
+                          </button>
+                        )}
                         {/* Gradient overlay. lighter so image shows through */}
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
@@ -2704,6 +2532,14 @@ const PhotographerEventsPage = () => {
                                 <i className="bi bi-arrow-clockwise" style={{ fontSize: 11 }} /> Resend
                               </button>
                             ) : null}
+                            {notVisibleBadge(album) && (
+                              <button onClick={() => handleOpenFaceAI(album)} data-testid="not-visible-badge" title="This album is saved but buyers cannot find it yet" style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0.42rem 0.65rem', fontSize: '0.7rem', fontWeight: 700,
+                                background: 'transparent', color: colors.textPrimary, border: '1px solid #F5B400', borderRadius: 9, cursor: 'pointer',
+                              }}>
+                                <i className="bi bi-eye-slash" style={{ fontSize: 11 }} /> {notVisibleBadge(album)} · Publish
+                              </button>
+                            )}
                             {!(album.isStandalone && album.albumType === 'standalone' && !album.faceRecognitionEnabled && !album.inviteCode) && (
                               album.faceRecognitionEnabled ? (
                                 <span onClick={() => handleOpenFaceAI(album)} title="Album is live on Find-My-Photos" style={{
@@ -2842,6 +2678,17 @@ const PhotographerEventsPage = () => {
                     >
                       {/* Image side with overlay */}
                       <div style={{ position: 'relative', width: 220, flexShrink: 0, overflow: 'hidden' }}>
+                        {album.isLocked && (
+                          <button
+                            type="button"
+                            title="This album is archived. Restore it to open it to buyers again."
+                            onClick={(e) => { e.stopPropagation(); setRestoreAlbum(album); }}
+                            style={{ position: 'absolute', bottom: 10, left: 10, zIndex: 3, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(8,58,133,0.92)', color: '#fff', padding: '4px 10px', borderRadius: 9999, fontSize: '0.64rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer' }}
+                          >
+                            <i className="bi bi-lock-fill" style={{ fontSize: 10 }} />
+                            Archived · Restore
+                          </button>
+                        )}
                         <img src={album.coverImage || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%)', pointerEvents: 'none' }} />
                         <div style={{
@@ -2948,6 +2795,14 @@ const PhotographerEventsPage = () => {
                               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                               ><i className="bi bi-arrow-clockwise" style={{ fontSize: 11 }} /> Resend</button>
                             ) : null}
+                            {notVisibleBadge(album) && (
+                              <button onClick={() => handleOpenFaceAI(album)} data-testid="not-visible-badge" title="This album is saved but buyers cannot find it yet" style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0.4rem 0.7rem', fontSize: '0.76rem', fontWeight: 700,
+                                background: 'transparent', color: colors.textPrimary, border: '1px solid #F5B400', borderRadius: 9, cursor: 'pointer',
+                              }}>
+                                <i className="bi bi-eye-slash" style={{ fontSize: 11 }} /> {notVisibleBadge(album)} · Publish
+                              </button>
+                            )}
                             {!(album.isStandalone && !album.faceRecognitionEnabled && !album.inviteCode) && (
                               album.faceRecognitionEnabled ? (
                                 <span onClick={() => handleOpenFaceAI(album)} style={{
@@ -3376,6 +3231,7 @@ const PhotographerEventsPage = () => {
             {/* ==================== CONTENT TAB ==================== */}
             {activeTab === 'content' && (
               <ContentAlbumsTab
+                openCreateSignal={contentCreateSignal}
                 currencies={currencies as any}
                 defaultCurrencyId={paidAlbumCurrencyId}
               />
@@ -3590,9 +3446,8 @@ const PhotographerEventsPage = () => {
       )}
 
       {/* Live Stream Control Modal */}
-      {selectedEvent && (
-        <StreamPreview
-          isOpen={showStreamPreview}
+      {selectedEvent && showStreamPreview && (
+        <HostLivePage
           onClose={() => setShowStreamPreview(false)}
           eventTitle={selectedEvent.title}
           eventId={selectedEvent.id}
@@ -3784,6 +3639,43 @@ const PhotographerEventsPage = () => {
         );
       })()}
 
+      {showSellChooser ? (
+        <SellChooserModal
+          onClose={() => setShowSellChooser(false)}
+          onPick={(key) => {
+            setShowSellChooser(false);
+            if (key === 'event') startEventSale();
+            else startContentSale();
+          }}
+        />
+      ) : null}
+
+      {getStarted.open ? (
+        <GetStartedModal
+          actions={getStarted.actions}
+          createLabel={CREATE_LABEL.host}
+          initialDismissed={getStarted.dismissed}
+          onClose={getStarted.close}
+          onDismissChange={getStarted.setForever}
+          onPick={(key) => {
+            getStarted.close();
+            if (key === 'new-album') handleSellPhotos();
+            else if (key === 'photobook') { setActiveTab('photobooks'); setShowNewPhotobook(true); }
+            else router.push('/user/photographer/host?new=1');
+          }}
+        />
+      ) : null}
+
+      {showNewPhotobook ? (
+        <NewPhotobookModal
+          apiUrl={apiUrl}
+          albums={albums}
+          mediaIdMap={mediaIdMap}
+          onClose={() => setShowNewPhotobook(false)}
+          onCreated={() => { setShowNewPhotobook(false); setPhotobooksReload((n) => n + 1); }}
+        />
+      ) : null}
+
       {/* Create Album Modal */}
       {showCreateAlbumModal && (
         <div style={modalOverlay} onClick={() => setShowCreateAlbumModal(false)}>
@@ -3801,8 +3693,8 @@ const PhotographerEventsPage = () => {
                   <i className="bi bi-plus-circle-fill" style={{ fontSize: 16, color: '#fff' }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 1 }}>New collection</div>
-                  <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Create Album</h2>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 1 }}>{sellPreset ? SELL_SUBTITLE : 'New collection'}</div>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>{sellPreset ? 'Sell photos' : 'Create Album'}</h2>
                 </div>
               </div>
               <button onClick={() => setShowCreateAlbumModal(false)} aria-label="Close" style={{
@@ -3816,7 +3708,9 @@ const PhotographerEventsPage = () => {
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textSecondary; }}
               ><i className="bi bi-x-lg" style={{ fontSize: 13 }} /></button>
             </div>
-            {/* Album Type Toggle */}
+            {/* Album Type Toggle (hidden for Sell photos: it is always a standalone PAID album) */}
+            {!sellPreset && (
+            <>
             <div style={{ display: 'flex', gap: 8, marginBottom: '1.1rem' }}>
               <button onClick={() => { setCreateAlbumMode('event'); setCreateAlbumEventId(''); setAlbumTitle(''); setAlbumDescription(''); setAlbumCategory(''); setUploadedImagePreviews([]); setSelectedFiles(null); }} style={{
                 flex: 1, padding: '0.8rem 0.9rem',
@@ -3861,6 +3755,8 @@ const PhotographerEventsPage = () => {
                 Personal Album
               </button>
             </div>
+            </>
+            )}
             {createAlbumMode === 'standalone' && (
               <>
                 <div style={{
@@ -3879,15 +3775,17 @@ const PhotographerEventsPage = () => {
                     background: 'linear-gradient(180deg, #8B5CF6 0%, #F20C8F 100%)',
                   }} />
                   <i className="bi bi-info-circle-fill" style={{ fontSize: 14, color: '#8B5CF6', flexShrink: 0, marginLeft: 4 }} />
-                  <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }}>
-                    Personal albums can be <strong style={{ color: '#083A85', fontWeight: 700 }}>PAID</strong> with facial recognition enabled, or <strong style={{ color: '#059669', fontWeight: 700 }}>FREE</strong> with private email access.
+                  <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }} data-testid="sell-note">
+                    {sellPreset ? SELL_FORM_NOTE : (<>Personal albums can be <strong style={{ color: '#083A85', fontWeight: 700 }}>PAID</strong> with facial recognition enabled, or <strong style={{ color: '#059669', fontWeight: 700 }}>FREE</strong> with private email access.</>)}
                   </span>
                 </div>
                 {/* Album Type Selector */}
+                {!sellPreset && (
                 <AlbumTypeSelector
                   selectedType={standaloneAlbumType}
                   onChange={setStandaloneAlbumType}
                 />
+                )}
               </>
             )}
             {/* Select Event (event mode only) */}
@@ -3904,7 +3802,8 @@ const PhotographerEventsPage = () => {
               <>
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Album Title <span style={{ color: '#EF4444' }}>*</span></label>
-                  <input value={albumTitle} onChange={e => setAlbumTitle(e.target.value)} style={inputStyle} placeholder="Enter album title" />
+                  <input value={albumTitle} onChange={e => { setAlbumTitle(e.target.value); if (sellErrors.title) setSellErrors(p => ({ ...p, title: undefined })); }} style={{ ...inputStyle, ...(sellErrors.title ? invalidFieldStyle(colors.statusError) : null) }} placeholder="Enter album title" {...invalidFieldProps('sell-title-error', sellErrors.title)} />
+                  <FieldError id="sell-title-error" message={sellErrors.title} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div>
@@ -3968,6 +3867,7 @@ const PhotographerEventsPage = () => {
                         colors={{ textPrimary: colors.textPrimary, textSecondary: colors.textSecondary, border: colors.borderPrimary, background: colors.bgTertiary }}
                       />
                     )}
+                    {sellPreset && <FieldError id="sell-price-error" message={sellErrors.price} />}
                   </>
                 )}
                 {/* Image Upload */}
@@ -3999,8 +3899,9 @@ const PhotographerEventsPage = () => {
                     </div>
                     <p style={{ fontSize: '0.88rem', color: colors.textPrimary, margin: '0.5rem 0 0 0', fontWeight: 700, letterSpacing: '-0.005em' }}>Click to upload photos</p>
                     <p style={{ fontSize: '0.76rem', color: colors.textSecondary, margin: '2px 0 0 0' }}>or drag & drop your files here</p>
-                    <input id="album-file-input" type="file" multiple accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+                    <input id="album-file-input" type="file" multiple accept="image/*" onChange={(e) => { handleFileSelect(e); if (sellErrors.photos) setSellErrors(p => ({ ...p, photos: undefined })); }} style={{ display: 'none' }} {...invalidFieldProps('sell-photos-error', sellErrors.photos)} />
                   </div>
+                  <FieldError id="sell-photos-error" message={sellErrors.photos} />
                   {uploadedImagePreviews.length > 0 && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginTop: '0.75rem' }}>
                       {uploadedImagePreviews.map((preview, i) => (
@@ -4018,26 +3919,26 @@ const PhotographerEventsPage = () => {
                   <button
                     onClick={handleCreateAlbum}
                     disabled={
+                      isUploadingAlbum || (!sellPreset && (
                       !albumTitle ||
                       (createAlbumMode === 'event' && !createAlbumEventId) ||
-                      (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || paidAlbumPriceInvalid)) ||
+                      (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || !!paidAlbumPriceMsg)) ||
                       (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
-                      !selectedFiles || selectedFiles.length === 0 ||
-                      isUploadingAlbum
+                      !selectedFiles || selectedFiles.length === 0
+                      ))
                     }
                     style={{
                       ...primaryBtn,
-                      opacity: (
+                      opacity: (isUploadingAlbum || (!sellPreset && (
                         !albumTitle ||
                         (createAlbumMode === 'event' && !createAlbumEventId) ||
-                        (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || paidAlbumPriceInvalid)) ||
+                        (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || !!paidAlbumPriceMsg)) ||
                         (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
-                        !selectedFiles || selectedFiles.length === 0 ||
-                        isUploadingAlbum
-                      ) ? 0.5 : 1
+                        !selectedFiles || selectedFiles.length === 0
+                      ))) ? 0.5 : 1
                     }}
                   >
-                    {isUploadingAlbum ? (uploadProgress || 'Uploading...') : (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' ? 'Publish to Face AI' : createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' ? 'Create & Send Invitation' : 'Create Album')}
+                    {isUploadingAlbum ? (uploadProgress || 'Uploading...') : sellPreset ? 'Upload and publish' : (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' ? 'Publish to Face AI' : createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' ? 'Create & Send Invitation' : 'Create Album')}
                   </button>
                 </div>
               </>
@@ -4080,28 +3981,42 @@ const PhotographerEventsPage = () => {
             {/* Success icon */}
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: albumSuccessModal.type === 'paid' ? 'rgba(59,130,246,0.1)' : 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke={albumSuccessModal.type === 'paid' ? '#3B82F6' : '#10B981'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d={albumSuccessModal.outcome?.state === 'failed' ? 'M12 7v6m0 4h.01' : 'M5 13l4 4L19 7'} stroke={albumSuccessModal.outcome?.state === 'failed' ? '#EF4444' : albumSuccessModal.type === 'paid' ? '#3B82F6' : '#10B981'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
 
             <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 0.35rem' }}>
-              {albumSuccessModal.type === 'paid' ? 'Published to Face AI' : 'Album Created & Invitation Sent'}
+              {albumSuccessModal.type === 'paid' ? (albumSuccessModal.outcome?.headline ?? 'Published to Face AI') : 'Album Created & Invitation Sent'}
             </h2>
             <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.25rem' }}>
               {albumSuccessModal.type === 'paid'
-                ? `"${albumSuccessModal.title}" is now live on Find My Photos with ${albumSuccessModal.photoCount} photos.`
+                ? `"${albumSuccessModal.title}": ${albumSuccessModal.photoCount} photo${albumSuccessModal.photoCount === 1 ? '' : 's'} uploaded.`
                 : `"${albumSuccessModal.title}" has been created and an invitation has been sent.`}
             </p>
+            {albumSuccessModal.type === 'paid' && albumSuccessModal.outcome && (
+              <div data-testid="publish-status" role="status" aria-live="polite" style={{
+                textAlign: 'left' as const, marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: 10, fontSize: '0.85rem', lineHeight: 1.5, color: colors.textPrimary,
+                border: `1px solid ${albumSuccessModal.outcome.state === 'failed' ? colors.statusError : albumSuccessModal.outcome.state === 'preparing' ? '#3B82F6' : albumSuccessModal.outcome.warn ? '#F5B400' : '#10B981'}`,
+              }}>
+                {retryingPublish ? 'Preparing your photos. This can take a minute for a large album.' : albumSuccessModal.outcome.status}
+                {albumSuccessModal.outcome.state === 'preparing' && albumSuccessModal.outcome.total > 0 && (
+                  <div role="progressbar" aria-valuemin={0} aria-valuemax={albumSuccessModal.outcome.total} aria-valuenow={Math.min(albumSuccessModal.outcome.done, albumSuccessModal.outcome.total)} style={{ marginTop: 8, height: 6, borderRadius: 3, background: colors.bgTertiary, overflow: 'hidden' }}>
+                    <div style={{ height: 6, borderRadius: 3, background: '#3B82F6', width: `${Math.round((Math.min(albumSuccessModal.outcome.done, albumSuccessModal.outcome.total) / albumSuccessModal.outcome.total) * 100)}%`, transition: 'width 0.4s' }} />
+                  </div>
+                )}
+                {albumSuccessModal.outcome.state !== 'failed' && <div style={{ marginTop: 6, fontSize: '0.78rem', color: colors.textSecondary }}>{LISTING_NOTE}</div>}
+              </div>
+            )}
 
             {/* Details card */}
             <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.5rem 1.25rem', marginBottom: '1.25rem', textAlign: 'center' as const }}>
-              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
+              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && albumSuccessModal.outcome?.state !== 'failed' && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.5rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Invite Code</div>
                   <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#3B82F6', letterSpacing: '0.2em', fontFamily: 'monospace' }}>{albumSuccessModal.inviteCode}</div>
                 </div>
               )}
-              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
+              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && albumSuccessModal.outcome?.state !== 'failed' && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Find My Photos Link</div>
                   {/* Hardcoded host matches the URL MailService bakes into
@@ -4146,6 +4061,14 @@ const PhotographerEventsPage = () => {
               </div>
             </div>
 
+            {albumSuccessModal.albumId && albumSuccessModal.outcome?.state !== 'failed' && (
+              <AlbumShareCard
+                albumId={albumSuccessModal.albumId}
+                title={albumSuccessModal.title}
+                album={albumSuccessModal.type === 'free' ? { isFreeAlbum: true, accessCode: albumSuccessModal.accessCode, inviteCode: albumSuccessModal.inviteCode } : { inviteCode: albumSuccessModal.inviteCode }}
+              />
+            )}
+
             {albumSuccessModal.rejected && albumSuccessModal.rejected.length > 0 && (
               <div style={{
                 background: actualTheme === 'dark' ? 'rgba(239,68,68,0.10)' : 'rgba(239,68,68,0.06)',
@@ -4173,7 +4096,12 @@ const PhotographerEventsPage = () => {
                 Link = the same URL the invitation email's button uses.
                 Paid: ?code=<inviteCode>. Free: ?code=<accessCode>. */}
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {(albumSuccessModal.inviteCode || albumSuccessModal.accessCode) && (
+              {albumSuccessModal.outcome?.state === 'failed' && (
+                <button onClick={retryPublishAlbum} disabled={retryingPublish} style={{ ...primaryBtn, minWidth: '150px', opacity: retryingPublish ? 0.6 : 1 }}>
+                  {retryingPublish ? 'Publishing...' : 'Retry publishing'}
+                </button>
+              )}
+              {(albumSuccessModal.inviteCode || albumSuccessModal.accessCode) && albumSuccessModal.outcome?.state !== 'failed' && (
                 <button
                   onClick={() => {
                     const code = albumSuccessModal.type === 'paid' ? albumSuccessModal.inviteCode : albumSuccessModal.accessCode;
@@ -4194,7 +4122,7 @@ const PhotographerEventsPage = () => {
                 // email: the code is the secret and the server resolves the
                 // recipient from it.
                 let link: string | null = null;
-                if (albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode) {
+                if (albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && albumSuccessModal.outcome?.state !== 'failed') {
                   link = `https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.inviteCode}`;
                 } else if (albumSuccessModal.type === 'free' && albumSuccessModal.accessCode) {
                   link = `https://connekyt.com/user/find-my-photos?code=${albumSuccessModal.accessCode}`;
@@ -4221,6 +4149,16 @@ const PhotographerEventsPage = () => {
       )}
 
       {/* Album Browse / Image Viewer Modal */}
+      {restoreAlbum && (
+        <StandaloneAlbumRestore
+          album={{ id: restoreAlbum.id, title: restoreAlbum.title, lockedAt: restoreAlbum.lockedAt }}
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={() => setRestoreAlbum(null)}
+          onRestored={() => { setRestoreAlbum(null); setAlbumsReload((n) => n + 1); }}
+        />
+      )}
+
       {showAlbumBrowseModal && viewerAlbum && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 2000 }}>
           {/* Radial cinematic backdrop tint */}
@@ -4744,27 +4682,9 @@ const PhotographerEventsPage = () => {
                         </button>
                       </div>
                     </div>
-                    <div style={{ marginBottom: '1rem' }}>
-                      <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Find-My-Photos Link</label>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.78rem', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }} />
-                        <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={{
-                          ...smallActionBtn,
-                          padding: '0.6rem 0.95rem', fontSize: '0.82rem',
-                          background: copiedLink ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' : colors.bgCard,
-                          color: copiedLink ? 'white' : colors.textPrimary,
-                          border: copiedLink ? 'none' : `1px solid ${colors.borderPrimary}`,
-                          boxShadow: copiedLink ? '0 4px 10px rgba(16,185,129,0.30)' : 'none',
-                        }}
-                        onMouseEnter={(e) => { if (!copiedLink) e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
-                        onMouseLeave={(e) => { if (!copiedLink) e.currentTarget.style.borderColor = colors.borderPrimary; }}
-                        >
-                          {copiedLink ? <><i className="bi bi-check2" style={{ fontSize: 12 }} /> Copied!</> : <><i className="bi bi-clipboard-fill" style={{ fontSize: 11 }} /> Copy</>}
-                        </button>
-                      </div>
-                    </div>
                   </>
                 )}
+                <AlbumShareCard albumId={selectedAlbum.id} title={selectedAlbum.title} album={selectedAlbum} />
               </>
             ) : (
               <>
@@ -4838,58 +4758,21 @@ const PhotographerEventsPage = () => {
                     Price Per Image {selectedAlbum.isStandalone ? '(optional)' : <span style={{ color: '#EF4444' }}>*</span>}
                   </label>
                   <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0 0 0.55rem 0' }}>{selectedAlbum.isStandalone ? 'Optionally set a price per photo. Leave empty for free downloads.' : 'Set the price users will pay to download each photo on Find-My-Photos.'}</p>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <div ref={faceAICurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
-                      <button type="button" onClick={() => setShowFaceAICurrencyDropdown(!showFaceAICurrencyDropdown)}
-                        style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', width: '100%', textAlign: 'left' as const, padding: '0.75rem' }}>
-                        {(() => {
-                          const selCode = currencies.find(c => (c.id || c.code) === faceAICurrency)?.code || '';
-                          return (
-                            <>
-                              {CURRENCY_FLAG_MAP[selCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selCode]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
-                              <span style={{ flex: 1, fontSize: '0.85rem' }}>{selCode || 'Currency'}</span>
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: showFaceAICurrencyDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                                <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            </>
-                          );
-                        })()}
-                      </button>
-                      {showFaceAICurrencyDropdown && (
-                        <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
-                          {(currencies.length > 0 ? currencies.map(c => ({ val: c.id || c.code, code: c.code, name: c.name })) : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }]).map(opt => {
-                            const flag = CURRENCY_FLAG_MAP[opt.code] || '';
-                            const isSelected = faceAICurrency === opt.val;
-                            return (
-                              <button key={opt.val} type="button" onClick={() => { setFaceAICurrency(opt.val); setShowFaceAICurrencyDropdown(false); }}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
-                                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
-                                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                  <span style={{ fontWeight: '600' }}>{opt.code}</span>
-                                  {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
-                                </div>
-                                {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    <input type="number" min={selectedAlbum.isStandalone ? 0 : 1} step="0.01" value={faceAIPrice} onChange={e => setFaceAIPrice(e.target.value)} placeholder={selectedAlbum.isStandalone ? 'Free if empty' : 'Min 1.00'} style={{ ...inputStyle, flex: 1 }} />
-                  </div>
-                  {faceAIPrice && parseFloat(faceAIPrice) < 1 && !selectedAlbum.isStandalone && (
-                    <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Minimum price is 1.00</p>
-                  )}
+                  <MoneyInput
+                    label="Price per image"
+                    hideLabel
+                    value={faceAIPrice}
+                    onChange={setFaceAIPrice}
+                    currencyId={faceAICurrency}
+                    onCurrencyChange={setFaceAICurrency}
+                    currencies={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))}
+                    placeholder={selectedAlbum.isStandalone ? 'Free if empty' : 'Enter price'}
+                  />
                 </div>
                 {/* Upload Button */}
                 <button onClick={async () => {
                   const updated = { ...selectedAlbum, faceRecognitionEnabled: true };
-                  setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? updated : a));
-                  setSelectedAlbum(updated);
-                  setShowFaceRecognitionModal(false);
+                  let published = false;
                   try {
                     // Publish with pricing. triggers Rekognition face indexing without notifying client
                     const publishBody: Record<string, unknown> = {};
@@ -4897,36 +4780,50 @@ const PhotographerEventsPage = () => {
                       publishBody.pricePerImage = parseFloat(faceAIPrice);
                       publishBody.currencyId = faceAICurrency;
                     }
-                    await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/publish`, {
+                    const pubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/publish`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(publishBody),
                     });
+                    const pubJson = await pubRes.json().catch(() => null);
+                    published = pubRes.ok && pubJson?.action !== 0;
+                    if (!published) {
+                      setShowFaceRecognitionModal(false);
+                      setAlbumSuccessMessage({
+                        status: 'error',
+                        title: 'Could not publish to Find-My-Photos',
+                        description: pubJson?.message || 'The album was not published. Please try again.',
+                      });
+                      setShowAlbumSuccessModal(true);
+                    }
                   } catch (err) {
                     console.error('Failed to enable face recognition on album:', err);
+                    setShowFaceRecognitionModal(false);
+                    setAlbumSuccessMessage({ status: 'error', title: 'Could not publish to Find-My-Photos', description: 'The album was not published. Please try again.' });
+                    setShowAlbumSuccessModal(true);
                   }
-                  setAlbumSuccessMessage({
-                    title: 'Album Uploaded to Find-My-Photos',
-                    description: `"${selectedAlbum.title}" is now live. Share the invite code with event attendees so they can find their photos using face recognition.`,
-                  });
-                  setShowAlbumSuccessModal(true);
+                  if (published) {
+                    // Stay on the modal: it now shows the invite code, the link and the QR to share.
+                    setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? updated : a));
+                    setSelectedAlbum(updated);
+                  }
                 }} disabled={(() => {
                   if (!selectedAlbum.inviteCode) return true;
                   if (selectedAlbum.isStandalone) {
                     // Standalone: price optional, but if provided must be valid
-                    if (faceAIPrice && parseFloat(faceAIPrice) > 0 && !faceAICurrency) return true;
+                    if (faceAIPrice && parseFloat(faceAIPrice) > 0 && (!faceAICurrency || faceAIMsg)) return true;
                     return false;
                   }
                   // Event album: price + currency required
-                  return !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency;
+                  return !faceAIPrice || !!faceAIMsg || !faceAICurrency;
                 })()} style={(() => {
                   const isDisabled = (() => {
                     if (!selectedAlbum.inviteCode) return true;
                     if (selectedAlbum.isStandalone) {
-                      if (faceAIPrice && parseFloat(faceAIPrice) > 0 && !faceAICurrency) return true;
+                      if (faceAIPrice && parseFloat(faceAIPrice) > 0 && (!faceAICurrency || faceAIMsg)) return true;
                       return false;
                     }
-                    return !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency;
+                    return !faceAIPrice || !!faceAIMsg || !faceAICurrency;
                   })();
                   return { ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: isDisabled ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', borderColor: isDisabled ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.6 : 1 };
                 })()}>

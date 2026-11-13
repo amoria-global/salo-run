@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import QRCode from 'qrcode';
+import { brandedQrPngDataUrl } from '@/lib/qr/brandedQr';
 import { getEventQrLink } from '@/lib/urls';
 
 /**
@@ -52,13 +52,9 @@ export default function EventQrWizard({
     setNote('');
     setFailed(false);
     setDataUrl(null);
-    QRCode.toDataURL(link, {
-      width: 720,
-      margin: 2,
-      errorCorrectionLevel: 'M',
-      color: { dark: NAVY, light: '#FFFFFF' },
-    })
-      .then((url) => {
+    // The Connekyt logo icon sits in the middle; error correction H keeps the code scannable.
+    brandedQrPngDataUrl(link, { width: 720, fg: NAVY })
+      .then((url: string) => {
         if (!cancelled) setDataUrl(url);
       })
       .catch(() => {

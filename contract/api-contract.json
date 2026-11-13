@@ -82,15 +82,6 @@
     "pathVariables" : [ "id" ]
   }, {
     "method" : "GET",
-    "path" : "/admin/archives",
-    "controller" : "AdminArchiveController#index"
-  }, {
-    "method" : "GET",
-    "path" : "/admin/archives/delete/{id}",
-    "controller" : "AdminArchiveController#delete",
-    "pathVariables" : [ "id" ]
-  }, {
-    "method" : "GET",
     "path" : "/admin/bonuses",
     "controller" : "AdminBonusPageController#index"
   }, {
@@ -258,8 +249,16 @@
     "controller" : "AdminContentApprovalPageController#index"
   }, {
     "method" : "GET",
+    "path" : "/admin/content-disputes",
+    "controller" : "AdminContentDisputePageController#index"
+  }, {
+    "method" : "GET",
     "path" : "/admin/customers/clients",
     "controller" : "CustomerAdminController#clients"
+  }, {
+    "method" : "GET",
+    "path" : "/admin/customers/collaborators",
+    "controller" : "CustomerAdminController#collaborators"
   }, {
     "method" : "GET",
     "path" : "/admin/customers/coordinators",
@@ -451,6 +450,10 @@
     "method" : "GET",
     "path" : "/admin/kyc",
     "controller" : "AdminKycPageController#index"
+  }, {
+    "method" : "GET",
+    "path" : "/admin/locked-albums",
+    "controller" : "AdminLockedAlbumsController#index"
   }, {
     "method" : "GET",
     "path" : "/admin/notifications",
@@ -992,10 +995,6 @@
     "controller" : "AdminWithdrawalController#index"
   }, {
     "method" : "GET",
-    "path" : "/api/admin/archives/all",
-    "controller" : "AdminArchiveApiController#getArchives"
-  }, {
-    "method" : "GET",
     "path" : "/api/admin/bookings/all",
     "controller" : "AdminBookingApiController#getBookings",
     "params" : [ {
@@ -1484,6 +1483,11 @@
     "controller" : "AdminChatApiController#getViolations"
   }, {
     "method" : "GET",
+    "path" : "/api/admin/chats/violations/{id}/messages",
+    "controller" : "AdminChatApiController#getViolationMessages",
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "GET",
     "path" : "/api/admin/contact-messages/all",
     "controller" : "AdminContactMessageApiController#getContactMessages"
   }, {
@@ -1599,6 +1603,11 @@
       "type" : "ApproveRequest",
       "properties" : [ "adminNotes", "targetAlbumId" ]
     },
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/admin/content-disputes/{id}/claimant-albums",
+    "controller" : "AdminContentDisputeApiController#claimantAlbums",
     "pathVariables" : [ "id" ]
   }, {
     "method" : "POST",
@@ -2502,12 +2511,38 @@
     "method" : "POST",
     "path" : "/api/opportunities/{candidateId}/approve",
     "controller" : "HybridBookingController#approveOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "POST",
     "path" : "/api/opportunities/{candidateId}/reject",
     "controller" : "HybridBookingController#rejectOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/pawapay/callback",
+    "controller" : "PawapayWebhookController#receive",
+    "body" : {
+      "type" : "byte[]",
+      "properties" : [ ]
+    }
+  }, {
+    "method" : "GET",
+    "path" : "/api/pawapay/webhook",
+    "controller" : "PawapayWebhookController#healthCheck"
+  }, {
+    "method" : "POST",
+    "path" : "/api/pawapay/webhook",
+    "controller" : "PawapayWebhookController#receive",
+    "body" : {
+      "type" : "byte[]",
+      "properties" : [ ]
+    }
   }, {
     "method" : "GET",
     "path" : "/api/photographer/opportunities",
@@ -2788,6 +2823,14 @@
     "controller" : "WalletController#provisionAll"
   }, {
     "method" : "GET",
+    "path" : "/api/remote/admin/wallets/reconciliation/missing-effects",
+    "controller" : "WalletController#missingEffects",
+    "params" : [ {
+      "name" : "graceMinutes",
+      "required" : false
+    } ]
+  }, {
+    "method" : "GET",
     "path" : "/api/remote/admin/wallets/{id}",
     "controller" : "WalletController#walletDetail",
     "pathVariables" : [ "id" ]
@@ -2831,6 +2874,20 @@
       "properties" : [ "reason" ]
     },
     "pathVariables" : [ "id" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/auth/2fa/email/send",
+    "controller" : "AuthController#sendTwoFactorEmail",
+    "body" : {
+      "type" : "Map"
+    }
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/auth/2fa/email/verify",
+    "controller" : "AuthController#verifyTwoFactorEmail",
+    "body" : {
+      "type" : "Map"
+    }
   }, {
     "method" : "POST",
     "path" : "/api/remote/auth/apple",
@@ -2896,6 +2953,20 @@
     "body" : {
       "type" : "LoginReq",
       "properties" : [ "email", "password" ]
+    }
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/auth/login-code/send",
+    "controller" : "AuthController#sendLoginCode",
+    "body" : {
+      "type" : "Map"
+    }
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/auth/login-code/verify",
+    "controller" : "AuthController#verifyLoginCode",
+    "body" : {
+      "type" : "Map"
     }
   }, {
     "method" : "POST",
@@ -2990,6 +3061,20 @@
       "type" : "Map"
     }
   }, {
+    "method" : "POST",
+    "path" : "/api/remote/auth/workspace-setup",
+    "controller" : "AuthController#workspaceSetup",
+    "body" : {
+      "type" : "Map"
+    }
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/auth/workspace-setup/preview",
+    "controller" : "AuthController#workspaceSetupPreview",
+    "body" : {
+      "type" : "Map"
+    }
+  }, {
     "method" : "GET",
     "path" : "/api/remote/bookings",
     "controller" : "BookingController#getMyBookings"
@@ -3006,6 +3091,11 @@
       "type" : "HashMap"
     },
     "pathVariables" : [ "bookingId" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/chat/albums/{albumId}/card",
+    "controller" : "ChatController#getAlbumCard",
+    "pathVariables" : [ "albumId" ]
   }, {
     "method" : "GET",
     "path" : "/api/remote/chat/conversations",
@@ -3066,6 +3156,14 @@
     } ],
     "consumes" : [ "multipart/form-data" ]
   }, {
+    "method" : "POST",
+    "path" : "/api/remote/chat/send-albums",
+    "controller" : "ChatController#sendAlbums",
+    "body" : {
+      "type" : "SendAlbumsRequest",
+      "properties" : [ "albumIds", "note", "recipientId" ]
+    }
+  }, {
     "method" : "GET",
     "path" : "/api/remote/chat/unread-count",
     "controller" : "ChatController#getUnreadMessageCount"
@@ -3090,6 +3188,22 @@
     "path" : "/api/remote/client/surveys/{eventId}/completed",
     "controller" : "ClientSurveyController#isSurveyCompleted",
     "pathVariables" : [ "eventId" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/collaborator/invitations/{id}/accept",
+    "controller" : "CollaboratorWorkspaceController#accept",
+    "body" : {
+      "type" : "Map"
+    },
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/collaborator/me",
+    "controller" : "CollaboratorWorkspaceController#me"
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/collaborator/workspaces",
+    "controller" : "CollaboratorWorkspaceController#picker"
   }, {
     "method" : "GET",
     "path" : "/api/remote/coordinator/analytics",
@@ -3116,53 +3230,6 @@
       "name" : "to",
       "required" : false
     } ]
-  }, {
-    "method" : "GET",
-    "path" : "/api/remote/coordinator/archives",
-    "controller" : "CoordinatorController#getArchives",
-    "params" : [ {
-      "name" : "page",
-      "required" : false
-    }, {
-      "name" : "size",
-      "required" : false
-    } ]
-  }, {
-    "method" : "POST",
-    "path" : "/api/remote/coordinator/archives",
-    "controller" : "CoordinatorController#createArchive",
-    "params" : [ {
-      "name" : "title",
-      "required" : true
-    }, {
-      "name" : "description",
-      "required" : false
-    }, {
-      "name" : "archiveType",
-      "required" : false
-    }, {
-      "name" : "eventId",
-      "required" : false
-    } ],
-    "parts" : [ {
-      "name" : "file",
-      "required" : false,
-      "file" : true
-    } ],
-    "consumes" : [ "multipart/form-data" ]
-  }, {
-    "method" : "DELETE",
-    "path" : "/api/remote/coordinator/archives/{archiveId}",
-    "controller" : "CoordinatorController#deleteArchive",
-    "pathVariables" : [ "archiveId" ]
-  }, {
-    "method" : "PUT",
-    "path" : "/api/remote/coordinator/archives/{archiveId}",
-    "controller" : "CoordinatorController#updateArchive",
-    "body" : {
-      "type" : "Map"
-    },
-    "pathVariables" : [ "archiveId" ]
   }, {
     "method" : "GET",
     "path" : "/api/remote/coordinator/balance",
@@ -3220,7 +3287,7 @@
     "controller" : "CoordinatorController#bookEvent",
     "body" : {
       "type" : "EventBookingRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
     }
   }, {
     "method" : "GET",
@@ -3238,7 +3305,7 @@
     "controller" : "CoordinatorController#updateEvent",
     "body" : {
       "type" : "EventUpdateRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "eventCategoryId", "eventDate", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "photographerId", "price", "startTime", "streamFee", "streamFeeCurrencyId", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "eventCategoryId", "eventDate", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "photographerId", "price", "startTime", "streamFee", "streamFeeCurrencyId", "title" ]
     },
     "pathVariables" : [ "id" ]
   }, {
@@ -3278,6 +3345,14 @@
     "method" : "POST",
     "path" : "/api/remote/coordinator/events/{id}/unpublish",
     "controller" : "CoordinatorController#unpublishEvent",
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "PUT",
+    "path" : "/api/remote/coordinator/events/{id}/wish-invites",
+    "controller" : "CoordinatorController#setWishInvites",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "id" ]
   }, {
     "method" : "GET",
@@ -3576,7 +3651,7 @@
     "controller" : "CoordinatorController#rebookPhotographer",
     "body" : {
       "type" : "EventBookingRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
     }
   }, {
     "method" : "GET",
@@ -3733,6 +3808,31 @@
       "type" : "Map"
     }
   }, {
+    "method" : "POST",
+    "path" : "/api/remote/customer/2fa/email/disable",
+    "controller" : "CustomerTwoFactorController#disable",
+    "body" : {
+      "type" : "Map"
+    }
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/customer/2fa/email/enable",
+    "controller" : "CustomerTwoFactorController#enable",
+    "body" : {
+      "type" : "Map"
+    }
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/customer/2fa/email/send",
+    "controller" : "CustomerTwoFactorController#send",
+    "body" : {
+      "type" : "Map"
+    }
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/customer/2fa/status",
+    "controller" : "CustomerTwoFactorController#status"
+  }, {
     "method" : "GET",
     "path" : "/api/remote/customer/albums",
     "controller" : "ClientAlbumController#getAlbums"
@@ -3752,7 +3852,7 @@
     "controller" : "ClientAlbumController#updateAlbum",
     "body" : {
       "type" : "EventUpdateRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "eventCategoryId", "eventDate", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "photographerId", "price", "startTime", "streamFee", "streamFeeCurrencyId", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "eventCategoryId", "eventDate", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "photographerId", "price", "startTime", "streamFee", "streamFeeCurrencyId", "title" ]
     },
     "pathVariables" : [ "albumId" ]
   }, {
@@ -3830,14 +3930,6 @@
       "required" : false
     } ]
   }, {
-    "method" : "PUT",
-    "path" : "/api/remote/customer/archives/{archiveId}",
-    "controller" : "CustomerArchiveController#updateArchive",
-    "body" : {
-      "type" : "Map"
-    },
-    "pathVariables" : [ "archiveId" ]
-  }, {
     "method" : "GET",
     "path" : "/api/remote/customer/events",
     "controller" : "EventRemoteController#getCustomerEvents",
@@ -3863,7 +3955,7 @@
     "controller" : "EventRemoteController#bookPhotographer",
     "body" : {
       "type" : "EventBookingRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
     }
   }, {
     "method" : "GET",
@@ -4020,7 +4112,7 @@
     "controller" : "EventRemoteController#rebookPhotographer",
     "body" : {
       "type" : "EventBookingRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
     }
   }, {
     "method" : "POST",
@@ -4068,7 +4160,7 @@
     "controller" : "EventRemoteController#updateEvent",
     "body" : {
       "type" : "EventUpdateRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "eventCategoryId", "eventDate", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "photographerId", "price", "startTime", "streamFee", "streamFeeCurrencyId", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "eventCategoryId", "eventDate", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "photographerId", "price", "startTime", "streamFee", "streamFeeCurrencyId", "title" ]
     },
     "pathVariables" : [ "eventId" ]
   }, {
@@ -4155,6 +4247,21 @@
     "controller" : "CustomerRebookController#getRebookRecommendations",
     "pathVariables" : [ "eventId" ]
   }, {
+    "method" : "DELETE",
+    "path" : "/api/remote/customer/events/{eventId}/reminder",
+    "controller" : "EventReminderController#unsubscribeCustomer",
+    "pathVariables" : [ "eventId" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/customer/events/{eventId}/reminder",
+    "controller" : "EventReminderController#statusCustomer",
+    "pathVariables" : [ "eventId" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/customer/events/{eventId}/reminder",
+    "controller" : "EventReminderController#subscribeCustomer",
+    "pathVariables" : [ "eventId" ]
+  }, {
     "method" : "POST",
     "path" : "/api/remote/customer/events/{eventId}/resume",
     "controller" : "EventRemoteController#resumeEvent",
@@ -4183,6 +4290,19 @@
     "method" : "POST",
     "path" : "/api/remote/customer/events/{eventId}/unpublish",
     "controller" : "EventRemoteController#unpublishEvent",
+    "pathVariables" : [ "eventId" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/customer/events/{eventId}/unpublish-impact",
+    "controller" : "EventRemoteController#unpublishImpact",
+    "pathVariables" : [ "eventId" ]
+  }, {
+    "method" : "PUT",
+    "path" : "/api/remote/customer/events/{eventId}/wish-invites",
+    "controller" : "EventRemoteController#setWishInvites",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "eventId" ]
   }, {
     "method" : "GET",
@@ -4676,7 +4796,7 @@
     "controller" : "CustomerRebookController#rebookPhotographer",
     "body" : {
       "type" : "EventBookingRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
     }
   }, {
     "method" : "GET",
@@ -4722,6 +4842,14 @@
     "method" : "DELETE",
     "path" : "/api/remote/customer/tv-devices/{deviceId}",
     "controller" : "CustomerTvDeviceController#revoke",
+    "pathVariables" : [ "deviceId" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/customer/tv-devices/{deviceId}/cast",
+    "controller" : "TvCastController#send",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "deviceId" ]
   }, {
     "method" : "POST",
@@ -4896,7 +5024,7 @@
     "controller" : "EventRemoteController#bookPhotographer",
     "body" : {
       "type" : "EventBookingRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
     }
   }, {
     "method" : "GET",
@@ -4947,6 +5075,23 @@
     } ],
     "consumes" : [ "multipart/form-data" ]
   }, {
+    "method" : "GET",
+    "path" : "/api/remote/events/hybrid-draft",
+    "controller" : "HybridBookingController#getHybridDraft"
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/events/hybrid-draft",
+    "controller" : "HybridBookingController#saveHybridDraft",
+    "body" : {
+      "type" : "HybridDraftRequestDTO",
+      "properties" : [ "allowWishInvites", "city", "description", "draftStep", "endTime", "eventCategoryId", "eventDate", "eventId", "eventType", "hasLiveStream", "latitude", "location", "longitude", "maxBudget", "minBudget", "minimumPhotos", "startTime", "title", "venue" ]
+    }
+  }, {
+    "method" : "DELETE",
+    "path" : "/api/remote/events/hybrid-draft/{id}",
+    "controller" : "HybridBookingController#deleteHybridDraft",
+    "pathVariables" : [ "id" ]
+  }, {
     "method" : "POST",
     "path" : "/api/remote/events/join",
     "controller" : "EventRemoteController#joinEvent",
@@ -4965,7 +5110,7 @@
     "controller" : "HybridBookingController#getMatchPreview",
     "body" : {
       "type" : "MatchPreviewRequestDTO",
-      "properties" : [ "city", "currency", "endTime", "eventDate", "latitude", "locationCoverage", "longitude", "maxBudget", "minBudget", "photographerType", "specialty", "startTime" ]
+      "properties" : [ "allowWishInvites", "city", "clientType", "coverageMode", "currency", "digitalDeliveryDays", "editedPhotos", "editingStyle", "endTime", "eventDate", "eventId", "hasLiveStream", "instantUpdates", "latitude", "locationCoverage", "longVideosDuration", "longVideosQty", "longitude", "maxBudget", "minBudget", "photoAlbumPrints", "photoAlbumSize", "photoAlbumsQty", "photoBookPages", "photoBookPhotos", "photoBookSize", "photoBooksQty", "photographerSpecialty", "photographerType", "printCollectionMethod", "printProductionTime", "printProposedDate", "shortVideosDuration", "shortVideosQty", "specialty", "startTime", "usageRights", "wallPortraitFrame", "wallPortraitSize", "wallPortraitsQty" ]
     }
   }, {
     "method" : "PATCH",
@@ -5061,7 +5206,7 @@
     "controller" : "EventRemoteController#rebookPhotographer",
     "body" : {
       "type" : "EventBookingRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "escrowPercentage", "eventCategoryId", "eventDate", "eventId", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "notes", "packageId", "photographerId", "price", "serviceType", "startTime", "streamFee", "streamFeeCurrencyId", "studioPhotoCount", "studioVideoCount", "title" ]
     }
   }, {
     "method" : "POST",
@@ -5109,7 +5254,7 @@
     "controller" : "EventRemoteController#updateEvent",
     "body" : {
       "type" : "EventUpdateRequestDTO",
-      "properties" : [ "attendanceMode", "description", "endTime", "eventCategoryId", "eventDate", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "groupDiscountPercentage", "location", "maxGuests", "minimumPhotos", "photographerId", "price", "startTime", "streamFee", "streamFeeCurrencyId", "title" ]
+      "properties" : [ "allowWishInvites", "attendanceMode", "description", "endTime", "eventCategoryId", "eventDate", "eventOrganizer", "eventTags", "eventType", "eventVisibility", "geoRules", "groupDiscountPercentage", "hasLiveStream", "location", "maxGuests", "minimumPhotos", "photographerId", "price", "startTime", "streamFee", "streamFeeCurrencyId", "title" ]
     },
     "pathVariables" : [ "eventId" ]
   }, {
@@ -5237,6 +5382,19 @@
     "pathVariables" : [ "eventId" ]
   }, {
     "method" : "GET",
+    "path" : "/api/remote/events/{eventId}/unpublish-impact",
+    "controller" : "EventRemoteController#unpublishImpact",
+    "pathVariables" : [ "eventId" ]
+  }, {
+    "method" : "PUT",
+    "path" : "/api/remote/events/{eventId}/wish-invites",
+    "controller" : "EventRemoteController#setWishInvites",
+    "body" : {
+      "type" : "Map"
+    },
+    "pathVariables" : [ "eventId" ]
+  }, {
+    "method" : "GET",
     "path" : "/api/remote/events/{id}/candidates",
     "controller" : "HybridBookingController#getApprovedCandidates",
     "pathVariables" : [ "id" ]
@@ -5256,7 +5414,7 @@
     "controller" : "HybridBookingController#createMatchRequest",
     "body" : {
       "type" : "CreateMatchRequestDTO",
-      "properties" : [ "currency", "eventId", "expirationHours", "instructions", "locationCoverage", "maxBudget", "minBudget", "photographerType", "specialty" ]
+      "properties" : [ "allowWishInvites", "city", "clientType", "country", "currency", "digitalDeliveryDays", "endTime", "eventDate", "eventId", "expirationHours", "hasLiveStream", "instructions", "latitude", "location", "locationCoverage", "longitude", "maxBudget", "minBudget", "minimumPhotos", "photographerSpecialty", "photographerType", "printDeliveryAddress", "printDeliveryMethod", "printProposedDate", "specialty", "startTime", "title", "venue" ]
     },
     "pathVariables" : [ "id" ],
     "params" : [ {
@@ -5284,11 +5442,17 @@
     "method" : "POST",
     "path" : "/api/remote/match/candidates/{candidateId}/approve",
     "controller" : "HybridBookingController#approveOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "POST",
     "path" : "/api/remote/match/candidates/{candidateId}/reject",
     "controller" : "HybridBookingController#rejectOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "GET",
@@ -5304,6 +5468,23 @@
     "method" : "POST",
     "path" : "/api/remote/match/convert/{id}",
     "controller" : "HybridBookingController#convertToHybrid",
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/match/draft",
+    "controller" : "HybridBookingController#getHybridDraft"
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/match/draft",
+    "controller" : "HybridBookingController#saveHybridDraft",
+    "body" : {
+      "type" : "HybridDraftRequestDTO",
+      "properties" : [ "allowWishInvites", "city", "description", "draftStep", "endTime", "eventCategoryId", "eventDate", "eventId", "eventType", "hasLiveStream", "latitude", "location", "longitude", "maxBudget", "minBudget", "minimumPhotos", "startTime", "title", "venue" ]
+    }
+  }, {
+    "method" : "DELETE",
+    "path" : "/api/remote/match/draft/{id}",
+    "controller" : "HybridBookingController#deleteHybridDraft",
     "pathVariables" : [ "id" ]
   }, {
     "method" : "GET",
@@ -5331,11 +5512,17 @@
     "method" : "POST",
     "path" : "/api/remote/match/opportunities/{candidateId}/approve",
     "controller" : "HybridBookingController#approveOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "POST",
     "path" : "/api/remote/match/opportunities/{candidateId}/reject",
     "controller" : "HybridBookingController#rejectOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "POST",
@@ -5343,7 +5530,7 @@
     "controller" : "HybridBookingController#getMatchPreview",
     "body" : {
       "type" : "MatchPreviewRequestDTO",
-      "properties" : [ "city", "currency", "endTime", "eventDate", "latitude", "locationCoverage", "longitude", "maxBudget", "minBudget", "photographerType", "specialty", "startTime" ]
+      "properties" : [ "allowWishInvites", "city", "clientType", "coverageMode", "currency", "digitalDeliveryDays", "editedPhotos", "editingStyle", "endTime", "eventDate", "eventId", "hasLiveStream", "instantUpdates", "latitude", "locationCoverage", "longVideosDuration", "longVideosQty", "longitude", "maxBudget", "minBudget", "photoAlbumPrints", "photoAlbumSize", "photoAlbumsQty", "photoBookPages", "photoBookPhotos", "photoBookSize", "photoBooksQty", "photographerSpecialty", "photographerType", "printCollectionMethod", "printProductionTime", "printProposedDate", "shortVideosDuration", "shortVideosQty", "specialty", "startTime", "usageRights", "wallPortraitFrame", "wallPortraitSize", "wallPortraitsQty" ]
     }
   }, {
     "method" : "POST",
@@ -5351,7 +5538,7 @@
     "controller" : "HybridBookingController#createMatchRequest",
     "body" : {
       "type" : "CreateMatchRequestDTO",
-      "properties" : [ "currency", "eventId", "expirationHours", "instructions", "locationCoverage", "maxBudget", "minBudget", "photographerType", "specialty" ]
+      "properties" : [ "allowWishInvites", "city", "clientType", "country", "currency", "digitalDeliveryDays", "endTime", "eventDate", "eventId", "expirationHours", "hasLiveStream", "instructions", "latitude", "location", "locationCoverage", "longitude", "maxBudget", "minBudget", "minimumPhotos", "photographerSpecialty", "photographerType", "printDeliveryAddress", "printDeliveryMethod", "printProposedDate", "specialty", "startTime", "title", "venue" ]
     },
     "pathVariables" : [ "id" ],
     "params" : [ {
@@ -5364,7 +5551,7 @@
     "controller" : "HybridBookingController#createMatchRequest",
     "body" : {
       "type" : "CreateMatchRequestDTO",
-      "properties" : [ "currency", "eventId", "expirationHours", "instructions", "locationCoverage", "maxBudget", "minBudget", "photographerType", "specialty" ]
+      "properties" : [ "allowWishInvites", "city", "clientType", "country", "currency", "digitalDeliveryDays", "endTime", "eventDate", "eventId", "expirationHours", "hasLiveStream", "instructions", "latitude", "location", "locationCoverage", "longitude", "maxBudget", "minBudget", "minimumPhotos", "photographerSpecialty", "photographerType", "printDeliveryAddress", "printDeliveryMethod", "printProposedDate", "specialty", "startTime", "title", "venue" ]
     },
     "pathVariables" : [ "id" ],
     "params" : [ {
@@ -5405,11 +5592,17 @@
     "method" : "POST",
     "path" : "/api/remote/opportunities/{candidateId}/approve",
     "controller" : "HybridBookingController#approveOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "POST",
     "path" : "/api/remote/opportunities/{candidateId}/reject",
     "controller" : "HybridBookingController#rejectOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "GET",
@@ -5437,20 +5630,25 @@
       "type" : "Map"
     }
   }, {
+    "method" : "POST",
+    "path" : "/api/remote/payments/pawapay/callback",
+    "controller" : "PawapayWebhookController#receive",
+    "body" : {
+      "type" : "byte[]",
+      "properties" : [ ]
+    }
+  }, {
     "method" : "GET",
     "path" : "/api/remote/payments/pawapay/webhook",
     "controller" : "PawapayWebhookController#healthCheck"
   }, {
     "method" : "POST",
     "path" : "/api/remote/payments/pawapay/webhook",
-    "controller" : "PawapayWebhookController#handleWebhook",
+    "controller" : "PawapayWebhookController#receive",
     "body" : {
-      "type" : "JsonNode"
-    },
-    "params" : [ {
-      "name" : "signature",
-      "required" : false
-    } ]
+      "type" : "byte[]",
+      "properties" : [ ]
+    }
   }, {
     "method" : "GET",
     "path" : "/api/remote/payments/pending-declarations",
@@ -5906,6 +6104,19 @@
     "pathVariables" : [ "albumId" ]
   }, {
     "method" : "POST",
+    "path" : "/api/remote/photographer/albums/{albumId}/restore-payment",
+    "controller" : "PhotographerAlbumController#restorePayment",
+    "body" : {
+      "type" : "Map"
+    },
+    "pathVariables" : [ "albumId" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/albums/{albumId}/restore-quote",
+    "controller" : "PhotographerAlbumController#restoreQuote",
+    "pathVariables" : [ "albumId" ]
+  }, {
+    "method" : "POST",
     "path" : "/api/remote/photographer/albums/{albumId}/send",
     "controller" : "PhotographerAlbumController#sendAlbumToClient",
     "body" : {
@@ -6179,6 +6390,19 @@
     "pathVariables" : [ "eventId" ]
   }, {
     "method" : "GET",
+    "path" : "/api/remote/photographer/events/{eventId}/wishes",
+    "controller" : "EventWishController#queue",
+    "pathVariables" : [ "eventId" ]
+  }, {
+    "method" : "PUT",
+    "path" : "/api/remote/photographer/events/{eventId}/wishes/{wishId}/moderation",
+    "controller" : "EventWishController#moderate",
+    "body" : {
+      "type" : "Map"
+    },
+    "pathVariables" : [ "eventId", "wishId" ]
+  }, {
+    "method" : "GET",
     "path" : "/api/remote/photographer/favorite-clients",
     "controller" : "PhotographerDashboardController#getFavoriteClients"
   }, {
@@ -6186,6 +6410,45 @@
     "path" : "/api/remote/photographer/favorite-clients/{clientId}",
     "controller" : "PhotographerDashboardController#toggleFavoriteClient",
     "pathVariables" : [ "clientId" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/hosted-events",
+    "controller" : "PhotographerHostedEventController#list",
+    "params" : [ {
+      "name" : "bucket",
+      "required" : false
+    } ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/photographer/hosted-events",
+    "controller" : "PhotographerHostedEventController#create",
+    "body" : {
+      "type" : "HostedEventRequestDTO",
+      "properties" : [ "allowWishInvites", "description", "endTime", "eventCategoryId", "eventDate", "eventType", "geoRules", "location", "maxGuests", "publish", "startTime", "streamFee", "streamFeeCurrencyId", "title" ]
+    }
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/hosted-events/earnings-preview",
+    "controller" : "PhotographerHostedEventController#earningsPreview",
+    "params" : [ {
+      "name" : "fee",
+      "required" : true
+    } ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/hosted-events/eligibility",
+    "controller" : "PhotographerHostedEventController#eligibility"
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/hybrid-profile",
+    "controller" : "HybridProfileController#getProfile"
+  }, {
+    "method" : "PUT",
+    "path" : "/api/remote/photographer/hybrid-profile",
+    "controller" : "HybridProfileController#saveProfile",
+    "body" : {
+      "type" : "Map"
+    }
   }, {
     "method" : "GET",
     "path" : "/api/remote/photographer/notifications",
@@ -6242,6 +6505,15 @@
       "name" : "status",
       "required" : false
     } ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/opportunities/count",
+    "controller" : "HybridBookingController#getOpportunityCounts"
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/opportunities/{candidateId}",
+    "controller" : "HybridBookingController#getPhotographerOpportunity",
+    "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "GET",
     "path" : "/api/remote/photographer/packages",
@@ -6654,6 +6926,70 @@
     } ]
   }, {
     "method" : "GET",
+    "path" : "/api/remote/photographer/workspaces/activity",
+    "controller" : "WorkspaceInvitationController#activity"
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/photographer/workspaces/invitations",
+    "controller" : "WorkspaceInvitationController#invite",
+    "body" : {
+      "type" : "Map"
+    }
+  }, {
+    "method" : "DELETE",
+    "path" : "/api/remote/photographer/workspaces/invitations/{id}",
+    "controller" : "WorkspaceInvitationController#cancel",
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/photographer/workspaces/invitations/{id}/resend",
+    "controller" : "WorkspaceInvitationController#resend",
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/photographer/workspaces/invitations/{id}/revoke",
+    "controller" : "WorkspaceInvitationController#revoke",
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/workspaces/lookup",
+    "controller" : "WorkspaceInvitationController#lookup",
+    "params" : [ {
+      "name" : "email",
+      "required" : true
+    }, {
+      "name" : "allowUnregistered",
+      "required" : false
+    } ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/workspaces/mine",
+    "controller" : "WorkspaceInvitationController#mine"
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/workspaces/received",
+    "controller" : "WorkspaceInvitationController#received"
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/photographer/workspaces/received/{id}/accept",
+    "controller" : "WorkspaceInvitationController#accept",
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/photographer/workspaces/received/{id}/decline",
+    "controller" : "WorkspaceInvitationController#decline",
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/photographer/workspaces/received/{id}/leave",
+    "controller" : "WorkspaceInvitationController#leave",
+    "pathVariables" : [ "id" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/photographer/workspaces/sent",
+    "controller" : "WorkspaceInvitationController#sent"
+  }, {
+    "method" : "GET",
     "path" : "/api/remote/public/albums",
     "controller" : "PublicRemoteController#getAlbumByInviteCode",
     "params" : [ {
@@ -6866,6 +7202,26 @@
     "path" : "/api/remote/public/currencies/rates",
     "controller" : "PublicRemoteController#getCurrencyRates"
   }, {
+    "method" : "POST",
+    "path" : "/api/remote/public/deferred-links",
+    "controller" : "DeferredLinkController#create",
+    "body" : {
+      "type" : "Map"
+    }
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/public/deferred-links/match",
+    "controller" : "DeferredLinkController#byNetwork",
+    "params" : [ {
+      "name" : "platform",
+      "required" : true
+    } ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/public/deferred-links/{code}",
+    "controller" : "DeferredLinkController#byCode",
+    "pathVariables" : [ "code" ]
+  }, {
     "method" : "GET",
     "path" : "/api/remote/public/donation-tiers",
     "controller" : "PublicRemoteController#getDonationTiers",
@@ -7069,6 +7425,32 @@
     },
     "pathVariables" : [ "eventId" ]
   }, {
+    "method" : "DELETE",
+    "path" : "/api/remote/public/events/{eventId}/reminder",
+    "controller" : "EventReminderController#unsubscribeGuest",
+    "pathVariables" : [ "eventId" ],
+    "params" : [ {
+      "name" : "email",
+      "required" : true
+    } ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/public/events/{eventId}/reminder",
+    "controller" : "EventReminderController#statusGuest",
+    "pathVariables" : [ "eventId" ],
+    "params" : [ {
+      "name" : "email",
+      "required" : true
+    } ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/public/events/{eventId}/reminder",
+    "controller" : "EventReminderController#subscribeGuest",
+    "body" : {
+      "type" : "Map"
+    },
+    "pathVariables" : [ "eventId" ]
+  }, {
     "method" : "POST",
     "path" : "/api/remote/public/events/{eventId}/stream/access",
     "controller" : "PublicRemoteController#getStreamAccess",
@@ -7090,6 +7472,21 @@
     "controller" : "PublicRemoteController#getPublicViewerCount",
     "pathVariables" : [ "eventId" ]
   }, {
+    "method" : "GET",
+    "path" : "/api/remote/public/events/{eventId}/wishes",
+    "controller" : "EventWishController#feed",
+    "pathVariables" : [ "eventId" ],
+    "params" : [ {
+      "name" : "page",
+      "required" : false
+    }, {
+      "name" : "size",
+      "required" : false
+    }, {
+      "name" : "deviceFingerprint",
+      "required" : false
+    } ]
+  }, {
     "method" : "POST",
     "path" : "/api/remote/public/events/{eventId}/wishes",
     "controller" : "PublicRemoteController#sendTextWish",
@@ -7107,12 +7504,21 @@
       "required" : true
     }, {
       "name" : "email",
-      "required" : true
+      "required" : false
     }, {
       "name" : "deviceFingerprint",
       "required" : true
     }, {
       "name" : "message",
+      "required" : false
+    }, {
+      "name" : "visibility",
+      "required" : false
+    }, {
+      "name" : "duration",
+      "required" : false
+    }, {
+      "name" : "via",
       "required" : false
     } ],
     "parts" : [ {
@@ -7121,6 +7527,14 @@
       "file" : true
     } ],
     "consumes" : [ "multipart/form-data" ]
+  }, {
+    "method" : "POST",
+    "path" : "/api/remote/public/events/{eventId}/wishes/{wishId}/hide",
+    "controller" : "EventWishController#hideOwn",
+    "body" : {
+      "type" : "Map"
+    },
+    "pathVariables" : [ "eventId", "wishId" ]
   }, {
     "method" : "GET",
     "path" : "/api/remote/public/events/{id}",
@@ -7172,8 +7586,16 @@
     "controller" : "PublicRemoteController#getFooterContent"
   }, {
     "method" : "GET",
+    "path" : "/api/remote/public/geo/locations",
+    "controller" : "PublicGeoLocationsController#locations"
+  }, {
+    "method" : "GET",
     "path" : "/api/remote/public/gift-catalog",
     "controller" : "PublicRemoteController#getGiftCatalog"
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/public/hybrid/options",
+    "controller" : "HybridProfileController#options"
   }, {
     "method" : "POST",
     "path" : "/api/remote/public/newsletter/subscribe",
@@ -7216,6 +7638,14 @@
       "type" : "Map"
     },
     "pathVariables" : [ "token" ]
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/public/payments/limits",
+    "controller" : "PaymentLimitsController#minimum",
+    "params" : [ {
+      "name" : "currency",
+      "required" : true
+    } ]
   }, {
     "method" : "GET",
     "path" : "/api/remote/public/payments/options",
@@ -7341,6 +7771,9 @@
     }, {
       "name" : "to",
       "required" : true
+    }, {
+      "name" : "includePartial",
+      "required" : false
     } ]
   }, {
     "method" : "GET",
@@ -7522,12 +7955,21 @@
     },
     "pathVariables" : [ "eventId" ]
   }, {
+    "method" : "GET",
+    "path" : "/api/remote/public/time",
+    "controller" : "HybridProfileController#time"
+  }, {
     "method" : "POST",
     "path" : "/api/remote/public/validate-invite-code",
     "controller" : "PublicRemoteController#validateInviteCodePublic",
     "body" : {
       "type" : "Map"
     }
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/public/workspace-invitations/{id}",
+    "controller" : "PublicWorkspaceInvitationController#preview",
+    "pathVariables" : [ "id" ]
   }, {
     "method" : "POST",
     "path" : "/api/remote/streams/{eventId}/block",
@@ -7593,6 +8035,15 @@
     "method" : "ANY",
     "path" : "/api/remote/team/users/**",
     "controller" : "TeamController#retired"
+  }, {
+    "method" : "GET",
+    "path" : "/api/remote/tv/cast/{pairingCode}",
+    "controller" : "TvCastController#poll",
+    "pathVariables" : [ "pairingCode" ],
+    "params" : [ {
+      "name" : "deviceSecret",
+      "required" : false
+    } ]
   }, {
     "method" : "GET",
     "path" : "/api/remote/tv/catalog/categories",
@@ -7902,7 +8353,11 @@
     "controller" : "WebhookWhatsAppController#receiveInbound",
     "body" : {
       "type" : "Map"
-    }
+    },
+    "params" : [ {
+      "name" : "authorization",
+      "required" : false
+    } ]
   }, {
     "method" : "GET",
     "path" : "/login",
@@ -7911,11 +8366,17 @@
     "method" : "POST",
     "path" : "/opportunities/{candidateId}/approve",
     "controller" : "HybridBookingController#approveOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "POST",
     "path" : "/opportunities/{candidateId}/reject",
     "controller" : "HybridBookingController#rejectOpportunity",
+    "body" : {
+      "type" : "Map"
+    },
     "pathVariables" : [ "candidateId" ]
   }, {
     "method" : "GET",

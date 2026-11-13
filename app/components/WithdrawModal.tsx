@@ -8,7 +8,8 @@ import { useCurrency } from '../context/CurrencyContext';
 import PaymentCurrencyPreview from './PaymentCurrencyPreview';
 import { HeartIcon } from './UnlockModal';
 import KycVerificationModal from './KycVerificationModal';
-import FaceScanCapture from './FaceScanCapture';
+import OtpInput from './OtpInput';
+import { formatCountdown, serverWait } from '../lib/otp';
 
 interface WithdrawAccount {
   id: string;
@@ -51,8 +52,12 @@ const MobileMoneyIcon = () => (
 );
 
 export default function WithdrawModal({ isOpen, onClose, role, colors, actualTheme }: WithdrawModalProps) {
-  const { currencies, currency: globalCurrency } = useCurrency();
-  const rwfRate = currencies.find(c => c.code === 'RWF')?.rate || 1460;
+  const { currencies, currency: globalCurrency, isRateLive } = useCurrency();
+  // The amount submitted is typed in the display currency and divided by its
+  // rate, and balances are shown through the RWF rate, so both rates must come
+  // from the backend. A hardcoded fallback here once changed the amount that was
+  // submitted. With no live rate the form is replaced by a notice (see below).
+  const rwfRate = isRateLive('RWF') ? (currencies.find(c => c.code === 'RWF')?.rate ?? 0) : 0;
 
   // Display currency for the entire modal. every visible amount + the input
   // prefix + quick-amount presets re-render in this currency. Defaults to
@@ -64,7 +69,8 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   useEffect(() => { setDisplayCurrency(globalCurrency); }, [globalCurrency]);
   const displayInfo = currencies.find(c => c.code === displayCurrency)
     || currencies.find(c => c.code === 'RWF')!;
-  const displayRate = displayInfo.rate || 1;
+  const displayRate = displayInfo.rateLive ? displayInfo.rate : 0;
+  const ratesReady = rwfRate > 0 && displayRate > 0;
   // Convert helpers: RWF/USD amounts -> the user's chosen display currency.
   const rwfToDisplay = (rwf: number) => (rwf / rwfRate) * displayRate;
   const usdToDisplay = (usd: number) => usd * displayRate;
@@ -101,13 +107,13 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   const [verificationId, setVerificationId] = useState('');
   const [verificationMethod, setVerificationMethod] = useState('');
   const [maskedDestination, setMaskedDestination] = useState('');
-  const [requiresFaceScan, setRequiresFaceScan] = useState(false);
   const [requiresOtp, setRequiresOtp] = useState(false);
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpShake, setOtpShake] = useState(0);
+  const [lockedFor, setLockedFor] = useState(0);
   const [verificationError, setVerificationError] = useState('');
   const [remainingAttempts, setRemainingAttempts] = useState(3);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [capturedSelfie, setCapturedSelfie] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
 
@@ -116,7 +122,6 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
     totalFee: number; percentageFee: number; additionalCharge: number;
     netAmount: number; feePercentage: number;
   } | null>(null);
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const apiNamespace = role === 'client' ? 'customer' : role === 'photographer' ? 'photographer' : 'coordinator';
   const prefsPath = role === 'photographer' ? '/user/photographer/preferences?tab=payments'
@@ -139,8 +144,8 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
     if (!isOpen) return;
     setStep('form'); setError(''); setWithdrawAmount(''); setDonationAmount(''); setCustomDonation('');
     setDonationSkipped(false); setShowCustomInput(false); setAccountsLoading(true);
-    setVerificationId(''); setVerificationMethod(''); setOtpDigits(['', '', '', '', '', '']);
-    setVerificationError(''); setCapturedSelfie(null); setResendCooldown(0); setIsResending(false); setFeePreview(null);
+    setVerificationId(''); setVerificationMethod(''); setOtpCode('');
+    setVerificationError(''); setResendCooldown(0); setIsResending(false); setFeePreview(null);
     const apiUrl = getApiUrl();
 
     dashboardAuthFetch(`${apiUrl}/api/remote/${apiNamespace}/withdrawal-methods`)
@@ -184,6 +189,13 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
+  // A lock the server set counts down here; the server enforces it either way.
+  useEffect(() => {
+    if (lockedFor <= 0) return;
+    const timer = setTimeout(() => setLockedFor(lockedFor - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [lockedFor]);
+
   // Source/total balances are stored on the wire in USD; convert to RWF
   // (the legacy canonical for this modal's math) once and to display
   // currency when rendering.
@@ -213,7 +225,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
       ? `Insufficient ${selectedSource?.label || ''} balance. Available: ${fmtFromRwf(sourceBalanceRwf)}`
       : '';
   const isWithdrawValid = parsedRwfAmount > 0 && parsedRwfAmount <= sourceBalanceRwf;
-  const isValid = isWithdrawValid && selectedAccount && donationAddressed && accounts.length > 0;
+  const isValid = ratesReady && isWithdrawValid && selectedAccount && donationAddressed && accounts.length > 0;
 
   const handleSelectDonation = (amount: string) => {
     setDonationSkipped(false);
@@ -271,37 +283,32 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
       setVerificationId(data.verificationId);
       setVerificationMethod(data.method);
       setMaskedDestination(data.maskedDestination || '');
-      setRequiresFaceScan(data.requiresFaceScan || false);
       setRequiresOtp(data.requiresOtp || false);
-      setOtpDigits(['', '', '', '', '', '']);
-      setCapturedSelfie(null);
+      setOtpCode('');
       setVerificationError('');
       setRemainingAttempts(3);
+      setResendCooldown(serverWait(data));
       setStep('verification');
     } catch { setError('Network error. Please try again.'); setStep('failed'); }
     setIsWithdrawing(false);
   };
 
   // Step 2: Verify and complete withdrawal
-  const handleVerify = async () => {
+  const handleVerify = async (typed?: string) => {
+    if (isVerifying) return;
     setIsVerifying(true); setVerificationError('');
     try {
       const apiUrl = getApiUrl();
-      const otp = requiresOtp ? otpDigits.join('') : undefined;
-      const selfie = requiresFaceScan ? capturedSelfie : undefined;
+      const otp = requiresOtp ? (typed ?? otpCode) : undefined;
 
       if (requiresOtp && (!otp || otp.length < 6)) {
         setVerificationError('Please enter the complete 6-digit code.');
         setIsVerifying(false); return;
       }
-      if (requiresFaceScan && !selfie) {
-        setVerificationError('Please capture your selfie for face verification.');
-        setIsVerifying(false); return;
-      }
 
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${apiNamespace}/withdraw/verify`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verificationId, otp, selfie }),
+        body: JSON.stringify({ verificationId, otp }),
       });
       const result = await res.json();
       if (result.action === 0 && result.twoFactorRequired) {
@@ -317,8 +324,11 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
         } else {
           setVerificationError(result.message || 'Verification failed.');
           if (result.remainingAttempts !== undefined) setRemainingAttempts(result.remainingAttempts);
-          if (requiresOtp) setOtpDigits(['', '', '', '', '', '']);
-          if (requiresFaceScan) setCapturedSelfie(null);
+          if (requiresOtp) { setOtpCode(''); setOtpShake(k => k + 1); }
+          if (typeof result.retryAfterSeconds === 'number') {
+            if (result.errorCode === 'LOCKED') setLockedFor(result.retryAfterSeconds);
+            else setResendCooldown(result.retryAfterSeconds);
+          }
         }
         setIsVerifying(false); return;
       }
@@ -348,65 +358,24 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
       });
       const result = await res.json();
       if (result.action === 1) {
-        setResendCooldown(30);
+        setResendCooldown(serverWait(result.data));
         setMaskedDestination(result.data?.maskedDestination || maskedDestination);
-        setOtpDigits(['', '', '', '', '', '']);
+        setOtpCode('');
         setVerificationError('');
       } else {
         setVerificationError(result.message || 'Failed to resend code.');
+        if (typeof result.retryAfterSeconds === 'number') setResendCooldown(result.retryAfterSeconds);
       }
     } catch { setVerificationError('Failed to resend code.'); }
     setIsResending(false);
   };
 
-  // OTP input handling
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d?$/.test(value)) return;
-    const newDigits = [...otpDigits];
-    newDigits[index] = value;
-    setOtpDigits(newDigits);
-    if (value && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    const newDigits = [...otpDigits];
-    for (let i = 0; i < pasted.length; i++) newDigits[i] = pasted[i];
-    setOtpDigits(newDigits);
-    const nextEmpty = newDigits.findIndex(d => !d);
-    otpInputRefs.current[nextEmpty >= 0 ? nextEmpty : 5]?.focus();
-  };
-
   if (!isOpen) return null;
 
-  const getVerificationTitle = () => {
-    switch (verificationMethod) {
-      case 'SMS_OTP': return 'SMS Verification';
-      case 'EMAIL_OTP': return 'Email Verification';
-      case 'FACE_SCAN': return 'Face Verification';
-      case 'FACE_SCAN_WITH_OTP': return 'Face + OTP Verification';
-      default: return 'Verification';
-    }
-  };
+  const getVerificationTitle = () => 'Email Verification';
 
-  const getVerificationDescription = () => {
-    switch (verificationMethod) {
-      case 'SMS_OTP': return `Enter the 6-digit code sent to ${maskedDestination}`;
-      case 'EMAIL_OTP': return `Enter the 6-digit code sent to ${maskedDestination}`;
-      case 'FACE_SCAN': return 'Take a selfie to verify your identity';
-      case 'FACE_SCAN_WITH_OTP': return `Take a selfie and enter the code sent to ${maskedDestination}`;
-      default: return 'Please verify your identity to continue';
-    }
-  };
+  const getVerificationDescription = () =>
+    `Enter the 6-digit code we emailed to ${maskedDestination || 'your account email'}`;
 
   return (
     <div style={{
@@ -649,47 +618,12 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                   display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto',
                   boxShadow: '0 4px 14px rgba(8, 58, 133, 0.3)',
                 }}>
-                  {requiresFaceScan ? (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21V19C20 16.79 18.21 15 16 15H8C5.79 15 4 16.79 4 19V21"/>
-                      <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                  ) : (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/>
-                      <path d="M9 12L11 14L15 10"/>
-                    </svg>
-                  )}
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="5" width="18" height="14" rx="2"/>
+                    <path d="M3 7L12 13L21 7"/>
+                  </svg>
                 </div>
               </div>
-
-              {/* Face Scan Section */}
-              {requiresFaceScan && !capturedSelfie && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <FaceScanCapture
-                    onCapture={(base64) => setCapturedSelfie(base64)}
-                    onClose={() => setStep('form')}
-                    colors={colors}
-                    actualTheme={actualTheme}
-                  />
-                </div>
-              )}
-
-              {/* Captured selfie preview */}
-              {requiresFaceScan && capturedSelfie && (
-                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                  <div style={{
-                    width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden',
-                    border: '3px solid #16A34A', margin: '0 auto 0.5rem',
-                  }}>
-                    <img src={capturedSelfie} alt="Your selfie" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
-                  </div>
-                  <button onClick={() => setCapturedSelfie(null)} style={{
-                    fontSize: '0.8rem', color: '#083A85', background: 'none', border: 'none',
-                    cursor: 'pointer', textDecoration: 'underline', fontWeight: '500',
-                  }}>Retake Photo</button>
-                </div>
-              )}
 
               {/* OTP Input Section */}
               {requiresOtp && (
@@ -698,41 +632,29 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                     display: 'block', textAlign: 'center', fontSize: '0.875rem',
                     fontWeight: '600', color: colors.textPrimary, marginBottom: '1rem',
                   }}>Enter Verification Code</label>
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }} onPaste={handleOtpPaste}>
-                    {otpDigits.map((digit, i) => (
-                      <input
-                        key={i}
-                        ref={el => { otpInputRefs.current[i] = el; }}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={e => handleOtpChange(i, e.target.value)}
-                        onKeyDown={e => handleOtpKeyDown(i, e)}
-                        style={{
-                          width: '48px', height: '56px', textAlign: 'center', fontSize: '1.25rem',
-                          fontWeight: '700', border: `2px solid ${digit ? '#083A85' : colors.borderPrimary}`,
-                          borderRadius: '0.75rem', outline: 'none', color: colors.textPrimary,
-                          backgroundColor: colors.bgCard, transition: 'border-color 0.2s',
-                        }}
-                        onFocus={e => { e.currentTarget.style.borderColor = '#083A85'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)'; }}
-                        onBlur={e => { e.currentTarget.style.borderColor = digit ? '#083A85' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
-                      />
-                    ))}
-                  </div>
+                  <OtpInput
+                    id="withdraw-otp"
+                    value={otpCode}
+                    onChange={setOtpCode}
+                    onComplete={(c) => handleVerify(c)}
+                    busy={isVerifying}
+                    disabled={lockedFor > 0}
+                    shakeKey={otpShake}
+                    colors={{ border: colors.borderPrimary, bg: colors.bgCard, text: colors.textPrimary, muted: colors.textSecondary }}
+                  />
 
                   {/* Resend OTP */}
                   <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                     {resendCooldown > 0 ? (
                       <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
-                        Resend code in {resendCooldown}s
+                        Resend code in {formatCountdown(resendCooldown)}
                       </span>
                     ) : (
                       <button onClick={handleResendOtp} disabled={isResending} style={{
                         fontSize: '0.8rem', color: '#083A85', background: 'none', border: 'none',
                         cursor: isResending ? 'not-allowed' : 'pointer', textDecoration: 'underline',
                         fontWeight: '500', opacity: isResending ? 0.6 : 1,
-                      }}>{isResending ? 'Sending…' : 'Resend verification code'}</button>
+                      }}>{isResending ? 'Sending…' : 'Send a new code to my email'}</button>
                     )}
                   </div>
                 </div>
@@ -775,7 +697,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                 >
                   Back
                 </button>
-                <button onClick={handleVerify} disabled={isVerifying}
+                <button onClick={() => handleVerify()} disabled={isVerifying || lockedFor > 0}
                   style={{
                     flex: 1.4, padding: '0.75rem 1rem',
                     border: 'none',
@@ -835,7 +757,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                 Turn on two-factor authentication to withdraw
               </h3>
               <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, maxWidth: 380, margin: '0 auto 1.4rem' }}>
-                Your wallet holds real money, so withdrawals need a code from your authenticator app. Your balance is safe and stays in your wallet until you turn it on.
+                Your wallet holds real money, so withdrawals need a second step at sign-in: a code from an authenticator app or one we email you. Setting it up takes about a minute, and your balance stays safe in your wallet until then.
               </p>
               <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button onClick={onClose} className="ck-btn ck-btn-soft" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem' }}>
@@ -843,13 +765,35 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                 </button>
                 <a href={twoFactorSetupPath} className="ck-btn ck-btn-primary" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none' }}>
                   <i className="bi bi-shield-lock-fill" style={{ fontSize: 13 }} aria-hidden />
-                  Turn on 2FA
+                  Set up two-factor
                 </a>
               </div>
             </div>
           )}
 
-          {step === 'form' && twoFactorOn === true && (
+          {step === 'form' && twoFactorOn === true && !ratesReady && (
+            <div role="alert" style={{ textAlign: 'center', padding: '2rem 0 0.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Exchange rates are unavailable
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, maxWidth: 380, margin: '0 auto 1.2rem' }}>
+                A withdrawal converts your amount using the current rate, and we cannot load it right now.
+                Nothing was submitted and your balance is unchanged. Please try again shortly.
+              </p>
+              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {rwfRate > 0 && displayCurrency !== 'USD' && (
+                  <button onClick={() => setDisplayCurrency('USD')} className="ck-btn ck-btn-soft" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem' }}>
+                    Show in USD
+                  </button>
+                )}
+                <button onClick={onClose} className="ck-btn ck-btn-soft" style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem' }}>
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 'form' && twoFactorOn === true && ratesReady && (
             <>
               {/* Available Balance Card. Connekyt brand gradient */}
               <div className="mobile-balance-display" style={{
@@ -910,12 +854,12 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                     // (balance card, input prefix, quick presets, fee
                     // preview). The user's typed input semantics flip too:
                     // if they had "10" while on RWF, switching to USD now
-                    // means the RWF rate equivalent (10 / 1460 ≈ 0.0068).
+                    // means the RWF rate equivalent (10 RWF divided by the live rate).
                     // Convert the input string so the underlying RWF amount
                     // stays the same instead of changing meaning.
-                    const oldRate = displayInfo.rate || 1;
+                    const oldRate = displayInfo.rateLive ? displayInfo.rate : 0;
                     const newInfo = currencies.find(c => c.code === code) || displayInfo;
-                    const newRate = newInfo.rate || 1;
+                    const newRate = newInfo.rateLive ? newInfo.rate : 0;
                     if (withdrawAmount && oldRate > 0 && newRate > 0) {
                       const inUsd = parsedDisplayAmount / oldRate;
                       const inNew = inUsd * newRate;

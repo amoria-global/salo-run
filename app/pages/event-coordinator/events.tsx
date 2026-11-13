@@ -1,24 +1,48 @@
 "use client";
 
+import MoneyInput from '../../components/MoneyInput';
+import LocationRulesField, { fetchSavedRules, useCurrencyChoices, useLocationRules } from '../../components/LocationRulesField';
+import { CURRENCY_FLAG_MAP } from '@/lib/currencyFlag';
+import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
+import { AttendanceField, eventFieldId, focusEventField } from '../../components/events/AttendanceField';
+import { FieldError, invalidFieldProps } from '../../components/errors/FieldError';
+import { useUserProfile } from '../../context/UserProfileContext';
+import { attendanceFromSaved, firstInvalidField, locationPayload, maxGuestsPayload, validateEventForm, type AttendanceChoice } from '@/lib/events/eventFormRules';
+import { invitesOn, wishInvitesError } from '@/lib/wishes/wishInvites';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import localforage from 'localforage';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import GetStartedModal from '../../components/events/GetStartedModal';
+import { confirmYear } from '../../lib/farFutureDate';
+import { useGetStarted } from '../../lib/useGetStarted';
+import { CREATE_LABEL } from '../../lib/getStarted';
 import GeoPricingManager from '@/app/components/GeoPricingManager';
 import Sidebar from '../../components/sidebar';
 import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import EventConfirmModal from '../../components/EventConfirmModal';
 import EventQrWizard from '../../components/EventQrWizard';
+import HostEntryTiles from '../../components/HostEntryTiles';
+import SelfStreamLink from '../../components/SelfStreamLink';
+import { useHostEntry } from '../../components/useHostEntry';
+import { selfStreamFeeError } from '@/lib/events/selfStream';
+import OwnerGoLive from '../../components/live/OwnerGoLive';
+import { canOwnerGoLive } from '@/lib/events/ownerGoLive';
 import RebookWizard from '../../components/RebookWizard';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
-import { isEventPriceInvalid, getMinEventPriceLabel } from '../../components/eventPriceValidation';
+import { eventPriceError } from '../../components/eventPriceValidation';
+import { usePaymentLimit } from '@/lib/paymentLimits';
 import { useCurrency } from '@/app/context/CurrencyContext';
+import BookingModeSelectorModal from '../../components/hybrid/BookingModeSelectorModal';
+import HybridEventWizardModal from '../../components/hybrid/HybridEventWizardModal';
+import CandidatesShortlistModal from '../../components/hybrid/CandidatesShortlistModal';
+import { ModeBadge, friendlyEventStatus, isOpenHybrid, isUpcomingEventStatus, modeOf } from '../../components/hybrid/hybridUi';
 
 // Configure localforage for event form data 
 const eventFormStorage = localforage.createInstance({
@@ -65,9 +89,6 @@ const fallbackCurrencyOptions: { value: string; label: string; id?: string }[] =
   { value: 'TZS', label: 'TZS' }
 ];
 
-const CURRENCY_FLAG_MAP: Record<string, string> = {
-  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
-};
 
 
 function parseTimeToApiString(timeStr: string): string {
@@ -253,9 +274,16 @@ interface Event {
   hasPhotographer: boolean;
   bookingStatus?: string;
   photographerId?: string;
+  bookingMode?: string;
   photographerName?: string;
   photographerImage?: string;
   isPublished: boolean;
+  /** PUBLIC (a photographer streams it) or PRIVATE (its owner streams it). */
+  eventVisibility?: string;
+  /** Whether viewers may invite others to send wishes. Undefined on a server that predates the setting (treated as on). */
+  allowWishInvites?: boolean;
+  /** IN_PERSON, HYBRID or STREAM_ONLY as saved; the edit form preselects it. */
+  attendanceMode?: string;
   shareLink: string;
   inviteCode?: string;
   streamInviteToken?: string;
@@ -350,12 +378,35 @@ const MyEventsPage = () => {
   const { formatPrice } = useCurrency();
   const { colors, actualTheme } = useTheme();
   const { token, user } = useDashboardAuth();
+  const { profile } = useUserProfile();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'published' | 'past' | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const { canHost, caption: hostedCaption } = useHostEntry();
+  // Post My Event (hybrid booking), the same flow clients have.
+  const [showBookingModeSelector, setShowBookingModeSelector] = useState(false);
+  const [showHybridWizard, setShowHybridWizard] = useState(false);
+  const [hybridWizardEvent, setHybridWizardEvent] = useState<{ id: string; title?: string; eventDate?: string; startTime?: string; endTime?: string; city?: string; venue?: string } | null>(null);
+  const [candidateModalEvent, setCandidateModalEvent] = useState<Event | null>(null);
+  const openPostWizard = (ev?: Event | null) => {
+    setHybridWizardEvent(ev ? { id: ev.id, title: ev.title, eventDate: ev.date, startTime: ev.time, endTime: ev.endTime, city: ev.location?.city, venue: ev.location?.address } : null);
+    setShowHybridWizard(true);
+  };
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('post') === '1') {
+      openPostWizard(null);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('post');
+      window.history.replaceState({}, '', url.toString());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showEventDetails, setShowEventDetails] = useState<Event | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  // Go live (camera or OBS) for a private event the user streams themselves.
+  const [goLiveEvent, setGoLiveEvent] = useState<Event | null>(null);
   const [shareEvent, setShareEvent] = useState<Event | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteEvent, setDeleteEvent] = useState<Event | null>(null);
@@ -454,8 +505,11 @@ const MyEventsPage = () => {
   const [editAddress, setEditAddress] = useState('');
   const [editCity, setEditCity] = useState('');
   const [editCountry, setEditCountry] = useState('');
+  // The saved mode is preselected when an event is opened for editing.
+  const [editAttendance, setEditAttendance] = useState<AttendanceChoice | null>(null);
   const [editPrice, setEditPrice] = useState('');
   const [editPriceCurrency, setEditPriceCurrency] = useState('RWF');
+  usePaymentLimit(editPriceCurrency); // fills the cache the fee validators read
   const [editGroupDiscount, setEditGroupDiscount] = useState('');
   const [editMaxGuests, setEditMaxGuests] = useState('');
   const [editOrganizer, setEditOrganizer] = useState('');
@@ -479,9 +533,22 @@ const MyEventsPage = () => {
   const [createVenueName, setCreateVenueName] = useState('');
   const [createAddress, setCreateAddress] = useState('');
   const [createCity, setCreateCity] = useState('');
-  const [createCountry, setCreateCountry] = useState('Rwanda');
+  // Empty until the person types one: the form shows the country of their profile instead of a hardcoded one.
+  const [createCountry, setCreateCountry] = useState('');
+  // How guests attend: no default on a new event, so the choice is required (see lib/events/eventFormRules).
+  const [createAttendance, setCreateAttendance] = useState<AttendanceChoice | null>(null);
+  const [createShowMore, setCreateShowMore] = useState(false);
+  // Errors stay hidden until the first click on Create, then follow the form live as each field is fixed.
+  const [createShowErrors, setCreateShowErrors] = useState(false);
   const [createPrice, setCreatePrice] = useState('');
+  // Location pricing & access: the rules save WITH the event (create and edit), in one transaction.
+  const geoCreate = useLocationRules();
+  const geoEdit = useLocationRules();
+  const currencyChoices = useCurrencyChoices();
+  // On an edit the saved rules must be read before they are sent; a failed read sends nothing, so they are never wiped.
+  const [editRulesLoaded, setEditRulesLoaded] = useState(false);
   const [createPriceCurrency, setCreatePriceCurrency] = useState('RWF');
+  usePaymentLimit(createPriceCurrency);
   const [createGroupDiscount, setCreateGroupDiscount] = useState('');
   const [createMaxGuests, setCreateMaxGuests] = useState('');
   const [createOrganizer, setCreateOrganizer] = useState('');
@@ -492,6 +559,10 @@ const MyEventsPage = () => {
   const [createBannerImageFile, setCreateBannerImageFile] = useState<File | null>(null);
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
+  // Wish invites: no default on a new event, so the choice is required before it can be created.
+  const [createWishInvites, setCreateWishInvites] = useState<boolean | null>(null);
+  const [createWishInvitesErr, setCreateWishInvitesErr] = useState<string | null>(null);
+  const [editWishInvites, setEditWishInvites] = useState<boolean | null>(null);
   const [createPackageId, setCreatePackageId] = useState<string>('');
   const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; currencySymbol: string; currencyAbbreviation: string; description: string; durationHours: number; includedPhotos: number; includedVideos: number}[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
@@ -639,7 +710,7 @@ const MyEventsPage = () => {
             setCreateVenueName(savedDraft.createVenueName || '');
             setCreateAddress(savedDraft.createAddress || '');
             setCreateCity(savedDraft.createCity || '');
-            setCreateCountry(savedDraft.createCountry || 'Rwanda');
+            setCreateCountry(savedDraft.createCountry || '');
             setCreatePrice(savedDraft.createPrice || '');
             setCreatePriceCurrency(savedDraft.createPriceCurrency || 'RWF');
             setCreateMaxGuests(savedDraft.createMaxGuests || '');
@@ -647,7 +718,7 @@ const MyEventsPage = () => {
             setCreateTags(savedDraft.createTags || []);
             setCreatePhotographerId(savedDraft.createPhotographerId || '');
             setCreatePackageId(savedDraft.createPackageId || '');
-            setCreateEventVisibility(savedDraft.createEventVisibility || 'PUBLIC');
+            setCreateEventVisibility('PUBLIC');
             setCreateBannerImagePreview(savedDraft.createBannerImagePreview || null);
 
             // Show notice that draft was restored
@@ -769,6 +840,8 @@ const MyEventsPage = () => {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const router = useRouter();
+  const getStarted = useGetStarted({ role: 'coordinator', canHost, listLoaded: !isLoadingEvents, hasItems: events.length > 0 });
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [publishingEventId, setPublishingEventId] = useState<string | null>(null);
   const [unpublishingEventId, setUnpublishingEventId] = useState<string | null>(null);
@@ -861,10 +934,14 @@ const MyEventsPage = () => {
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
             hasPhotographer: !!(evt.photographerId || (evt.photographer && (evt.photographer as Record<string, unknown>).id)),
             bookingStatus: (evt.bookingStatus as string) || undefined,
+            bookingMode: (evt.bookingMode as string) || undefined,
             photographerId: (evt.photographerId as string) || (evt.photographer && (evt.photographer as Record<string, unknown>).id as string) || undefined,
             photographerName: (evt.photographerName as string) || (evt.photographer ? `${(evt.photographer as Record<string, unknown>).firstName || ''} ${(evt.photographer as Record<string, unknown>).lastName || ''}`.trim() : '') || '',
             photographerImage: (evt.photographerImage as string) || (evt.photographer && (evt.photographer as Record<string, unknown>).profilePicture as string) || '',
             isPublished: evt.isPublished === true,
+            eventVisibility: typeof evt.eventVisibility === 'string' ? evt.eventVisibility : undefined,
+            attendanceMode: typeof evt.attendanceMode === 'string' ? evt.attendanceMode : undefined,
+            allowWishInvites: typeof evt.allowWishInvites === 'boolean' ? evt.allowWishInvites : undefined,
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
             streamInviteToken: (evt.streamInviteToken as string) || undefined,
             shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/events/view-event?id=${evt.id}`,
@@ -1083,6 +1160,9 @@ const MyEventsPage = () => {
 
   const openEditModal = (event: Event) => {
     setEditEvent(event);
+    // The saved value; an event from before the setting reads as on.
+    setEditWishInvites(invitesOn(event.allowWishInvites));
+    setEditAttendance(attendanceFromSaved(event.attendanceMode, event.location.address));
     setEditTitle(event.title);
     setEditDescription(event.description);
     setEditCategory((event.category as EventCategory) || '');
@@ -1116,17 +1196,50 @@ const MyEventsPage = () => {
     setEditPhotographerId(event.photographerId || '');
     setEditPhotographerAssignMode('none');
     setEditPhotographerSearchQuery('');
+    geoEdit.reset();
+    setEditRulesLoaded(false);
+    fetchSavedRules('event', String(event.id))
+      .then((rules) => {
+        geoEdit.hydrate(rules);
+        setEditRulesLoaded(true);
+      })
+      .catch(() => undefined);
     setShowEditModal(true);
   };
 
   const handleEditEvent = async () => {
-    if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
-
-    // Currency-aware minimum stream access fee
-    if (isEventPriceInvalid(editPrice || '', editPriceCurrency)) {
-      setSubmitError(`Live Stream Access Fee must be at least ${getMinEventPriceLabel(editPriceCurrency)}.`);
+    if (!editEvent) return;
+    const editRules = validateEventForm(
+      {
+        hasCover: true,
+        title: editTitle,
+        category: String(editCategory ?? ''),
+        eventDate: editDate,
+        startTime: editTime,
+        attendance: editAttendance,
+        venueName: editVenueName,
+        city: editCity,
+        wishInvites: editWishInvites,
+      },
+      { legacyLocation: true },
+    );
+    const editBlocked = firstInvalidField(editRules);
+    if (editBlocked) {
+      setSubmitError(editRules[editBlocked] ?? null);
+      if (editBlocked === 'wishInvites') focusWishInvitesField();
+      else focusEventField(editBlocked);
       return;
     }
+
+    // Currency-aware minimum stream access fee
+    if (!confirmYear(editDate)) return;
+    if (eventPriceError(editPrice || '', editPriceCurrency)) {
+      setSubmitError(eventPriceError(editPrice || '', editPriceCurrency) ?? 'Enter a valid price.');
+      return;
+    }
+
+    // A rule typed into the new-rule row but not added would be lost on save: finish or cancel it first.
+    if (geoEdit.blockSave()) return;
 
     // Calculate duration from start and end time
     let calculatedDuration = editDuration;
@@ -1201,23 +1314,27 @@ const MyEventsPage = () => {
         eventDate: editDate,
         startTime: editTime ? parseTimeToApiString(editTime) : null,
         endTime: editEndTime ? parseTimeToApiString(editEndTime) : null,
-        location: capitalizeWords([editVenueName, editAddress, editCity, editCountry].filter(Boolean).join(', ')),
+        location: capitalizeWords(locationPayload(editAttendance, { venueName: editVenueName, address: editAddress, city: editCity, country: editCountry }) ?? ''),
+        attendanceMode: editAttendance ?? undefined,
         eventOrganizer: capitalizeWords(editOrganizer),
         eventTags: editTags.join(','),
         price: editNumericPrice ? Number(editNumericPrice) : 0,
         priceCurrency: editPriceCurrency || 'RWF',
+        allowWishInvites: editWishInvites === true,
         streamFee: editNumericPrice ? Number(editNumericPrice) : 0,
         streamFeeCurrencyId: (() => {
           const match = currencyOptions.find(c => c.value === (editPriceCurrency || 'RWF'));
           return match?.id || undefined;
         })(),
-        maxGuests: editMaxGuests ? Number(editMaxGuests.replace(/[^\d]/g, '')) : 0,
+        // Empty means no limit and sends nothing. Only clearing a limit that was set sends 0, the one way to remove it.
+        maxGuests: maxGuestsPayload(editMaxGuests) ?? ((editEvent.maxGuests ?? 0) > 0 ? 0 : undefined),
         groupDiscountPercentage: editGroupDiscount ? Number(editGroupDiscount) : 0,
       };
       const validEditPhotographerId = (editPhotographerId && isValidUUID(editPhotographerId)) ? editPhotographerId : null;
       if (validEditPhotographerId) {
         editPayload.photographerId = validEditPhotographerId;
       }
+      if (editRulesLoaded) editPayload.geoRules = geoEdit.payload();
       Object.keys(editPayload).forEach(key => {
         if (editPayload[key] === undefined || editPayload[key] === null) delete editPayload[key];
       });
@@ -1228,21 +1345,28 @@ const MyEventsPage = () => {
       });
       if (!editRes.ok) {
         const errData = await editRes.json().catch(() => ({}));
-        throw new Error(errData.message || `Failed to update event: ${editRes.status}`);
+        throw Object.assign(new Error(errData.message || `Failed to update event: ${editRes.status}`), { field: errData.field });
       }
       const editResult = await editRes.json().catch(() => null);
       if (editResult && editResult.action === 0) {
-        throw new Error(editResult.message || 'Failed to update event.');
+        throw Object.assign(new Error(editResult.message || 'Failed to update event.'), { field: editResult.field });
       }
       // Upload banner image if a new file was selected
       if (editBannerImageFile) {
         try {
           const photoForm = new FormData();
           photoForm.append('file', editBannerImageFile);
-          await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${editEvent.id}/photo`, {
+          const photoRes = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${editEvent.id}/photo`, {
             method: 'POST',
             body: photoForm,
           });
+          const photoJson = await photoRes.json().catch(() => null);
+          if (!photoRes.ok || photoJson?.action === 0) {
+            platformAlert(photoJson?.message || 'The event was saved but its photo could not be uploaded. Please try again.', {
+              title: 'Event photo not saved',
+              tone: 'danger',
+            });
+          }
         } catch (photoErr) {
           console.error('Failed to upload event photo:', photoErr);
         }
@@ -1251,6 +1375,12 @@ const MyEventsPage = () => {
       await fetchMyEvents();
     } catch (err) {
       console.error('Failed to update event:', err);
+      // A refused location rule names its row: show it there and keep the form open.
+      const ruleField = (err as { field?: unknown } | null)?.field;
+      if (typeof ruleField === 'string' && ruleField.startsWith('geoRules')) {
+        geoEdit.showServerError(ruleField, err instanceof Error ? err.message : 'That location rule cannot be saved.');
+        return;
+      }
       platformAlert(err instanceof Error ? err.message : 'Failed to update event. Please try again.');
     }
 
@@ -1260,6 +1390,9 @@ const MyEventsPage = () => {
 
   // Reset create form
   const resetCreateForm = (clearDraft: boolean = true) => {
+    geoCreate.reset();
+    setCreateWishInvites(null);
+    setCreateWishInvitesErr(null);
     setCreateTitle('');
     setCreateDescription('');
     setCreateEventType('');
@@ -1272,7 +1405,10 @@ const MyEventsPage = () => {
     setCreateVenueName('');
     setCreateAddress('');
     setCreateCity('');
-    setCreateCountry('Rwanda');
+    setCreateCountry('');
+    setCreateAttendance(null);
+    setCreateShowMore(false);
+    setCreateShowErrors(false);
     setCreatePrice('');
     setCreateGroupDiscount('');
     setCreateMaxGuests('');
@@ -1379,18 +1515,36 @@ const MyEventsPage = () => {
     }
   };
 
+  // Which required fields still block Create, from the one shared rule set (lib/events/eventFormRules).
+  const createRules = validateEventForm({
+    hasCover: !!(createBannerImageFile || createBannerImagePreview),
+    title: createTitle,
+    category: String(createCategory ?? ''),
+    eventDate: createDate,
+    startTime: createTime,
+    attendance: createAttendance,
+    venueName: createVenueName,
+    city: createCity,
+    wishInvites: createWishInvites,
+  });
+  const createShown = createShowErrors ? createRules : {};
+  const createBlocked = Object.keys(createRules).length > 0;
+  const eventLabelStyle: React.CSSProperties = { display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' };
+  const eventInputStyle: React.CSSProperties = { width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary };
+
   // Handle create event
   const handleCreateEvent = async () => {
-    // Hard gate: a cover image is required before anything else can be validated.
-    if (!createBannerImageFile && !createBannerImagePreview) {
-      setSubmitError('A cover image is required before an event can be created. Please upload one above.');
+    // Every required field is checked together by the shared rules; the first blocked one is scrolled to and focused.
+    // Required fields are never inside "More options", so an error never needs it opened.
+    setCreateShowErrors(true);
+    const firstBlocked = firstInvalidField(createRules);
+    if (firstBlocked) {
+      setSubmitError(null);
+      if (firstBlocked === 'wishInvites') focusWishInvitesField();
+      else focusEventField(firstBlocked);
       return;
     }
     const missingFields: string[] = [];
-    if (!createTitle) missingFields.push('Event Title');
-    if (!createCategory) missingFields.push('Category');
-    if (!createDate) missingFields.push('Date');
-    if (!createTime) missingFields.push('Start Time');
     if (createPrice === undefined || createPrice === null || createPrice === '') missingFields.push('Price');
     if (createGroupDiscount === '') missingFields.push('Group Stream Discount');
     if (missingFields.length > 0) {
@@ -1398,9 +1552,16 @@ const MyEventsPage = () => {
       return;
     }
 
-    // Currency-aware minimum stream access fee
-    if (isEventPriceInvalid(createPrice, createPriceCurrency)) {
-      setSubmitError(`Live Stream Access Fee must be at least ${getMinEventPriceLabel(createPriceCurrency)}.`);
+    if (!confirmYear(createDate)) return;
+
+    // A rule typed into the new-rule row but not added would be lost on save: finish or cancel it first.
+    if (geoCreate.blockSave()) { setSubmitError(null); return; }
+
+    if (createEventVisibility === 'PRIVATE') {
+      const feeError = selfStreamFeeError(createPrice, createPriceCurrency || 'RWF');
+      if (feeError) { setSubmitError(feeError); return; }
+    } else if (eventPriceError(createPrice || '', createPriceCurrency)) {
+      setSubmitError(eventPriceError(createPrice || '', createPriceCurrency) ?? 'Enter a valid price.');
       return;
     }
 
@@ -1415,10 +1576,11 @@ const MyEventsPage = () => {
       if (user) {
         const apiUrl = getApiUrl();
 
-        const locationStr = [createVenueName, createAddress, createCity, createCountry].filter(Boolean).join(', ');
+        // Only an in person event has a venue; a stream-only event sends none.
+        const locationStr = locationPayload(createAttendance, { venueName: createVenueName, address: createAddress, city: createCity, country: createCountry || profile.country }) ?? '';
         const tagsStr = createTags.length > 0 ? createTags.join(',') : createCategory;
 
-        const validPhotographerId = (createPhotographerId && isValidUUID(createPhotographerId)) ? createPhotographerId : null;
+        const validPhotographerId = (createEventVisibility !== 'PRIVATE' && createPhotographerId && isValidUUID(createPhotographerId)) ? createPhotographerId : null;
 
         const numericPrice = createPrice.replace(/[^\d]/g, '');
 
@@ -1430,8 +1592,10 @@ const MyEventsPage = () => {
           endTime: createEndTime ? parseTimeToApiString(createEndTime) : parseTimeToApiString(createTime),
           eventDate: createDate,
           location: capitalizeWords(locationStr),
+          attendanceMode: createAttendance ?? undefined,
           eventOrganizer: capitalizeWords(createOrganizer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Organizer'),
           eventVisibility: createEventVisibility || 'PUBLIC',
+          allowWishInvites: createWishInvites === true,
           eventTags: tagsStr,
           price: numericPrice ? Number(numericPrice) : 0,
           priceCurrency: createPriceCurrency || 'RWF',
@@ -1440,7 +1604,8 @@ const MyEventsPage = () => {
             const match = currencyOptions.find(c => c.value === (createPriceCurrency || 'RWF'));
             return match?.id || undefined;
           })(),
-          maxGuests: createMaxGuests ? Number(createMaxGuests.replace(/[^\d]/g, '')) : 0,
+          // Empty means no limit: nothing is sent.
+          maxGuests: maxGuestsPayload(createMaxGuests),
           groupDiscountPercentage: createGroupDiscount ? Number(createGroupDiscount) : 0,
           notes: '',
         };
@@ -1450,13 +1615,15 @@ const MyEventsPage = () => {
           payload.photographerId = validPhotographerId;
         }
 
-        if (createPackageId && isValidUUID(createPackageId)) {
+        if (createEventVisibility !== 'PRIVATE' && createPackageId && isValidUUID(createPackageId)) {
           payload.packageId = createPackageId;
         }
 
         if (validPhotographerId && createPackageId) {
           payload.escrowPercentage = createEscrowPercentage;
         }
+
+        payload.geoRules = geoCreate.payload();
 
         // Strip any undefined/null values to prevent backend "id must not be null" errors
         Object.keys(payload).forEach(key => {
@@ -1478,10 +1645,17 @@ const MyEventsPage = () => {
               try {
                 const photoForm = new FormData();
                 photoForm.append('file', createBannerImageFile);
-                await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${newEventId}/photo`, {
+                const photoRes = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${newEventId}/photo`, {
                   method: 'POST',
                   body: photoForm,
                 });
+                const photoJson = await photoRes.json().catch(() => null);
+                if (!photoRes.ok || photoJson?.action === 0) {
+                  platformAlert(photoJson?.message || 'The event was saved but its photo could not be uploaded. Please try again.', {
+                    title: 'Event photo not saved',
+                    tone: 'danger',
+                  });
+                }
               } catch (photoErr) {
                 console.error('Failed to upload event photo:', photoErr);
               }
@@ -1497,13 +1671,18 @@ const MyEventsPage = () => {
           }
         } else {
           const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Failed to create event. Please try again.');
+          throw Object.assign(new Error(errorData.message || 'Failed to create event. Please try again.'), { field: errorData.field });
         }
       } else {
         throw new Error('Authentication required. Please log in again.');
       }
     } catch (error) {
       console.error('Event creation error:', error);
+      // A refused location rule names its row: show it there.
+      const ruleField = (error as { field?: unknown } | null)?.field;
+      if (typeof ruleField === 'string' && ruleField.startsWith('geoRules')) {
+        geoCreate.showServerError(ruleField, error instanceof Error ? error.message : 'That location rule cannot be saved.');
+      }
       setSubmitError(error instanceof Error ? error.message : 'Failed to create event. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -1523,6 +1702,15 @@ const MyEventsPage = () => {
 
   const getStatusBadgeStyle = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'matches_awaiting_selection':
+      case 'candidates_available':
+        return { background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(124,58,237,0.30)' };
+      case 'matching':
+      case 'published_pending_assignment':
+        return { background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(2,132,199,0.30)' };
+      case 'hybrid_timeout':
+      case 'matching_failed':
+        return { background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(217,119,6,0.30)' };
       case 'upcoming':
       case 'awaiting_review':
         return { background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(245,158,11,0.30)' };
@@ -1547,21 +1735,22 @@ const MyEventsPage = () => {
 
     const statusLower = event.status.toLowerCase();
     if (activeTab === 'upcoming') {
-      return matchesSearch && (statusLower === 'upcoming' || statusLower === 'ongoing' || statusLower === 'live' || statusLower === 'paused');
+      return matchesSearch && isUpcomingEventStatus(event.status);
     } else if (activeTab === 'published') {
       return matchesSearch && statusLower === 'published';
     } else if (activeTab === 'past') {
-      return matchesSearch && statusLower === 'completed';
+      // The backend reports a past-dated event that isn't completed as AWAITING_REVIEW; it is past too, as on the client page.
+      return matchesSearch && (statusLower === 'completed' || statusLower === 'awaiting_review');
     }
     return matchesSearch;
   });
 
-  const upcomingCount = events.filter(e => {
-    const s = e.status.toLowerCase();
-    return s === 'upcoming' || s === 'ongoing' || s === 'live' || s === 'paused';
-  }).length;
+  const upcomingCount = events.filter(e => isUpcomingEventStatus(e.status)).length;
   const publishedCount = events.filter(e => e.status.toLowerCase() === 'published').length;
-  const completedCount = events.filter(e => e.status.toLowerCase() === 'completed').length;
+  const completedCount = events.filter(e => {
+    const s = e.status.toLowerCase();
+    return s === 'completed' || s === 'awaiting_review';
+  }).length;
   const pastCount = completedCount;
 
   return (
@@ -1664,10 +1853,16 @@ const MyEventsPage = () => {
               }}>
                 Create and manage your events.
               </p>
+              {canHost ? <HostEntryTiles caption={hostedCaption} basePath="/user/event-coordinator/host" /> : null}
             </div>
-            <button onClick={() => setShowCreateModal(true)} className="ck-btn ck-btn-primary mobile-create-btn">
-              <i className="bi bi-plus-lg" /> Create event
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" onClick={getStarted.show} className="ck-btn ck-btn-ghost" aria-label="Show getting started" title="Show getting started">
+              <i className="bi bi-question-circle" aria-hidden="true" />
             </button>
+            <button onClick={() => setShowBookingModeSelector(true)} className="ck-btn ck-btn-primary mobile-create-btn">
+              <i className="bi bi-plus-lg" /> {CREATE_LABEL.events}
+            </button>
+            </div>
           </header>
 
           {/* Status Summary Cards */}
@@ -1771,7 +1966,7 @@ const MyEventsPage = () => {
                   Retry
                 </button>
                 <button
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => setShowBookingModeSelector(true)}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                     padding: '0.5rem 1.5rem', borderRadius: '0.5rem',
@@ -1788,7 +1983,7 @@ const MyEventsPage = () => {
             <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
               <p style={{ fontSize: '1rem', color: colors.textSecondary }}>No events found.</p>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => setShowBookingModeSelector(true)}
                 style={{
                   marginTop: '1rem',
                   display: 'inline-flex',
@@ -1830,7 +2025,7 @@ const MyEventsPage = () => {
                     <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
                       <div style={{ ...getStatusBadgeStyle(event.status), padding: '4px 10px', borderRadius: 9999, fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid rgba(255,255,255,0.18)' }}>
                         <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#fff', boxShadow: '0 0 0 2px rgba(255,255,255,0.30)' }} />
-                        {event.status.toString().replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+                        {friendlyEventStatus(event.status as string)}
                       </div>
                       <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '4px 10px', borderRadius: 9999, fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.18)' }}>
                         {event.eventType}
@@ -1878,11 +2073,30 @@ const MyEventsPage = () => {
                           </div>
                         )}
                       </div>
+                      {(modeOf(event.bookingMode) === 'HYBRID' || event.photographerId) && (
+                        <div style={{ marginBottom: 6 }}><span style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 999 }}><ModeBadge mode={modeOf(event.bookingMode)} /></span></div>
+                      )}
                       {/* Action buttons. always 4 buttons: Share, Edit, Delete, Publish/Unpublish */}
                       <div className="mobile-event-actions" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
+                        {isOpenHybrid(event.bookingMode, event.status as string, event.photographerId) && (
+                          <button onClick={() => setCandidateModalEvent(event)} title="Photographers who said yes"
+                            style={{ flex: 1.4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'rgba(242,12,143,0.85)', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                            <i className="bi bi-people-fill" style={{ fontSize: 13 }} /> {['MATCHES_AWAITING_SELECTION', 'CANDIDATES_AVAILABLE'].includes(event.status as string) ? 'Choose photographer' : ['HYBRID_TIMEOUT', 'MATCHING_FAILED'].includes(event.status as string) ? 'Matching ended' : 'Answers'}
+                          </button>
+                        )}
+                        {!event.photographerId && modeOf(event.bookingMode) === 'DIRECT' && !['COMPLETED', 'CANCELLED'].includes(String(event.status).toUpperCase()) && (
+                          <button onClick={() => openPostWizard(event)} title="No photographer yet. Post My Event: matching photographers say yes, you pick one."
+                            style={{ flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '0.5rem 0.6rem', background: 'rgba(242,12,143,0.85)', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+                            <i className="bi bi-broadcast" style={{ fontSize: 13 }} /> Post
+                          </button>
+                        )}
+                        {/* An unpublished event has no link guests can open, so there is nothing to share yet. */}
+                        {canOwnerGoLive(event) && <button onClick={() => setGoLiveEvent(event)} title="Go live" aria-label={`Go live: ${event.title}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0.5rem 0.75rem', background: '#E61220', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 9, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+                          <i className="bi bi-broadcast" aria-hidden="true" /> Go live
+                        </button>}
+                        {event.isPublished && <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
                           <ShareIcon />
-                        </button>
+                        </button>}
                         {isEventEditable(event) && (
                           <>
                           <button onClick={() => setGeoEvent(event)} title="Geo pricing" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0.5rem', background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.20)', borderRadius: 9, cursor: 'pointer', backdropFilter: 'blur(6px)', transition: 'background 0.15s' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.20)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}>
@@ -2067,6 +2281,61 @@ const MyEventsPage = () => {
         )}
       </Modal>
 
+      {getStarted.open ? (
+        <GetStartedModal
+          actions={getStarted.actions}
+          createLabel={CREATE_LABEL.events}
+          initialDismissed={getStarted.dismissed}
+          onClose={getStarted.close}
+          onDismissChange={getStarted.setForever}
+          onPick={(key) => {
+            getStarted.close();
+            if (key === 'go-live') router.push('/user/event-coordinator/host?new=1');
+            else setShowBookingModeSelector(true);
+          }}
+        />
+      ) : null}
+
+      <BookingModeSelectorModal
+        isOpen={showBookingModeSelector}
+        onClose={() => setShowBookingModeSelector(false)}
+        onSelectDirect={() => { setShowBookingModeSelector(false); setShowCreateModal(true); }}
+        onSelectHybrid={() => { setShowBookingModeSelector(false); openPostWizard(null); }}
+      />
+
+      <HybridEventWizardModal
+        isOpen={showHybridWizard}
+        existingEvent={hybridWizardEvent}
+        onClose={() => { setShowHybridWizard(false); setHybridWizardEvent(null); }}
+        onSuccess={(eventId, invited) => {
+          setShowHybridWizard(false);
+          setHybridWizardEvent(null);
+          fetchMyEvents();
+          if (invited) setCandidateModalEvent({ id: eventId } as Event);
+        }}
+      />
+
+      {candidateModalEvent && (
+        <CandidatesShortlistModal
+          isOpen={!!candidateModalEvent}
+          onClose={() => setCandidateModalEvent(null)}
+          eventId={candidateModalEvent.id}
+          eventTitle={candidateModalEvent.title}
+          onPhotographerSelected={() => {
+            const id = candidateModalEvent.id;
+            setCandidateModalEvent(null);
+            // The first payment is made on the event page, as for every booking.
+            window.location.href = `/user/event-coordinator/events/${id}`;
+          }}
+          onRepost={() => openPostWizard(candidateModalEvent)}
+          onConvertedToDirect={() => {
+            setCandidateModalEvent(null);
+            fetchMyEvents();
+            platformAlert('Matching stopped. Edit the event to choose a photographer yourself.', { title: 'Find a Photographer', tone: 'success' });
+          }}
+        />
+      )}
+
       {/* Create Event Modal */}
       <Modal isOpen={showCreateModal} onClose={() => { resetCreateForm(false); setShowCreateModal(false); }} title="Create New Event" maxWidth="700px">
         <div>
@@ -2091,7 +2360,7 @@ const MyEventsPage = () => {
             </div>
           )}
           {/* Section: Event Image */}
-          <div style={{ marginBottom: '1.5rem' }}>
+          <div id={eventFieldId('cover')} style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <i className="bi bi-camera-fill" style={{ fontSize: 13, color: '#083A85' }} />
@@ -2175,6 +2444,10 @@ const MyEventsPage = () => {
             </div>
           </div>
 
+          {createShown.cover ? (
+            <div style={{ marginTop: '-0.75rem', marginBottom: '1rem' }}><FieldError id="event-field-cover-error" message={createShown.cover} /></div>
+          ) : null}
+
           {/* Section: Basic Information */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
@@ -2188,15 +2461,17 @@ const MyEventsPage = () => {
             </div>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
-              <input type="text" value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+              <input id={eventFieldId('title')} type="text" value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} {...invalidFieldProps('event-field-title-error', createShown.title)} />
+              <FieldError id="event-field-title-error" message={createShown.title} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Category *</label>
-                <select value={createCategory} onChange={(e) => setCreateCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
+                <select id={eventFieldId('category')} value={createCategory} onChange={(e) => setCreateCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
                   <option value="">Select category</option>
                   {eventCategories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
                 </select>
+                <FieldError id="event-field-category-error" message={createShown.category} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Type Status</label>
@@ -2229,13 +2504,15 @@ const MyEventsPage = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Date *</label>
-                <input type="date" value={createDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateError(''); setCreateDate(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
+                <input id={eventFieldId('eventDate')} type="date" value={createDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateError(''); setCreateDate(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
                 {dateError && <p style={{ color: '#DC2626', fontSize: '0.85rem', marginTop: '0.25rem', marginBottom: 0 }}>{dateError}</p>}
+                <FieldError id="event-field-eventDate-error" message={dateError ? null : createShown.eventDate} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Start Time *</label>
-                <input type="time" value={createTime} onChange={(e) => { setTimeError(''); setCreateTime(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: timeError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
+                <input id={eventFieldId('startTime')} type="time" value={createTime} onChange={(e) => { setTimeError(''); setCreateTime(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: timeError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
                 {timeError && <p style={{ color: '#DC2626', fontSize: '0.85rem', marginTop: '0.25rem', marginBottom: 0 }}>{timeError}</p>}
+                <FieldError id="event-field-startTime-error" message={timeError ? null : createShown.startTime} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>End Time</label>
@@ -2244,6 +2521,7 @@ const MyEventsPage = () => {
             </div>
           </div>
 
+          {/* Section: Where. Required: how guests attend and, in person, the venue name and city. */}
           {/* Section: Location */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
@@ -2251,92 +2529,54 @@ const MyEventsPage = () => {
                 <i className="bi bi-geo-alt-fill" style={{ fontSize: 13, color: '#10B981' }} />
               </div>
               <div>
-                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Venue</div>
-                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Location</span>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Attendance</div>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Where</span>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
-                <input type="text" value={createVenueName} onChange={(e) => setCreateVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+            <AttendanceField value={createAttendance} error={createShown.attendance} disabled={isSubmitting} onChange={(v) => setCreateAttendance(v)} />
+            {createAttendance === 'IN_PERSON' ? (
+              <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                <div>
+                  <label htmlFor={eventFieldId('venueName')} style={eventLabelStyle}>Venue Name *</label>
+                  <input id={eventFieldId('venueName')} type="text" value={createVenueName} onChange={(e) => setCreateVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={eventInputStyle} {...invalidFieldProps('event-field-venueName-error', createShown.venueName)} />
+                  <FieldError id="event-field-venueName-error" message={createShown.venueName} />
+                </div>
+                <div>
+                  <label htmlFor={eventFieldId('city')} style={eventLabelStyle}>City *</label>
+                  <input id={eventFieldId('city')} type="text" value={createCity} onChange={(e) => setCreateCity(e.target.value.replace(/,/g, ''))} placeholder="e.g., Kigali" style={eventInputStyle} {...invalidFieldProps('event-field-city-error', createShown.city)} />
+                  <FieldError id="event-field-city-error" message={createShown.city} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label htmlFor={eventFieldId('address')} style={eventLabelStyle}>Address (optional)</label>
+                  <input id={eventFieldId('address')} type="text" value={createAddress} onChange={(e) => setCreateAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={eventInputStyle} />
+                </div>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Location Address *</label>
-                <input type="text" value={createAddress} onChange={(e) => setCreateAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-              </div>
-            </div>
+            ) : null}
           </div>
 
           {/* Section: Pricing & Capacity */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <DollarIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Pricing & Capacity</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Pricing</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee</label>
-                <div style={{ display: 'flex', gap: '0' }}>
-                  <input
-                    type="text"
-                    value={createPrice}
-                    onChange={(e) => setCreatePrice(formatNumberWithCommas(e.target.value))}
-                    placeholder="e.g., 15,000"
-                    style={{
-                      flex: 1,
-                      padding: '0.625rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      borderRight: 'none',
-                      borderRadius: '0.5rem 0 0 0.5rem',
-                      fontSize: '0.9rem',
-                      color: colors.textPrimary,
-                      backgroundColor: colors.bgCard
-                    }}
-                  />
-                  <div ref={createCurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
-                    <button type="button" onClick={() => setCreateCurrencyOpen(!createCurrencyOpen)} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%',
-                      padding: '0.625rem 0.5rem', border: `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0 0.5rem 0.5rem 0', borderLeft: 'none',
-                      fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary,
-                      backgroundColor: colors.bgTertiary, cursor: 'pointer',
-                    }}>
-                      {CURRENCY_FLAG_MAP[createPriceCurrency] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[createPriceCurrency]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
-                      <span style={{ flex: 1, textAlign: 'left' }}>{createPriceCurrency}</span>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: createCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                        <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
-                    {createCurrencyOpen && (
-                      <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', right: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
-                        {currencyOptions.map(opt => {
-                          const flag = CURRENCY_FLAG_MAP[opt.value] || '';
-                          const isSelected = createPriceCurrency === opt.value;
-                          const extra = opt.label !== opt.value ? opt.label.replace(opt.value, '').replace(/^\s*-\s*/, '') : '';
-                          return (
-                            <button key={opt.value} type="button" onClick={() => { setCreatePriceCurrency(opt.value); setCreateCurrencyOpen(false); }}
-                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
-                              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
-                              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                <span style={{ fontWeight: '600' }}>{opt.value}</span>
-                                {extra && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{extra}</span>}
-                              </div>
-                              {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <MoneyInput
+                  label="Live Stream Access Fee"
+                  value={createPrice.replace(/,/g, '')}
+                  onChange={(v) => setCreatePrice(formatNumberWithCommas(v))}
+                  currencyId={createPriceCurrency}
+                  onCurrencyChange={setCreatePriceCurrency}
+                  currencies={currencyOptions.map((o) => ({ value: o.value, code: o.value, name: o.label !== o.value ? o.label.replace(o.value, '').replace(/^\s*-\s*/, '') : o.value }))}
+                  placeholder="e.g., 15,000"
+                  wholeNumbersOnly
+                />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
-                <input type="number" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-              </div>
+            </div>
+
+            <div style={{ marginTop: '1rem' }}>
+              <LocationRulesField geo={geoCreate} currencies={currencyChoices} disabled={isSubmitting} id="create-geo-rules" />
             </div>
 
             {/* Group Stream Discount */}
@@ -2389,6 +2629,33 @@ const MyEventsPage = () => {
             </div>
           </div>
 
+          <div style={{ marginBottom: '1.5rem' }}>
+            <WishInvitesField value={createWishInvites} error={createShown.wishInvites} disabled={isSubmitting}
+              onChange={(v) => setCreateWishInvites(v)} />
+          </div>
+
+          {/* More options: only optional fields. Required fields are never in here, so collapsing it cannot block Create. */}
+          <button
+            type="button"
+            onClick={() => setCreateShowMore((v) => !v)}
+            aria-expanded={createShowMore}
+            style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0.7rem 0.2rem', marginBottom: '1rem', background: 'none', border: 'none', borderBottom: `1px solid ${colors.borderPrimary}`, cursor: 'pointer', fontSize: '0.95rem', fontWeight: 800, color: colors.brandAccent }}
+          >
+            <span>More options (optional)</span>
+            <i className={`bi bi-chevron-${createShowMore ? 'up' : 'down'}`} aria-hidden="true" />
+          </button>
+          {createShowMore ? (
+            <div>
+          {createAttendance === 'IN_PERSON' ? (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label htmlFor="event-field-country" style={eventLabelStyle}>Country (optional)</label>
+              <input id="event-field-country" type="text" value={createCountry || profile.country} onChange={(e) => setCreateCountry(e.target.value.replace(/,/g, ''))} style={eventInputStyle} />
+            </div>
+          ) : null}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="event-field-maxGuests" style={eventLabelStyle}>Max guests (optional)</label>
+            <input id="event-field-maxGuests" type="number" min="0" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="No limit" style={eventInputStyle} />
+          </div>
           {/* Section: Organizer */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
@@ -2401,7 +2668,7 @@ const MyEventsPage = () => {
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name *</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name (optional)</label>
               <input type="text" value={createOrganizer} onChange={(e) => setCreateOrganizer(e.target.value)} placeholder="e.g., Rwanda Basketball Federation" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
             </div>
           </div>
@@ -2414,7 +2681,7 @@ const MyEventsPage = () => {
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>About</div>
-                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Description</span>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Description (optional)</span>
               </div>
             </div>
             <textarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Describe your event in detail…" style={{ width: '100%', padding: '0.7rem 0.95rem', border: `1.5px solid ${colors.borderPrimary}`, borderRadius: 11, fontSize: '0.9rem', minHeight: 110, resize: 'vertical', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none' }} />
@@ -2428,7 +2695,7 @@ const MyEventsPage = () => {
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Discovery</div>
-                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Hash tags</span>
+                <span style={{ fontSize: '0.98rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Hash tags (optional)</span>
               </div>
             </div>
             <div>
@@ -2449,7 +2716,10 @@ const MyEventsPage = () => {
             </div>
           </div>
 
+          {/* The form is for an event a photographer covers. Streaming it yourself is Go live (Host an event). */}
+          <SelfStreamLink href="/user/event-coordinator/host?new=1" color={colors.textSecondary} linkColor={colors.brandAccent} />
           {/* Section: Photographer Assignment */}
+          {createEventVisibility !== 'PRIVATE' ? (
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -2653,6 +2923,7 @@ const MyEventsPage = () => {
               </div>
             )}
           </div>
+          ) : null}
 
 
           {/* Escrow / Payment Milestone Selector. shown when photographer + package selected */}
@@ -2693,6 +2964,8 @@ const MyEventsPage = () => {
               </div>
             </div>
           )}
+            </div>
+          ) : null}
 
           {/* Submit Error */}
           {submitError && (
@@ -2720,36 +2993,32 @@ const MyEventsPage = () => {
             </button>
             <button
               onClick={handleCreateEvent}
-              disabled={isSubmitting || (!createBannerImageFile && !createBannerImagePreview)}
-              title={(!createBannerImageFile && !createBannerImagePreview) ? 'Upload a cover image to continue' : undefined}
+              disabled={isSubmitting}
+              aria-disabled={createBlocked || undefined}
+              title={createBlocked ? 'Some required fields are missing. Click to see which.' : undefined}
               style={{
                 padding: '0.65rem 1.3rem',
                 borderRadius: 11,
                 border: 'none',
-                background: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview))
+                background: (isSubmitting || createBlocked)
                   ? colors.bgTertiary
                   : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                color: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? colors.textSecondary : '#fff',
+                color: (isSubmitting || createBlocked) ? colors.textSecondary : '#fff',
                 fontSize: '0.9rem', fontWeight: 700,
-                cursor: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? 'not-allowed' : 'pointer',
-                opacity: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? 0.7 : 1,
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                opacity: (isSubmitting || createBlocked) ? 0.7 : 1,
                 display: 'inline-flex', alignItems: 'center', gap: 8,
-                boxShadow: (isSubmitting || (!createBannerImageFile && !createBannerImagePreview)) ? 'none' : '0 6px 18px rgba(242,12,143,0.28)',
+                boxShadow: (isSubmitting || createBlocked) ? 'none' : '0 6px 18px rgba(242,12,143,0.28)',
                 letterSpacing: '-0.005em',
                 transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s',
               }}
-              onMouseEnter={(e) => { if (!isSubmitting && (createBannerImageFile || createBannerImagePreview)) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseEnter={(e) => { if (!isSubmitting && !createBlocked) e.currentTarget.style.transform = 'translateY(-1px)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
               {isSubmitting ? (
                 <>
                   <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
                   Creating…
-                </>
-              ) : (!createBannerImageFile && !createBannerImagePreview) ? (
-                <>
-                  <i className="bi bi-image-fill" style={{ fontSize: 13 }} />
-                  Cover image required
                 </>
               ) : (
                 <>
@@ -3190,6 +3459,10 @@ const MyEventsPage = () => {
       )}
 
       {/* Share Modal */}
+      {goLiveEvent ? (
+        <OwnerGoLive eventId={goLiveEvent.id} eventTitle={goLiveEvent.title} allowWishInvites={goLiveEvent.allowWishInvites} onClose={() => setGoLiveEvent(null)} />
+      ) : null}
+
       <Modal isOpen={showShareModal} onClose={() => setShowShareModal(false)} title="Share event stream">
         {shareEvent && (
           <div>
@@ -3674,7 +3947,7 @@ const MyEventsPage = () => {
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
-                <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                <input id={eventFieldId('title')} type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
@@ -3714,22 +3987,30 @@ const MyEventsPage = () => {
               </div>
             </div>
 
-            {/* Section: Location */}
+            {/* Section: Where. The same choice as the create form; in person asks for the venue. */}
+            
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <LocationIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Location</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Where</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
-                  <input type="text" value={editVenueName} onChange={(e) => setEditVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+              <AttendanceField value={editAttendance} disabled={isSubmitting} onChange={(v) => setEditAttendance(v)} />
+              {editAttendance === 'IN_PERSON' ? (
+                <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                  <div>
+                    <label htmlFor={eventFieldId('venueName')} style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
+                    <input id={eventFieldId('venueName')} type="text" value={editVenueName} onChange={(e) => setEditVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                  </div>
+                  <div>
+                    <label htmlFor={eventFieldId('city')} style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>City</label>
+                    <input id={eventFieldId('city')} type="text" value={editCity} onChange={(e) => setEditCity(e.target.value.replace(/,/g, ''))} placeholder="e.g., Kigali" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label htmlFor={eventFieldId('address')} style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Address (optional)</label>
+                    <input id={eventFieldId('address')} type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                  </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Location Address *</label>
-                  <input type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-                </div>
-              </div>
+              ) : null}
             </div>
 
             {/* Section: Pricing & Capacity */}
@@ -3740,68 +4021,25 @@ const MyEventsPage = () => {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee</label>
-                  <div style={{ display: 'flex', gap: '0' }}>
-                    <input
-                      type="text"
-                      value={editPrice}
-                      onChange={(e) => setEditPrice(formatNumberWithCommas(e.target.value))}
-                      placeholder="e.g., 15,000"
-                      style={{
-                        flex: 1,
-                        padding: '0.625rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRight: 'none',
-                        borderRadius: '0.5rem 0 0 0.5rem',
-                        fontSize: '0.9rem',
-                        color: colors.textPrimary,
-                        backgroundColor: colors.bgCard
-                      }}
-                    />
-                    <div ref={editCurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
-                      <button type="button" onClick={() => setEditCurrencyOpen(!editCurrencyOpen)} style={{
-                        display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%',
-                        padding: '0.625rem 0.5rem', border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0 0.5rem 0.5rem 0', borderLeft: 'none',
-                        fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary,
-                        backgroundColor: colors.bgTertiary, cursor: 'pointer',
-                      }}>
-                        {CURRENCY_FLAG_MAP[editPriceCurrency] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[editPriceCurrency]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
-                        <span style={{ flex: 1, textAlign: 'left' }}>{editPriceCurrency}</span>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: editCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                          <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                      {editCurrencyOpen && (
-                        <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', right: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
-                          {currencyOptions.map(opt => {
-                            const flag = CURRENCY_FLAG_MAP[opt.value] || '';
-                            const isSelected = editPriceCurrency === opt.value;
-                            const extra = opt.label !== opt.value ? opt.label.replace(opt.value, '').replace(/^\s*-\s*/, '') : '';
-                            return (
-                              <button key={opt.value} type="button" onClick={() => { setEditPriceCurrency(opt.value); setEditCurrencyOpen(false); }}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
-                                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
-                                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
-                                  <span style={{ fontWeight: '600' }}>{opt.value}</span>
-                                  {extra && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{extra}</span>}
-                                </div>
-                                {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <MoneyInput
+                    label="Live Stream Access Fee"
+                    value={editPrice.replace(/,/g, '')}
+                    onChange={(v) => setEditPrice(formatNumberWithCommas(v))}
+                    currencyId={editPriceCurrency}
+                    onCurrencyChange={setEditPriceCurrency}
+                    currencies={currencyOptions.map((o) => ({ value: o.value, code: o.value, name: o.label !== o.value ? o.label.replace(o.value, '').replace(/^\s*-\s*/, '') : o.value }))}
+                    placeholder="e.g., 15,000"
+                    wholeNumbersOnly
+                  />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
-                  <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Max guests (optional)</label>
+                  <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="No limit" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 </div>
+              </div>
+
+              <div style={{ marginTop: '1rem' }}>
+                <LocationRulesField geo={geoEdit} currencies={currencyChoices} disabled={!editRulesLoaded} id="edit-geo-rules" />
               </div>
 
               {/* Group Stream Discount */}
@@ -3854,6 +4092,10 @@ const MyEventsPage = () => {
               </div>
             </div>
 
+            <div style={{ marginBottom: '1.5rem' }}>
+              <WishInvitesField value={editWishInvites} onChange={setEditWishInvites} />
+            </div>
+
             {/* Section: Organizer */}
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -3861,7 +4103,7 @@ const MyEventsPage = () => {
                 <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Organizer</span>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name *</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name (optional)</label>
                 <input type="text" value={editOrganizer} onChange={(e) => setEditOrganizer(e.target.value)} placeholder="e.g., Rwanda Basketball Federation" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
             </div>

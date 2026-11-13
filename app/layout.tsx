@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Pragati_Narrow } from "next/font/google";
 import "./globals.css";
@@ -8,9 +9,13 @@ import { DashboardAuthProvider } from "./providers/AuthProvider";
 import { ThemeProvider } from "./context/ThemeContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { PermissionProvider } from "./lib/usePermissions";
+import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 import PasswordChangeGate from "./components/PasswordChangeGate";
 import PlatformAlert from "./components/PlatformAlert";
+import ErrorHost from "./components/errors/ErrorHost";
+import AppInstallWizard from "./components/AppInstallWizard";
 
 const pragatiNarrow = Pragati_Narrow({
   weight: ["400", "700"],
@@ -39,20 +44,30 @@ export default function RootLayout({
       <body className={`${pragatiNarrow.variable} font-sans antialiased`}>
         <DashboardAuthProvider>
           <PermissionProvider>
+            <WorkspaceProvider>
             <ThemeProvider>
-              <CurrencyProvider>
-                <UserProfileProvider>
-                  {/* Forced first-login password change for invited team
-                      members. Fires on every dashboard route except
-                      /user/auth/* so login/reset/change-password itself
-                      stay reachable. */}
-                  <PasswordChangeGate />
-                  {children}
-                  {/* Global platform alert: replaces native browser alert() with brand-styled modal. */}
-                  <PlatformAlert />
-                </UserProfileProvider>
-              </CurrencyProvider>
+              <LanguageProvider>
+                <CurrencyProvider>
+                  <UserProfileProvider>
+                    {/* Forced first-login password change for invited team
+                        members. Fires on every dashboard route except
+                        /user/auth/* so login/reset/change-password itself
+                        stay reachable. */}
+                    <PasswordChangeGate />
+                    {children}
+                    {/* Global platform alert: replaces native browser alert() with brand-styled modal. */}
+                    <PlatformAlert />
+                    {/* Toasts and decision dialogs raised by showError() from any page. */}
+                    <ErrorHost />
+                    {/* Get-the-app wizard for a collaboration invite opened on a phone. */}
+                    <Suspense fallback={null}>
+                      <AppInstallWizard />
+                    </Suspense>
+                  </UserProfileProvider>
+                </CurrencyProvider>
+              </LanguageProvider>
             </ThemeProvider>
+            </WorkspaceProvider>
           </PermissionProvider>
         </DashboardAuthProvider>
       </body>

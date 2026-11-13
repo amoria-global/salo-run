@@ -25,6 +25,7 @@ function code(file: string): string {
 
 const MODAL = code(path.join(__dirname, 'WithdrawModal.tsx'));
 const PREFS = code(path.join(ROOT, 'app/pages/preferences.tsx'));
+const METHODS = code(path.join(__dirname, 'TwoFactorMethods.tsx'));
 const AUTH = code(path.join(ROOT, 'app/providers/AuthProvider.tsx'));
 
 describe('disabling 2FA', () => {
@@ -33,12 +34,16 @@ describe('disabling 2FA', () => {
     expect(PREFS).not.toMatch(/Cannot disable while your account has a balance/);
   });
 
-  it('warns that withdrawals stop before the code is entered', () => {
-    const confirm = PREFS.slice(PREFS.indexOf('{showDisableConfirm && ('));
-    const warning = confirm.indexOf('Disabling 2FA will disable withdrawals');
-    const codeEntry = confirm.indexOf('Enter a code from your authenticator app to disable 2FA');
+  it('warns that withdrawals stop before the code is entered, when it is the last method', () => {
+    const warning = METHODS.indexOf('Turning this off will disable withdrawals');
+    const codeEntry = METHODS.indexOf('<OtpInput');
     expect(warning).toBeGreaterThan(-1);
     expect(codeEntry).toBeGreaterThan(warning);
+    expect(METHODS).toMatch(/lastMethod/);
+  });
+
+  it('the page hands the security card to the shared methods component', () => {
+    expect(PREFS).toMatch(/<TwoFactorMethods/);
   });
 
   it('no longer forces funded accounts back to the setup screen', () => {
@@ -55,7 +60,7 @@ describe('WithdrawModal without 2FA', () => {
 
   it('offers a way to turn 2FA on', () => {
     expect(MODAL).toMatch(/preferences\?tab=security&setup2fa=true/);
-    expect(MODAL).toMatch(/Turn on 2FA/);
+    expect(MODAL).toMatch(/Set up two-factor/);
   });
 
   it('switches to that panel when the server refuses initiate or verify', () => {

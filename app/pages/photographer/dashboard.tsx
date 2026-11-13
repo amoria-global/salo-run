@@ -9,6 +9,11 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import CompleteProfileModal from '../../components/CompleteProfileModal';
+import HostEntryTiles from '../../components/HostEntryTiles';
+import { useHostEntry } from '../../components/useHostEntry';
+import { usePermissions } from '@/app/lib/usePermissions';
+import { SELL_PHOTOS_QUERY, SELL_SUBTITLE } from '../../../lib/albums/sellPhotos';
+import { useWorkspace } from '../../providers/WorkspaceProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import {
   StatCard,
@@ -183,9 +188,14 @@ const HeroMiniStat: React.FC<{ label: string; value: string; color: string }> = 
 );
 
 const PhotographerDashboard = () => {
+  // In a workspace the photographer was invited to, the transaction history stays with the owner.
+  const { isShared } = useWorkspace();
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
+  // The same two entries the mobile Home has: Sell photos, and Go live with My hosted events (the server decides who can host).
+  const { hasPermission } = usePermissions();
+  const { canHost, caption: hostedCaption } = useHostEntry();
   const router = useRouter();
 
   // Redirect pending/rejected photographers to their profile page
@@ -220,6 +230,8 @@ const PhotographerDashboard = () => {
   // API data state
   const [analytics, setAnalytics] = useState<any>(null);
   const [balance, setBalance] = useState<any>(null);
+  // A failed analytics read shows Unavailable, never an invented 0.
+  const [analyticsFailed, setAnalyticsFailed] = useState(false);
   const [apiClients, setApiClients] = useState<Client[]>([]);
   const [recentActivities, setRecentActivities] = useState<{ label: string; value: string; valueColor?: string }[]>([]);
   const [recentPayments, setRecentPayments] = useState<{ name: string; type: string; amount: string; avatar?: string }[]>([]);
@@ -258,6 +270,9 @@ const PhotographerDashboard = () => {
         if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
           const data = await analyticsRes.value.json();
           if (data.action === 1 && data.data) setAnalytics(data.data);
+          setAnalyticsFailed(!(data.action === 1 && data.data));
+        } else {
+          setAnalyticsFailed(true);
         }
         if (balanceRes.status === 'fulfilled' && balanceRes.value.ok) {
           const data = await balanceRes.value.json();
@@ -903,7 +918,19 @@ const PhotographerDashboard = () => {
               }}>
                 {staticMessage}
               </p>
+              {canHost && !isShared ? <HostEntryTiles caption={hostedCaption} /> : null}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+              {hasPermission('events.create') && !isShared ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/user/photographer/events?${SELL_PHOTOS_QUERY}`)}
+                  title={SELL_SUBTITLE}
+                  className="ck-btn ck-btn-primary"
+                  data-testid="home-sell-photos"
+                >
+                  <i className="bi bi-tag-fill" aria-hidden="true" /> Sell photos
+                </button>
+              ) : null}
               <button
                 onClick={toggleComparisonMode}
                 title={isComparisonMode ? 'Exit comparison mode' : 'Set target goals and compare them against your real stats to track progress'}
@@ -1132,8 +1159,8 @@ const PhotographerDashboard = () => {
               position: 'relative',
               zIndex: 1,
             }}>
-              <HeroMiniStat label="Earnings" value={formatPrice(analytics?.totalEarnings || analytics?.earnings || 0)} color="#083A85" />
-              <HeroMiniStat label="Clients"  value={String(analytics?.totalClients || analytics?.clients || 0)} color="#F20C8F" />
+              <HeroMiniStat label="Earnings" value={analyticsFailed ? 'Unavailable' : formatPrice(analytics?.totalEarnings || analytics?.earnings || 0)} color="#083A85" />
+              <HeroMiniStat label="Clients"  value={analyticsFailed ? 'Unavailable' : String(analytics?.totalClients || analytics?.clients || 0)} color="#F20C8F" />
               <HeroMiniStat label="Accuracy" value={analytics?.accuracy ? `${analytics.accuracy}%` : '0%'} color="#10B981" />
               {balance?.heldForDelivery > 0 && (
                 <HeroMiniStat
@@ -1214,31 +1241,31 @@ const PhotographerDashboard = () => {
       <div className="stat-cards-grid">
         <StatCard
           title="Total Earnings"
-          value={formatPrice(analytics?.totalEarnings || 0)}
+          value={analyticsFailed ? 'Unavailable' : formatPrice(analytics?.totalEarnings || 0)}
           percentage={statTrends.totalEarnings.percentage}
           timeframe={periodLabel}
           icon={<MoneyIcon />}
           trend={statTrends.totalEarnings.trend}
-          href={`${basePath}/all-transactions`}
+          href={isShared ? `${basePath}/wallet` : `${basePath}/all-transactions`}
           accentColor="#083A85"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetEarnings}
         />
         <StatCard
           title="Pending"
-          value={formatPrice(analytics?.pendingPayments || 0)}
+          value={analyticsFailed ? 'Unavailable' : formatPrice(analytics?.pendingPayments || 0)}
           percentage={statTrends.pending.percentage}
           timeframe={periodLabel}
           icon={<ClockIcon />}
           trend={statTrends.pending.trend}
-          href={`${basePath}/all-transactions`}
+          href={isShared ? `${basePath}/wallet` : `${basePath}/all-transactions`}
           accentColor="#F59E0B"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetPending}
         />
         <StatCard
           title="Total clients"
-          value={String(analytics?.totalClients || 0)}
+          value={analyticsFailed ? 'Unavailable' : String(analytics?.totalClients || 0)}
           percentage={statTrends.clients.percentage}
           timeframe={periodLabel}
           icon={<UsersIcon />}
@@ -1255,7 +1282,7 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<GiftIcon />}
           trend={statTrends.bonuses.trend}
-          href={`${basePath}/all-transactions`}
+          href={isShared ? `${basePath}/wallet` : `${basePath}/all-transactions`}
           accentColor="#10B981"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetBonuses}
@@ -1267,7 +1294,7 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<StarIcon />}
           trend={statTrends.rating.trend}
-          href={`${basePath}/profile`}
+          href={isShared ? undefined : `${basePath}/profile`}
           accentColor="#8B5CF6"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetRatings}
@@ -1490,7 +1517,7 @@ const PhotographerDashboard = () => {
             </div>
           </section>
 
-          <section style={{
+          {!isShared && <section style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
@@ -1525,7 +1552,7 @@ const PhotographerDashboard = () => {
                 <PaymentItem key={index} {...payment} />
               ))}
             </div>
-          </section>
+          </section>}
         </div>
       </div>
 

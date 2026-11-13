@@ -12,7 +12,7 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
 import WithdrawModal from '../../components/WithdrawModal';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
+import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
 import { PaymentMethodPicker, type PaymentMethodSelection } from '../../components/payments/PaymentMethodPicker';
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
 import InternationalPhoneInput, { type PhoneValue } from '../../components/phone/InternationalPhoneInput';
@@ -332,6 +332,18 @@ Transaction Summary:
 // Payment Details Modal
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
 
+// The backend sends COMPLETED / PARTIAL / PENDING. Lowercasing them gave
+// 'completed' and 'partial', which never matched 'paid', so Paid was always 0.
+export const mapCoordinatorStatus = (apiStatus?: string): PaymentStatus => {
+  switch ((apiStatus || '').toUpperCase()) {
+    case 'COMPLETED': case 'PAID': return 'paid';
+    case 'PARTIAL': case 'PARTIALLY_PAID': return 'partially_paid';
+    case 'FAILED': return 'failed';
+    case 'REFUNDED': return 'refunded';
+    default: return 'pending';
+  }
+};
+
 interface Payment {
   id: number;
   declarationId?: string;
@@ -593,6 +605,17 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   const [paymentPhone, setPaymentPhone] = useState<PhoneValue | null>(null);
   const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
   const [xentriPayError, setXentriPayError] = useState<string>('');
+  // docs/PAYMENTS.md rule 2. 'declined' = the gateway said FAILED or the
+  // backend refused before charging, so Try Again is safe. 'unknown' = timeout
+  // or status-check error: the charge may have landed, so no retry is offered.
+  // Defaults to 'unknown' so a path that forgets to choose fails safe.
+  const [xentriPayFailure, setXentriPayFailure] = useState<'declined' | 'unknown'>('unknown');
+  const failPayment = (kind: 'declined' | 'unknown', message: string) => {
+    setXentriPayFailure(kind);
+    setXentriPayError(message);
+    setXentriPayStep('failed');
+    setIsProcessing(false);
+  };
   const stopPollingRef = React.useRef<(() => void) | null>(null);
 
   // Pre-fill the phone field from the saved profile phone: parse it with
@@ -696,9 +719,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
       const result = await initiateBookingPayment(payment.declarationId!, phone, telecom, methodType, redirectUrl, donationValue > 0 ? donationValue : undefined, currencyId, escrowPct, payCountry || undefined);
 
       if (!result.success || !result.data) {
-        setXentriPayError(result.error || 'Payment could not be initiated. Please check your payment details and try again.');
-        setXentriPayStep('failed');
-        setIsProcessing(false);
+        failPayment('declined', result.error || 'Payment could not be initiated. Please check your payment details and try again.');
         return;
       }
 
@@ -708,14 +729,14 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
 
       const stopPolling = pollPaymentStatus(result.data.refid, {
         onSuccess: () => { setXentriPayStep('success'); setIsProcessing(false); },
-        onFailure: () => { setXentriPayStep('failed'); setXentriPayError('Payment was not completed. If you were charged, the amount will be refunded automatically. Please try again.'); setIsProcessing(false); },
-        onError: (error) => { setXentriPayStep('failed'); setXentriPayError(sanitizeErrorMessage(error, 'Unable to check payment status. Please try again.')); setIsProcessing(false); },
-      });
+        onFailure: () => failPayment('declined', 'The provider reported this payment as failed. You were not charged.'),
+        onError: () => failPayment('unknown', 'We could not confirm this payment in time.'),
+      }, 2000, 150, selectedPaymentMethod === 'card' ? 180_000 : 0);
       stopPollingRef.current = stopPolling;
-    } catch (error) {
-      setXentriPayError(sanitizeErrorMessage(error instanceof Error ? error.message : '', 'Something went wrong while processing your payment. Please check your connection and try again.'));
-      setXentriPayStep('failed');
-      setIsProcessing(false);
+    } catch {
+      // The request may have reached the gateway before the connection
+      // dropped, so the buyer's phone may already have a prompt.
+      failPayment('unknown', 'The connection dropped while starting this payment.');
     }
   };
 
@@ -797,6 +818,30 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   }
 
   // XentriPay Failed View
+  if (xentriPayStep === 'failed' && xentriPayFailure === 'unknown') {
+    // The charge may have landed. No retry here: a second attempt opens a
+    // second live collection on the buyer's phone (docs/PAYMENTS.md rule 2).
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Payment Not Confirmed Yet" maxWidth="450px">
+        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span aria-hidden="true" style={{ color: 'white', fontSize: '1.75rem', fontWeight: 800 }}>?</span>
+          </div>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>We couldn&apos;t confirm this payment yet</h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+            {xentriPayError} If you approved it, the money may already have left your account, so please don&apos;t pay again yet.
+          </p>
+          <div style={{ textAlign: 'left', margin: '0 auto 1.5rem', maxWidth: '340px', padding: '0.75rem 1rem', borderRadius: '0.5rem', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.35)', color: colors.textPrimary, fontSize: '0.85rem', lineHeight: '1.6' }}>
+            1. Check your phone for the payment receipt SMS.<br />
+            2. Refresh this page in a few minutes. A confirmed payment shows as paid here.<br />
+            If neither happens, contact support before paying again.
+          </div>
+          <button onClick={() => { handleClose(); window.location.reload(); }} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close and check later</button>
+        </div>
+      </Modal>
+    );
+  }
+
   if (xentriPayStep === 'failed') {
     return (
       <Modal isOpen={isOpen} onClose={handleClose} title="Payment Failed" maxWidth="450px">
@@ -1795,6 +1840,7 @@ const PaymentsPage = () => {
     return () => { cancelled = true; };
   }, []);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+  const [paymentsError, setPaymentsError] = useState<string | null>(null);
   const [streamFeeEvents, setStreamFeeEvents] = useState<Array<{
     id: string;
     eventTitle: string;
@@ -1827,8 +1873,12 @@ const PaymentsPage = () => {
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments`);
-      if (response.ok) {
-        const result = await response.json();
+      const result = response.ok ? await response.json() : null;
+      // HTTP 200 with action 0 is a failure; say so instead of showing $0.
+      if (!result || result.action !== 1) {
+        setPaymentsError(result?.message || 'Could not load payments. Please refresh.');
+      } else {
+        setPaymentsError(null);
         const data = result?.data?.content || result?.data || [];
         if (data.length > 0) {
           const mapped: Payment[] = data.map((p: any, idx: number) => ({
@@ -1841,10 +1891,11 @@ const PaymentsPage = () => {
             photographerName: p.photographerName || '',
             photographerImage: p.photographerImage || undefined,
             method: p.method || p.paymentMethod || '-',
-            amount: p.amount ? `$${p.amount}` : '$0',
+            // amountNum is USD; the label used to put "$" on the booking-currency amount.
+            amount: `${Number(p.amountInUsd ?? p.amount ?? 0).toFixed(2)}`,
             amountNum: p.amountInUsd ?? p.amount ?? p.amountNum ?? 0,
             paidAmount: p.paidAmountInUsd ?? p.paidAmount ?? 0,
-            status: (p.status || 'pending').toLowerCase() as Payment['status'],
+            status: mapCoordinatorStatus(p.status),
             invoiceNumber: p.invoiceNumber || `INV-${p.id || idx + 1}`,
             escrowStatus: p.escrowStatus || 'NONE',
             escrowPercentage: p.escrowPercentage || null,
@@ -1857,6 +1908,7 @@ const PaymentsPage = () => {
       }
     } catch (err) {
       console.error('Failed to fetch payments:', err);
+      setPaymentsError('Could not load payments. Please refresh.');
     } finally {
       setIsLoadingPayments(false);
     }
@@ -1869,6 +1921,7 @@ const PaymentsPage = () => {
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments/streaming`);
       if (response.ok) {
         const result = await response.json();
+        if (result?.action !== 1) throw new Error(result?.message || 'stream payments failed');
         const data = result?.data?.content || result?.data || [];
         if (result?.totalStreamingRevenue !== undefined) {
           setTotalStreamingRevenue(result.totalStreamingRevenue);
@@ -1885,10 +1938,9 @@ const PaymentsPage = () => {
             method: p.paymentMethod || p.method || '-',
             status: (p.status || 'pending').toLowerCase(),
           }));
+          // No fallback total: a 0 wallet bucket is real, and summing these
+          // gross booking-currency rows as USD overstated revenue about 1,460x.
           setStreamFeeEvents(mapped);
-          if (!result?.totalStreamingRevenue) {
-            setTotalStreamingRevenue(mapped.filter((p: any) => p.status === 'completed').reduce((sum: number, p: any) => sum + p.amount, 0));
-          }
         }
       }
     } catch (err) {
@@ -1903,14 +1955,17 @@ const PaymentsPage = () => {
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments?type=GIFT&page=0&size=100`);
       if (response.ok) {
         const result = await response.json();
+        if (result?.action !== 1) throw new Error(result?.message || 'gift payments failed');
         const data = result?.data?.content || result?.data || [];
         if (Array.isArray(data) && data.length > 0) {
           const mapped = data.map((p: any) => ({
             id: p.id || '',
             eventTitle: p.eventTitle || 'Live Stream',
-            amount: p.amountInUsd || p.amount || 0,
-            netAmount: p.withdrawableAmount || p.netAmount || (p.amount ? p.amount * 0.65 : 0),
-            currency: p.currencyAbbreviation || p.currency || 'RWF',
+            // Both in USD so they match the label; the share comes from the
+            // backend split, never an assumed 65%.
+            amount: Number(p.amountInUsd ?? 0),
+            netAmount: Number(p.withdrawableAmountInUsd ?? 0),
+            currency: 'USD',
             giftMessage: p.giftMessage || null,
             customerPhone: p.senderName || p.viewerName || p.customerPhone || p.viewerEmail || '',
             method: p.paymentMethod || '-',
@@ -2190,6 +2245,12 @@ Amount: ${formatPrice(payment.amountNum)}
               Manage your payments and view transaction history
             </p>
           </header>
+
+          {paymentsError && (
+            <div role="alert" style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #FCA5A5', backgroundColor: actualTheme === 'dark' ? 'rgba(239,68,68,0.12)' : '#FEF2F2', color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C', fontSize: '0.875rem' }}>
+              {paymentsError} The totals below may be incomplete.
+            </div>
+          )}
 
           {/* Pending Payment Warning */}
           {totalPending > 0 && (

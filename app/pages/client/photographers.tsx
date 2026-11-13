@@ -485,7 +485,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           specializations: p.specializations || (p.specialties || []).map((s: any) => typeof s === 'string' ? s : s.name || ''),
           experience: p.experience || 0,
           location: p.location || (p.address ? { city: p.address, country: '' } : { city: '', country: '' }),
-          rating: p.rating || 5,
+          rating: Number(p.rating) || 0, // unrated shows as New, not an invented 5.0
           reviewCount: p.reviewCount || (p.reviews || []).length || 0,
           completedBookings: p.completedBookings || 0,
           verified: p.isVerified || p.profileReviewStatus === 'ACCEPTED' || false,
@@ -1625,7 +1625,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     {/* Rating */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: '0.7rem' }}>
                       {renderStars(photographer.rating)}
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: colors.textPrimary }}>{photographer.rating}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: colors.textPrimary }}>{photographer.rating ? photographer.rating.toFixed(1) : 'New'}</span>
                       <span style={{ fontSize: '0.78rem', color: colors.textSecondary }}>({photographer.reviewCount} review{photographer.reviewCount !== 1 ? 's' : ''})</span>
                     </div>
 
@@ -1832,7 +1832,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
                           {renderStars(photographer.rating)}
-                          <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{photographer.rating}</span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{photographer.rating ? photographer.rating.toFixed(1) : 'New'}</span>
                           <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>({photographer.reviewCount} reviews)</span>
                         </div>
                       </div>
@@ -2166,7 +2166,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             {/* General Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
               {[
-                { label: 'Rating', icon: 'bi-star-fill', value: String(selectedPhotographer.rating) },
+                { label: 'Rating', icon: 'bi-star-fill', value: selectedPhotographer.rating ? selectedPhotographer.rating.toFixed(1) : 'New' },
                 { label: 'Total Bookings', icon: 'bi-calendar-event-fill', value: String(selectedPhotographer.completedBookings) },
                 { label: 'Experience', icon: 'bi-award-fill', value: `${selectedPhotographer.experience} yrs` },
                 { label: 'Response', icon: 'bi-lightning-fill', value: String(selectedPhotographer.responseTime) },

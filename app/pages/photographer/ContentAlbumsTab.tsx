@@ -1,5 +1,7 @@
 'use client';
 
+import { usePaymentLimit, priceError } from '@/lib/paymentLimits';
+import MoneyInput from '../../components/MoneyInput';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { Can, usePermissions } from '@/app/lib/usePermissions';
@@ -27,6 +29,10 @@ import { useCurrency } from '@/app/context/CurrencyContext';
  * This component is the photographer-side scaffolding only. The admin
  * review page + knockout public browse page are separate scopes.
  */
+
+import {
+  CONTENT_PHOTOS_ERROR, CONTENT_SAVED_DRAFT, CONTENT_SUBMITTED, contentSubmitFailed, type ContentOutcome,
+} from '../../../lib/albums/sellPhotos';
 
 interface ContentImageDto { id: string; fileUrl: string; }
 interface ContentAlbumDto {
@@ -67,9 +73,11 @@ interface Props {
   currencies: CurrencyOption[];
   /** Default currency id (e.g. the photographer's last-picked one). */
   defaultCurrencyId?: string;
+  /** Bumped by the Sell photos chooser (Stock & content) to open the create form. */
+  openCreateSignal?: number;
 }
 
-export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Props) {
+export default function ContentAlbumsTab({ currencies, defaultCurrencyId, openCreateSignal = 0 }: Props) {
   const { formatPrice } = useCurrency();
   const { hasPermission } = usePermissions();
   const [albums, setAlbums] = useState<ContentAlbumDto[]>([]);
@@ -120,6 +128,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
     }
   };
   useEffect(() => { void refresh(); }, []);
+  useEffect(() => { if (openCreateSignal > 0) setShowCreate(true); }, [openCreateSignal]);
 
   const handleCopyShareLink = async (album: ContentAlbumDto) => {
     if (!album.shareSlug) return;
@@ -164,6 +173,8 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
   };
 
   const handleSubmitForApproval = async (id: string) => {
+    const target = albums.find(x => x.id === id);
+    if (target && (target.imageCount ?? 0) === 0) { alert(CONTENT_PHOTOS_ERROR); return; }
     if (!confirm('Submit this content album for admin approval? You won\'t be able to edit it while it\'s pending.')) return;
     setSubmittingId(id);
     try {
@@ -218,7 +229,8 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
           currencies={currencies}
           defaultCurrencyId={defaultCurrencyId}
           onClose={() => setShowCreate(false)}
-          onCreated={async () => { setShowCreate(false); await refresh(); }}
+          onCreated={async () => { await refresh(); }}
+          onView={(title) => { setShowCreate(false); setSearch(title); setStatusFilter('ALL'); }}
         />
       )}
 
@@ -459,14 +471,15 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId }: Prop
                         <Can permission="albums.publish">
                           <button type="button"
                             onClick={() => handleSubmitForApproval(a.id)}
-                            disabled={submittingId === a.id}
+                            disabled={submittingId === a.id || (a.imageCount ?? 0) === 0}
+                            title={(a.imageCount ?? 0) === 0 ? CONTENT_PHOTOS_ERROR : undefined}
                             style={{
                               ...cardActionBtn,
                               background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
                             }}
                           >
                             <i className="bi bi-cloud-arrow-up-fill" style={{ fontSize: 11 }} />
-                            {submittingId === a.id ? 'Submitting…' : 'Submit'}
+                            {submittingId === a.id ? 'Submitting…' : (a.imageCount ?? 0) === 0 ? CONTENT_PHOTOS_ERROR : 'Submit'}
                           </button>
                         </Can>
                       )}
@@ -563,19 +576,24 @@ function StatusBadge({ status, published }: { status?: string; published?: boole
 }
 
 function CreateContentAlbumModal({
-  categories, currencies, defaultCurrencyId, onClose, onCreated,
+  categories, currencies, defaultCurrencyId, onClose, onCreated, onView,
 }: {
   categories: CategoryOption[];
   currencies: CurrencyOption[];
   defaultCurrencyId?: string;
   onClose: () => void;
   onCreated: () => Promise<void>;
+  onView: (title: string) => void;
 }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [pricePerImage, setPricePerImage] = useState('');
   const [currencyId, setCurrencyId] = useState(defaultCurrencyId || '');
+  // The minimum is per currency and comes from the backend, so USD 4 is judged as USD, never as "below 100".
+  const currencyCode = currencies.find(c => (c.id || c.code) === currencyId)?.code;
+  const priceLimit = usePaymentLimit(currencyCode);
+  const priceMsg = priceError(pricePerImage, priceLimit);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [images, setImages] = useState<File[]>([]);
@@ -584,6 +602,9 @@ function CreateContentAlbumModal({
   const [coverDragOver, setCoverDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photosError, setPhotosError] = useState<string | null>(null);
+  const [how, setHow] = useState<'submit' | 'draft'>('submit');
+  const [result, setResult] = useState<{ id: string; title: string; outcome: ContentOutcome } | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const photosInputRef = useRef<HTMLInputElement | null>(null);
   const apiUrl = useMemo(() => getApiUrl(), []);
@@ -609,21 +630,47 @@ function CreateContentAlbumModal({
     const next = onlyImages(files);
     if (next.length === 0) return;
     setImages(prev => [...prev, ...next]);
+    setPhotosError(null);
   };
   const removePhoto = (idx: number) => {
     setImages(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const postJson = async (url: string, init?: RequestInit) => {
+    const res = await dashboardAuthFetch(url, init);
+    const j = await res.json().catch(() => ({} as Record<string, unknown>));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = j;
+    if (!res.ok || data?.action === 0) throw new Error(data?.message || `HTTP ${res.status}`);
+    return data;
+  };
+
+  const submitForReview = async (id: string, name: string) => {
+    setBusy(true);
+    try {
+      await postJson(`${apiUrl}/api/remote/photographer/albums/content/${id}/submit`, { method: 'POST' });
+      setResult({ id, title: name, outcome: CONTENT_SUBMITTED });
+    } catch (e) {
+      setResult({ id, title: name, outcome: contentSubmitFailed(e instanceof Error ? e.message : 'Could not submit it for review. Try again.') });
+    } finally {
+      setBusy(false);
+      await onCreated();
+    }
+  };
+
+  // "Submit for review" is create + submit; "Save as draft" is create only. Both need at least one photo.
+  const run = async (mode: 'submit' | 'draft') => {
     setError(null);
+    setPhotosError(null);
     if (!title.trim()) { setError('Title is required'); return; }
     if (!category) { setError('Pick a category'); return; }
-    if (!pricePerImage || Number(pricePerImage) < 100) { setError('Price per image must be at least 100'); return; }
+    if (!pricePerImage || priceMsg) { setError(priceMsg ?? 'Enter a price per image'); return; }
     if (!currencyId) { setError('Pick a currency'); return; }
-    if (images.length === 0) { setError('Upload at least one photo'); return; }
+    if (images.length === 0) { setPhotosError(CONTENT_PHOTOS_ERROR); return; }
 
+    setHow(mode);
     setBusy(true);
+    let id = '';
     try {
       const fd = new FormData();
       fd.append('title', title.trim());
@@ -633,23 +680,47 @@ function CreateContentAlbumModal({
       fd.append('currencyId', currencyId);
       if (coverImage) fd.append('coverImage', coverImage);
       for (const f of images) fd.append('images', f);
-
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/content`, {
-        method: 'POST', body: fd,
-      });
-      const j = await res.json().catch(() => ({} as Record<string, unknown>));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data: any = j;
-      if (!res.ok || data?.action === 0) {
-        throw new Error(data?.message || `HTTP ${res.status}`);
-      }
-      await onCreated();
+      const data = await postJson(`${apiUrl}/api/remote/photographer/albums/content`, { method: 'POST', body: fd });
+      id = String(data?.data?.id ?? '');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Create failed');
-    } finally {
       setBusy(false);
+      return;
     }
+    setBusy(false);
+    if (mode === 'draft') {
+      setResult({ id, title: title.trim(), outcome: CONTENT_SAVED_DRAFT });
+      await onCreated();
+      return;
+    }
+    await submitForReview(id, title.trim());
   };
+
+  const submit = (e: React.FormEvent) => { e.preventDefault(); void run('submit'); };
+
+  if (result) {
+    const o = result.outcome;
+    const tone = o.state === 'submitted' ? '#059669' : o.state === 'draft-submit-failed' ? '#d97706' : '#083A85';
+    return (
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+        <div onClick={e => e.stopPropagation()} role="dialog" aria-live="polite" data-testid="content-outcome"
+          style={{ background: '#fff', borderRadius: 12, width: '100%', maxWidth: 460, padding: 28, textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
+          <div style={{ width: 60, height: 60, borderRadius: '50%', background: tone, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+            <i className={`bi ${o.state === 'submitted' ? 'bi-check-lg' : o.state === 'draft-submit-failed' ? 'bi-exclamation-lg' : 'bi-file-earmark-text'}`} aria-hidden="true" />
+          </div>
+          <h3 style={{ margin: '14px 0 2px', fontSize: 20, fontWeight: 800 }}>{o.headline}</h3>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: '#6b7280' }}>{result.title}</p>
+          <div style={{ border: `1px solid ${tone}`, borderRadius: 10, padding: 12, fontSize: 13.5, color: '#111', textAlign: 'left' }} data-testid="content-status">{o.status}</div>
+          <div style={{ display: 'grid', gap: 8, marginTop: 18 }}>
+            {o.state === 'submitted' ? null : (
+              <button type="button" style={btnPrimary} disabled={busy} onClick={() => void submitForReview(result.id, result.title)}>{busy ? 'Submitting…' : 'Submit for review'}</button>
+            )}
+            <button type="button" style={o.state === 'submitted' ? btnPrimary : btnSecondary} disabled={busy} onClick={() => onView(result.title)}>View album</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div onClick={onClose} style={{
@@ -663,8 +734,8 @@ function CreateContentAlbumModal({
       }}>
         <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>New content album</h3>
         <p style={{ margin: '0 0 16px', fontSize: 12.5, color: '#6b7280' }}>
-          Saved as a draft. Hit <strong>Submit for approval</strong> when you&apos;re ready
-          and we&apos;ll review it before it goes live on Connekyt&apos;s public browse.
+          Submit it for review now, or save it as a draft and submit later. Nothing is visible to
+          buyers until we&apos;ve approved it for Connekyt&apos;s public browse.
         </p>
         {error && (
           <div style={{ padding: 10, borderRadius: 6, background: '#fef2f2', color: '#991b1b', fontSize: 13, marginBottom: 12 }}>{error}</div>
@@ -684,21 +755,16 @@ function CreateContentAlbumModal({
               ))}
             </select>
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <label style={lbl}>Price per image
-              <input type="number" min={100} step="1" value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} placeholder="e.g. 500" required />
-            </label>
-            <label style={lbl}>Currency
-              <select value={currencyId} onChange={e => setCurrencyId(e.target.value)} style={inp} required>
-                <option value="">- Pick -</option>
-                {currencies.map(c => (
-                  <option key={c.id || c.code} value={c.id || c.code}>
-                    {c.code}{c.name ? ` - ${c.name}` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <MoneyInput
+            label="Price per image"
+            required
+            value={pricePerImage}
+            onChange={setPricePerImage}
+            currencyId={currencyId}
+            onCurrencyChange={setCurrencyId}
+            currencies={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))}
+            placeholder="e.g. 500"
+          />
 
           {/* Cover image - drag-drop zone with preview */}
           <div style={{ marginTop: 14 }}>
@@ -775,6 +841,8 @@ function CreateContentAlbumModal({
               />
             </div>
 
+            {photosError && <div id="content-photos-error" role="alert" style={{ marginTop: 6, fontSize: 12.5, fontWeight: 600, color: '#b91c1c' }}>{photosError}</div>}
+
             {previews.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(82px, 1fr))', gap: 8, marginTop: 10 }}>
                 {previews.map((p, i) => (
@@ -792,8 +860,8 @@ function CreateContentAlbumModal({
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
-            <button type="button" onClick={onClose} style={btnSecondary} disabled={busy}>Cancel</button>
-            <button type="submit" style={btnPrimary} disabled={busy}>{busy ? 'Creating…' : 'Create draft'}</button>
+            <button type="button" onClick={() => void run('draft')} style={btnSecondary} disabled={busy} data-testid="content-draft">{busy && how === 'draft' ? 'Saving…' : 'Save as draft'}</button>
+            <button type="submit" style={btnPrimary} disabled={busy} data-testid="content-submit">{busy && how === 'submit' ? 'Submitting…' : 'Submit for review'}</button>
           </div>
         </form>
       </div>
@@ -896,6 +964,9 @@ function EditContentAlbumModal({
     const match = currencies.find(c => c.code === code);
     return match ? (match.id || match.code) : '';
   });
+  const currencyCode = currencies.find(c => (c.id || c.code) === currencyId)?.code;
+  const priceLimit = usePaymentLimit(currencyCode);
+  const priceMsg = priceError(pricePerImage, priceLimit);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<ContentImageDto[]>(album.images || []);
@@ -959,7 +1030,7 @@ function EditContentAlbumModal({
     e.preventDefault();
     setError(null);
     if (!title.trim()) { setError('Title is required'); return; }
-    if (!pricePerImage || Number(pricePerImage) < 100) { setError('Price per image must be at least 100'); return; }
+    if (!pricePerImage || priceMsg) { setError(priceMsg ?? 'Enter a price per image'); return; }
     if (!currencyId) { setError('Pick a currency'); return; }
     const totalAfter = existingImages.length + newImages.length;
     if (totalAfter === 0) { setError('Album must have at least one photo'); return; }
@@ -1058,21 +1129,16 @@ function EditContentAlbumModal({
           <label style={lbl}>Description (optional)
             <textarea value={description} onChange={e => setDescription(e.target.value)} style={{ ...inp, minHeight: 70, resize: 'vertical' }} />
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <label style={lbl}>Price per image
-              <input type="number" min={100} step="1" value={pricePerImage} onChange={e => setPricePerImage(e.target.value)} style={inp} required />
-            </label>
-            <label style={lbl}>Currency
-              <select value={currencyId} onChange={e => setCurrencyId(e.target.value)} style={inp} required>
-                <option value="">- Pick -</option>
-                {currencies.map(c => (
-                  <option key={c.id || c.code} value={c.id || c.code}>
-                    {c.code}{c.name ? ` - ${c.name}` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <MoneyInput
+            label="Price per image"
+            required
+            value={pricePerImage}
+            onChange={setPricePerImage}
+            currencyId={currencyId}
+            onCurrencyChange={setCurrencyId}
+            currencies={currencies.map(c => ({ value: c.id || c.code, code: c.code, name: c.name }))}
+            placeholder="e.g. 500"
+          />
 
           {/* Cover image */}
           <div style={{ marginTop: 14 }}>

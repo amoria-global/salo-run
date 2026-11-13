@@ -2,17 +2,16 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
-export type CurrencyCode = "USD" | "RWF" | "EUR" | "KES" | "UGX" | "TZS";
+import {
+  type CurrencyCode,
+  type CurrencyInfo,
+  formatMoney,
+  initialCurrencies,
+  isRateLive as ratesIsLive,
+  mergeLiveRates,
+} from "@/lib/currencyRates";
 
-interface CurrencyInfo {
-  code: CurrencyCode;
-  name: string;
-  symbol: string;
-  flag: string;
-  rate: number;
-  decimals: number;
-  id?: string;
-}
+export type { CurrencyCode, CurrencyInfo };
 
 interface CurrencyContextType {
   currency: CurrencyCode;
@@ -29,6 +28,10 @@ interface CurrencyContextType {
    */
   formatPrice: (amount: number, fromCurrency?: string) => string;
   currencies: CurrencyInfo[];
+  /** True when the backend supplied a usable rate for this currency. USD is always live. */
+  isRateLive: (code: string) => boolean;
+  /** True when the selected display currency cannot be converted to, so amounts show in their own currency. */
+  displayRateUnavailable: boolean;
   currencyId: string | undefined;
 }
 
@@ -40,15 +43,9 @@ const DECIMALS_MAP: Record<string, number> = {
   USD: 2, EUR: 2, RWF: 0, KES: 0, UGX: 0, TZS: 0,
 };
 
-// Fallback rates used when API is unavailable
-const DEFAULT_CURRENCIES: CurrencyInfo[] = [
-  { code: "USD", name: "US Dollar", symbol: "$", flag: "us", rate: 1, decimals: 2 },
-  { code: "RWF", name: "Rwandan Franc", symbol: "RF", flag: "rw", rate: 1460, decimals: 0 },
-  { code: "EUR", name: "Euro", symbol: "\u20ac", flag: "eu", rate: 0.84, decimals: 2 },
-  { code: "KES", name: "Kenyan Shilling", symbol: "KSh", flag: "ke", rate: 132.73, decimals: 0 },
-  { code: "UGX", name: "Ugandan Shilling", symbol: "USh", flag: "ug", rate: 3561, decimals: 0 },
-  { code: "TZS", name: "Tanzanian Shilling", symbol: "TSh", flag: "tz", rate: 2607, decimals: 0 },
-];
+// Names and precision only. There is no fallback RATE for any currency but USD:
+// until the backend supplies one, amounts show in the currency they are in.
+const DEFAULT_CURRENCIES: CurrencyInfo[] = initialCurrencies();
 
 import { getApiUrl } from '@/lib/api';
 import { useDashboardAuth, dashboardAuthFetch } from '../providers/AuthProvider';
@@ -95,26 +92,14 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
         if (ratesRes.ok) {
           const result = await ratesRes.json();
-          const ratesData = result?.data;
-          if (ratesData && typeof ratesData === "object") {
-            updatedCurrencies = updatedCurrencies.map((c) => {
-              const apiRate = ratesData[c.code];
-              if (apiRate && apiRate.rateToUsd != null) {
-                return {
-                  ...c,
-                  rate: parseFloat(apiRate.rateToUsd),
-                  symbol: apiRate.symbol || c.symbol,
-                  name: apiRate.name || c.name,
-                };
-              }
-              return c;
-            });
+          if (result?.action === 1) {
+            updatedCurrencies = mergeLiveRates(updatedCurrencies, result?.data);
           }
         }
 
         setCurrencies(updatedCurrencies);
       } catch {
-        // Silently fall back to default rates when API is unavailable
+        // Rates stay not live: amounts show in their own currency, nothing is converted by guess.
       }
     };
     fetchRates();
@@ -163,36 +148,18 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, saveToAccount]);
 
   const formatPrice = useCallback(
-    (amount: number, fromCurrency?: string) => {
-      let amountInUSD = amount;
-      if (fromCurrency && fromCurrency !== "USD") {
-        const fromInfo = currencies.find((c) => c.code === fromCurrency);
-        if (fromInfo && fromInfo.rate) {
-          amountInUSD = amount / fromInfo.rate;
-        } else {
-          // No rate for this currency: show it as it is rather than relabel it as the selected one.
-          return `${fromCurrency} ${amount.toLocaleString("en-US")}`;
-        }
-      }
-      const info = currencies.find((c) => c.code === currency)!;
-      const converted = amountInUSD * info.rate;
-      const formatted = converted.toLocaleString("en-US", {
-        minimumFractionDigits: info.decimals,
-        maximumFractionDigits: info.decimals,
-      });
-
-      if (info.code === "USD") return `$${formatted}`;
-      if (info.code === "EUR") return `\u20ac${formatted}`;
-      return `${info.symbol} ${formatted}`;
-    },
+    (amount: number, fromCurrency?: string) => formatMoney(amount, fromCurrency, currency, currencies),
     [currency, currencies]
   );
+
+  const isRateLive = useCallback((code: string) => ratesIsLive(currencies, code), [currencies]);
+  const displayRateUnavailable = !ratesIsLive(currencies, currency);
 
   const currencyId = currencies.find((c) => c.code === currency)?.id;
 
   return (
     <CurrencyContext.Provider
-      value={{ currency, setCurrency, formatPrice, currencies, currencyId }}
+      value={{ currency, setCurrency, formatPrice, currencies, currencyId, isRateLive, displayRateUnavailable }}
     >
       {children}
     </CurrencyContext.Provider>

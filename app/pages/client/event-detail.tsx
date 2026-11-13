@@ -18,6 +18,7 @@ import type { Payment } from '@/app/components/UnlockModal';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import CandidatesShortlistModal from '@/app/components/hybrid/CandidatesShortlistModal';
 import { convertToHybrid } from '@/app/lib/hybridBooking';
+import { friendlyEventStatus, isOpenHybrid } from '@/app/lib/hybridStatus';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,8 @@ interface EventData {
   eventType: string;
   category: string;
   status: string;
+  /** The owner has published the event, which is what makes its link open for guests. */
+  isPublished: boolean;
   date: string;
   time: string;
   endTime: string;
@@ -142,6 +145,7 @@ interface EventData {
   hasLiveStream: boolean;
   bookingProgress: ProgressStage[];
   eventStatus?: string | null;
+  bookingMode?: string | null;
   eventDate?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -220,10 +224,14 @@ function getStatusColor(status: string): string {
     case 'LIVE':
       return '#3B82F6';
     case 'MATCHES_AWAITING_SELECTION':
+    case 'CANDIDATES_AVAILABLE':
       return '#7C3AED';
     case 'HYBRID_MATCHING':
+    case 'MATCHING':
+    case 'PUBLISHED_PENDING_ASSIGNMENT':
       return '#0284C7';
     case 'HYBRID_TIMEOUT':
+    case 'MATCHING_FAILED':
       return '#D97706';
     case 'PENDING':
     case 'PARTIAL':
@@ -256,7 +264,8 @@ function getStatusLabel(status: string): string {
     case 'AWAITING_REVIEW': return 'Awaiting Review';
     case 'CANCELLED': return 'Cancelled';
     case 'FAILED': return 'Failed';
-    default: return status || 'Unknown';
+    // Post My Event states read as words, never as the raw enum.
+    default: return status ? friendlyEventStatus(status) : 'Unknown';
   }
 }
 
@@ -305,6 +314,12 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [showCandidatesModal, setShowCandidatesModal] = useState(false);
+  // Notifications about answers link here with ?candidates=1.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('candidates') === '1') {
+      setShowCandidatesModal(true);
+    }
+  }, []);
   const [selectedPayNowPayment, setSelectedPayNowPayment] = useState<Payment | null>(null);
 
   const convertToPayNowPayment = (p: PaymentData): Payment => ({
@@ -364,6 +379,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         category: data.category || '',
         status: data.eventStatus || data.status || 'UPCOMING',
         eventStatus: data.eventStatus || data.status || null,
+        bookingMode: data.bookingMode || null,
         eventDate: data.eventDate || data.date || '',
         latitude: typeof data.latitude === 'number' ? data.latitude : null,
         longitude: typeof data.longitude === 'number' ? data.longitude : null,
@@ -390,6 +406,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         completionStatus: data.completionStatus || data.eventCompletionStatus || null,
         createdAt: data.createdAt || '',
         eventVisibility: data.eventVisibility || data.visibility || 'PUBLIC',
+        isPublished: data.isPublished === true,
         hasLiveStream: Boolean(data.hasLiveStream),
         bookingProgress: Array.isArray(data.bookingProgress) ? data.bookingProgress : [],
       };
@@ -430,6 +447,18 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
             }));
 
           setPayments(eventPayments);
+          if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pay') === '1') {
+            const pendingPayment = eventPayments.find(
+              (p) => (p.status || '').toUpperCase() === 'PENDING' || (p.status || '').toUpperCase() === 'PARTIAL'
+            );
+            if (pendingPayment) {
+              setSelectedPayNowPayment(convertToPayNowPayment(pendingPayment));
+              setShowPayNowModal(true);
+              const url = new URL(window.location.href);
+              url.searchParams.delete('pay');
+              window.history.replaceState({}, '', url.toString());
+            }
+          }
         }
       } catch {
         // Payments fetch failure is non-critical
@@ -1195,7 +1224,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                         <i className="bi bi-broadcast-pin" style={{ fontSize: 13 }} /> Live Stream
                       </button>
                     )}
-                    <button
+                    {/* Shared links only open for a published event, so the button follows the QR button. */}
+                    {event.isPublished && <button
                       onClick={handleShareEvent}
                       style={{
                         padding: '0.5rem 1rem', display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -1205,7 +1235,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                       }}
                     >
                       <i className="bi bi-share-fill" style={{ fontSize: 13 }} /> Share
-                    </button>
+                    </button>}
                     {event.status.toUpperCase() === 'PUBLISHED' && (
                       <button
                         onClick={() => { setQrJustPublished(false); setQrOpen(true); }}
@@ -1339,7 +1369,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   )}
                 </div>
               </div>
-            ) : (event.eventStatus === 'HYBRID_TIMEOUT' || event.status === 'HYBRID_TIMEOUT') ? (
+            ) : (['HYBRID_TIMEOUT', 'MATCHING_FAILED'].includes(String(event.eventStatus || event.status))) ? (
               <div>
                 <div style={{
                   padding: '1.25rem',
@@ -1349,16 +1379,16 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                     <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Matching Window Concluded (0 Accepted)
+                      Matching ended: no photographer said yes
                     </span>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
                   </div>
                   <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0 0 14px', lineHeight: 1.5 }}>
-                    The 24-hour matching window has concluded without an accepted photographer. You can instantly switch to Direct Booking to browse and select available creators nearby on our interactive radar map.
+                    Post My Event didn't find a photographer this time. Post it again (it uses the same requirements), or switch to Find a Photographer and choose one yourself.
                   </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <Link
-                      href={`/photographers?lat=${event.latitude ?? -1.9536}&lng=${event.longitude ?? 30.0606}&eventDate=${encodeURIComponent(event.eventDate || event.date || '')}`}
+                      href={`${userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client'}/photographers?lat=${event.latitude ?? -1.9536}&lng=${event.longitude ?? 30.0606}&eventDate=${encodeURIComponent(event.eventDate || event.date || '')}`}
                       style={{
                         padding: '0.6rem 1.1rem',
                         borderRadius: '9px',
@@ -1373,7 +1403,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                         boxShadow: '0 4px 10px rgba(8,58,133,0.20)',
                       }}
                     >
-                      <i className="bi bi-geo-alt-fill" /> Browse Nearby Photographers
+                      <i className="bi bi-search" /> Find a Photographer
                     </Link>
                     <button
                       type="button"
@@ -1381,8 +1411,12 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                       onClick={async () => {
                         setActionLoading('retry-hybrid');
                         try {
-                          await convertToHybrid(eventId);
-                          platformAlert('Matching reactivated! Your brief has been broadcast to local creators.', { tone: 'success' });
+                          const posted = await convertToHybrid(eventId);
+                          if (posted.invitedCount) {
+                            platformAlert(`Posted again. ${posted.invitedCount} photographer${posted.invitedCount === 1 ? ' was' : 's were'} alerted.`, { tone: 'success' });
+                          } else {
+                            platformAlert('Posted again, but nobody fits right now. Find a Photographer to book one yourself.', { tone: 'warning' });
+                          }
                           fetchEvent();
                         } catch (err: any) {
                           platformAlert(err?.message || 'Could not retry matching', { tone: 'danger' });
@@ -1407,7 +1441,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                       {actionLoading === 'retry-hybrid' ? (
                         <><i className="bi bi-arrow-clockwise" style={{ animation: 'spin 0.9s linear infinite' }} /> Reactivating...</>
                       ) : (
-                        <><i className="bi bi-arrow-repeat" /> Retry Matching</>
+                        <><i className="bi bi-broadcast" /> Post again</>
                       )}
                     </button>
                   </div>
@@ -1431,7 +1465,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                   </div>
                   <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 4px' }}>
-                    Matching Complete — Select Your Creator 🎯
+                    Matching complete. Choose your photographer
                   </h4>
                   <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '0 0 14px', lineHeight: 1.5 }}>
                     Verified local creators have accepted your event brief. Compare their match tiers, reviews, ratings, and proposed rates to confirm your photographer and lock your date.
@@ -1458,7 +1492,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : isOpenHybrid(event.bookingMode, event.eventStatus || event.status, event.photographerId) ? (
               <div>
                 <div style={{ color: colors.textSecondary, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
                   No photographer assigned yet
@@ -1499,6 +1533,31 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                     <i className="bi bi-people-fill" /> View Candidates & Select
                   </button>
                 </div>
+              </div>
+            ) : (
+              // A Direct event with no photographer: nothing is being matched, so say so plainly.
+              <div>
+                <div style={{ color: colors.textSecondary, fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                  No photographer assigned yet
+                </div>
+                <Link
+                  href={`${userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client'}/photographers?lat=${event.latitude ?? -1.9536}&lng=${event.longitude ?? 30.0606}&eventDate=${encodeURIComponent(event.eventDate || event.date || '')}`}
+                  style={{
+                    padding: '0.55rem 1rem',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #083A85 0%, #1D4ED8 100%)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 10px rgba(8,58,133,0.20)',
+                  }}
+                >
+                  <i className="bi bi-search" /> Find a Photographer
+                </Link>
               </div>
             )}
           </div>
@@ -2492,8 +2551,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
         eventId={eventId}
         eventTitle={event?.title || 'Your Event'}
         eventStatus={event?.eventStatus || event?.status || undefined}
-        latitude={event?.latitude}
-        longitude={event?.longitude}
+        latitude={event?.latitude ?? undefined}
+        longitude={event?.longitude ?? undefined}
         eventDate={event?.eventDate || event?.date}
         onPhotographerSelected={(_photographerId, result, candidate) => {
           setShowCandidatesModal(false);
