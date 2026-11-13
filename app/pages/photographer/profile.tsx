@@ -2,6 +2,7 @@
 
 import MoneyInput from '../../components/MoneyInput';
 import { MatchingProfileCard } from '../../components/hybrid/MatchingProfile';
+import ServiceAreaPanel from '../../components/ServiceAreaPanel';
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import GeoPricingManager from '@/app/components/GeoPricingManager';
@@ -3643,6 +3644,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   <div>
                     {/* Instagram and base city for Post My Event matching. Saved on its own. */}
                     <div style={{ marginBottom: '2rem' }}><MatchingProfileCard /></div>
+                    {/* Where the photographer appears on the map: an area or neighbourhood, never an address. */}
+                    <div style={{ marginBottom: '2rem' }}><ServiceAreaPanel /></div>
                     {/* Basic Information */}
                     <div style={sectionTitleStyle}>
                       <span>Basic Information</span>
