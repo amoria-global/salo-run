@@ -163,6 +163,7 @@ export function OptionCard({
   return (
     <button
       type="button"
+      data-ck-shape="card"
       role="radio"
       aria-checked={selected}
       onClick={onClick}
@@ -244,6 +245,7 @@ export function HybridStyles() {
     <style>{`
       .hy-focus:focus-visible { outline: 3px solid #F20C8F; outline-offset: 2px; }
       .hy-input:focus { border-color: #083A85 !important; box-shadow: 0 0 0 3px rgba(8,58,133,0.15); }
+      .ck-keep-radius button[data-ck-shape="card"] { border-radius: 16px !important; }
       @keyframes hy-pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
       @keyframes hy-spin { to { transform: rotate(360deg) } }
     `}</style>

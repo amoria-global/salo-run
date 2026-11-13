@@ -398,8 +398,8 @@ body { background: var(--background); color: var(--foreground); }
    option cards, tiles) opt out with data-ck-shape="card" and keep their own
    radius. Without the opt-out they render as ovals.
    ============================================================ */
-button:not([data-ck-shape="card"]),
-.btn:not([data-ck-shape="card"]),
-.ck-btn:not([data-ck-shape="card"]) {
+button:not([data-ck-shape="card"]):not(.ck-keep-radius *),
+.btn:not([data-ck-shape="card"]):not(.ck-keep-radius *),
+.ck-btn:not([data-ck-shape="card"]):not(.ck-keep-radius *) {
   border-radius: 9999px !important;
 }

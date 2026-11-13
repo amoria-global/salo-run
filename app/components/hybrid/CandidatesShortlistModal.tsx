@@ -315,6 +315,7 @@ export default function CandidatesShortlistModal({
     return (
       <button
         type="button"
+        data-ck-shape="card"
         onClick={() => setDetail(c)}
         className="hy-focus"
         style={{
@@ -598,6 +599,7 @@ export default function CandidatesShortlistModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="hy-cands-title"
+      className="ck-keep-radius"
       style={{
         position: 'fixed',
         inset: 0,
@@ -881,6 +883,7 @@ export default function CandidatesShortlistModal({
                 <button
                   key={String(pk.id)}
                   type="button"
+                  data-ck-shape="card"
                   onClick={() => {
                     const cand = packagesFor;
                     setPackagesFor(null);
@@ -1007,6 +1010,7 @@ export default function CandidatesShortlistModal({
                     <button
                       key={pk.id}
                       type="button"
+                      data-ck-shape="card"
                       onClick={() => setSelectedPackageChoice(pk.id)}
                       style={{
                         display: 'flex',

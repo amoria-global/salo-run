@@ -30,6 +30,7 @@ export default function BookingModeSelectorModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="hy-mode-title"
+      className="ck-keep-radius"
       style={{
         position: 'fixed',
         inset: 0,
@@ -89,6 +90,7 @@ export default function BookingModeSelectorModal({
           {/* Option 1: Browse Photographers (Direct) */}
           <button
             type="button"
+            data-ck-shape="card"
             onClick={onSelectDirect}
             className="hy-focus"
             style={{
@@ -176,6 +178,7 @@ export default function BookingModeSelectorModal({
           {/* Option 2: Create Your Event Offer (Post My Event) */}
           <button
             type="button"
+            data-ck-shape="card"
             onClick={onSelectHybrid}
             className="hy-focus"
             style={{
