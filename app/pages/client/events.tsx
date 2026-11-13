@@ -221,7 +221,7 @@ const QRCodeIcon = () => (
 // Types
 type EventCategory = string;
 
-type EventStatus = 'UPCOMING' | 'LIVE' | 'PUBLISHED' | 'PAUSED' | 'upcoming' | 'ongoing' | 'completed' | 'published' | 'paused';
+type EventStatus = 'UPCOMING' | 'LIVE' | 'PUBLISHED' | 'PAUSED' | 'OPEN_FOR_INTEREST' | 'upcoming' | 'ongoing' | 'completed' | 'published' | 'paused';
 
 interface Event {
   id: string;
@@ -762,7 +762,7 @@ const MyEventsPage = () => {
     }
     const candidatesEventId = params.get('candidates');
     if (candidatesEventId && isValidUUID(candidatesEventId)) {
-      setCandidateModalEvent({ id: candidatesEventId, title: 'Your Event Offer', status: 'OPEN_FOR_INTEREST' } as Event);
+      setCandidateModalEvent({ id: candidatesEventId, title: 'Your Event Offer', status: 'OPEN_FOR_INTEREST' } as unknown as Event);
       url.searchParams.delete('candidates');
       changed = true;
     }
@@ -954,13 +954,11 @@ const MyEventsPage = () => {
     } finally {
       setIsLoadingEvents(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchMyEvents();
-    }
-  }, [user, fetchMyEvents]);
+    fetchMyEvents();
+  }, [user?.id, fetchMyEvents]);
 
   // Deep-link from album-detail's "Request changes" CTA:
   //   /user/client/events?requestChanges=<eventId>
@@ -4477,7 +4475,7 @@ const MyEventsPage = () => {
           setHybridWizardEvent(null);
           fetchMyEvents();
           if (invited) {
-            setCandidateModalEvent({ id: eventId } as Event);
+            setCandidateModalEvent({ id: eventId } as unknown as Event);
           }
         }}
       />

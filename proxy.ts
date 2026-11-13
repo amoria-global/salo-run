@@ -153,8 +153,11 @@ export function proxy(request: NextRequest) {
   const rawRole = (request.cookies.get('userRole')?.value || '').toLowerCase().replace(/_/g, '-');
   const roleAliases: Record<string, string> = {
     'customer': 'client',
+    'user': 'client',
     'ec': 'event-coordinator',
     'coordinator': 'event-coordinator',
+    'eventcoordinator': 'event-coordinator',
+    'videographer': 'photographer',
   };
   const userRole = (roleAliases[rawRole] || rawRole) || undefined;
 
