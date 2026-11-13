@@ -215,10 +215,18 @@ export default function HybridEventWizardModal({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<{ eventId: string; invited: number; status: string } | null>(null);
   const createdEventIdRef = useRef<string | null>(null);
+  const bodyScrollRef = useRef<HTMLDivElement | null>(null);
 
   const updateDraft = useCallback((patch: Partial<HybridOfferDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
   }, []);
+
+  // Reset scroll position to the top whenever the user moves between slides/steps
+  useEffect(() => {
+    if (bodyScrollRef.current) {
+      bodyScrollRef.current.scrollTop = 0;
+    }
+  }, [step]);
 
   // Load options
   useEffect(() => {
@@ -749,6 +757,7 @@ export default function HybridEventWizardModal({
         {/* Indoor session */}
         <button
           type="button"
+          data-ck-shape="card"
           onClick={() => {
             const firstPreset =
               draft.clientType === 'ORGANIZATION' ? 'Corporate Headshots' : 'Studio Portrait';
@@ -821,6 +830,7 @@ export default function HybridEventWizardModal({
         {/* Outdoor session */}
         <button
           type="button"
+          data-ck-shape="card"
           onClick={() => {
             const firstPreset = draft.clientType === 'ORGANIZATION' ? 'Conference' : 'Wedding';
             updateDraft({
@@ -921,6 +931,7 @@ export default function HybridEventWizardModal({
                 <button
                   key={sType}
                   type="button"
+                  data-ck-shape="card"
                   onClick={() => {
                     const presetsForNext = getEventTypePresetsForClient(draft.clientType, sType);
                     const stillValid = presetsForNext.some(
@@ -972,6 +983,7 @@ export default function HybridEventWizardModal({
                 <button
                   key={type}
                   type="button"
+                  data-ck-shape="card"
                   onClick={() => {
                     const nextPresets = getEventTypePresetsForClient(type, draft.sessionType);
                     const existsInNext = nextPresets.some(
@@ -1041,6 +1053,7 @@ export default function HybridEventWizardModal({
                 <button
                   key={preset.key}
                   type="button"
+                  data-ck-shape="card"
                   onClick={() => {
                     if (isOther) {
                       setShowOtherEventTypes(true);
@@ -2017,6 +2030,7 @@ export default function HybridEventWizardModal({
               <button
                 key={pkg.tier}
                 type="button"
+                data-ck-shape="card"
                 onClick={() => updateDraft({ packageOption: pkg.tier })}
                 className="hy-focus"
                 style={{
@@ -2274,6 +2288,7 @@ export default function HybridEventWizardModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="hy-wiz-title"
+      className="ck-keep-radius"
       style={{
         position: 'fixed',
         inset: 0,
@@ -2360,10 +2375,10 @@ export default function HybridEventWizardModal({
         </header>
 
         {/* Body */}
-        <div style={{ padding: '1.25rem 1.4rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {optionsError && <Notice tone="error">{optionsError}</Notice>}
-          {errorMsg && <Notice tone="error">{errorMsg}</Notice>}
-
+        <div
+          ref={bodyScrollRef}
+          style={{ padding: '1.25rem 1.4rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}
+        >
           {step === 'session' && renderSessionChoice()}
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
@@ -2420,61 +2435,99 @@ export default function HybridEventWizardModal({
           )}
         </div>
 
-        {/* Footer */}
-        {typeof step === 'number' && (
-          <footer style={{ padding: '0.9rem 1.4rem', borderTop: `1px solid ${colors.borderPrimary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <button
-              type="button"
-              onClick={goBack}
-              disabled={submitting}
-              className="hy-focus"
-              style={{
-                padding: '0.65rem 1.1rem',
-                borderRadius: 12,
-                border: `1.5px solid ${colors.borderPrimary}`,
-                background: colors.bgCard,
-                color: colors.textSecondary,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              Back
-            </button>
-            {step < 5 ? (
-              <button
-                type="button"
-                onClick={goNext}
-                className="hy-focus"
+        {/* Sticky Global Error & Buttons Footer */}
+        {(typeof step === 'number' || errorMsg || optionsError) && (
+          <footer style={{ padding: '0.9rem 1.4rem', borderTop: `1px solid ${colors.borderPrimary}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(errorMsg || optionsError) && (
+              <div
+                role="alert"
                 style={{
-                  padding: '0.68rem 1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  padding: '10px 14px',
                   borderRadius: 12,
-                  border: 'none',
-                  background: colors.brandPrimary,
-                  color: '#fff',
-                  fontWeight: 800,
-                  cursor: 'pointer',
+                  background: '#FEF2F2',
+                  border: '1.5px solid #FCA5A5',
+                  color: '#DC2626',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
                 }}
               >
-                Continue <i className="bi bi-arrow-right" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={publish}
-                disabled={submitting}
-                className="hy-focus"
-                style={{
-                  padding: '0.72rem 1.6rem',
-                  borderRadius: 12,
-                  border: 'none',
-                  background: accent,
-                  color: '#fff',
-                  fontWeight: 800,
-                  cursor: submitting ? 'wait' : 'pointer',
-                }}
-              >
-                {submitting ? 'Publishing...' : 'PUBLISH EVENT OFFER'} <i className="bi bi-broadcast" />
-              </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <i className="bi bi-exclamation-octagon-fill" style={{ fontSize: 16, flexShrink: 0 }} />
+                  <span>{errorMsg || optionsError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorMsg(null);
+                    setOptionsError(null);
+                  }}
+                  aria-label="Dismiss error"
+                  style={{ background: 'transparent', border: 'none', color: '#DC2626', cursor: 'pointer', padding: 4, fontSize: 16, lineHeight: 1 }}
+                >
+                  <i className="bi bi-x-lg" />
+                </button>
+              </div>
+            )}
+            {typeof step === 'number' && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={goBack}
+                  disabled={submitting}
+                  className="hy-focus"
+                  style={{
+                    padding: '0.65rem 1.1rem',
+                    borderRadius: 12,
+                    border: `1.5px solid ${colors.borderPrimary}`,
+                    background: colors.bgCard,
+                    color: colors.textSecondary,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Back
+                </button>
+                {step < 5 ? (
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="hy-focus"
+                    style={{
+                      padding: '0.68rem 1.5rem',
+                      borderRadius: 12,
+                      border: 'none',
+                      background: colors.brandPrimary,
+                      color: '#fff',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Continue <i className="bi bi-arrow-right" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={publish}
+                    disabled={submitting}
+                    className="hy-focus"
+                    style={{
+                      padding: '0.72rem 1.6rem',
+                      borderRadius: 12,
+                      border: 'none',
+                      background: accent,
+                      color: '#fff',
+                      fontWeight: 800,
+                      cursor: submitting ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {submitting ? 'Publishing...' : 'PUBLISH EVENT OFFER'} <i className="bi bi-broadcast" />
+                  </button>
+                )}
+              </div>
             )}
           </footer>
         )}
