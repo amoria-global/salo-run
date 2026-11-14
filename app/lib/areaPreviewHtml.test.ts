@@ -53,4 +53,11 @@ describe('area preview page (dashboard)', () => {
     const html = buildAreaPreviewHtml({ lat: -1.95, lng: 30.09, key: 'k', colors })!;
     expect(html).toContain("window.onerror = function () { finish('failed'); return true; };");
   });
+
+  it('loads Leaflet from jsdelivr, the only script and style host the dashboard allows, with the published integrity hashes', () => {
+    const html = buildAreaPreviewHtml({ lat: -1.95, lng: 30.09, key: 'k', colors })!;
+    expect(html).toContain('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js');
+    expect(html).toContain('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css');
+    expect(html).not.toContain('unpkg.com');
+  });
 });

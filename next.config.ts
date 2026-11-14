@@ -52,7 +52,7 @@ const cspDirectives = [
   // is not on the local disk the backend 302-redirects /uploads/** to a
   // presigned R2 URL, so the browser's final image request lands on the R2
   // endpoint - it must be allowed or every R2-served photo renders broken.
-  `img-src 'self' data: blob: ${apiOriginHttp} https://backend.connekyt.com https://*.r2.cloudflarestorage.com https://*.cloudflarestream.com https://flagcdn.com https://i.pinimg.com https://images.unsplash.com`,
+  `img-src 'self' data: blob: ${apiOriginHttp} https://backend.connekyt.com https://*.r2.cloudflarestorage.com https://*.cloudflarestream.com https://flagcdn.com https://i.pinimg.com https://images.unsplash.com https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com`,
   // cdn.jsdelivr.net: Bootstrap Icons webfont files
   "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
   // cdn.jsdelivr.net:        MediaPipe WASM binary fetched by KYC verification
