@@ -39,4 +39,18 @@ describe('area preview page (dashboard)', () => {
     expect(html).toContain("color: 'x; alert(1); ',");
     expect(html).not.toContain("x'; alert(1)");
   });
+
+  it('frames the area before any layer is added, and never asks the circle to measure itself on an unloaded map', () => {
+    const html = buildAreaPreviewHtml({ lat: -1.95, lng: 30.09, key: 'k', colors })!;
+    // circle.getBounds() throws on a map with no view yet, which silently ended the script and left an empty frame.
+    expect(html).not.toContain('circle.getBounds');
+    expect(html.indexOf('map.fitBounds(')).toBeGreaterThan(-1);
+    expect(html.indexOf('map.fitBounds(')).toBeLessThan(html.indexOf('L.tileLayer('));
+    expect(html.indexOf('map.fitBounds(')).toBeLessThan(html.indexOf('L.circle('));
+  });
+
+  it('turns any script error into "failed", never into a frame that waits for a message that will not come', () => {
+    const html = buildAreaPreviewHtml({ lat: -1.95, lng: 30.09, key: 'k', colors })!;
+    expect(html).toContain("window.onerror = function () { finish('failed'); return true; };");
+  });
 });
