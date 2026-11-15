@@ -22,6 +22,7 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
+import { normalizeExperienceDraft, normalizeOverviewDraft, normalizePortfolioDraft } from '@/lib/profileDraft';
 
 // Configure localforage for profile form data
 const profileFormStorage = localforage.createInstance({
@@ -955,9 +956,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             }
             setBasicInfo(restoredBasicInfo);
           }
-          if (savedDraft.overviewData) setOverviewData(savedDraft.overviewData);
-          if (savedDraft.portfolioData) setPortfolioData(savedDraft.portfolioData);
-          if (savedDraft.experienceData) setExperienceData(savedDraft.experienceData);
+          // A draft saved by an older build can lack lists added later (spokenLanguages), and the
+          // completion score reads .length on them. Normalise so every list exists.
+          if (savedDraft.overviewData) setOverviewData(normalizeOverviewDraft(savedDraft.overviewData));
+          if (savedDraft.portfolioData) setPortfolioData(normalizePortfolioDraft<Skill, Project>(savedDraft.portfolioData));
+          if (savedDraft.experienceData) setExperienceData(normalizeExperienceDraft<Experience>(savedDraft.experienceData));
 
           // Show notice that draft was restored
           setShowDraftRestoredNotice(true);
