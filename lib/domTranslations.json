@@ -3555,7 +3555,7 @@
     "Voir tout",
     "Ver todo",
     "Reba byose",
-    "Tazama all"
+    "Tazama zote"
   ],
   "Open": [
     "Ouvrir",
@@ -6462,10 +6462,10 @@
     "Collaborators"
   ],
   "Collapse sidebar": [
-    "Collapse sidebar",
-    "Collapse sidebar",
-    "Collapse sidebar",
-    "Collapse sidebar"
+    "Réduire la barre latérale",
+    "Contraer la barra lateral",
+    "Gabanya menyu y'uruhande",
+    "Kunja menyu ya pembeni"
   ],
   "Collect answers for": [
     "Collect answers for",
@@ -7938,10 +7938,10 @@
     "Exit Comparison"
   ],
   "Expand sidebar": [
-    "Expand sidebar",
-    "Expand sidebar",
-    "Expand sidebar",
-    "Expand sidebar"
+    "Développer la barre latérale",
+    "Expandir la barra lateral",
+    "Agura menyu y'uruhande",
+    "Panua menyu ya pembeni"
   ],
   "Expected Attendees *": [
     "Expected Attendees *",
@@ -16034,7 +16034,7 @@
   "Search pages and actions": [
     "Rechercher des pages et des actions",
     "Buscar páginas y acciones",
-    "Shakisha amapaji n'ibikorwa",
+    "Shakisha impapuro n'ibikorwa",
     "Tafuta kurasa na vitendo"
   ],
   "No results": [
@@ -16082,7 +16082,7 @@
   "Unavailable": [
     "Indisponible",
     "No disponible",
-    "Ntibiboneka",
+    "Ntibihari",
     "Haipatikani"
   ],
   "Wallet balance": [
@@ -16118,8 +16118,8 @@
   "Main navigation": [
     "Navigation principale",
     "Navegación principal",
-    "Inzira z'ingenzi",
-    "Urambazaji mkuu"
+    "Menyu nkuru",
+    "Menyu kuu"
   ],
   "Color theme": [
     "Thème de couleur",

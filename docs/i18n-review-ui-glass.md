@@ -1,34 +1,33 @@
-# Translations to review: Compact Glass (Stage 1)
+# Translations: Compact Glass (Stage 1)
 
-Drafted by Claude for the new dashboard shell, not yet checked by a native speaker. They live in
-`lib/domTranslations.json` (order: French, Spanish, Kinyarwanda, Swahili). Please correct any line in place and
-tick it here.
+New or corrected entries in `lib/domTranslations.json` (French, Spanish, Kinyarwanda, Swahili). Drafted and
+reviewed by Claude on 2026-11-16 and approved by the owner to ship. A native speaker may still refine any line in
+place.
 
-Note: LanguageContext also translates every text node that matches a key exactly, anywhere in the app, so a key
-must be specific enough not to catch unrelated text. Weekday and month names come from the browser (Intl), not
-from this file.
+LanguageContext translates every text node that matches a key exactly, anywhere in the app, so keys are kept
+specific; weekday and month names come from the browser (Intl).
 
-| English | French | Spanish | Kinyarwanda | Swahili | Checked |
-|---|---|---|---|---|---|
-| Search pages and actions | Rechercher des pages et des actions | Buscar páginas y acciones | Shakisha amapaji n'ibikorwa | Tafuta kurasa na vitendo | [ ] |
-| No results | Aucun résultat | Sin resultados | Nta bisubizo | Hakuna matokeo | [ ] |
-| Payment required | Paiement requis | Pago requerido | Ubwishyu burakenewe | Malipo yanahitajika | [ ] |
-| Your wallet is suspended | Votre portefeuille est suspendu | Tu billetera está suspendida | Ikofi yawe yahagaritswe | Pochi yako imesimamishwa | [ ] |
-| Log out | Se déconnecter | Cerrar sesión | Sohoka | Toka | [ ] |
-| Days you mark here cannot be booked | Les jours marqués ici ne peuvent pas être réservés | Los días que marques aquí no se pueden reservar | Iminsi ushyizeho akamenyetso hano ntishobora gufatirwaho umwanya | Siku unazoweka alama hapa haziwezi kuwekewa nafasi | [ ] |
-| Unavailable today | Indisponible aujourd'hui | No disponible hoy | Ntabwo mboneka uyu munsi | Sipatikani leo | [ ] |
-| Available today | Disponible aujourd'hui | Disponible hoy | Ndaboneka uyu munsi | Ninapatikana leo | [ ] |
-| Unavailable | Indisponible | No disponible | Ntibiboneka | Haipatikani | [ ] |
-| Wallet balance | Solde du portefeuille | Saldo de la billetera | Amafaranga ari mu ikofi | Salio la pochi | [ ] |
-| Turn on desktop alerts | Activer les alertes sur l'ordinateur | Activar alertas en el escritorio | Fungura imenyesha kuri mudasobwa | Washa arifa kwenye kompyuta | [ ] |
-| Account menu | Menu du compte | Menú de la cuenta | Menyu ya konti | Menyu ya akaunti | [ ] |
-| Sell photos | Vendre des photos | Vender fotos | Gucuruza amafoto | Uza picha | [ ] |
-| Jobs | Missions | Trabajos | Akazi | Kazi | [ ] |
-| Main navigation | Navigation principale | Navegación principal | Inzira z'ingenzi | Urambazaji mkuu | [ ] |
-| Color theme | Thème de couleur | Tema de color | Imigaragarire y'amabara | Mandhari ya rangi | [ ] |
-| Collapse menu | Réduire le menu | Contraer el menú | Gabanya menyu | Kunja menyu | [ ] |
+| English | French | Spanish | Kinyarwanda | Swahili |
+|---|---|---|---|---|
+| Search pages and actions | Rechercher des pages et des actions | Buscar páginas y acciones | Shakisha impapuro n'ibikorwa | Tafuta kurasa na vitendo |
+| No results | Aucun résultat | Sin resultados | Nta bisubizo | Hakuna matokeo |
+| Payment required | Paiement requis | Pago requerido | Ubwishyu burakenewe | Malipo yanahitajika |
+| Your wallet is suspended | Votre portefeuille est suspendu | Tu billetera está suspendida | Ikofi yawe yahagaritswe | Pochi yako imesimamishwa |
+| Log out | Se déconnecter | Cerrar sesión | Sohoka | Toka |
+| Days you mark here cannot be booked | Les jours marqués ici ne peuvent pas être réservés | Los días que marques aquí no se pueden reservar | Iminsi ushyizeho akamenyetso hano ntishobora gufatirwaho umwanya | Siku unazoweka alama hapa haziwezi kuwekewa nafasi |
+| Unavailable today | Indisponible aujourd'hui | No disponible hoy | Ntabwo mboneka uyu munsi | Sipatikani leo |
+| Available today | Disponible aujourd'hui | Disponible hoy | Ndaboneka uyu munsi | Ninapatikana leo |
+| Unavailable | Indisponible | No disponible | Ntibihari | Haipatikani |
+| Wallet balance | Solde du portefeuille | Saldo de la billetera | Amafaranga ari mu ikofi | Salio la pochi |
+| Turn on desktop alerts | Activer les alertes sur l'ordinateur | Activar alertas en el escritorio | Fungura imenyesha kuri mudasobwa | Washa arifa kwenye kompyuta |
+| Account menu | Menu du compte | Menú de la cuenta | Menyu ya konti | Menyu ya akaunti |
+| Sell photos | Vendre des photos | Vender fotos | Gucuruza amafoto | Uza picha |
+| Jobs | Missions | Trabajos | Akazi | Kazi |
+| Main navigation | Navigation principale | Navegación principal | Menyu nkuru | Menyu kuu |
+| Color theme | Thème de couleur | Tema de color | Imigaragarire y'amabara | Mandhari ya rangi |
+| Collapse menu | Réduire le menu | Contraer el menú | Gabanya menyu | Kunja menyu |
+| View all | Voir tout | Ver todo | Reba byose | Tazama zote |
+| Collapse sidebar | Réduire la barre latérale | Contraer la barra lateral | Gabanya menyu y'uruhande | Kunja menyu ya pembeni |
+| Expand sidebar | Développer la barre latérale | Expandir la barra lateral | Agura menyu y'uruhande | Panua menyu ya pembeni |
 
-## Existing entries the shell uses that look wrong (not changed)
-
-- "View all" in Swahili reads "Tazama all" (half English).
-- "Collapse sidebar" and "Expand sidebar" are English in every language.
+Corrected in review: Kinyarwanda "amapaji" (anglicism) to "impapuro"; "Unavailable" aligned with the existing "Available" (Birahari / Ntibihari); "Main navigation" simplified in Kinyarwanda and Swahili; the existing Swahili "Tazama all" fixed to "Tazama zote"; "Collapse sidebar" and "Expand sidebar" were English in every language and are now translated.
