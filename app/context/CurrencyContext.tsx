@@ -6,6 +6,9 @@ import {
   type CurrencyCode,
   type CurrencyInfo,
   formatMoney,
+  formatMoneyIso,
+  moneyParts,
+  type MoneyParts,
   initialCurrencies,
   isRateLive as ratesIsLive,
   mergeLiveRates,
@@ -27,6 +30,9 @@ interface CurrencyContextType {
    *                      is used as-is and no conversion is performed.
    */
   formatPrice: (amount: number, fromCurrency?: string) => string;
+  /** The Compact Glass rule: ISO code before the amount ("RWF 5,000"); $ and € stay signs. */
+  formatPriceIso: (amount: number, fromCurrency?: string) => string;
+  priceParts: (amount: number, fromCurrency?: string) => MoneyParts;
   currencies: CurrencyInfo[];
   /** True when the backend supplied a usable rate for this currency. USD is always live. */
   isRateLive: (code: string) => boolean;
@@ -152,6 +158,15 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [currency, currencies]
   );
 
+  const formatPriceIso = useCallback(
+    (amount: number, fromCurrency?: string) => formatMoneyIso(amount, fromCurrency, currency, currencies),
+    [currency, currencies]
+  );
+  const priceParts = useCallback(
+    (amount: number, fromCurrency?: string) => moneyParts(amount, fromCurrency, currency, currencies),
+    [currency, currencies]
+  );
+
   const isRateLive = useCallback((code: string) => ratesIsLive(currencies, code), [currencies]);
   const displayRateUnavailable = !ratesIsLive(currencies, currency);
 
@@ -159,7 +174,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CurrencyContext.Provider
-      value={{ currency, setCurrency, formatPrice, currencies, currencyId, isRateLive, displayRateUnavailable }}
+      value={{ currency, setCurrency, formatPrice, formatPriceIso, priceParts, currencies, currencyId, isRateLive, displayRateUnavailable }}
     >
       {children}
     </CurrencyContext.Provider>

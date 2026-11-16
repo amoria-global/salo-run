@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import PendingMilestonePaymentModal from '@/app/components/PendingMilestonePaymentModal';
 import RouteGuard from '@/app/components/RouteGuard';
+import GlassShell from '@/app/components/glass/GlassShell';
 
 export default function ClientLayout({
   children,
@@ -21,7 +22,7 @@ export default function ClientLayout({
   // requires permissions they don't hold. Owners pass every gate.
   return (
     <RouteGuard>
-      {children}
+      <GlassShell>{children}</GlassShell>
       <PendingMilestonePaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}

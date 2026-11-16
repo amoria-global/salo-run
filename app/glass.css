@@ -1,0 +1,233 @@
+/*
+ * Compact Glass tokens and base styles for the web dashboard.
+ *
+ * Source of truth: the mobile app's src/theme/palettes.ts (lightPalette, darkPalette, gradientsFor). Change a value
+ * there first, then here. Every rule in this file is scoped under html.ui-glass, so with the flag off (no class) the
+ * dashboard renders exactly as before. Dark and light switch on the data-theme attribute the app already maintains.
+ *
+ * Speed rule: backdrop-filter only on fixed layers (.g-blur: top bar, sidebar, tab bar, sheets, menus). Cards are
+ * semi-transparent gradients without blur.
+ */
+
+html.ui-glass {
+  --g-primary: #083A85;
+  --g-primary-light: #2F64C8;
+  --g-primary-dark: #062d6b;
+  --g-accent: #F20C8F;
+  --g-accent-light: #ff4fae;
+  --g-link: #083A85;
+
+  --g-bg: #F4F6FB;
+  --g-surface: #FFFFFF;
+  --g-card: #FFFFFF;
+  --g-muted: #E9EAEE;
+  --g-elevated: #FFFFFF;
+
+  --g-text: #0F1217;
+  --g-text-soft: #3A3D44;
+  --g-text-muted: #6A6D76;
+  --g-on-primary: #FFFFFF;
+
+  --g-border: #D4D6DC;
+  --g-border-soft: #E6E7EC;
+  --g-stroke: rgba(8, 58, 133, 0.12);
+  --g-well: rgba(8, 24, 56, 0.05);
+  --g-tint: rgba(8, 58, 133, 0.07);
+  --g-tint-accent: rgba(242, 12, 143, 0.07);
+  --g-scrim: rgba(0, 0, 0, 0.45);
+
+  --g-glass-top: rgba(255, 255, 255, 0.82);
+  --g-glass-bottom: rgba(255, 255, 255, 0.66);
+  --g-glass-solid: #FFFFFF;
+
+  --g-success: #065F46;
+  --g-success-bg: #ECFDF5;
+  --g-warning: #92400E;
+  --g-warning-bg: #FFFBEB;
+  --g-error: #991B1B;
+  --g-error-bg: #FEF2F2;
+  --g-info: #1E40AF;
+  --g-info-bg: #EFF6FF;
+  --g-pending: #8A5A00;
+  --g-pending-bg: rgba(245, 180, 0, 0.16);
+  --g-active: #0B7C8C;
+  --g-active-bg: rgba(11, 124, 140, 0.10);
+  --g-danger-fill: #B91C1C;
+
+  --g-live: #FF0033;
+  --g-live-text: #C8001F;
+  --g-live-surface: #FFF0F3;
+  --g-live-surface-end: #FFE1E7;
+
+  --g-grad-brand: linear-gradient(135deg, #083A85 0%, #0a4da3 50%, #F20C8F 100%);
+  --g-grad-raised: linear-gradient(180deg, #2F64C8 0%, #083A85 55%, #062D6B 100%);
+  --g-grad-ring: linear-gradient(90deg, #083A85, #F20C8F);
+  --g-grad-hero-blue: linear-gradient(135deg, #083A85, #1B55B8);
+  --g-wash: radial-gradient(60rem 30rem at 0% -10%, rgba(8, 58, 133, 0.08), transparent 60%),
+            radial-gradient(50rem 30rem at 100% 0%, rgba(242, 12, 143, 0.06), transparent 60%);
+
+  /* Radii, spacing and type, as src/theme/index.ts. */
+  --g-r-sm: 8px;
+  --g-r-md: 14px;
+  --g-r-lg: 20px;
+  --g-r-xl: 24px;
+  --g-r-2xl: 28px;
+  --g-r-full: 999px;
+  --g-fs-xs: 0.75rem;
+  --g-fs-sm: 0.875rem;
+  --g-fs-md: 1rem;
+  --g-fs-lg: 1.125rem;
+  --g-fs-xl: 1.375rem;
+  --g-fs-2xl: 1.75rem;
+  --g-fs-3xl: 2.125rem;
+
+  /* Elevation: light keeps a soft cast shadow. */
+  --g-shadow-1: 0 1px 2px rgba(15, 18, 23, 0.06), 0 1px 1px rgba(15, 18, 23, 0.03);
+  --g-shadow-2: 0 6px 18px rgba(15, 18, 23, 0.08);
+  --g-shadow-3: 0 16px 40px rgba(15, 18, 23, 0.14);
+
+  --g-topbar-h: 64px;
+  --g-sidebar-w: 248px;
+  --g-sidebar-w-collapsed: 76px;
+  --g-tabbar-h: 64px;
+
+  /* The old names, pointed at the new tokens, so pages not yet redesigned render in the new palette. */
+  --ck-blue: var(--g-primary);
+  --ck-blue-soft: var(--g-primary-light);
+  --ck-pink: var(--g-accent);
+  --ck-pink-soft: var(--g-accent-light);
+  --ck-surface: var(--g-card);
+  --ck-surface-soft: var(--g-bg);
+  --ck-surface-muted: var(--g-muted);
+  --ck-overlay: var(--g-scrim);
+  --ck-stroke: var(--g-border);
+  --ck-stroke-soft: var(--g-border-soft);
+  --ck-text: var(--g-text);
+  --ck-text-soft: var(--g-text-soft);
+  --ck-text-muted: var(--g-text-muted);
+  --ck-radius: var(--g-r-md);
+  --ck-radius-lg: var(--g-r-lg);
+  --ck-radius-xl: var(--g-r-xl);
+  --ck-shadow-sm: var(--g-shadow-1);
+  --ck-shadow: var(--g-shadow-2);
+  --ck-shadow-lg: var(--g-shadow-3);
+  --background: var(--g-bg);
+  --foreground: var(--g-text);
+}
+
+html.ui-glass[data-theme="dark"] {
+  --g-primary: #3E6FD8;
+  --g-primary-light: #5B8CFF;
+  --g-primary-dark: #3360C4;
+  --g-accent: #EE0E8F;
+  --g-accent-light: #FF5DB8;
+  --g-link: #7FA6F5;
+
+  --g-bg: #0A1220;
+  --g-surface: #101B2E;
+  --g-card: #16243C;
+  --g-muted: #1B2B46;
+  --g-elevated: #1D2F4D;
+
+  --g-text: #EAF0FA;
+  --g-text-soft: #C9D5EA;
+  --g-text-muted: #93A3BE;
+
+  --g-border: #2A3B58;
+  --g-border-soft: #1E2D47;
+  --g-stroke: rgba(170, 195, 240, 0.14);
+  --g-well: rgba(4, 9, 18, 0.55);
+  --g-tint: rgba(62, 111, 216, 0.16);
+  --g-tint-accent: rgba(238, 14, 143, 0.15);
+  --g-scrim: rgba(0, 0, 0, 0.65);
+
+  --g-glass-top: rgba(32, 50, 82, 0.62);
+  --g-glass-bottom: rgba(18, 30, 52, 0.52);
+  --g-glass-solid: #16243C;
+
+  --g-success: #4ADE80;
+  --g-success-bg: #0E2F22;
+  --g-warning: #F5B400;
+  --g-warning-bg: #33260A;
+  --g-error: #F87171;
+  --g-error-bg: #341A1D;
+  --g-info: #8FB4FF;
+  --g-info-bg: #14335E;
+  --g-pending: #F5B400;
+  --g-pending-bg: rgba(245, 180, 0, 0.14);
+  --g-active: #22C7D9;
+  --g-active-bg: rgba(34, 199, 217, 0.14);
+  --g-danger-fill: #C2353F;
+
+  --g-live-text: #FF8FA3;
+  --g-live-surface: #30101A;
+  --g-live-surface-end: #16101E;
+
+  --g-grad-brand: linear-gradient(135deg, #14346F 0%, #2B5AB8 50%, #D01B84 100%);
+  --g-grad-raised: linear-gradient(180deg, #5B8CFF 0%, #3E6FD8 55%, #3360C4 100%);
+  --g-grad-ring: linear-gradient(90deg, #5B8CFF, #EE0E8F);
+  --g-grad-hero-blue: linear-gradient(135deg, #173A8F, #2A5FCC);
+  --g-wash: radial-gradient(60rem 30rem at 0% -10%, rgba(61, 111, 214, 0.20), transparent 60%),
+            radial-gradient(50rem 30rem at 100% 0%, rgba(242, 12, 143, 0.12), transparent 60%);
+
+  /* Dark: a black shadow vanishes, so depth comes from a hairline and a wider, stronger spread. */
+  --g-shadow-1: 0 0 0 1px rgba(170, 195, 240, 0.06), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --g-shadow-2: 0 0 0 1px rgba(170, 195, 240, 0.08), 0 10px 26px rgba(0, 0, 0, 0.45);
+  --g-shadow-3: 0 0 0 1px rgba(170, 195, 240, 0.10), 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+
+html.ui-glass body {
+  /* Here, not on html: next/font defines --font-inter and --font-grotesk on body. */
+  --g-font-text: var(--font-inter), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --g-font-display: var(--font-grotesk), var(--font-inter), system-ui, sans-serif;
+  font-family: var(--g-font-text);
+  color: var(--g-text);
+  background: var(--g-wash), var(--g-bg);
+  background-attachment: fixed;
+}
+html.ui-glass .g-display { font-family: var(--g-font-display); letter-spacing: -0.025em; }
+html.ui-glass .g-num { font-family: var(--g-font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+/* A glass panel. No blur: cards scroll, and blur on scrolling content is what costs frames on mid-range phones. */
+html.ui-glass .g-panel {
+  background: linear-gradient(180deg, var(--g-glass-top), var(--g-glass-bottom));
+  border: 1px solid var(--g-stroke);
+  border-radius: var(--g-r-lg);
+  box-shadow: var(--g-shadow-1);
+}
+/* Fixed layers only. */
+html.ui-glass .g-blur {
+  background: linear-gradient(180deg, var(--g-glass-top), var(--g-glass-bottom));
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html.ui-glass .g-blur { background: var(--g-glass-solid); }
+}
+
+html.ui-glass .g-focus:focus-visible,
+html.ui-glass .g-shell :is(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--g-primary-light);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+html.ui-glass .g-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+html.ui-glass .g-skeleton {
+  background: linear-gradient(90deg, var(--g-muted) 0%, var(--g-card) 50%, var(--g-muted) 100%);
+  background-size: 800px 100%;
+  animation: ck-shimmer 1.4s linear infinite;
+  border-radius: var(--g-r-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.ui-glass *, html.ui-glass *::before, html.ui-glass *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Pragati_Narrow } from "next/font/google";
+import { Inter, Pragati_Narrow, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import "./glass.css";
+import "./glass-shell.css";
+import { HEAD_SCRIPT } from "./lib/uiGlass";
 // bootstrap-icons was dropped from package.json in PR #162; the webfont is now
 // loaded via the CDN <link> in the <head> below. CSP already whitelists
 // cdn.jsdelivr.net in style-src and font-src.
@@ -23,6 +26,22 @@ const pragatiNarrow = Pragati_Narrow({
   variable: "--font-pragati-narrow",
 });
 
+// Compact Glass type (app/glass.css): Space Grotesk for titles and numbers, Inter for text. Self-hosted by next/font
+// and not preloaded, so a browser only fetches them when a ui-glass page uses them; the old UI never does.
+const spaceGrotesk = Space_Grotesk({
+  weight: ["500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-grotesk",
+  display: "swap",
+  preload: false,
+});
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: "Connekyt Dashboard",
   description: "Dashboard application for Connekyt",
@@ -34,14 +53,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the head script sets data-theme and the ui-glass class before React hydrates.
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: HEAD_SCRIPT }} />
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
         />
       </head>
-      <body className={`${pragatiNarrow.variable} font-sans antialiased`}>
+      <body className={`${pragatiNarrow.variable} ${spaceGrotesk.variable} ${inter.variable} font-sans antialiased`}>
         <DashboardAuthProvider>
           <PermissionProvider>
             <WorkspaceProvider>

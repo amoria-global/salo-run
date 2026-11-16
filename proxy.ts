@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getLandingUrl } from '@/lib/urls';
+import { UI_GLASS_COOKIE, emailFromToken, isGlassPath, parseAllowlist, parseMode, glassEnabledFor } from '@/app/lib/uiGlass';
 
 /**
  * Dashboard middleware for route protection
@@ -181,7 +182,7 @@ export function proxy(request: NextRequest) {
     // Working in a workspace: a workspace collaborator login, or a client login that joined as a collaborator, opens the
     // photographer pages for it. With no workspace chosen a collaborator has nowhere to be, so it goes to pick one.
     if (pathRole === 'photographer' && inWorkspace && (userRole === 'collaborator' || userRole === 'client')) {
-      return NextResponse.next();
+      return withUiFlag(request, NextResponse.next());
     }
     if (userRole === 'collaborator' && !inWorkspace) {
       const landingBase = getLandingUrl();
@@ -217,7 +218,25 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return withUiFlag(request, NextResponse.next());
+}
+
+/**
+ * The Compact Glass flag (see app/lib/uiGlass.ts). Decided only on page loads of a redesigned dashboard, from the
+ * server's UI_GLASS settings and the signed-in account's email, and written to a cookie the head script reads. Any
+ * other answer clears the cookie, so switching the flag off takes effect on the next page load.
+ */
+function withUiFlag(request: NextRequest, response: NextResponse): NextResponse {
+  if (!isGlassPath(request.nextUrl.pathname)) return response;
+  const token = request.cookies.get('amoria_auth')?.value || request.cookies.get('authToken')?.value;
+  const on = glassEnabledFor(parseMode(process.env.UI_GLASS), parseAllowlist(process.env.UI_GLASS_ALLOWLIST), emailFromToken(token));
+  const has = request.cookies.get(UI_GLASS_COOKIE)?.value === 'glass';
+  if (on && !has) {
+    response.cookies.set(UI_GLASS_COOKIE, 'glass', { path: '/', maxAge: 60 * 60 * 24 * 7, sameSite: 'lax', secure: request.nextUrl.protocol === 'https:' });
+  } else if (!on && request.cookies.has(UI_GLASS_COOKIE)) {
+    response.cookies.delete(UI_GLASS_COOKIE);
+  }
+  return response;
 }
 
 export const config = {
