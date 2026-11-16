@@ -10620,10 +10620,10 @@
     "Malipo Maelezo"
   ],
   "Payment History": [
-    "Paiement Historique",
-    "Pago Historial",
-    "Kwishyura Amateka",
-    "Malipo Historia"
+    "Historique des paiements",
+    "Historial de pagos",
+    "Amateka y'ubwishyu",
+    "Historia ya malipo"
   ],
   "Payment Info": [
     "Paiement Info",
@@ -16132,5 +16132,275 @@
     "Contraer el menú",
     "Gabanya menyu",
     "Kunja menyu"
+  ],
+  "Events this month": [
+    "Événements ce mois-ci",
+    "Eventos este mes",
+    "Ibirori by'uku kwezi",
+    "Matukio mwezi huu"
+  ],
+  "New package": [
+    "Nouveau forfait",
+    "Nuevo paquete",
+    "Ipaki nshya",
+    "Kifurushi kipya"
+  ],
+  "Compare goals": [
+    "Comparer les objectifs",
+    "Comparar objetivos",
+    "Gereranya intego",
+    "Linganisha malengo"
+  ],
+  "Host your own event": [
+    "Organisez votre propre événement",
+    "Organiza tu propio evento",
+    "Tegura ikirori cyawe",
+    "Andaa tukio lako"
+  ],
+  "My hosted events": [
+    "Mes événements organisés",
+    "Mis eventos organizados",
+    "Ibirori nateguye",
+    "Matukio niliyoandaa"
+  ],
+  "Could not load your balance. Try again": [
+    "Impossible de charger votre solde. Réessayer",
+    "No se pudo cargar tu saldo. Reintentar",
+    "Ntitwashoboye kubona amafaranga yawe. Ongera ugerageze",
+    "Imeshindwa kupakia salio lako. Jaribu tena"
+  ],
+  "Choose a period": [
+    "Choisir une période",
+    "Elegir un periodo",
+    "Hitamo igihe",
+    "Chagua kipindi"
+  ],
+  "Pick both dates to see that range.": [
+    "Choisissez les deux dates pour voir cette période.",
+    "Elige ambas fechas para ver ese periodo.",
+    "Hitamo amatariki yombi kugira ngo ubone icyo gihe.",
+    "Chagua tarehe zote mbili kuona kipindi hicho."
+  ],
+  "Pending payouts": [
+    "Paiements en attente",
+    "Pagos pendientes",
+    "Amafaranga ategereje kwishyurwa",
+    "Malipo yanayosubiri"
+  ],
+  "No upcoming events": [
+    "Aucun événement à venir",
+    "No hay eventos próximos",
+    "Nta birori biri imbere",
+    "Hakuna matukio yajayo"
+  ],
+  "New bookings will appear here.": [
+    "Les nouvelles réservations apparaîtront ici.",
+    "Las nuevas reservas aparecerán aquí.",
+    "Ibisabwa bishya bizagaragara hano.",
+    "Maombi mapya yataonekana hapa."
+  ],
+  "Nothing in the last 30 days": [
+    "Rien au cours des 30 derniers jours",
+    "Nada en los últimos 30 días",
+    "Nta kintu mu minsi 30 ishize",
+    "Hakuna kitu katika siku 30 zilizopita"
+  ],
+  "Payments and event updates will appear here.": [
+    "Les paiements et les mises à jour d'événements apparaîtront ici.",
+    "Los pagos y las novedades de eventos aparecerán aquí.",
+    "Ubwishyu n'amakuru y'ibirori bizagaragara hano.",
+    "Malipo na taarifa za matukio zitaonekana hapa."
+  ],
+  "Payment pending": [
+    "Paiement en attente",
+    "Pago pendiente",
+    "Ubwishyu butegerejwe",
+    "Malipo yanasubiri"
+  ],
+  "attempts": [
+    "tentatives",
+    "intentos",
+    "inshuro",
+    "majaribio"
+  ],
+  "No change": [
+    "Aucun changement",
+    "Sin cambios",
+    "Nta mpinduka",
+    "Hakuna mabadiliko"
+  ],
+  "vs previous period": [
+    "vs période précédente",
+    "vs periodo anterior",
+    "ugereranyije n'igihe cyabanje",
+    "ukilinganisha na kipindi kilichopita"
+  ],
+  "Progress to goal": [
+    "Progression vers l'objectif",
+    "Progreso hacia el objetivo",
+    "Aho ugeze ku ntego",
+    "Maendeleo kuelekea lengo"
+  ],
+  "Not shared in this workspace": [
+    "Non partagé dans cet espace de travail",
+    "No compartido en este espacio de trabajo",
+    "Ntibisangiwe muri iyi workspace",
+    "Haishirikiwi katika eneo hili la kazi"
+  ],
+  "Not shared": [
+    "Non partagé",
+    "No compartido",
+    "Ntibisangiwe",
+    "Haishirikiwi"
+  ],
+  "We could not load this.": [
+    "Impossible de charger ceci.",
+    "No pudimos cargar esto.",
+    "Ntitwashoboye kubibona.",
+    "Hatukuweza kupakia hiki."
+  ],
+  "This week": [
+    "Cette semaine",
+    "Esta semana",
+    "Iki cyumweru",
+    "Wiki hii"
+  ],
+  "This month": [
+    "Ce mois-ci",
+    "Este mes",
+    "Uku kwezi",
+    "Mwezi huu"
+  ],
+  "Bookings in this period": [
+    "Réservations sur cette période",
+    "Reservas en este periodo",
+    "Ibisabwa muri iki gihe",
+    "Maombi katika kipindi hiki"
+  ],
+  "Earnings and bookings in this period": [
+    "Revenus et réservations sur cette période",
+    "Ingresos y reservas en este periodo",
+    "Amafaranga yinjiye n'ibisabwa muri iki gihe",
+    "Mapato na maombi katika kipindi hiki"
+  ],
+  "Set targets and see progress on your Home cards.": [
+    "Fixez des objectifs et suivez votre progression sur l'accueil.",
+    "Fija objetivos y sigue tu progreso en el inicio.",
+    "Shyiraho intego urebe aho ugeze ku ikarita z'Ahabanza.",
+    "Weka malengo na uone maendeleo kwenye kadi za Nyumbani."
+  ],
+  "Save goal": [
+    "Enregistrer l'objectif",
+    "Guardar objetivo",
+    "Bika intego",
+    "Hifadhi lengo"
+  ],
+  "Stop comparing": [
+    "Arrêter la comparaison",
+    "Dejar de comparar",
+    "Hagarika kugereranya",
+    "Acha kulinganisha"
+  ],
+  "New goal": [
+    "Nouvel objectif",
+    "Nuevo objetivo",
+    "Intego nshya",
+    "Lengo jipya"
+  ],
+  "Edit goal": [
+    "Modifier l'objectif",
+    "Editar objetivo",
+    "Hindura intego",
+    "Hariri lengo"
+  ],
+  "We could not save that. Please try again.": [
+    "Impossible d'enregistrer. Veuillez réessayer.",
+    "No se pudo guardar. Inténtalo de nuevo.",
+    "Ntitwashoboye kubika. Ongera ugerageze.",
+    "Hatukuweza kuhifadhi. Tafadhali jaribu tena."
+  ],
+  "Goal name": [
+    "Nom de l'objectif",
+    "Nombre del objetivo",
+    "Izina ry'intego",
+    "Jina la lengo"
+  ],
+  "e.g. December push": [
+    "ex. Objectif de décembre",
+    "p. ej. Impulso de diciembre",
+    "urugero: Intego y'Ukuboza",
+    "mfano: Lengo la Desemba"
+  ],
+  "Earnings target": [
+    "Objectif de revenus",
+    "Objetivo de ingresos",
+    "Intego y'amafaranga yinjira",
+    "Lengo la mapato"
+  ],
+  "Pending payouts target": [
+    "Objectif de paiements en attente",
+    "Objetivo de pagos pendientes",
+    "Intego y'amafaranga ategereje",
+    "Lengo la malipo yanayosubiri"
+  ],
+  "Clients target": [
+    "Objectif de clients",
+    "Objetivo de clientes",
+    "Intego y'abakiriya",
+    "Lengo la wateja"
+  ],
+  "Rating target": [
+    "Objectif de note",
+    "Objetivo de valoración",
+    "Intego y'amanota",
+    "Lengo la ukadiriaji"
+  ],
+  "Earnings targets are in USD.": [
+    "Les objectifs de revenus sont en USD.",
+    "Los objetivos de ingresos están en USD.",
+    "Intego z'amafaranga ziri mu madolari (USD).",
+    "Malengo ya mapato yako kwa USD."
+  ],
+  "No goals yet. Create one to compare against.": [
+    "Aucun objectif pour l'instant. Créez-en un pour comparer.",
+    "Aún no hay objetivos. Crea uno para comparar.",
+    "Nta ntego zirahari. Kora imwe yo kugereranya.",
+    "Bado hakuna malengo. Unda moja ili kulinganisha."
+  ],
+  "No earnings in this period yet": [
+    "Aucun revenu sur cette période pour l'instant",
+    "Aún no hay ingresos en este periodo",
+    "Nta mafaranga arinjira muri iki gihe",
+    "Bado hakuna mapato katika kipindi hiki"
+  ],
+  "Paid bookings and sales will show here.": [
+    "Les réservations payées et les ventes s'afficheront ici.",
+    "Las reservas pagadas y las ventas se mostrarán aquí.",
+    "Ibisabwa byishyuwe n'ibyagurishijwe bizagaragara hano.",
+    "Maombi yaliyolipwa na mauzo yataonekana hapa."
+  ],
+  "Earnings and bookings chart": [
+    "Graphique des revenus et réservations",
+    "Gráfico de ingresos y reservas",
+    "Igishushanyo cy'amafaranga n'ibisabwa",
+    "Chati ya mapato na maombi"
+  ],
+  "Chart points, use the arrow keys": [
+    "Points du graphique, utilisez les flèches",
+    "Puntos del gráfico, usa las flechas",
+    "Ingingo z'igishushanyo, koresha imyambi",
+    "Alama za chati, tumia vitufe vya mishale"
+  ],
+  "Good night": [
+    "Bonne nuit",
+    "Buenas noches",
+    "Ijoro ryiza",
+    "Usiku mwema"
+  ],
+  "Refunded": [
+    "Remboursé",
+    "Reembolsado",
+    "Byasubijwe",
+    "Imerejeshwa"
   ]
 }
