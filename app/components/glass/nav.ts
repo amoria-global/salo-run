@@ -116,3 +116,28 @@ export function roleFromPath(pathname: string): GlassRole {
   if (pathname.startsWith('/user/event-coordinator')) return 'event-coordinator';
   return 'photographer';
 }
+
+/** A tab row for a group of related pages. The pages keep their own routes; the tabs are links between them. */
+export interface SubTab { label: string; href: string; /** The sidebar item whose visibility rules also hide this tab. */ key?: string }
+
+/**
+ * Wallet and its money pages. Old routes keep working: each tab is just the page's own route, so a bookmark or a
+ * notification link to /transaction, /all-transactions or /payroll-report still opens that page, now with the tabs.
+ */
+export function subTabsFor(role: GlassRole, pathname: string): SubTab[] | null {
+  const base = role === 'photographer' ? '/user/photographer' : `/user/${role}`;
+  const groups: SubTab[][] = role === 'photographer'
+    ? [[
+        { label: 'Wallet', href: `${base}/wallet` },
+        { label: 'Transactions', href: `${base}/transaction`, key: 'Transactions' },
+        { label: 'All transactions', href: `${base}/all-transactions`, key: 'Transactions' },
+        { label: 'Payroll report', href: `${base}/payroll-report`, key: 'Transactions' },
+      ]]
+    : [[
+        { label: 'Wallet', href: `${base}/wallet` },
+        { label: 'Payments', href: `${base}/payments` },
+        ...(role === 'client' ? [{ label: 'Transactions', href: `${base}/transactions` }] : []),
+      ]];
+  for (const g of groups) if (g.some((t) => pathname === t.href || pathname.startsWith(`${t.href}/`))) return g;
+  return null;
+}

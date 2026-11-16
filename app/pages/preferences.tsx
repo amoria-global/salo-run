@@ -1050,7 +1050,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <i className="bi bi-wallet2" style={{ fontSize: 17, color: '#10B981' }} />
+                    <i className="bi bi-wallet2" style={{ fontSize: 17, color: 'var(--g-success, #10B981)' }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>PAYMENTS</div>
@@ -1268,7 +1268,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <i className="bi bi-bell-fill" style={{ fontSize: 17, color: '#F59E0B' }} />
+                  <i className="bi bi-bell-fill" style={{ fontSize: 17, color: 'var(--g-warning, #F59E0B)' }} />
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>NOTIFICATIONS</div>

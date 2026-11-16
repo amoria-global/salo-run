@@ -587,7 +587,7 @@ const EventCoordinatorDashboard = () => {
               {[
                 { label: 'Revenue', value: formatPrice(analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0), color: 'var(--g-link, #083A85)' },
                 { label: 'Events', value: String(analytics?.totalEvents ?? 0), color: '#F20C8F' },
-                { label: 'Streams', value: String(analytics?.activeStreams ?? 0), color: '#10B981' },
+                { label: 'Streams', value: String(analytics?.activeStreams ?? 0), color: 'var(--g-success, #10B981)' },
               ].map(s => (
                 <div key={s.label} style={{ textAlign: 'center', padding: '4px 6px' }}>
                   <div style={{ fontSize: '0.68rem', fontWeight: 700, color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>

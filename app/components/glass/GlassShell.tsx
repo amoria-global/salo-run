@@ -20,7 +20,7 @@ import { useLanguage } from '@/app/context/LanguageContext';
 import { useNavBadges } from '../navBadges';
 import { SHARED_WORKSPACE_HIDDEN } from '../sidebar';
 import { useTopbarState } from '../topbarState';
-import { NAV, bottomNav, isActive, roleFromPath, tabNav, type GlassNavItem, type GlassRole } from './nav';
+import { NAV, bottomNav, isActive, roleFromPath, subTabsFor, tabNav, type GlassNavItem, type GlassRole } from './nav';
 import GlassTopbar from './GlassTopbar';
 import GlassBanners from './GlassBanners';
 import GlassDialogs from './GlassDialogs';
@@ -75,6 +75,7 @@ function GlassFrame({ children }: { children: ReactNode }) {
 
       <div className="g-content">
         <div className="g-banners"><GlassBanners role={role} state={top} /></div>
+        <SubTabs role={role} />
         <div className="g-page-host">{children}</div>
       </div>
 
@@ -95,6 +96,24 @@ function GlassFrame({ children }: { children: ReactNode }) {
 
       <GlassDialogs role={role} state={top} />
     </div>
+  );
+}
+
+/** Tabs between a page group's routes (Wallet, Transactions, All transactions, Payroll report). */
+function SubTabs({ role }: { role: GlassRole }) {
+  const pathname = usePathname() || '';
+  const { t } = useLanguage();
+  const { visible } = useVisible(role);
+  const tabs = subTabsFor(role, pathname);
+  if (!tabs) return null;
+  // The same permission rule as the Wallet item: no payments permission, no money tabs.
+  if (!visible({ key: 'Wallet', label: 'Wallet', href: '', icon: ChevronsLeft, requires: ['payments.view'] })) return null;
+  return (
+    <nav className="g-subtabs" aria-label={t('Wallet')}>
+      {tabs.filter((x) => visible({ key: x.key ?? 'Wallet', label: x.label, href: x.href, icon: ChevronsLeft })).map((x) => (
+        <Link key={x.href} href={x.href} aria-current={pathname === x.href || pathname.startsWith(`${x.href}/`) ? 'page' : undefined}>{t(x.label)}</Link>
+      ))}
+    </nav>
   );
 }
 

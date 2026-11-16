@@ -113,7 +113,7 @@ const SendFreeInvitationModal: React.FC<SendFreeInvitationModalProps> = ({
                 <i className="bi bi-check2" style={{ color: '#fff', fontSize: 26 }} />
               </div>
               <div style={{
-                fontSize: '0.66rem', fontWeight: 700, color: '#10B981',
+                fontSize: '0.66rem', fontWeight: 700, color: 'var(--g-success, #10B981)',
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 marginBottom: 4,
               }}>Email delivered</div>

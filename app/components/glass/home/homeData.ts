@@ -31,7 +31,7 @@ export function trendChip(t?: Trend | null): Chip {
 }
 
 export interface RawEvent {
-  id?: string; title?: string; date?: string; startTime?: string | null;
+  id?: string; title?: string; date?: string; eventDate?: string; startTime?: string | null;
   /** /photographer/events sends { address, city, country }; other lists send a string. */
   location?: string | { address?: string; city?: string } | null;
   status?: string | null; eventStatus?: string | null; streamStatus?: string | null;
@@ -41,7 +41,9 @@ export interface UpcomingItem { id: string; title: string; date: string; day: st
 const ENDED = new Set(['completed', 'cancelled', 'canceled', 'rejected', 'declined', 'ended']);
 
 /** The next events (today onwards, not ended), soonest first. Live means broadcasting now (status "ongoing"). */
-export function upcoming(events: RawEvent[], today: string, locale = 'en', limit = 4): UpcomingItem[] {
+export function upcoming(rawEvents: RawEvent[], today: string, locale = 'en', limit = 4): UpcomingItem[] {
+  // Photographer lists send "date", client and coordinator lists send "eventDate".
+  const events = rawEvents.map((e) => ({ ...e, date: e.date || e.eventDate }));
   return events
     .filter((e) => e.id && e.date && e.date.slice(0, 10) >= today)
     .filter((e) => !ENDED.has(String(e.status || '').toLowerCase()) && !ENDED.has(String(e.eventStatus || '').toLowerCase()))

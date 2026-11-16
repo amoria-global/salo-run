@@ -606,7 +606,7 @@ function AlbumShareModal({
         {albums && albums.length > 0 ? (
           <div style={{ padding: '0.75rem 1.25rem 1rem', borderTop: `1px solid ${colors.borderPrimary}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {problem ? (
-              <div role="alert" style={{ color: '#DC2626', fontSize: '0.85rem', fontWeight: 500 }}>
+              <div role="alert" style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.85rem', fontWeight: 500 }}>
                 {problem}
               </div>
             ) : null}

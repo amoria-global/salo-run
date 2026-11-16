@@ -344,7 +344,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
 
   const field: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 10, border: `1px solid ${colors.borderPrimary}`, background: colors.bgPrimary, color: colors.textPrimary };
   const label: React.CSSProperties = { display: 'grid', gap: 6, color: colors.textSecondary, fontSize: '0.85rem', fontWeight: 600 };
-  const err = (m?: string) => (m ? <span role="alert" style={{ color: '#DC2626', fontSize: '0.8rem' }}>{m}</span> : null);
+  const err = (m?: string) => (m ? <span role="alert" style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.8rem' }}>{m}</span> : null);
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Host an event" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 60, padding: 16 }}>
@@ -414,7 +414,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
         <p style={{ margin: 0, color: colors.textSecondary, fontSize: '0.85rem' }}>
           When you go live your browser will ask for camera and microphone access. A steady connection keeps the stream smooth.
         </p>
-        {failure ? <p role="alert" style={{ margin: 0, color: '#DC2626' }}>{failure}</p> : null}
+        {failure ? <p role="alert" style={{ margin: 0, color: 'var(--g-error, #DC2626)' }}>{failure}</p> : null}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <button type="button" onClick={onClose} disabled={busy} style={{ cursor: 'pointer' }}>Cancel</button>
           <button type="button" onClick={() => void submit(false)} disabled={busy} style={{ cursor: 'pointer' }}>Publish and schedule for later</button>

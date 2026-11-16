@@ -38,7 +38,7 @@ const OPTIONS: OptionConfig[] = [
       { icon: 'bi-percent', text: '30% platform commission' },
       { icon: 'bi-currency-dollar', text: 'Set price per image' },
     ],
-    accent: '#083A85',
+    accent: 'var(--g-link, #083A85)',
     accentDark: '#BFDBFE',
     gradient: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
     shadowColor: 'rgba(8,58,133,0.32)',
@@ -87,7 +87,7 @@ const AlbumTypeSelector: React.FC<AlbumTypeSelectorProps> = ({
         letterSpacing: '0.08em',
         marginBottom: '0.55rem',
       }}>
-        Album Type <span style={{ color: '#EF4444' }}>*</span>
+        Album Type <span style={{ color: 'var(--g-error, #EF4444)' }}>*</span>
       </label>
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'stretch' }}>
         {OPTIONS.map((opt) => {

@@ -367,7 +367,7 @@ function LegacySidebar() {
                 className={`ck-side-link ${isActive ? 'active' : ''}`}
                 style={{
                   justifyContent: isCollapsed ? 'center' : 'flex-start',
-                  ...(isLogout ? { color: '#DC2626' } : {}),
+                  ...(isLogout ? { color: 'var(--g-error, #DC2626)' } : {}),
                 }}>
                 {inner}
               </Link>
@@ -400,7 +400,7 @@ function LegacySidebar() {
           background: '#FEF2F2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 4px',
         }}>
-          <i className="bi bi-box-arrow-right" style={{ color: '#DC2626', fontSize: 22 }} />
+          <i className="bi bi-box-arrow-right" style={{ color: 'var(--g-error, #DC2626)', fontSize: 22 }} />
         </div>
         <p style={{ textAlign: 'center', color: 'var(--ck-text-soft)', margin: '8px 0 0' }}>
           Your session will end on this device.

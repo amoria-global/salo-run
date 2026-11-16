@@ -93,7 +93,7 @@ export const PaymentMethodPicker: React.FC<Props> = ({
         </button>
       </div>
 
-      {error && <p style={{ fontSize: '13px', color: '#ef4444', marginBottom: '10px' }}>{error}</p>}
+      {error && <p style={{ fontSize: '13px', color: 'var(--g-error, #ef4444)', marginBottom: '10px' }}>{error}</p>}
 
       <PaymentMethodChooser
         tone="light"

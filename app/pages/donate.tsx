@@ -523,7 +523,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
           border: `1px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard,
         }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <i className="bi bi-check-lg" style={{ fontSize: '28px', color: '#059669' }} />
+            <i className="bi bi-check-lg" style={{ fontSize: '28px', color: 'var(--g-success, #059669)' }} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: colors.textPrimary, marginBottom: '8px' }}>{tl('Thank You!')}</h3>
           <p style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: 1.5, marginBottom: '20px' }}>
@@ -545,7 +545,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
           border: `1px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard,
         }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <i className="bi bi-x-lg" style={{ fontSize: '24px', color: '#dc2626' }} />
+            <i className="bi bi-x-lg" style={{ fontSize: '24px', color: 'var(--g-error, #dc2626)' }} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: colors.textPrimary, marginBottom: '8px' }}>{tl('Payment Failed')}</h3>
           <p style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: 1.5, marginBottom: '20px' }}>

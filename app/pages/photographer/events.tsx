@@ -2274,8 +2274,8 @@ const PhotographerEventsPage = () => {
                           onOpen={() => { setSelectedEvent(event); setShowEventDetailModal(true); }}
                           actions={pending ? (
                             <>
-                              <button type="button" onClick={() => openBookingAction(event, 'accept')} style={{ ...small, color: '#10B981' }}><i className="bi bi-check2-circle" aria-hidden="true" /> Accept</button>
-                              <button type="button" onClick={() => openBookingAction(event, 'decline')} style={{ ...small, color: '#EF4444' }}><i className="bi bi-x-circle-fill" aria-hidden="true" /> Deny</button>
+                              <button type="button" onClick={() => openBookingAction(event, 'accept')} style={{ ...small, color: 'var(--g-success, #10B981)' }}><i className="bi bi-check2-circle" aria-hidden="true" /> Accept</button>
+                              <button type="button" onClick={() => openBookingAction(event, 'decline')} style={{ ...small, color: 'var(--g-error, #EF4444)' }}><i className="bi bi-x-circle-fill" aria-hidden="true" /> Deny</button>
                             </>
                           ) : (
                             <>
@@ -2289,7 +2289,7 @@ const PhotographerEventsPage = () => {
                                 <button type="button" onClick={() => { if (!event.isPublished) { setSelectedEvent(event); setShowUnpublishedModal(true); } else handleOpenCreateAlbum(event.id); }} style={{ ...small, color: 'var(--g-link, #7fa8ff)' }}><i className="bi bi-plus-circle-fill" aria-hidden="true" /> Create Album</button>
                               )}
                               {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && !canCreateAlbumForEvent(event.id) && eventHasAlbum(event.id).sent && (
-                                <span style={{ ...small, cursor: 'default', color: '#10B981' }}><i className="bi bi-send-check-fill" aria-hidden="true" /> Album Sent</span>
+                                <span style={{ ...small, cursor: 'default', color: 'var(--g-success, #10B981)' }}><i className="bi bi-send-check-fill" aria-hidden="true" /> Album Sent</span>
                               )}
                               {event.hasLiveStream && event.status === 'ongoing' && (
                                 <button type="button" onClick={() => setMarkCompleteTarget(event)} style={small}><i className="bi bi-check2-all" aria-hidden="true" /> Mark complete</button>
@@ -2313,7 +2313,7 @@ const PhotographerEventsPage = () => {
                 {/* Stats */}
                 <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginBottom: '1.25rem' }}>
                   {([
-                    { label: 'Total Albums', value: albums.length, accent: '#083A85', icon: 'bi-images', tint: 'rgba(8,58,133,0.10)' },
+                    { label: 'Total Albums', value: albums.length, accent: 'var(--g-link, #083A85)', icon: 'bi-images', tint: 'rgba(8,58,133,0.10)' },
                     { label: 'Shared', value: albums.filter(a => a.shared).length, accent: '#10B981', icon: 'bi-share-fill', tint: 'rgba(16,185,129,0.12)' },
                     { label: 'Total Photos', value: albums.reduce((s, a) => s + a.photoCount, 0), accent: '#F59E0B', icon: 'bi-camera-fill', tint: 'rgba(245,158,11,0.12)' },
                     { label: 'Total Views', value: albums.reduce((s, a) => s + a.views, 0), accent: '#F20C8F', icon: 'bi-eye-fill', tint: 'rgba(242,12,143,0.12)' },
@@ -2908,7 +2908,7 @@ const PhotographerEventsPage = () => {
                 {/* Stats */}
                 <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.85rem', marginBottom: '1.25rem' }}>
                   {([
-                    { label: 'Received Photobooks', value: receivedPhotobooks.length, accent: '#083A85', icon: 'bi-book-half', tint: 'rgba(8,58,133,0.10)' },
+                    { label: 'Received Photobooks', value: receivedPhotobooks.length, accent: 'var(--g-link, #083A85)', icon: 'bi-book-half', tint: 'rgba(8,58,133,0.10)' },
                     { label: 'Total Photos', value: receivedPhotobooks.reduce((s, pb) => s + pb.images.length, 0), accent: '#F59E0B', icon: 'bi-camera-fill', tint: 'rgba(245,158,11,0.12)' },
                     { label: 'Recent (7 days)', value: receivedPhotobooks.filter(pb => { const d = new Date(pb.sentAt || pb.createdAt); return (Date.now() - d.getTime()) < 7 * 24 * 60 * 60 * 1000; }).length, accent: '#10B981', icon: 'bi-clock-history', tint: 'rgba(16,185,129,0.12)' },
                   ] as const).map(stat => (
@@ -3124,7 +3124,7 @@ const PhotographerEventsPage = () => {
                                 borderRadius: 9,
                                 background: 'rgba(16,185,129,0.18)',
                                 border: '1px solid rgba(16,185,129,0.35)',
-                                color: '#10B981',
+                                color: 'var(--g-success, #10B981)',
                                 fontSize: '0.74rem', fontWeight: 700, letterSpacing: '-0.005em',
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                               }}>
@@ -3139,7 +3139,7 @@ const PhotographerEventsPage = () => {
                                 borderRadius: 9,
                                 background: 'rgba(16,185,129,0.18)',
                                 border: '1px solid rgba(16,185,129,0.35)',
-                                color: '#10B981',
+                                color: 'var(--g-success, #10B981)',
                                 fontSize: '0.74rem', fontWeight: 700, letterSpacing: '-0.005em',
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                               }}>
@@ -3776,7 +3776,7 @@ const PhotographerEventsPage = () => {
                   }} />
                   <i className="bi bi-info-circle-fill" style={{ fontSize: 14, color: '#8B5CF6', flexShrink: 0, marginLeft: 4 }} />
                   <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }} data-testid="sell-note">
-                    {sellPreset ? SELL_FORM_NOTE : (<>Personal albums can be <strong style={{ color: 'var(--g-link, #083A85)', fontWeight: 700 }}>PAID</strong> with facial recognition enabled, or <strong style={{ color: '#059669', fontWeight: 700 }}>FREE</strong> with private email access.</>)}
+                    {sellPreset ? SELL_FORM_NOTE : (<>Personal albums can be <strong style={{ color: 'var(--g-link, #083A85)', fontWeight: 700 }}>PAID</strong> with facial recognition enabled, or <strong style={{ color: 'var(--g-success, #059669)', fontWeight: 700 }}>FREE</strong> with private email access.</>)}
                   </span>
                 </div>
                 {/* Album Type Selector */}
@@ -3791,7 +3791,7 @@ const PhotographerEventsPage = () => {
             {/* Select Event (event mode only) */}
             {createAlbumMode === 'event' && (
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Select Event <span style={{ color: '#EF4444' }}>*</span></label>
+                <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Select Event <span style={{ color: 'var(--g-error, #EF4444)' }}>*</span></label>
                 <select value={createAlbumEventId} onChange={e => handleEventSelectForAlbum(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                   <option value="">Choose an event...</option>
                   {events.filter(e => (e.bookingStatus?.toUpperCase() === 'ACCEPTED' || e.status === 'completed') && canCreateAlbumForEvent(e.id)).map(e => <option key={e.id} value={e.id}>{e.title} - {formatDate(e.date)}</option>)}
@@ -3801,7 +3801,7 @@ const PhotographerEventsPage = () => {
             {(createAlbumMode === 'standalone' || createAlbumEventId) && (
               <>
                 <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Album Title <span style={{ color: '#EF4444' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Album Title <span style={{ color: 'var(--g-error, #EF4444)' }}>*</span></label>
                   <input value={albumTitle} onChange={e => { setAlbumTitle(e.target.value); if (sellErrors.title) setSellErrors(p => ({ ...p, title: undefined })); }} style={{ ...inputStyle, ...(sellErrors.title ? invalidFieldStyle(colors.statusError) : null) }} placeholder="Enter album title" {...invalidFieldProps('sell-title-error', sellErrors.title)} />
                   <FieldError id="sell-title-error" message={sellErrors.title} />
                 </div>
@@ -3872,7 +3872,7 @@ const PhotographerEventsPage = () => {
                 )}
                 {/* Image Upload */}
                 <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Upload Photos <span style={{ color: '#EF4444' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>Upload Photos <span style={{ color: 'var(--g-error, #EF4444)' }}>*</span></label>
                   <div style={{
                     border: `2px dashed ${actualTheme === 'dark' ? 'rgba(242,12,143,0.30)' : 'rgba(242,12,143,0.35)'}`,
                     borderRadius: 12,
@@ -4013,7 +4013,7 @@ const PhotographerEventsPage = () => {
               {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && albumSuccessModal.outcome?.state !== 'failed' && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.5rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Invite Code</div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#3B82F6', letterSpacing: '0.2em', fontFamily: 'monospace' }}>{albumSuccessModal.inviteCode}</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--g-link, #3B82F6)', letterSpacing: '0.2em', fontFamily: 'monospace' }}>{albumSuccessModal.inviteCode}</div>
                 </div>
               )}
               {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && albumSuccessModal.outcome?.state !== 'failed' && (
@@ -4038,7 +4038,7 @@ const PhotographerEventsPage = () => {
               {albumSuccessModal.type === 'free' && albumSuccessModal.accessCode && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.5rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Access Code</div>
-                  <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10B981', letterSpacing: '0.3em', fontFamily: 'monospace' }}>{albumSuccessModal.accessCode}</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--g-success, #10B981)', letterSpacing: '0.3em', fontFamily: 'monospace' }}>{albumSuccessModal.accessCode}</div>
                 </div>
               )}
               {/* Direct album link - same URL the invitation email uses,
@@ -4078,7 +4078,7 @@ const PhotographerEventsPage = () => {
                 marginBottom: '0.75rem',
                 textAlign: 'left',
               }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#EF4444', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: '0.4rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--g-error, #EF4444)', textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: '0.4rem' }}>
                   {albumSuccessModal.rejected.length} photo{albumSuccessModal.rejected.length === 1 ? '' : 's'} not uploaded (resolution too low)
                 </div>
                 <ul style={{ margin: 0, padding: '0 0 0 1rem', listStyle: 'disc' }}>
@@ -4645,7 +4645,7 @@ const PhotographerEventsPage = () => {
                     position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
                     background: 'linear-gradient(180deg, #10B981 0%, #059669 100%)',
                   }} />
-                  <i className="bi bi-shield-fill-check" style={{ fontSize: 14, color: '#10B981', marginLeft: 4 }} />
+                  <i className="bi bi-shield-fill-check" style={{ fontSize: 14, color: 'var(--g-success, #10B981)', marginLeft: 4 }} />
                   Album is live on Find-My-Photos
                 </div>
                 {selectedAlbum.inviteCode && (
@@ -4755,7 +4755,7 @@ const PhotographerEventsPage = () => {
                 {/* Price Per Image */}
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.45rem' }}>
-                    Price Per Image {selectedAlbum.isStandalone ? '(optional)' : <span style={{ color: '#EF4444' }}>*</span>}
+                    Price Per Image {selectedAlbum.isStandalone ? '(optional)' : <span style={{ color: 'var(--g-error, #EF4444)' }}>*</span>}
                   </label>
                   <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0 0 0.55rem 0' }}>{selectedAlbum.isStandalone ? 'Optionally set a price per photo. Leave empty for free downloads.' : 'Set the price users will pay to download each photo on Find-My-Photos.'}</p>
                   <MoneyInput
@@ -5191,7 +5191,7 @@ const PhotographerEventsPage = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#16A34A' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--g-success, #16A34A)' }}>
                   {photobookSelectedImages.length} of {selectedPhotobook.images.length} selected
                 </span>
                 <button
@@ -5202,7 +5202,7 @@ const PhotographerEventsPage = () => {
                       setPhotobookSelectedImages([...selectedPhotobook.images]);
                     }
                   }}
-                  style={{ padding: '0.375rem 0.75rem', borderRadius: '0.375rem', border: '1px solid #16A34A', backgroundColor: 'transparent', color: '#16A34A', fontSize: '0.8rem', fontWeight: '500', cursor: 'pointer' }}
+                  style={{ padding: '0.375rem 0.75rem', borderRadius: '0.375rem', border: '1px solid #16A34A', backgroundColor: 'transparent', color: 'var(--g-success, #16A34A)', fontSize: '0.8rem', fontWeight: '500', cursor: 'pointer' }}
                 >
                   {photobookSelectedImages.length === selectedPhotobook.images.length ? 'Deselect All' : 'Select All'}
                 </button>

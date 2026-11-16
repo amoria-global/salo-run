@@ -587,8 +587,8 @@ const Notifications = () => {
             {([
               { label: 'Total notifications', value: notifications.length, icon: 'bi-bell-fill', tint: 'rgba(8,58,133,0.10)', color: 'var(--g-link, #083A85)' },
               { label: 'Unread', value: unreadCount, icon: 'bi-circle-fill', tint: 'rgba(242,12,143,0.10)', color: '#F20C8F' },
-              { label: 'Payments', value: notifications.filter(n => n.type === 'payment').length, icon: 'bi-cash-coin', tint: 'rgba(16,185,129,0.10)', color: '#10B981' },
-              { label: 'Tips & bonuses', value: notifications.filter(n => n.type === 'tip' || n.type === 'bonus').length, icon: 'bi-gift-fill', tint: 'rgba(245,158,11,0.12)', color: '#F59E0B' },
+              { label: 'Payments', value: notifications.filter(n => n.type === 'payment').length, icon: 'bi-cash-coin', tint: 'rgba(16,185,129,0.10)', color: 'var(--g-success, #10B981)' },
+              { label: 'Tips & bonuses', value: notifications.filter(n => n.type === 'tip' || n.type === 'bonus').length, icon: 'bi-gift-fill', tint: 'rgba(245,158,11,0.12)', color: 'var(--g-warning, #F59E0B)' },
             ] as const).map((s) => (
               <div key={s.label} className="ck-card ck-card-hover" style={{ padding: 18, borderTop: `3px solid ${s.color}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -632,7 +632,7 @@ const Notifications = () => {
                     borderRadius: '0.5rem',
                     fontSize: '0.85rem',
                     fontWeight: '500',
-                    color: '#DC2626',
+                    color: 'var(--g-error, #DC2626)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -654,7 +654,7 @@ const Notifications = () => {
                     borderRadius: '0.5rem',
                     fontSize: '0.85rem',
                     fontWeight: '500',
-                    color: '#DC2626',
+                    color: 'var(--g-error, #DC2626)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',

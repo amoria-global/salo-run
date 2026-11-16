@@ -918,7 +918,7 @@ const PhotobookDetailPage: React.FC<PhotobookDetailPageProps> = ({ userRole }) =
                       justifyContent: 'center',
                       gap: '0.5rem',
                       backgroundColor: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2',
-                      color: '#EF4444',
+                      color: 'var(--g-error, #EF4444)',
                       border: `2px solid ${actualTheme === 'dark' ? '#EF444440' : '#EF444430'}`,
                       borderRadius: '0.5rem',
                       padding: '0.875rem 1.5rem',
@@ -1068,7 +1068,7 @@ const PhotobookDetailPage: React.FC<PhotobookDetailPageProps> = ({ userRole }) =
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 1rem',
-              color: '#EF4444',
+              color: 'var(--g-error, #EF4444)',
             }}>
               <TrashIcon />
             </div>

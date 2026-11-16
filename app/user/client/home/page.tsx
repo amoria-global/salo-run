@@ -1,5 +1,10 @@
-import react from 'react';
-import PhotographerDashboard from '@/app/pages/client/home';
+import ClientHome from '@/app/pages/client/home';
+import RoleHomeSwitch from '@/app/components/glass/home/RoleHomeSwitch';
+
 export default function Page() {
-  return <PhotographerDashboard />;
+  return (
+    <RoleHomeSwitch role="client">
+      <ClientHome />
+    </RoleHomeSwitch>
+  );
 }

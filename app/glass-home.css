@@ -53,6 +53,7 @@ html.ui-glass .gh-wallet-retry { background: none; border: none; color: #fff; te
 html.ui-glass .gh-overview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
 html.ui-glass .gh-range { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 0.8125rem; color: var(--g-text-soft); }
 html.ui-glass .gh-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+html.ui-glass .gh-kpis-auto { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 html.ui-glass .gh-kpi { padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 132px; }
 html.ui-glass .gh-kpi-head { display: flex; justify-content: space-between; align-items: center; font-size: 0.8125rem; color: var(--g-text-soft); }
 html.ui-glass .gh-kpi-icon { width: 28px; height: 28px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; }

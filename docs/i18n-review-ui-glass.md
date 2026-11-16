@@ -31,3 +31,11 @@ specific; weekday and month names come from the browser (Intl).
 | Expand sidebar | Développer la barre latérale | Expandir la barra lateral | Agura menyu y'uruhande | Panua menyu ya pembeni |
 
 Corrected in review: Kinyarwanda "amapaji" (anglicism) to "impapuro"; "Unavailable" aligned with the existing "Available" (Birahari / Ntibihari); "Main navigation" simplified in Kinyarwanda and Swahili; the existing Swahili "Tazama all" fixed to "Tazama zote"; "Collapse sidebar" and "Expand sidebar" were English in every language and are now translated.
+
+## Stage 2 and 3 additions (reviewed by Claude, same method as Stage 1)
+
+Home (photographer, client, coordinator): Events this month, New package, Compare goals, Host your own event, My hosted events,
+Could not load your balance, Choose a period, Pending payouts, No upcoming events, Nothing in the last 30 days, Payment pending,
+No change, vs previous period, Progress to goal, Not shared, We could not load this., Bookings in this period, goal sheet copy
+(Save goal, Stop comparing, New goal, Edit goal, Goal name, Earnings/Pending/Clients/Rating target, Earnings targets are in USD),
+chart empty state, Good night, Refunded, Searching…. The existing "Payment History" entry was corrected (it was word for word).

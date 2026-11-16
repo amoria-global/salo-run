@@ -713,7 +713,7 @@ const ClientGallery = () => {
           {/* Stats Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginBottom: '1.5rem' }}>
             {([
-              { label: 'Total albums', value: albums.length.toString(),  accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-images' },
+              { label: 'Total albums', value: albums.length.toString(),  accent: 'var(--g-link, #083A85)', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-images' },
               { label: 'Total photos', value: totalPhotos.toLocaleString(), accent: '#3B82F6', tint: 'rgba(59,130,246,0.12)', icon: 'bi-camera-fill' },
               { label: 'Downloaded',   value: totalDownloaded.toString(), accent: '#16A34A', tint: 'rgba(22,163,74,0.12)', icon: 'bi-download' },
               { label: 'Favorites',    value: totalFavorites.toString(),  accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-heart-fill' },
@@ -1188,7 +1188,7 @@ const ClientGallery = () => {
                           borderRadius: 10,
                           border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.32)' : '#FCA5A5'}`,
                           background: actualTheme === 'dark' ? 'rgba(220,38,38,0.12)' : '#FEF2F2',
-                          color: '#DC2626',
+                          color: 'var(--g-error, #DC2626)',
                           cursor: 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           transition: 'all 0.15s',
@@ -1587,7 +1587,7 @@ const ClientGallery = () => {
                 marginBottom: '1.25rem',
               }}>
                 {([
-                  { label: 'Photos',     value: selectedAlbum.photoCount,      accent: '#083A85', tint: 'rgba(8,58,133,0.10)',   icon: 'bi-images' },
+                  { label: 'Photos',     value: selectedAlbum.photoCount,      accent: 'var(--g-link, #083A85)', tint: 'rgba(8,58,133,0.10)',   icon: 'bi-images' },
                   { label: 'Downloaded', value: selectedAlbum.downloadedCount, accent: '#16A34A', tint: 'rgba(22,163,74,0.12)',  icon: 'bi-download' },
                   { label: 'Favorites',  value: selectedAlbum.favoriteCount,   accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-heart-fill' },
                 ] as const).map((stat) => (
@@ -3121,7 +3121,7 @@ const ClientGallery = () => {
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ color: '#16A34A', fontWeight: '600' }}>
+              <span style={{ color: 'var(--g-success, #16A34A)', fontWeight: '600' }}>
                 {selectedImagesForPhotobook.length} selected
               </span>
               <button
@@ -3169,7 +3169,7 @@ const ClientGallery = () => {
                 borderRadius: '0.375rem',
                 border: '1px solid #16A34A',
                 backgroundColor: 'transparent',
-                color: '#16A34A',
+                color: 'var(--g-success, #16A34A)',
                 fontSize: '0.8rem',
                 fontWeight: '500',
                 cursor: 'pointer'
@@ -3482,7 +3482,7 @@ const ClientGallery = () => {
                   borderRadius: '0.5rem',
                   border: '2px solid #DC2626',
                   backgroundColor: 'transparent',
-                  color: '#DC2626',
+                  color: 'var(--g-error, #DC2626)',
                   fontSize: '0.875rem',
                   fontWeight: '500',
                   cursor: 'pointer',

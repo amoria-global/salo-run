@@ -1032,7 +1032,7 @@ const InboxPage = () => {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  color: '#DC2626',
+                                  color: 'var(--g-error, #DC2626)',
                                   transition: 'all 0.2s'
                                 }}
                                 title="Delete message"
@@ -1544,7 +1544,7 @@ const InboxPage = () => {
                         {alreadyHasConvo && (
                           <span style={{
                             fontSize: '0.7rem',
-                            color: '#3B82F6',
+                            color: 'var(--g-link, #3B82F6)',
                             backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
                             padding: '0.15rem 0.5rem',
                             borderRadius: '9999px',

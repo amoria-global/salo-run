@@ -229,7 +229,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
         onChange={(value) => { setPhone(value); setError(''); }}
       />
       {error && (
-        <p style={{ marginTop: 8, marginBottom: 0, fontSize: '0.8rem', color: '#DC2626' }}>{error}</p>
+        <p style={{ marginTop: 8, marginBottom: 0, fontSize: '0.8rem', color: 'var(--g-error, #DC2626)' }}>{error}</p>
       )}
     </div>
   );
@@ -275,7 +275,7 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
         width: 56, height: 56, borderRadius: 9999, background: '#FEE2E2',
         display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px',
       }}>
-        <i className="bi bi-x-octagon-fill" style={{ fontSize: 28, color: '#DC2626' }} />
+        <i className="bi bi-x-octagon-fill" style={{ fontSize: 28, color: 'var(--g-error, #DC2626)' }} />
       </div>
       <p style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700, color: 'var(--ck-text)' }}>
         Payment didn&apos;t go through

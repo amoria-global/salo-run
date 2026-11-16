@@ -910,7 +910,7 @@ export default function Clients() {
                 helper?: string;
                 alert?: boolean;
               }> = [
-                { label: 'Total Clients',   value: String(clients.length),         accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-people-fill' },
+                { label: 'Total Clients',   value: String(clients.length),         accent: 'var(--g-link, #083A85)', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-people-fill' },
                 { label: 'Total Bookings',  value: String(totalBookingsCount),     accent: '#3B82F6', tint: 'rgba(59,130,246,0.12)', icon: 'bi-calendar-check-fill' },
                 { label: 'Total Earned',    value: formatPrice(totalEarnedAmt),    accent: '#10B981', tint: 'rgba(16,185,129,0.12)', icon: 'bi-cash-stack' },
                 { label: 'Tips',            value: formatPrice(totalTips),         accent: '#F59E0B', tint: 'rgba(245,158,11,0.12)', icon: 'bi-gift-fill', helper: 'From clients' },
@@ -1954,7 +1954,7 @@ export default function Clients() {
                                 flex: 1,
                                 padding: '0.625rem 1rem',
                                 backgroundColor: 'transparent',
-                                color: '#DC2626',
+                                color: 'var(--g-error, #DC2626)',
                                 border: '2px solid #DC2626',
                                 borderRadius: '0.5rem',
                                 fontSize: '0.85rem',
@@ -2648,7 +2648,7 @@ export default function Clients() {
             </div>
             <div style={{ textAlign: 'center', marginBottom: '1.1rem' }}>
               <div style={{
-                fontSize: '0.66rem', fontWeight: 700, color: '#DC2626',
+                fontSize: '0.66rem', fontWeight: 700, color: 'var(--g-error, #DC2626)',
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 marginBottom: 4,
               }}>Remove client</div>
@@ -2701,7 +2701,7 @@ export default function Clients() {
                   {deleteConfirmClient.firstName} {deleteConfirmClient.lastName}
                 </p>
                 <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '2px 0 0', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 10, color: '#DC2626' }} />
+                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 10, color: 'var(--g-error, #DC2626)' }} />
                   {deleteConfirmClient.totalBookings} booking{deleteConfirmClient.totalBookings !== 1 ? 's' : ''}
                 </p>
               </div>

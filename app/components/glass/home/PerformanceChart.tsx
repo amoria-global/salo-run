@@ -21,7 +21,7 @@ const niceMax = (v: number) => {
 };
 const compact = (v: number) => new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(v);
 
-export default function PerformanceChart({ points, moneyHidden }: { points: PerfPoint[]; moneyHidden?: boolean }) {
+export default function PerformanceChart({ points, moneyHidden, moneyLabel = 'Earnings', countLabel = 'Bookings' }: { points: PerfPoint[]; moneyHidden?: boolean; moneyLabel?: string; countLabel?: string }) {
   const { t } = useLanguage();
   const { priceParts } = useCurrency();
   const box = useRef<HTMLDivElement>(null);
@@ -129,12 +129,12 @@ export default function PerformanceChart({ points, moneyHidden }: { points: Perf
           <div style={{ color: 'var(--g-text-muted)', fontSize: '0.75rem' }}>{tip.label}</div>
           {!moneyHidden && (
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-              <span>{t('Earnings')}</span>
+              <span>{t(moneyLabel)}</span>
               <strong className="g-num">{tip.e.tight ? `${tip.e.prefix}${tip.e.text}` : `${tip.e.prefix} ${tip.e.text}`}</strong>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-            <span>{t('Bookings')}</span><strong className="g-num">{tip.b}</strong>
+            <span>{t(countLabel)}</span><strong className="g-num">{tip.b}</strong>
           </div>
         </div>
       )}

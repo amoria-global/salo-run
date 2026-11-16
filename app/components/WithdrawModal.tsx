@@ -432,7 +432,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
               <div style={{ width: 72, height: 72, borderRadius: 20, background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.1rem', boxShadow: '0 12px 28px rgba(16,185,129,0.40)' }}>
                 <i className="bi bi-check2" style={{ fontSize: 32, color: '#fff' }} />
               </div>
-              <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#10B981', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Withdrawal submitted</div>
+              <div style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--g-success, #10B981)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Withdrawal submitted</div>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>Request received</h3>
               <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, marginBottom: '1.4rem', maxWidth: 360, margin: '0 auto 1.4rem' }}>The amount is set aside from your balance. Our team reviews each withdrawal before it is paid out to your account, and you will be notified when it is sent.</p>
               <button onClick={onClose} style={{
@@ -596,14 +596,14 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                       <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
                         Fee ({feePreview.feePercentage}%{feePreview.additionalCharge > 0 ? ' + flat' : ''})
                       </span>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#D97706' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--g-warning, #D97706)' }}>
                         -{fmtFromUsd(feePreview.totalFee)}
                       </span>
                     </div>
                   )}
                   <div style={{ borderTop: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}`, paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textPrimary }}>You receive</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#059669' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--g-success, #059669)' }}>
                       {fmtFromUsd(feePreview.netAmount)}
                     </span>
                   </div>

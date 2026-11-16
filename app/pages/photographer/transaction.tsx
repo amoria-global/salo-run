@@ -268,16 +268,16 @@ Transaction Summary:
                 <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary }}>{reportData.totalTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#10B981' }}>Completed</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#10B981' }}>{reportData.completedTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-success, #10B981)' }}>Completed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-success, #10B981)' }}>{reportData.completedTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#F59E0B' }}>Pending</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#F59E0B' }}>{reportData.pendingTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-warning, #F59E0B)' }}>Pending</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-warning, #F59E0B)' }}>{reportData.pendingTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#3B82F6' }}>Withdrawn</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#3B82F6' }}>{reportData.withdrawnTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-link, #3B82F6)' }}>Withdrawn</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-link, #3B82F6)' }}>{reportData.withdrawnTransactions}</span>
               </div>
             </div>
           </div>
@@ -1444,7 +1444,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#16A34A', letterSpacing: '-0.02em', lineHeight: 1.05 }}>{formatPrice(totalTips)}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--g-success, #16A34A)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>{formatPrice(totalTips)}</div>
                   <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 2, fontWeight: 500 }}>{tipsData.length} tip{tipsData.length === 1 ? '' : 's'} received</div>
                 </div>
               </div>
@@ -1455,7 +1455,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                   <span style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Recent tips</span>
                   <button
                     onClick={() => setShowTipsModal(true)}
-                    style={{ fontSize: '0.78rem', color: '#16A34A', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    style={{ fontSize: '0.78rem', color: 'var(--g-success, #16A34A)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
                     View all <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
                   </button>
@@ -1479,7 +1479,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                         <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{tip.eventName} • {tip.date}</div>
                         {tip.message && <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', fontStyle: 'italic', marginTop: '0.15rem' }}>&ldquo;{tip.message}&rdquo;</div>}
                       </div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16A34A', flexShrink: 0, marginLeft: 8 }}>+${tip.amount}</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--g-success, #16A34A)', flexShrink: 0, marginLeft: 8 }}>+${tip.amount}</div>
                     </div>
                   ))}
                 </div>
@@ -1583,7 +1583,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <div style={{ padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(22,163,74,0.12)' : '#F0FDF4', borderRadius: 9, border: `1px solid ${actualTheme === 'dark' ? 'rgba(22,163,74,0.30)' : '#BBF7D0'}` }}>
                     <div style={{ fontSize: '0.66rem', fontWeight: 700, color: actualTheme === 'dark' ? '#4ADE80' : '#166534', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>Completed events</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#16A34A', letterSpacing: '-0.01em' }}>{completedEventsCount}</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--g-success, #16A34A)', letterSpacing: '-0.01em' }}>{completedEventsCount}</div>
                   </div>
                   {!bonusReached && (
                     <div style={{ padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : '#EFF6FF', borderRadius: 9, border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.45)' : '#BFDBFE'}` }}>
@@ -1946,7 +1946,7 @@ Amount: ${formatPrice(transaction.amountNum)}
             border: '1px solid #BBF7D0',
             marginBottom: '1.25rem'
           }}>
-            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalTips)}</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--g-success, #16A34A)' }}>{formatPrice(totalTips)}</div>
             <div style={{ fontSize: '0.85rem', color: '#166534' }}>Total Tips Received</div>
             <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{tipsData.length} tips from clients</div>
           </div>
@@ -1975,7 +1975,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                       }}>TIP</span>
                       <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{tip.date}</span>
                     </div>
-                    <span style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>+${tip.amount}</span>
+                    <span style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--g-success, #16A34A)' }}>+${tip.amount}</span>
                   </div>
                   <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>{tip.clientName}</div>
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{tip.eventName}</div>

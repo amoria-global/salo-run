@@ -164,7 +164,7 @@ export default function OtpInput({
       </div>
 
       {error ? (
-        <div id={`${id}-error`} role="alert" aria-live="assertive" style={{ fontSize: '0.82rem', color: '#DC2626', textAlign: 'center' }}>
+        <div id={`${id}-error`} role="alert" aria-live="assertive" style={{ fontSize: '0.82rem', color: 'var(--g-error, #DC2626)', textAlign: 'center' }}>
           {error}
         </div>
       ) : null}

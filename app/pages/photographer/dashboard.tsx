@@ -198,12 +198,14 @@ const PhotographerDashboard = () => {
   const { canHost, caption: hostedCaption } = useHostEntry();
   const router = useRouter();
 
-  // Redirect pending/rejected photographers to their profile page
+  // Redirect pending/rejected photographers to their profile page. Inside someone else's workspace the review status
+  // that matters is the owner's, not the viewer's own, and the profile page is not part of a shared workspace (it
+  // would only bounce back), so a collaborator lands on the owner's Home.
   useEffect(() => {
-    if (user && user.profileReviewStatus?.toUpperCase() !== 'ACCEPTED') {
+    if (!isShared && user && user.profileReviewStatus?.toUpperCase() !== 'ACCEPTED') {
       router.replace('/user/photographer/profile');
     }
-  }, [user, router]);
+  }, [user, router, isShared]);
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
@@ -1844,7 +1846,7 @@ const PhotographerDashboard = () => {
                   {([
                     { key: 'targetEarnings', label: 'Target earnings *', placeholder: 'e.g., $5,000', icon: 'bi-cash-stack', accent: '#10B981' },
                     { key: 'targetPending',  label: 'Target pending',    placeholder: 'e.g., $500',   icon: 'bi-hourglass-split', accent: '#F59E0B' },
-                    { key: 'targetClients',  label: 'Target clients',    placeholder: 'e.g., 10',     icon: 'bi-people-fill', accent: '#083A85' },
+                    { key: 'targetClients',  label: 'Target clients',    placeholder: 'e.g., 10',     icon: 'bi-people-fill', accent: 'var(--g-link, #083A85)' },
                     { key: 'targetBonuses',  label: 'Target bonuses',    placeholder: 'e.g., $100',   icon: 'bi-award-fill', accent: '#16A34A' },
                     { key: 'targetRatings',  label: 'Target ratings',    placeholder: 'e.g., 4.5/5',  icon: 'bi-star-fill', accent: '#F59E0B' },
                   ] as const).map((field) => (
