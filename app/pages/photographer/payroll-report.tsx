@@ -237,7 +237,7 @@ const PayrollReport = () => {
                 <h1 style={{
                   fontSize: '1.875rem',
                   fontWeight: '700',
-                  color: '#083A85',
+                  color: 'var(--g-link, #083A85)',
                   margin: 0
                 }}>Payroll Report</h1>
                 <p style={{
@@ -296,7 +296,7 @@ const PayrollReport = () => {
                   <div style={{
                     fontSize: '1.5rem',
                     fontWeight: '700',
-                    color: '#065F46'
+                    color: 'var(--g-success, #065F46)'
                   }}>{formatPrice(payrollData.paid)}</div>
                   <div style={{
                     marginTop: '0.5rem',
@@ -324,7 +324,7 @@ const PayrollReport = () => {
                   <div style={{
                     fontSize: '1.5rem',
                     fontWeight: '700',
-                    color: '#92400E'
+                    color: 'var(--g-warning, #92400E)'
                   }}>{formatPrice(payrollData.pending)}</div>
                   <div style={{
                     marginTop: '0.5rem',

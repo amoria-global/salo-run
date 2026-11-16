@@ -46,7 +46,7 @@ export default function GlassHome() {
   const { user } = useDashboardAuth();
   const { isShared, isCollaborator } = useWorkspace();
   const { hasPermission } = usePermissions();
-  const { canHost, caption: hostedCaption } = useHostEntry();
+  const { canHost, caption: hostedCaption, loaded: hostLoaded } = useHostEntry();
   const router = useRouter();
 
   // Same rule as the old Home: a photographer whose profile is not accepted is sent to the profile page. In someone
@@ -116,6 +116,7 @@ export default function GlassHome() {
               )}
             </div>
           </div>
+          {!hostLoaded && !isShared && <div className="gh-tiles gh-tiles-wait" aria-hidden><div className="g-skeleton" /><div className="g-skeleton" /></div>}
           {canHost && !isShared && (
             <div className="gh-tiles">
               <Link href={`${P}/host?new=1`} className="gh-tile gh-tile-live">

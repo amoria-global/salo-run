@@ -651,7 +651,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                       </span>
                     ) : (
                       <button onClick={handleResendOtp} disabled={isResending} style={{
-                        fontSize: '0.8rem', color: '#083A85', background: 'none', border: 'none',
+                        fontSize: '0.8rem', color: 'var(--g-link, #083A85)', background: 'none', border: 'none',
                         cursor: isResending ? 'not-allowed' : 'pointer', textDecoration: 'underline',
                         fontWeight: '500', opacity: isResending ? 0.6 : 1,
                       }}>{isResending ? 'Sending…' : 'Send a new code to my email'}</button>
@@ -1045,7 +1045,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                 <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
                 Manage your payment accounts in <span
                   onClick={() => { onClose(); window.location.href = prefsPath; }}
-                  style={{ color: '#083A85', fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>
+                  style={{ color: 'var(--g-link, #083A85)', fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>
                   Preferences → Payment Accounts
                 </span>
               </p>

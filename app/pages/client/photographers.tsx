@@ -1451,7 +1451,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 border: '1px solid var(--ck-stroke)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <i className="bi bi-camera2" style={{ fontSize: 26, color: '#083A85' }} />
+                <i className="bi bi-camera2" style={{ fontSize: 26, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>No photographers found</div>
@@ -1824,7 +1824,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                           <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
                             {photographer.location.city}, {photographer.location.country}
                           </span>
-                          <span style={{ color: '#D1D5DB', margin: '0 0.5rem' }}>•</span>
+                          <span style={{ color: 'var(--g-text-muted, #D1D5DB)', margin: '0 0.5rem' }}>•</span>
                           <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Last: {formatDate(photographer.lastBookingDate)}</span>
                         </div>
                         <div style={{ fontSize: '0.85rem', color: colors.textPrimary, marginTop: '0.25rem' }}>
@@ -2349,7 +2349,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     justifyContent: 'center',
                     gap: 8,
                     background: 'transparent',
-                    color: '#083A85',
+                    color: 'var(--g-link, #083A85)',
                     border: `1.5px solid rgba(8,58,133,0.40)`,
                     borderRadius: 11,
                     padding: '0.75rem 1rem',

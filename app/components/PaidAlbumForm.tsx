@@ -93,7 +93,7 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
           borderRadius: '0.4rem',
         }}
       >
-        <div style={{ fontSize: '0.7rem', color: '#92400e', lineHeight: 1.4 }}>
+        <div style={{ fontSize: '0.7rem', color: 'var(--g-warning, #92400E)', lineHeight: 1.4 }}>
           <strong>Commission:</strong> You receive 70% of each photo sale. Platform takes 30%.
           {pricePerImage && !isNaN(parseFloat(pricePerImage)) && (
             <>

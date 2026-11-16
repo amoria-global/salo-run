@@ -1364,7 +1364,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               background: 'rgba(8,58,133,0.10)',
               border: '1px solid rgba(8,58,133,0.25)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, color: '#083A85',
+              flexShrink: 0, color: 'var(--g-link, #083A85)',
             }}>
               <ShieldIcon />
             </div>
@@ -2099,7 +2099,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                             padding: '0.6rem 0.85rem', marginBottom: '0.75rem',
                             borderRadius: '0.5rem',
                             background: '#ECFDF5', border: '1px solid #A7F3D0',
-                            color: '#065F46', fontSize: '0.82rem',
+                            color: 'var(--g-success, #065F46)', fontSize: '0.82rem',
                             display: 'flex', gap: '0.5rem', alignItems: 'center',
                           }}>
                             <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>&#10003;</span>

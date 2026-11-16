@@ -2286,7 +2286,7 @@ const PhotographerEventsPage = () => {
                                 <button type="button" onClick={() => { setSelectedEvent(event); if (!event.isPublished) setShowUnpublishedModal(true); else setShowStreamPreview(true); }} style={{ ...small, color: isLive ? '#EF4444' : '#A78BFA' }}><i className="bi bi-broadcast-pin" aria-hidden="true" /> {isLive ? 'LIVE' : 'Live Stream'}</button>
                               )}
                               {canCreateEvents && (event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
-                                <button type="button" onClick={() => { if (!event.isPublished) { setSelectedEvent(event); setShowUnpublishedModal(true); } else handleOpenCreateAlbum(event.id); }} style={{ ...small, color: '#7fa8ff' }}><i className="bi bi-plus-circle-fill" aria-hidden="true" /> Create Album</button>
+                                <button type="button" onClick={() => { if (!event.isPublished) { setSelectedEvent(event); setShowUnpublishedModal(true); } else handleOpenCreateAlbum(event.id); }} style={{ ...small, color: 'var(--g-link, #7fa8ff)' }}><i className="bi bi-plus-circle-fill" aria-hidden="true" /> Create Album</button>
                               )}
                               {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && !canCreateAlbumForEvent(event.id) && eventHasAlbum(event.id).sent && (
                                 <span style={{ ...small, cursor: 'default', color: '#10B981' }}><i className="bi bi-send-check-fill" aria-hidden="true" /> Album Sent</span>
@@ -2889,7 +2889,7 @@ const PhotographerEventsPage = () => {
                       border: '1px solid var(--ck-stroke)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <i className="bi bi-images" style={{ fontSize: 26, color: '#083A85' }} />
+                      <i className="bi bi-images" style={{ fontSize: 26, color: 'var(--g-link, #083A85)' }} />
                     </div>
                     <div>
                       <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>No albums found</div>
@@ -3211,7 +3211,7 @@ const PhotographerEventsPage = () => {
                       border: '1px solid var(--ck-stroke)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <i className="bi bi-book" style={{ fontSize: 26, color: '#083A85' }} />
+                      <i className="bi bi-book" style={{ fontSize: 26, color: 'var(--g-link, #083A85)' }} />
                     </div>
                     <div>
                       <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>
@@ -3330,7 +3330,7 @@ const PhotographerEventsPage = () => {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <i className={`bi ${item.icon}`} style={{ fontSize: 12, color: '#083A85' }} />
+                    <i className={`bi ${item.icon}`} style={{ fontSize: 12, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{item.label}</div>
@@ -3776,7 +3776,7 @@ const PhotographerEventsPage = () => {
                   }} />
                   <i className="bi bi-info-circle-fill" style={{ fontSize: 14, color: '#8B5CF6', flexShrink: 0, marginLeft: 4 }} />
                   <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }} data-testid="sell-note">
-                    {sellPreset ? SELL_FORM_NOTE : (<>Personal albums can be <strong style={{ color: '#083A85', fontWeight: 700 }}>PAID</strong> with facial recognition enabled, or <strong style={{ color: '#059669', fontWeight: 700 }}>FREE</strong> with private email access.</>)}
+                    {sellPreset ? SELL_FORM_NOTE : (<>Personal albums can be <strong style={{ color: 'var(--g-link, #083A85)', fontWeight: 700 }}>PAID</strong> with facial recognition enabled, or <strong style={{ color: '#059669', fontWeight: 700 }}>FREE</strong> with private email access.</>)}
                   </span>
                 </div>
                 {/* Album Type Selector */}
@@ -4662,7 +4662,7 @@ const PhotographerEventsPage = () => {
                           background: actualTheme === 'dark'
                             ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.10) 100%)'
                             : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)',
-                          color: '#083A85',
+                          color: 'var(--g-link, #083A85)',
                           WebkitBackgroundClip: 'padding-box',
                           backgroundClip: 'padding-box',
                           padding: '0.85rem 1rem',
@@ -4706,7 +4706,7 @@ const PhotographerEventsPage = () => {
                         background: actualTheme === 'dark'
                           ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.10) 100%)'
                           : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)',
-                        color: '#083A85',
+                        color: 'var(--g-link, #083A85)',
                         padding: '0.85rem 1rem',
                       }} />
                       <button onClick={() => handleCopyInviteCode(selectedAlbum.inviteCode!)} style={{

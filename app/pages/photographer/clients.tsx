@@ -1052,7 +1052,7 @@ export default function Clients() {
                 border: '1px solid var(--ck-stroke)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <i className="bi bi-people" style={{ fontSize: 26, color: '#083A85' }} />
+                <i className="bi bi-people" style={{ fontSize: 26, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>No clients found</div>
@@ -2090,7 +2090,7 @@ export default function Clients() {
                     border: '1px solid rgba(8,58,133,0.18)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <i className={`bi ${stat.icon}`} style={{ fontSize: 11, color: '#083A85' }} />
+                    <i className={`bi ${stat.icon}`} style={{ fontSize: 11, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <p style={{
                     fontSize: stat.small ? '0.88rem' : '1.15rem',
@@ -2164,7 +2164,7 @@ export default function Clients() {
                     border: '1px solid rgba(8,58,133,0.16)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <i className="bi bi-chat-square-text" style={{ fontSize: 13, color: '#083A85' }} />
+                    <i className="bi bi-chat-square-text" style={{ fontSize: 13, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, fontStyle: 'italic' }}>
                     This client has not left a review yet
@@ -2202,7 +2202,7 @@ export default function Clients() {
                       border: '1px solid rgba(8,58,133,0.18)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                      <i className={`bi ${row.icon}`} style={{ fontSize: 11, color: '#083A85' }} />
+                      <i className={`bi ${row.icon}`} style={{ fontSize: 11, color: 'var(--g-link, #083A85)' }} />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{row.label}</div>
@@ -2583,7 +2583,7 @@ export default function Clients() {
                     border: '1px solid rgba(8,58,133,0.16)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <i className="bi bi-gift" style={{ fontSize: 18, color: '#083A85' }} />
+                    <i className="bi bi-gift" style={{ fontSize: 18, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <p style={{ fontSize: '0.9rem', color: colors.textPrimary, margin: 0, fontWeight: 700, letterSpacing: '-0.005em' }}>
                     No tips from this client yet

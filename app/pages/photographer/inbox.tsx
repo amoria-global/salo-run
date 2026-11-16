@@ -1054,7 +1054,7 @@ const InboxPage = () => {
                               }}>
                                 <div style={{
                                   fontSize: '0.7rem',
-                                  color: '#083A85',
+                                  color: 'var(--g-link, #083A85)',
                                   fontWeight: '600',
                                   marginBottom: '0.375rem',
                                   textTransform: 'uppercase',
@@ -1132,7 +1132,7 @@ const InboxPage = () => {
                               gap: '0.25rem',
                               marginTop: '0.25rem'
                             }}>
-                              <span style={{ fontSize: '0.7rem', color: '#9CA3AF' }}>{formatMessageTime(message.createdAt)}</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--g-text-muted, #9CA3AF)' }}>{formatMessageTime(message.createdAt)}</span>
                               {isOwn && (message.isRead ? <CheckDoubleIcon /> : <CheckIcon />)}
                             </div>
                           </div>

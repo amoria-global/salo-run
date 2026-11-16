@@ -1273,7 +1273,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       }}>
                         <div style={{
                           backgroundColor: '#FCD34D',
-                          color: '#92400E',
+                          color: 'var(--g-warning, #92400E)',
                           padding: '0.25rem 0.5rem',
                           borderRadius: '0.375rem',
                           fontSize: '0.7rem',
@@ -1343,7 +1343,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       paddingTop: '0.75rem',
                       borderTop: '1px solid #F3F4F6'
                     }}>
-                      <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>{photo.date}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--g-text-muted, #9CA3AF)' }}>{photo.date}</span>
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1792,7 +1792,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               textAlign: 'center',
               border: `1px solid ${colors.borderPrimary}`
             }}>
-              <i className="bi bi-images" style={{ fontSize: '4rem', color: '#D1D5DB', marginBottom: '1rem' }}></i>
+              <i className="bi bi-images" style={{ fontSize: '4rem', color: 'var(--g-text-muted, #D1D5DB)', marginBottom: '1rem' }}></i>
               <h3 style={{
                 fontSize: '1.25rem',
                 fontWeight: '600',
@@ -1814,7 +1814,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               textAlign: 'center',
               border: `1px solid ${colors.borderPrimary}`
             }}>
-              <i className="bi bi-images" style={{ fontSize: '4rem', color: '#D1D5DB', marginBottom: '1rem' }}></i>
+              <i className="bi bi-images" style={{ fontSize: '4rem', color: 'var(--g-text-muted, #D1D5DB)', marginBottom: '1rem' }}></i>
               <h3 style={{
                 fontSize: '1.25rem',
                 fontWeight: '600',
@@ -2321,7 +2321,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   top: '1rem',
                   left: '1rem',
                   backgroundColor: '#FCD34D',
-                  color: '#92400E',
+                  color: 'var(--g-warning, #92400E)',
                   padding: '0.375rem 0.75rem',
                   borderRadius: '0.5rem',
                   fontSize: '0.8rem',

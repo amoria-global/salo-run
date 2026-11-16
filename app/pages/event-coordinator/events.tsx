@@ -2361,7 +2361,7 @@ const MyEventsPage = () => {
           <div id={eventFieldId('cover')} style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-camera-fill" style={{ fontSize: 13, color: '#083A85' }} />
+                <i className="bi bi-camera-fill" style={{ fontSize: 13, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Visuals</div>
@@ -2675,7 +2675,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-file-text-fill" style={{ fontSize: 13, color: '#083A85' }} />
+                <i className="bi bi-file-text-fill" style={{ fontSize: 13, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>About</div>
@@ -2721,7 +2721,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-camera2" style={{ fontSize: 14, color: '#083A85' }} />
+                <i className="bi bi-camera2" style={{ fontSize: 14, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Coverage</div>
@@ -2894,7 +2894,7 @@ const MyEventsPage = () => {
                         <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem' }}>
                           {pkg.packageName}
                         </div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85', marginBottom: '0.25rem' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--g-link, #083A85)', marginBottom: '0.25rem' }}>
                           {formatPrice(pkg.price, pkg.currencyAbbreviation || undefined)}
                         </div>
                         {pkg.durationHours > 0 && (
@@ -3517,7 +3517,7 @@ const MyEventsPage = () => {
                 { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
                 { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Join ${title} event stream`)}` },
                 { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(`Join ${title} Event Stream`)}&body=${encodeURIComponent(`You're invited to join the ${title} event stream: ${link}`)}` },
-                { name: 'Copy Link', icon: <LinkIcon />, color: '#083A85', getUrl: () => '' },
+                { name: 'Copy Link', icon: <LinkIcon />, color: 'var(--g-link, #083A85)', getUrl: () => '' },
                 { name: 'QR Code', icon: <QRCodeIcon />, color: '#F20C8F', getUrl: () => '' }
               ].map((option) => {
                 const isCopyActive = option.name === 'Copy Link' && copiedLink;
@@ -3863,7 +3863,7 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
                 <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <i className="bi bi-camera-fill" style={{ fontSize: 13, color: '#083A85' }} />
+                  <i className="bi bi-camera-fill" style={{ fontSize: 13, color: 'var(--g-link, #083A85)' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Visuals</div>

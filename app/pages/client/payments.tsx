@@ -1623,7 +1623,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       {/* Frame label */}
-      <div style={{ fontSize: '0.75rem', color: '#D1D5DB', marginBottom: '0.5rem' }}>Spending Trend</div>
+      <div style={{ fontSize: '0.75rem', color: 'var(--g-text-muted, #D1D5DB)', marginBottom: '0.5rem' }}>Spending Trend</div>
 
       <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
         <svg width="100%" height={height} viewBox={`0 0 ${chartWidth} ${height}`} preserveAspectRatio="none">
@@ -1681,7 +1681,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
           {data.map((item, index) => (
             <span key={index} style={{
               fontSize: '0.75rem',
-              color: '#9CA3AF',
+              color: 'var(--g-text-muted, #9CA3AF)',
               fontWeight: '500',
               minWidth: '45px',
               textAlign: 'center'
@@ -1704,8 +1704,10 @@ interface PaymentGaugeProps {
 const PaymentGauge: React.FC<PaymentGaugeProps> = ({ paid, pending, failed }) => {
   const { colors } = useTheme();
   const total = paid + pending + failed;
-  const paidAngle = (paid / total) * 180;
-  const pendingAngle = (pending / total) * 180;
+  // No payments yet: total is 0, and 0 / 0 made every arc NaN (an invalid path in the console). Draw an empty track.
+  const empty = !(total > 0);
+  const paidAngle = empty ? 0 : (paid / total) * 180;
+  const pendingAngle = empty ? 0 : (pending / total) * 180;
 
   const createArc = (startAngle: number, endAngle: number, color: string) => {
     const radius = 70;
@@ -1734,9 +1736,13 @@ const PaymentGauge: React.FC<PaymentGaugeProps> = ({ paid, pending, failed }) =>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <svg width="160" height="90" viewBox="0 0 160 90">
-        {createArc(0, paidAngle, '#10B981')}
-        {createArc(paidAngle, paidAngle + pendingAngle, '#FBBF24')}
-        {createArc(paidAngle + pendingAngle, 180, '#EF4444')}
+        {empty ? createArc(0, 180, 'var(--g-border, #E5E7EB)') : (
+          <>
+            {createArc(0, paidAngle, '#10B981')}
+            {createArc(paidAngle, paidAngle + pendingAngle, '#FBBF24')}
+            {createArc(paidAngle + pendingAngle, 180, '#EF4444')}
+          </>
+        )}
       </svg>
     </div>
   );
@@ -3317,7 +3323,7 @@ Amount: ${formatPrice(payment.amountNum)}
                     {'logo' in m && m.logo && 'src' in m.logo ? (
                       <Image src={m.logo.src} alt={m.title} width={46} height={46} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                     ) : (
-                      <i className={`bi ${(m.logo as { icon: string }).icon}`} style={{ fontSize: 22, color: '#083A85' }} />
+                      <i className={`bi ${(m.logo as { icon: string }).icon}`} style={{ fontSize: 22, color: 'var(--g-link, #083A85)' }} />
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>

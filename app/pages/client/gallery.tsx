@@ -990,7 +990,7 @@ const ClientGallery = () => {
                 border: '1px solid var(--ck-stroke)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <i className="bi bi-images" style={{ fontSize: 26, color: '#083A85' }} />
+                <i className="bi bi-images" style={{ fontSize: 26, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>
@@ -1488,7 +1488,7 @@ const ClientGallery = () => {
                     background: 'rgba(8,58,133,0.10)',
                     border: '1px solid rgba(8,58,133,0.25)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0, color: '#083A85',
+                    flexShrink: 0, color: 'var(--g-link, #083A85)',
                   }}>
                     <i className="bi bi-images" style={{ fontSize: 17 }} />
                   </div>
@@ -1816,7 +1816,7 @@ const ClientGallery = () => {
                   { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
                   { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(title)}` },
                   { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out this album: ${link}`)}` },
-                  { name: 'Copy Link', icon: <LinkIcon />, color: '#083A85', getUrl: () => '' },
+                  { name: 'Copy Link', icon: <LinkIcon />, color: 'var(--g-link, #083A85)', getUrl: () => '' },
                   { name: 'QR Code', icon: <QRCodeIcon />, color: '#F20C8F', getUrl: () => '' }
                 ].map((option) => {
                   const isCopyActive = option.name === 'Copy Link' && copiedLink;

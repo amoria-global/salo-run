@@ -19,11 +19,12 @@ html.ui-glass .gh-link:hover { text-decoration: underline; }
 /* Hero + wallet */
 html.ui-glass .gh-top { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 16px; }
 html.ui-glass .gh-top-solo { grid-template-columns: minmax(0, 1fr); }
-html.ui-glass .gh-hero { padding: 22px 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 300px); gap: 20px;
+html.ui-glass .gh-hero { min-height: 196px; padding: 22px 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 300px); gap: 20px;
   background: var(--g-wash), linear-gradient(180deg, var(--g-glass-top), var(--g-glass-bottom)); }
 html.ui-glass .gh-hero-text { min-width: 0; }
 html.ui-glass .gh-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 html.ui-glass .gh-tiles { display: grid; gap: 10px; align-content: center; }
+html.ui-glass .gh-tiles-wait > div { height: 60px; border-radius: 16px; }
 html.ui-glass .gh-tile { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; text-decoration: none;
   color: var(--g-text); border: 1px solid var(--g-stroke); min-width: 0; }
 html.ui-glass .gh-tile-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }

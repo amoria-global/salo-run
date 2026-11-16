@@ -1821,7 +1821,7 @@ const PhotographerDashboard = () => {
                     border: '1px solid rgba(8,58,133,0.22)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
-                    <i className="bi bi-graph-up-arrow" style={{ fontSize: 13, color: '#083A85' }} />
+                    <i className="bi bi-graph-up-arrow" style={{ fontSize: 13, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <div>
                     <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>

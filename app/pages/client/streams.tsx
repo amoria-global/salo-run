@@ -901,7 +901,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                 border: '1px solid var(--ck-stroke)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <i className="bi bi-broadcast-pin" style={{ fontSize: 26, color: '#083A85' }} />
+                <i className="bi bi-broadcast-pin" style={{ fontSize: 26, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>
@@ -1120,7 +1120,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                       @{selectedVideo.viewerUsername}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#9CA3AF', fontSize: '0.8rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--g-text-muted, #9CA3AF)', fontSize: '0.8rem' }}>
                     <span>{selectedVideo.duration}</span>
                     <span>{selectedVideo.time}</span>
                   </div>

@@ -1327,7 +1327,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
             padding: '1.25rem',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <div style={{ color: '#083A85' }}><CameraIcon /></div>
+              <div style={{ color: 'var(--g-link, #083A85)' }}><CameraIcon /></div>
               <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Photographer</h3>
             </div>
 
@@ -1504,7 +1504,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   border: '1.5px solid rgba(8,58,133,0.15)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#083A85', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--g-link, #083A85)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       Photographer Matching Active
                     </span>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
@@ -1570,7 +1570,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
             padding: '1.25rem',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <div style={{ color: '#083A85' }}><PackageIcon /></div>
+              <div style={{ color: 'var(--g-link, #083A85)' }}><PackageIcon /></div>
               <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Booking Details</h3>
             </div>
 
@@ -1687,7 +1687,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ color: '#083A85' }}><ShieldIcon /></div>
+                <div style={{ color: 'var(--g-link, #083A85)' }}><ShieldIcon /></div>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
                   Payments & Milestones
                 </h3>
@@ -1979,7 +1979,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
             textAlign: 'center',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <div style={{ color: '#083A85' }}><CreditCardIcon /></div>
+              <div style={{ color: 'var(--g-link, #083A85)' }}><CreditCardIcon /></div>
               <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Payments</h3>
             </div>
             <p style={{ color: colors.textSecondary, fontSize: '0.85rem', margin: 0 }}>
