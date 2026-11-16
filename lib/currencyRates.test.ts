@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import {
   convertAmount,
   formatMoney,
+  formatMoneyIso,
+  moneyParts,
   initialCurrencies,
   isRateLive,
   isStale,
@@ -133,5 +135,26 @@ describe('stale rates', () => {
   });
   it('USD is never stale', () => {
     expect(isStale(none().find((x) => x.code === 'USD')!, now, 0)).toBe(false);
+  });
+});
+
+describe('ISO codes in the Compact Glass UI (the mobile rule)', () => {
+  it('prints the code, spaced, never a local symbol', () => {
+    expect(formatMoneyIso(10, 'USD', 'RWF', live())).toBe('RWF 13,000');
+    expect(formatMoneyIso(10, 'USD', 'KES', live())).toBe('KES 1,305');
+    for (const c of ['RF', 'KSh', 'USh', 'TSh']) {
+      expect(formatMoneyIso(10, 'USD', 'RWF', live())).not.toContain(`${c} `);
+    }
+  });
+  it('keeps $ and € tight', () => {
+    expect(formatMoneyIso(25, 'USD', 'USD', live())).toBe('$25.00');
+    expect(moneyParts(25, 'USD', 'USD', live())).toMatchObject({ prefix: '$', tight: true, text: '25.00' });
+  });
+  it('stays in its own currency, with its code, when no rate is live', () => {
+    expect(formatMoneyIso(5000, 'RWF', 'USD', none())).toBe('RWF 5,000');
+    expect(moneyParts(10, 'USD', 'RWF', none())).toMatchObject({ code: 'USD', prefix: '$', text: '10.00' });
+  });
+  it('leaves the old formatter as it was', () => {
+    expect(formatMoney(10, 'USD', 'RWF', live())).toBe('RF 13,000');
   });
 });

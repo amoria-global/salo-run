@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useDashboardAuth } from '@/app/providers/AuthProvider';
 import { usePermissions } from '@/app/lib/usePermissions';
 import RouteGuard from '@/app/components/RouteGuard';
+import GlassShell from '@/app/components/glass/GlassShell';
 import { MatchingProfilePrompt } from '@/app/components/hybrid/MatchingProfile';
 import { useWorkspace } from '@/app/providers/WorkspaceProvider';
 import WorkspaceBanner from '@/app/components/workspace/WorkspaceBanner';
@@ -93,8 +94,10 @@ export default function PhotographerLayout({ children }: { children: React.React
     && !(pathname && pathname.startsWith(PROFILE_PATH));
   return (
     <RouteGuard>
-      <WorkspaceBanner />
-      {children}
+      <GlassShell>
+        <WorkspaceBanner />
+        {children}
+      </GlassShell>
       {askMatching && <MatchingProfilePrompt />}
     </RouteGuard>
   );

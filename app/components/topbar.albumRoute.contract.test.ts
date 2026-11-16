@@ -9,7 +9,10 @@ import { describe, expect, it } from 'vitest';
  * used to send a client to the albums list and a photographer to /events/<that id>, an event route that has no event
  * with an album's id. It now opens the album itself.
  */
-const SOURCE = readFileSync(path.join(__dirname, 'topbar.tsx'), 'utf8').replace(/\r\n/g, '\n');
+// The top bar's logic lives in topbarState.ts (shared with the Compact Glass bar), its markup in topbar.tsx.
+const SOURCE = ['topbar.tsx', 'topbarState.ts']
+  .map((f) => readFileSync(path.join(__dirname, f), 'utf8').replace(/\r\n/g, '\n'))
+  .join('\n');
 
 describe('album notification routing', () => {
   it('opens the album for a client', () => {

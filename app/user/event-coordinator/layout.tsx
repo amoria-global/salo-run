@@ -1,6 +1,7 @@
 'use client';
 
 import RouteGuard from '@/app/components/RouteGuard';
+import GlassShell from '@/app/components/glass/GlassShell';
 
 /**
  * Event-coordinator-area layout. Wraps every /user/event-coordinator/**
@@ -11,5 +12,5 @@ import RouteGuard from '@/app/components/RouteGuard';
  * because coordinator profiles don't carry the same review gating.
  */
 export default function EventCoordinatorLayout({ children }: { children: React.ReactNode }) {
-  return <RouteGuard>{children}</RouteGuard>;
+  return <RouteGuard><GlassShell>{children}</GlassShell></RouteGuard>;
 }

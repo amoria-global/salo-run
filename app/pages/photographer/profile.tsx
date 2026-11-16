@@ -202,6 +202,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience' | 'packages'>('overview');
+  // ?tab=packages opens the packages tab directly (the Packages link in the Compact Glass sidebar). Other values are
+  // ignored, so the page opens on Overview as before.
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'packages' || tab === 'portfolio' || tab === 'experience') setActiveTab(tab);
+  }, [searchParams]);
   // Geo-pricing manager target (a package to price by location).
   const [geoPkg, setGeoPkg] = useState<{ id: string; name?: string } | null>(null);
   // Guards the bounce-arrival toast so it only fires once per redirect, even
