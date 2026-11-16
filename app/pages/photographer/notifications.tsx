@@ -585,7 +585,7 @@ const Notifications = () => {
           {/* Stats Cards */}
           <div className="stats-grid">
             {([
-              { label: 'Total notifications', value: notifications.length, icon: 'bi-bell-fill', tint: 'rgba(8,58,133,0.10)', color: '#083A85' },
+              { label: 'Total notifications', value: notifications.length, icon: 'bi-bell-fill', tint: 'rgba(8,58,133,0.10)', color: 'var(--g-link, #083A85)' },
               { label: 'Unread', value: unreadCount, icon: 'bi-circle-fill', tint: 'rgba(242,12,143,0.10)', color: '#F20C8F' },
               { label: 'Payments', value: notifications.filter(n => n.type === 'payment').length, icon: 'bi-cash-coin', tint: 'rgba(16,185,129,0.10)', color: '#10B981' },
               { label: 'Tips & bonuses', value: notifications.filter(n => n.type === 'tip' || n.type === 'bonus').length, icon: 'bi-gift-fill', tint: 'rgba(245,158,11,0.12)', color: '#F59E0B' },

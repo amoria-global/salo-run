@@ -32,7 +32,7 @@ export const CountryPicker: React.FC<CountryPickerProps> = ({ value, onChange, t
   return (
     <div style={{ width: '100%' }}>
       {title && (
-        <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#083A85', margin: '0 0 6px 0' }}>
+        <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--g-link, #083A85)', margin: '0 0 6px 0' }}>
           {title}
         </h4>
       )}
@@ -77,12 +77,12 @@ export const CountryPicker: React.FC<CountryPickerProps> = ({ value, onChange, t
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c.name}
               </span>
-              <span style={{ color: '#9ca3af', fontSize: '12px' }}>{c.dialCode}</span>
+              <span style={{ color: 'var(--g-text-muted, #9CA3AF)', fontSize: '12px' }}>{c.dialCode}</span>
             </button>
           );
         })}
         {filtered.length === 0 && (
-          <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#9ca3af', padding: '20px' }}>
+          <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: 'var(--g-text-muted, #9CA3AF)', padding: '20px' }}>
             No matching countries
           </p>
         )}

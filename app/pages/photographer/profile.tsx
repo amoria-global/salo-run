@@ -2444,7 +2444,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             is the actual security boundary; this is UX. */}
         {!canEditProfile && (
           <div role="alert" style={{
-            padding: '10px 18px', background: '#fffbeb', color: '#92400e',
+            padding: '10px 18px', background: '#fffbeb', color: 'var(--g-warning, #92400E)',
             borderBottom: '1px solid #fde68a', fontSize: 13.5, display: 'flex',
             alignItems: 'center', gap: 10,
           }}>
@@ -3063,7 +3063,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <button onClick={() => setActiveTab('overview')} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '6px 12px', borderRadius: 9999,
-                        background: 'rgba(8,58,133,0.08)', color: '#083A85',
+                        background: 'rgba(8,58,133,0.08)', color: 'var(--g-link, #083A85)',
                         border: '1px solid rgba(8,58,133,0.18)',
                         fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
                       }}>
@@ -3074,7 +3074,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <button onClick={() => setActiveTab('overview')} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '6px 12px', borderRadius: 9999,
-                        background: 'rgba(8,58,133,0.08)', color: '#083A85',
+                        background: 'rgba(8,58,133,0.08)', color: 'var(--g-link, #083A85)',
                         border: '1px solid rgba(8,58,133,0.18)',
                         fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
                       }}>
@@ -3242,7 +3242,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   }}>{basicInfo.specialty}</p>
                   <p style={{
                     fontSize: '0.85rem',
-                    color: '#9CA3AF',
+                    color: 'var(--g-text-muted, #9CA3AF)',
                     marginTop: '0.25rem'
                   }}>
                     {basicInfo.address}
@@ -4056,7 +4056,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   border: '1px solid rgba(8,58,133,0.20)',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 }}>
-                                  <i className="bi bi-camera-fill" style={{ fontSize: 14, color: '#083A85' }} />
+                                  <i className="bi bi-camera-fill" style={{ fontSize: 14, color: 'var(--g-link, #083A85)' }} />
                                 </div>
                                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '-0.005em' }}>Click to upload</span>
                               </div>

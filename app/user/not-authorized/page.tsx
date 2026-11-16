@@ -71,7 +71,7 @@ export default function NotAuthorizedPage() {
         )}
 
         {from && (
-          <p style={{ marginTop: 14, fontSize: 12.5, color: '#9ca3af' }}>
+          <p style={{ marginTop: 14, fontSize: 12.5, color: 'var(--g-text-muted, #9CA3AF)' }}>
             Tried to open <code style={{ background: '#f3f4f6', padding: '2px 6px', borderRadius: 4 }}>{from}</code>
           </p>
         )}

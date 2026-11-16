@@ -292,7 +292,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId, openCr
 
           {/* Search */}
           <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
-            <i className="bi bi-search" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 13 }} />
+            <i className="bi bi-search" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--g-text-muted, #9CA3AF)', fontSize: 13 }} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}

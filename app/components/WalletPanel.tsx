@@ -81,7 +81,7 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '4px 10px', borderRadius: 9999,
                 fontSize: '0.7rem', fontWeight: 700,
-                background: '#FEF3C7', color: '#92400E',
+                background: '#FEF3C7', color: 'var(--g-warning, #92400E)',
               }}>
                 <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 10 }} />
                 Drift ×{wallet.consecutiveDriftCount}
@@ -95,7 +95,7 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
         <div style={{
           margin: '14px 24px 0', padding: '12px 16px', borderRadius: 12,
           background: '#FFFBEB', border: '1px solid #FDE68A',
-          color: '#92400E', fontSize: '0.85rem',
+          color: 'var(--g-warning, #92400E)', fontSize: '0.85rem',
           display: 'flex', alignItems: 'flex-start', gap: 10,
         }}>
           <i className="bi bi-exclamation-triangle-fill" style={{ marginTop: 2 }} />

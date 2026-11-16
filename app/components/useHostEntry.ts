@@ -8,15 +8,18 @@ import { dashboardAuthFetch } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { bucketOf, getEligibility, listHostedEvents } from '@/lib/hosting/hostedEvents';
 
-export function useHostEntry(): { canHost: boolean; caption: string } {
+export function useHostEntry(): { canHost: boolean; caption: string; loaded: boolean } {
   const apiUrl = getApiUrl();
   const [canHost, setCanHost] = useState(false);
   const [caption, setCaption] = useState('Upcoming, live and ended');
+  // True once the eligibility answer is in, so a page can reserve the tiles' space instead of shifting when they appear.
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     const authFetch = dashboardAuthFetch as (u: string, i?: RequestInit) => Promise<Response>;
     getEligibility(apiUrl, authFetch)
       .then((e) => {
         setCanHost(e.canHostFree);
+        setLoaded(true);
         if (!e.canHostFree) return;
         return listHostedEvents(apiUrl, authFetch).then((list) => {
           const now = Date.now();
@@ -24,7 +27,7 @@ export function useHostEntry(): { canHost: boolean; caption: string } {
           setCaption(`${b.filter((x) => x === 'upcoming').length} upcoming \u00B7 ${b.filter((x) => x === 'live').length} live`);
         });
       })
-      .catch(() => setCanHost(false));
+      .catch(() => { setCanHost(false); setLoaded(true); });
   }, [apiUrl]);
-  return { canHost, caption };
+  return { canHost, caption, loaded };
 }

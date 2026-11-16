@@ -676,7 +676,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
           {/* Stats Cards */}
           <div className="stats-grid">
             {([
-              { label: 'Total notifications', value: notifications.length, icon: 'bi-bell-fill', tint: 'rgba(8,58,133,0.10)', color: '#083A85' },
+              { label: 'Total notifications', value: notifications.length, icon: 'bi-bell-fill', tint: 'rgba(8,58,133,0.10)', color: 'var(--g-link, #083A85)' },
               { label: 'Unread', value: unreadCount, icon: 'bi-circle-fill', tint: 'rgba(242,12,143,0.10)', color: '#F20C8F' },
               { label: 'New albums', value: notifications.filter(n => n.type === 'album').length, icon: 'bi-images', tint: 'rgba(139,92,246,0.10)', color: '#8B5CF6' },
               {

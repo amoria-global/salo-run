@@ -779,7 +779,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <i className="bi bi-palette-fill" style={{ fontSize: 17, color: '#083A85' }} />
+                  <i className="bi bi-palette-fill" style={{ fontSize: 17, color: 'var(--g-link, #083A85)' }} />
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>APPEARANCE</div>
@@ -957,7 +957,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <i className="bi bi-translate" style={{ fontSize: 17, color: '#083A85' }} />
+                  <i className="bi bi-translate" style={{ fontSize: 17, color: 'var(--g-link, #083A85)' }} />
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>LANGUAGE</div>
@@ -1097,7 +1097,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       border: '1px solid rgba(8,58,133,0.18)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <i className="bi bi-credit-card-2-front-fill" style={{ fontSize: 26, color: '#083A85' }} />
+                      <i className="bi bi-credit-card-2-front-fill" style={{ fontSize: 26, color: 'var(--g-link, #083A85)' }} />
                     </div>
                     <div>
                       <p style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
@@ -1746,7 +1746,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <i className="bi bi-shield-lock-fill" style={{ fontSize: 17, color: '#083A85' }} />
+                  <i className="bi bi-shield-lock-fill" style={{ fontSize: 17, color: 'var(--g-link, #083A85)' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -1818,7 +1818,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 border: '2px solid #083A85',
                 backgroundColor: actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.18)' : 'rgba(8, 58, 133, 0.05)',
               }}>
-                <i className="bi bi-envelope-check" style={{ fontSize: 20, color: '#083A85', marginTop: 2 }} />
+                <i className="bi bi-envelope-check" style={{ fontSize: 20, color: 'var(--g-link, #083A85)', marginTop: 2 }} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary }}>Email code</div>
                   <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
@@ -1965,7 +1965,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                         background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(8,58,133,0.10) 100%)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <i className="bi bi-bank2" style={{ color: '#083A85', fontSize: 18 }} />
+                        <i className="bi bi-bank2" style={{ color: 'var(--g-link, #083A85)', fontSize: 18 }} />
                       </div>
                     ) : (
                       <Image
@@ -2371,7 +2371,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(8,58,133,0.10) 100%)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <i className="bi bi-bank2" style={{ color: '#083A85', fontSize: 18 }} />
+                      <i className="bi bi-bank2" style={{ color: 'var(--g-link, #083A85)', fontSize: 18 }} />
                     </div>
                   ) : getPaymentImage(selectedPayment.type, selectedPayment.name) ? (
                     <Image

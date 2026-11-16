@@ -534,10 +534,10 @@ export default function StreamPreview({
                   marginBottom: '0.85rem',
                   backdropFilter: 'blur(6px)',
                 }}>
-                  <i className="bi bi-stop-circle-fill" style={{ fontSize: 28, color: '#9CA3AF' }} />
+                  <i className="bi bi-stop-circle-fill" style={{ fontSize: 28, color: 'var(--g-text-muted, #9CA3AF)' }} />
                 </div>
                 <div style={{
-                  fontSize: '0.62rem', fontWeight: 700, color: '#9CA3AF',
+                  fontSize: '0.62rem', fontWeight: 700, color: 'var(--g-text-muted, #9CA3AF)',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                   marginBottom: 4,
                 }}>Broadcast finished</div>
@@ -1266,7 +1266,7 @@ export default function StreamPreview({
               background: isDark
                 ? 'linear-gradient(135deg, rgba(8,58,133,0.16) 0%, rgba(242,12,143,0.08) 100%)'
                 : colors.bgCard,
-              color: '#083A85',
+              color: 'var(--g-link, #083A85)',
               padding: '0.65rem 0.85rem',
               border: `1px solid ${isDark ? 'rgba(139,92,246,0.30)' : 'rgba(139,92,246,0.20)'}`,
               borderRadius: 10,

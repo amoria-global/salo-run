@@ -79,7 +79,7 @@ export const PaymentMethodPicker: React.FC<Props> = ({
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '6px',
           padding: '5px 10px', background: '#EFF6FF', border: '1px solid #BFDBFE',
-          borderRadius: '999px', fontSize: '12px', color: '#083A85', fontWeight: 700,
+          borderRadius: '999px', fontSize: '12px', color: 'var(--g-link, #083A85)', fontWeight: 700,
         }}>
           {countryMeta?.flag && <span style={{ fontSize: '13px' }}>{countryMeta.flag}</span>}
           <span>{countryMeta?.name ?? country} · {options.currency}</span>

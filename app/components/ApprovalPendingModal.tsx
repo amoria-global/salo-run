@@ -53,7 +53,7 @@ export default function ApprovalPendingModal({ isOpen, profileCompletion = 0 }: 
             <p style={{ margin: '0 0 6px', color: '#D97706', fontWeight: 700, fontSize: '0.95rem' }}>
               <i className="bi bi-info-circle" /> To activate your account
             </p>
-            <p style={{ margin: 0, color: '#92400E', fontSize: '0.9rem', lineHeight: 1.6 }}>
+            <p style={{ margin: 0, color: 'var(--g-warning, #92400E)', fontSize: '0.9rem', lineHeight: 1.6 }}>
               Complete at least <strong>90%</strong> of your profile: bio, specialties, equipment, skills, education, and work experience. Once you reach 90%, your profile will be submitted for review.
             </p>
           </div>

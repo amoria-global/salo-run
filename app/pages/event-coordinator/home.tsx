@@ -585,7 +585,7 @@ const EventCoordinatorDashboard = () => {
               boxShadow: colors.shadowSm, position: 'relative', zIndex: 1,
             }}>
               {[
-                { label: 'Revenue', value: formatPrice(analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0), color: '#083A85' },
+                { label: 'Revenue', value: formatPrice(analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0), color: 'var(--g-link, #083A85)' },
                 { label: 'Events', value: String(analytics?.totalEvents ?? 0), color: '#F20C8F' },
                 { label: 'Streams', value: String(analytics?.activeStreams ?? 0), color: '#10B981' },
               ].map(s => (

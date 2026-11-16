@@ -640,7 +640,7 @@ const ClientDashboard = () => {
               boxShadow: colors.shadowSm, position: 'relative', zIndex: 1,
             }}>
               {[
-                { label: 'Spent', value: formatPrice(analytics?.totalSpent || 0), color: '#083A85' },
+                { label: 'Spent', value: formatPrice(analytics?.totalSpent || 0), color: 'var(--g-link, #083A85)' },
                 { label: 'Bookings', value: String(analytics?.totalBookings || 0), color: '#F20C8F' },
                 { label: 'Photos', value: String(analytics?.totalPhotos || 0), color: '#10B981' },
               ].map(s => (

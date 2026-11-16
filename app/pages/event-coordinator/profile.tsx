@@ -850,7 +850,7 @@ const ProfilePage = () => {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <i className="bi bi-person-vcard-fill" style={{ fontSize: 14, color: '#083A85' }} />
+                    <i className="bi bi-person-vcard-fill" style={{ fontSize: 14, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{

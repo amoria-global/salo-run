@@ -762,7 +762,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       {/* Frame label */}
-      <div style={{ fontSize: '0.75rem', color: '#D1D5DB', marginBottom: '0.5rem' }}>Earnings Trend</div>
+      <div style={{ fontSize: '0.75rem', color: 'var(--g-text-muted, #D1D5DB)', marginBottom: '0.5rem' }}>Earnings Trend</div>
 
       <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
         <svg width="100%" height={height} viewBox={`0 0 ${chartWidth} ${height}`} preserveAspectRatio="none">
@@ -820,7 +820,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
           {safeData.map((item, index) => (
             <span key={index} style={{
               fontSize: '0.75rem',
-              color: '#9CA3AF',
+              color: 'var(--g-text-muted, #9CA3AF)',
               fontWeight: '500',
               minWidth: '45px',
               textAlign: 'center'
@@ -1501,7 +1501,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <i className="bi bi-award-fill" style={{ fontSize: 17, color: '#083A85' }} />
+                    <i className="bi bi-award-fill" style={{ fontSize: 17, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Platform bonus</h3>
@@ -1588,7 +1588,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                   {!bonusReached && (
                     <div style={{ padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : '#EFF6FF', borderRadius: 9, border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.45)' : '#BFDBFE'}` }}>
                       <div style={{ fontSize: '0.66rem', fontWeight: 700, color: actualTheme === 'dark' ? '#93C5FD' : '#083A85', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>Events remaining</div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#083A85', letterSpacing: '-0.01em' }}>{eventsToBonus}</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--g-link, #083A85)', letterSpacing: '-0.01em' }}>{eventsToBonus}</div>
                     </div>
                   )}
                   {bonusReached && (
@@ -1738,7 +1738,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                   <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Earnings summary</div>
                   <div style={{ fontSize: '0.94rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Current period</div>
                 </div>
-                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.78rem', color: '#083A85', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.78rem', color: 'var(--g-link, #083A85)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   View report <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
                 </button>
               </div>

@@ -11,8 +11,8 @@ interface ClientItemProps {
 const statusStyle = (status: string): { background: string; color: string } => {
   switch (status) {
     case 'In Progress': return { background: 'rgba(242,12,143,0.10)', color: '#F20C8F' };
-    case 'Completed':   return { background: '#ECFDF5', color: '#065F46' };
-    case 'Pending':     return { background: '#FFFBEB', color: '#92400E' };
+    case 'Completed':   return { background: '#ECFDF5', color: 'var(--g-success, #065F46)' };
+    case 'Pending':     return { background: '#FFFBEB', color: 'var(--g-warning, #92400E)' };
     default:            return { background: 'var(--ck-surface-muted)', color: 'var(--ck-text-soft)' };
   }
 };
