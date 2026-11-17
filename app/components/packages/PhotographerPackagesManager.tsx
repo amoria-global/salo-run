@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '@/app/context/ThemeContext';
 import {
   applyPackageTierNamingPolicy,
@@ -560,7 +561,7 @@ export default function PhotographerPackagesManager({
     }
   };
 
-  // ─── Stage Trigger Buttons (Top of Step 2 & Manual Upload) ───
+  // ─── Stage Trigger Cards (Top of Step 2 & Manual Upload) ───
   const renderPoliciesAndAddonsTriggers = (target: 'studio' | 'manual') => {
     const isStudio = target === 'studio';
     const deliveryVal = (isStudio ? studioDeliveryPolicy : manualDeliveryPolicy).trim();
@@ -575,112 +576,191 @@ export default function PhotographerPackagesManager({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: 12,
           marginBottom: 14,
         }}
       >
-        {/* 1. Add Delivery Policy Button (Opens Delivery Policy Modal) */}
-        <button
-          type="button"
+        {/* 1. Delivery Policy Card (Opens Delivery Policy Modal) */}
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setErrorMsg(null);
             setPolicyModalTarget(target);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setErrorMsg(null);
+              setPolicyModalTarget(target);
+            }
+          }}
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
-            textAlign: 'left',
-            padding: '12px 14px',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            padding: '14px 16px',
             borderRadius: 14,
             border: `1.5px solid ${hasDelivery ? colors.brandPrimary : colors.borderPrimary}`,
-            background: hasDelivery ? `${colors.brandPrimary}10` : colors.bgTertiary,
+            background: hasDelivery ? `${colors.brandPrimary}0A` : colors.bgCard,
+            boxShadow: '0 2px 8px rgba(15,23,42,0.04)',
             cursor: 'pointer',
+            transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
             <span
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 9,
-                background: `${colors.brandPrimary}16`,
-                color: colors.brandPrimary,
+                width: 40,
+                height: 40,
+                borderRadius: 11,
+                background: hasDelivery ? colors.brandPrimary : `${colors.brandPrimary}14`,
+                color: hasDelivery ? '#fff' : colors.brandPrimary,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                fontSize: 17,
+                flexShrink: 0,
               }}
             >
               <i className="bi bi-shield-check" />
             </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: colors.textPrimary, lineHeight: 1.25 }}>
+                {hasDelivery ? 'Delivery Policy' : 'Add Delivery Policy'}
+              </div>
+              <div
+                style={{
+                  fontSize: '0.77rem',
+                  color: colors.textSecondary,
+                  marginTop: 3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {hasDelivery
+                  ? `${deliveryVal}${otherList.length > 0 ? ` (+${otherList.length} more)` : ''}`
+                  : 'Tap to add turnaround & studio rules'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <span
               style={{
-                padding: '3px 8px',
+                padding: '4px 9px',
                 borderRadius: 999,
                 fontSize: '0.66rem',
                 fontWeight: 800,
-                background: hasDelivery ? `${colors.brandPrimary}20` : colors.bgCard,
+                letterSpacing: '0.03em',
+                background: hasDelivery ? `${colors.brandPrimary}18` : colors.bgTertiary,
                 color: hasDelivery ? colors.brandPrimary : colors.textSecondary,
-                border: `1px solid ${hasDelivery ? colors.brandPrimary : colors.borderPrimary}`,
+                border: `1px solid ${hasDelivery ? `${colors.brandPrimary}40` : colors.borderPrimary}`,
               }}
             >
               {hasDelivery ? (isStudio && policyReadFromMenu ? '✓ FROM MENU' : '✓ SAVED') : 'OPTIONAL'}
             </span>
+            <span
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: colors.bgTertiary,
+                color: colors.textSecondary,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 12,
+              }}
+            >
+              <i className="bi bi-chevron-right" />
+            </span>
           </div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: colors.textPrimary }}>
-            {hasDelivery ? 'Delivery Policy' : 'Add Delivery Policy'}
-          </div>
-          <div style={{ fontSize: '0.76rem', color: colors.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-            {hasDelivery
-              ? `${deliveryVal}${otherList.length > 0 ? ` (+${otherList.length} more)` : ''}`
-              : 'Tap to add delivery & studio rules'}
-          </div>
-        </button>
+        </div>
 
-        {/* 2. Add-ons & Drone Capturing Button (Opens Add-ons Modal) */}
-        <button
-          type="button"
+        {/* 2. Add-ons & Drone Capturing Card (Opens Add-ons Modal) */}
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setErrorMsg(null);
             setAddonsModalTarget(target);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setErrorMsg(null);
+              setAddonsModalTarget(target);
+            }
+          }}
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
-            textAlign: 'left',
-            padding: '12px 14px',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            padding: '14px 16px',
             borderRadius: 14,
             border: `1.5px solid ${activeAddons.length > 0 ? colors.brandPrimary : colors.borderPrimary}`,
-            background: activeAddons.length > 0 ? `${colors.brandPrimary}10` : colors.bgTertiary,
+            background: activeAddons.length > 0 ? `${colors.brandPrimary}0A` : colors.bgCard,
+            boxShadow: '0 2px 8px rgba(15,23,42,0.04)',
             cursor: 'pointer',
+            transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
             <span
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 9,
-                background: `${colors.brandPrimary}16`,
-                color: colors.brandPrimary,
+                width: 40,
+                height: 40,
+                borderRadius: 11,
+                background: activeAddons.length > 0 ? colors.brandPrimary : `${colors.brandPrimary}14`,
+                color: activeAddons.length > 0 ? '#fff' : colors.brandPrimary,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                fontSize: 17,
+                flexShrink: 0,
               }}
             >
               <i className="bi bi-airplane" />
             </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: colors.textPrimary, lineHeight: 1.25 }}>
+                Add-ons &amp; Drone
+              </div>
+              <div
+                style={{
+                  fontSize: '0.77rem',
+                  color: colors.textSecondary,
+                  marginTop: 3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {activeAddons.length > 0
+                  ? activeAddons.map((a) => `${a.name} (+${a.price.toLocaleString()})`).join(' · ')
+                  : detectedDroneInMenu
+                    ? 'Drone spotted in menu · Tap to price'
+                    : 'Drone Capturing & self-priced extras'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <span
               style={{
-                padding: '3px 8px',
+                padding: '4px 9px',
                 borderRadius: 999,
                 fontSize: '0.66rem',
                 fontWeight: 800,
-                background: activeAddons.length > 0 ? `${colors.brandPrimary}20` : colors.bgCard,
+                letterSpacing: '0.03em',
+                background: activeAddons.length > 0 ? `${colors.brandPrimary}18` : colors.bgTertiary,
                 color: activeAddons.length > 0 ? colors.brandPrimary : colors.textSecondary,
-                border: `1px solid ${activeAddons.length > 0 ? colors.brandPrimary : colors.borderPrimary}`,
+                border: `1px solid ${activeAddons.length > 0 ? `${colors.brandPrimary}40` : colors.borderPrimary}`,
               }}
             >
               {droneAddon
@@ -689,18 +769,23 @@ export default function PhotographerPackagesManager({
                   ? `${activeAddons.length} ACTIVE`
                   : 'OPTIONAL'}
             </span>
+            <span
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: colors.bgTertiary,
+                color: colors.textSecondary,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 12,
+              }}
+            >
+              <i className="bi bi-chevron-right" />
+            </span>
           </div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: colors.textPrimary }}>
-            Add-ons &amp; Drone
-          </div>
-          <div style={{ fontSize: '0.76rem', color: colors.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-            {activeAddons.length > 0
-              ? activeAddons.map((a) => `${a.name} (+${a.price.toLocaleString()})`).join(' · ')
-              : detectedDroneInMenu
-                ? 'Drone spotted in menu · Tap to price'
-                : 'Drone Capturing & self-priced extras'}
-          </div>
-        </button>
+        </div>
       </div>
     );
   };
@@ -792,7 +877,9 @@ export default function PhotographerPackagesManager({
     const dronePriceNum = Number((addonPrices.drone_capturing || '').replace(/[^\d]/g, '')) || 0;
     const isDroneEnabled = dronePriceNum > 0;
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
       <>
         {policyModalTarget !== null && (
           <div
@@ -802,11 +889,11 @@ export default function PhotographerPackagesManager({
             style={{
               position: 'fixed',
               inset: 0,
-              zIndex: 10000,
+              zIndex: 99999,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(15,23,42,0.62)',
+              background: 'rgba(15,23,42,0.65)',
               backdropFilter: 'blur(6px)',
               padding: 16,
             }}
@@ -816,10 +903,13 @@ export default function PhotographerPackagesManager({
               style={{
                 width: '100%',
                 maxWidth: 540,
+                maxHeight: '86vh',
+                overflowY: 'auto',
                 background: colors.bgModal,
                 borderRadius: 20,
                 padding: 20,
                 border: `1px solid ${colors.borderPrimary}`,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.32)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 14,
@@ -992,11 +1082,11 @@ export default function PhotographerPackagesManager({
             style={{
               position: 'fixed',
               inset: 0,
-              zIndex: 10000,
+              zIndex: 99999,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(15,23,42,0.62)',
+              background: 'rgba(15,23,42,0.65)',
               backdropFilter: 'blur(6px)',
               padding: 16,
             }}
@@ -1006,12 +1096,13 @@ export default function PhotographerPackagesManager({
               style={{
                 width: '100%',
                 maxWidth: 560,
-                maxHeight: '90vh',
+                maxHeight: '86vh',
                 overflowY: 'auto',
                 background: colors.bgModal,
                 borderRadius: 20,
                 padding: 20,
                 border: `1px solid ${colors.borderPrimary}`,
+                boxShadow: '0 24px 60px rgba(0,0,0,0.32)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 14,
@@ -1232,7 +1323,8 @@ export default function PhotographerPackagesManager({
             </div>
           </div>
         )}
-      </>
+      </>,
+      document.body,
     );
   };
 
@@ -1711,9 +1803,16 @@ export default function PhotographerPackagesManager({
                       }}
                       style={{ display: 'none' }}
                     />
-                    <button
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => fileInputRef.current?.click()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          fileInputRef.current?.click();
+                        }
+                      }}
                       style={{
                         width: '100%',
                         padding: '22px 16px',
@@ -1732,7 +1831,7 @@ export default function PhotographerPackagesManager({
                     >
                       <i className="bi bi-cloud-arrow-up" style={{ fontSize: 26 }} />
                       <span>Choose Menu PDF or Package Photos</span>
-                    </button>
+                    </div>
 
                     {uploadedFiles.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
@@ -2361,7 +2460,7 @@ export default function PhotographerPackagesManager({
       )}
 
       {/* Edit Extracted Draft Modal */}
-      {editingDraft && (
+      {editingDraft && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -2369,11 +2468,12 @@ export default function PhotographerPackagesManager({
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 10000,
+            zIndex: 99999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(15,23,42,0.62)',
+            background: 'rgba(15,23,42,0.65)',
+            backdropFilter: 'blur(6px)',
             padding: 16,
           }}
         >
@@ -2382,10 +2482,13 @@ export default function PhotographerPackagesManager({
             style={{
               width: '100%',
               maxWidth: 480,
+              maxHeight: '86vh',
+              overflowY: 'auto',
               background: colors.bgModal,
               borderRadius: 18,
               padding: 20,
               border: `1px solid ${colors.borderPrimary}`,
+              boxShadow: '0 24px 60px rgba(0,0,0,0.32)',
               display: 'flex',
               flexDirection: 'column',
               gap: 12,
@@ -2493,7 +2596,8 @@ export default function PhotographerPackagesManager({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
