@@ -3113,8 +3113,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           {/* Main Content Grid */}
           <div className="mobile-profile-section" style={{
             display: 'grid',
-            gridTemplateColumns: '320px 1fr',
-            gap: '1.5rem'
+            gridTemplateColumns: '320px minmax(0, 1fr)',
+            gap: '1.5rem',
+            width: '100%',
           }}>
             {/* Left Sidebar - Profile Card */}
             <div className="mobile-profile-left" id="profile-basic-info-section">
@@ -3516,7 +3517,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             </div>
 
             {/* Right Section - Tabbed Form */}
-            <div className="mobile-profile-right" id="profile-tabs-section">
+            <div className="mobile-profile-right" id="profile-tabs-section" style={{ minWidth: 0, width: '100%' }}>
               {/* Tabs + Edit / Submit controls */}
               <div className="mobile-tabs-bar" style={{
                 display: 'flex',
@@ -3524,6 +3525,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: 12,
+                width: '100%',
                 backgroundColor: colors.bgCard,
                 borderRadius: '16px 16px 0 0',
                 borderBottom: `1px solid ${colors.borderPrimary}`,
@@ -3533,7 +3535,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 marginBottom: 0,
                 padding: '4px 12px 0',
               }}>
-                <div className="mobile-tabs" style={{ display: 'flex', flex: 1, minWidth: 0, gap: 4 }}>
+                <div className="mobile-tabs" style={{ display: 'flex', flexWrap: 'wrap', flex: '1 1 auto', gap: 4 }}>
                   <button onClick={() => setActiveTab('overview')} style={tabStyle(activeTab === 'overview')}>
                     Overview
                   </button>
@@ -3547,12 +3549,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     Delivery packages
                   </button>
                 </div>
+                {activeTab !== 'packages' && (
                 <div className="mobile-tabs-actions" style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
                   padding: '8px 4px',
                   flexShrink: 0,
+                  marginLeft: 'auto',
                 }}>
                   {/* Edit Toggle Switch */}
                   <label style={{
@@ -3637,6 +3641,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     );
                   })()}
                 </div>
+                )}
               </div>
 
               {/* Tab Content */}
@@ -4540,16 +4545,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                 {/* Delivery Packages Tab */}
                 {activeTab === 'packages' && (
-                  <div>
-                    <div style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
-                      <PhotographerPackagesManager
-                        currencies={currencies}
-                        canEdit={canEditProfile}
-                        onOpenGeoPricing={(pkg) => setGeoPkg(pkg)}
-                        onPackagesChanged={() => void refreshUserProfile()}
-                      />
-                    </div>
+                  <div style={{ width: '100%' }}>
+                    <PhotographerPackagesManager
+                      currencies={currencies}
+                      canEdit={canEditProfile}
+                      onOpenGeoPricing={(pkg) => setGeoPkg(pkg)}
+                      onPackagesChanged={refreshUserProfile}
+                    />
 
+                    {/* Legacy Outdoor/Studio Accordion replaced by PhotographerPackagesManager */}
+                    {false && (
+                    <div>
                     {/* Edit Toggle for Outdoor Packages */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                       <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, flex: 1, lineHeight: '1.5' }}>
@@ -5675,6 +5681,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     </div>
                     );
                     })()}
+                    </div>
+                    )}
                   </div>
                 )}
               </div>

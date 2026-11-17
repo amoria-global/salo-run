@@ -183,6 +183,12 @@ export default function PhotographerPackagesManager({
   // ─── Stage Modal Targets ('studio' | 'manual' | null) ───
   const [policyModalTarget, setPolicyModalTarget] = useState<'studio' | 'manual' | null>(null);
   const [addonsModalTarget, setAddonsModalTarget] = useState<'studio' | 'manual' | null>(null);
+  const onPackagesChangedRef = useRef(onPackagesChanged);
+  const hasLoadedOnceRef = useRef(false);
+
+  useEffect(() => {
+    onPackagesChangedRef.current = onPackagesChanged;
+  }, [onPackagesChanged]);
 
   useEffect(() => {
     if (!currencyId && currencies.length > 0) {
@@ -191,21 +197,26 @@ export default function PhotographerPackagesManager({
     }
   }, [currencies, currencyId]);
 
-  const refreshPackages = useCallback(async () => {
-    setLoading(true);
+  const refreshPackages = useCallback(async (notifyParent = false) => {
+    if (!hasLoadedOnceRef.current) {
+      setLoading(true);
+    }
     try {
       const list = await listPackages();
       setPackages(list);
-      onPackagesChanged?.();
+      hasLoadedOnceRef.current = true;
+      if (notifyParent) {
+        onPackagesChangedRef.current?.();
+      }
     } catch (e: any) {
       setErrorMsg(e?.message || 'Could not load your packages.');
     } finally {
       setLoading(false);
     }
-  }, [onPackagesChanged]);
+  }, []);
 
   useEffect(() => {
-    void refreshPackages();
+    void refreshPackages(false);
   }, [refreshPackages]);
 
   const studioAddonsList = useMemo(
@@ -401,7 +412,7 @@ export default function PhotographerPackagesManager({
         existingPackages: packages,
       });
 
-      await refreshPackages();
+      await refreshPackages(true);
       setSuccessMsg(`Published ${inputs.length} package(s) to your profile.`);
       setViewMode('list');
       setAiStep(1);
@@ -525,7 +536,7 @@ export default function PhotographerPackagesManager({
         setSuccessMsg(`Created package "${chosenName}".`);
       }
       setEditingPkgId(null);
-      await refreshPackages();
+      await refreshPackages(true);
       setViewMode('list');
     } catch (e: any) {
       setErrorMsg(e?.message || 'Could not save the package.');
@@ -541,7 +552,7 @@ export default function PhotographerPackagesManager({
       await deletePackage(pkg.id, pkg);
       setPackages((prev) => prev.filter((p) => p.id !== pkg.id));
       setSuccessMsg(`Deleted package "${pkg.name}".`);
-      onPackagesChanged?.();
+      onPackagesChangedRef.current?.();
     } catch (e: any) {
       setErrorMsg(e?.message || 'Could not delete package.');
     } finally {
