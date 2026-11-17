@@ -8,7 +8,8 @@
  * Pages still mount their old <Sidebar/> and <Topbar/>; both render nothing under the flag, so the page needs no
  * change to sit inside this shell.
  */
-import { Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useStackTables } from './useStackTables';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronsLeft, ChevronsRight, LogOut, X } from 'lucide-react';
@@ -38,6 +39,8 @@ function GlassFrame({ children }: { children: ReactNode }) {
   const role = roleFromPath(pathname);
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const hostRef = useRef<HTMLDivElement>(null);
+  useStackTables(hostRef);
   const top = useTopbarState(role);
   // Polled once here and handed to the sidebar, drawer and tab bar.
   const badges = useNavBadges(role);
@@ -76,7 +79,7 @@ function GlassFrame({ children }: { children: ReactNode }) {
       <div className="g-content">
         <div className="g-banners"><GlassBanners role={role} state={top} /></div>
         <SubTabs role={role} />
-        <div className="g-page-host">{children}</div>
+        <div className="g-page-host" ref={hostRef}>{children}</div>
       </div>
 
       <Suspense fallback={null}><TabBar role={role} badges={badges} /></Suspense>

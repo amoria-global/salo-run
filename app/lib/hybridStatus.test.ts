@@ -81,6 +81,9 @@ describe('Post My Event screens use the shared rules', () => {
   });
 
   it('the opportunities view follows a notification to the right tab', () => {
-    expect(src('app/components/hybrid/PhotographerOpportunitiesView.tsx')).toContain('setTab(opportunityTabFor(o.status))');
+    // The behaviour lives in the hook that both the classic and the Compact Glass views use.
+    expect(src('app/components/hybrid/useOpportunities.ts')).toContain('setTab(opportunityTabFor(o.status))');
+    expect(src('app/components/hybrid/PhotographerOpportunitiesView.tsx')).toContain('useOpportunities(focusCandidateId)');
+    expect(src('app/components/glass/pages/GlassOpportunities.tsx')).toContain('useOpportunities(focusCandidateId)');
   });
 });

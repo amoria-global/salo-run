@@ -8,6 +8,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useHostGuess } from './useHostGuess';
+import { MatchingProfileHomeCard } from '@/app/components/hybrid/MatchingProfile';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -32,7 +33,7 @@ import {
 } from './homeData';
 import { useResource, type Analytics, type PerfPoint, type Wallet } from './useHomeData';
 import { useGoals } from './useGoals';
-import GoalsSheet from './GoalsSheet';
+const GoalsSheet = dynamic(() => import('./GoalsSheet'), { ssr: false });
 import { Empty, Hidden, Kpi, ListSkeleton, SectionError, StatusChip, formatIso, statusLabel } from './HomeParts';
 
 const PerformanceChart = dynamic(() => import('./PerformanceChart'), {
@@ -53,6 +54,9 @@ export default function GlassHome() {
   const router = useRouter();
 
   const hostGuess = useHostGuess(user?.id, hostLoaded, canHost);
+  // Same conditions as the layout's old timed prompt: registered photographers whose profile is complete, in their own workspace.
+  const askMatching = !!user && ['PHOTOGRAPHER', 'VIDEOGRAPHER'].includes((user.customerType || '').toUpperCase())
+    && user.isTeamMember !== true && !isShared && (typeof user.completionPercentage !== 'number' || user.completionPercentage >= 100);
 
   // Same rule as the old Home: a photographer whose profile is not accepted is sent to the profile page. In someone
   // else's workspace the review status that matters is the owner's, so the viewer's own is not checked there.
@@ -203,6 +207,8 @@ export default function GlassHome() {
         </div>
       )}
 
+      {askMatching && <MatchingProfileHomeCard t={t} />}
+
       {/* ── Performance + Upcoming ──────────────────────────────────── */}
       <div className="gh-grid">
         <section className="g-panel gh-card" aria-labelledby="gh-perf">
@@ -285,7 +291,7 @@ export default function GlassHome() {
         })()}
       </section>
 
-      <GoalsSheet open={goalsOpen} onClose={() => setGoalsOpen(false)} goals={goals} onPeriod={setPeriod} />
+      {goalsOpen && <GoalsSheet open={goalsOpen} onClose={() => setGoalsOpen(false)} goals={goals} onPeriod={setPeriod} />}
       {withdrawOpen && <WithdrawModal isOpen={withdrawOpen} onClose={() => { setWithdrawOpen(false); retryWallet(); }} role="photographer"
         colors={colors as unknown as Record<string, string>} actualTheme={actualTheme} />}
     </div>

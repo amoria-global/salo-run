@@ -213,3 +213,9 @@ html.ui-glass .g-palette.g-blur { background: var(--g-elevated); }
 @media (min-width: 768px) {
   html.ui-glass .g-only-mobile { display: none !important; }
 }
+
+/* Payment required chip in the top bar */
+html.ui-glass .g-pay-chip { color: var(--g-pending); border-color: var(--g-pending); cursor: pointer; flex-shrink: 1; min-width: 0; }
+html.ui-glass .g-pay-chip strong { color: var(--g-link); white-space: nowrap; }
+html.ui-glass .g-pay-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 767.98px) { html.ui-glass .g-pay-chip-text { display: none; } html.ui-glass .g-pay-chip { padding: 6px 10px; } }
