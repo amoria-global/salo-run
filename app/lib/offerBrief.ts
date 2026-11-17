@@ -247,6 +247,7 @@ export type HybridOfferDraft = {
   instantUpdates: boolean;
 
   liveStream: boolean;
+  droneCapturing: boolean;
   instantWishesAndMemories: boolean;
 
   photoBooksQty: number;
@@ -297,6 +298,7 @@ export const DEFAULT_OFFER_DRAFT: HybridOfferDraft = {
   instantUpdates: true,
 
   liveStream: false,
+  droneCapturing: false,
   instantWishesAndMemories: false,
 
   photoBooksQty: 1,
@@ -508,6 +510,9 @@ export function estimateOfferPriceRwf(
   if (draft.liveStream) {
     digitalScope += liveStreamBase + Math.round(exactHours * 12000);
   }
+  if (draft.droneCapturing) {
+    digitalScope += 120000;
+  }
   if (draft.instantWishesAndMemories) {
     digitalScope += 35000;
   }
@@ -643,6 +648,10 @@ export function formatLiveStreamSummary(draft: Pick<HybridOfferDraft, 'liveStrea
   return draft.liveStream ? 'Yes' : 'Not requested';
 }
 
+export function formatDroneCapturingSummary(draft: Pick<HybridOfferDraft, 'droneCapturing'>): string {
+  return draft.droneCapturing ? 'Yes (Self-priced aerial 4K)' : 'Not requested';
+}
+
 export function formatInstantWishesSummary(
   draft: Pick<HybridOfferDraft, 'instantWishesAndMemories'>
 ): string {
@@ -728,6 +737,10 @@ export function formatOfferDeliverablesSummaryLines(
     digitalParts.push('Live stream');
     completeDigitalParts.push('Live stream');
   }
+  if (draft.droneCapturing) {
+    digitalParts.push('Drone capturing');
+    completeDigitalParts.push('Drone capturing');
+  }
   if (draft.instantWishesAndMemories) {
     digitalParts.push('Wishes & memories');
     completeDigitalParts.push('Wishes & memories');
@@ -781,6 +794,7 @@ export function serializeOfferBrief(draft: HybridOfferDraft, durationMinutes: nu
     `ShortVideos: ${formatShortVideosSummary(draft)}`,
     `LongVideos: ${formatLongVideosSummary(draft)}`,
     `LiveStream: ${formatLiveStreamSummary(draft)}`,
+    `DroneCapturing: ${formatDroneCapturingSummary(draft)}`,
     `InstantWishes: ${formatInstantWishesSummary(draft)}`,
     `PhotoBook: ${formatPhotoBookSummary(draft)}`,
     `PhotoAlbum: ${formatPhotoAlbumSummary(draft)}`,
@@ -804,6 +818,7 @@ export type ParsedOfferBrief = {
   shortVideosLabel: string;
   longVideosLabel: string;
   liveStreamLabel: string;
+  droneCapturingLabel?: string;
   instantWishesLabel: string;
   photoBookLabel: string;
   photoAlbumLabel: string;
@@ -838,6 +853,7 @@ export function parseOpportunityOfferBrief(opp: {
     shortVideosLabel: '2 × 30 seconds',
     longVideosLabel: 'None',
     liveStreamLabel: 'Not requested',
+    droneCapturingLabel: 'Not requested',
     instantWishesLabel: 'Not requested',
     photoBookLabel: 'None',
     photoAlbumLabel: 'None',
@@ -881,6 +897,7 @@ export function parseOpportunityOfferBrief(opp: {
     shortVideosLabel: map.ShortVideos || defaults.shortVideosLabel,
     longVideosLabel: map.LongVideos || defaults.longVideosLabel,
     liveStreamLabel: map.LiveStream || defaults.liveStreamLabel,
+    droneCapturingLabel: map.DroneCapturing || defaults.droneCapturingLabel,
     instantWishesLabel: map.InstantWishes || map.InstantMemory || defaults.instantWishesLabel,
     photoBookLabel: map.PhotoBook || defaults.photoBookLabel,
     photoAlbumLabel: map.PhotoAlbum || defaults.photoAlbumLabel,

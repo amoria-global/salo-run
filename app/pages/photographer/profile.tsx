@@ -3,6 +3,7 @@
 import MoneyInput from '../../components/MoneyInput';
 import { MatchingProfileCard } from '../../components/hybrid/MatchingProfile';
 import ServiceAreaPanel from '../../components/ServiceAreaPanel';
+import PhotographerPackagesManager from '../../components/packages/PhotographerPackagesManager';
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import GeoPricingManager from '@/app/components/GeoPricingManager';
@@ -4540,6 +4541,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 {/* Delivery Packages Tab */}
                 {activeTab === 'packages' && (
                   <div>
+                    <div style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+                      <PhotographerPackagesManager
+                        currencies={currencies}
+                        canEdit={canEditProfile}
+                        onOpenGeoPricing={(pkg) => setGeoPkg(pkg)}
+                        onPackagesChanged={() => void refreshUserProfile()}
+                      />
+                    </div>
+
                     {/* Edit Toggle for Outdoor Packages */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                       <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, flex: 1, lineHeight: '1.5' }}>
