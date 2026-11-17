@@ -45,3 +45,5 @@ Added 2026-11-17, drafted by Claude for fr, es, rw and sw (array order in lib/do
 a native-speaker review before being called final; en is the source. Keys: the Opportunities page copy and info text, the
 hosted events header and row menu, "Get matched" and "Remind me later" on the Home card, and the shared "Please wait…".
 Two older entries were corrected (they were word-by-word substitutions such as "Get matched with Plus événements").
+
+Notifications page (2026-11-17): 12 keys added (clear read, delete all, tip, bonus, review, opportunity, unread, showing, type label, empty body and the two confirmation dialogs). Same review status as above: drafted, needs native review.
