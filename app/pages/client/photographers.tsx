@@ -1288,7 +1288,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               const totalSpent = photographers.reduce((sum, p) => sum + p.totalSpent, 0);
               const favCount = photographers.filter(p => p.isFavorite).length;
               const cards: Array<{ label: string; value: string; accent: string; tint: string; icon: string; alert?: boolean; }> = [
-                { label: 'Total Photographers', value: String(photographers.length), accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-camera2' },
+                { label: 'Total Photographers', value: String(photographers.length), accent: 'var(--g-link, #083A85)', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-camera2' },
                 { label: 'Total Bookings',      value: String(totalBookings),         accent: '#3B82F6', tint: 'rgba(59,130,246,0.12)', icon: 'bi-calendar-check-fill' },
                 { label: 'Total Spent',         value: formatPrice(totalSpent),       accent: '#10B981', tint: 'rgba(16,185,129,0.12)', icon: 'bi-cash-stack' },
                 { label: 'Favorites',           value: String(favCount),              accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-heart-fill' },
@@ -1415,7 +1415,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   style={{
                     alignSelf: 'flex-end',
                     fontSize: '0.85rem',
-                    color: '#DC2626',
+                    color: 'var(--g-error, #DC2626)',
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
@@ -2471,12 +2471,12 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             {/* Package Selection */}
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
-                Select a Package <span style={{ color: '#DC2626' }}>*</span>
+                Select a Package <span style={{ color: 'var(--g-error, #DC2626)' }}>*</span>
               </label>
               {rebookPackagesLoading ? (
                 <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>Loading packages…</div>
               ) : rebookPackagesError ? (
-                <div style={{ color: '#DC2626', fontSize: '0.85rem', padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(127,29,29,0.32)' : '#FEF2F2', borderRadius: 10, border: `1px solid ${actualTheme === 'dark' ? 'rgba(252,165,165,0.32)' : '#FECACA'}` }}>{rebookPackagesError}</div>
+                <div style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.85rem', padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(127,29,29,0.32)' : '#FEF2F2', borderRadius: 10, border: `1px solid ${actualTheme === 'dark' ? 'rgba(252,165,165,0.32)' : '#FECACA'}` }}>{rebookPackagesError}</div>
               ) : rebookPackages.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>No packages available</div>
               ) : (
@@ -2834,7 +2834,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             {/* Event Selector */}
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
-                Select Event <span style={{ color: '#DC2626' }}>*</span>
+                Select Event <span style={{ color: 'var(--g-error, #DC2626)' }}>*</span>
               </label>
               {reviewEventsLoading ? (
                 <div style={{
@@ -3233,7 +3233,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>
                 <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Failed</h4>
-                <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--g-error, #EF4444)', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                   <button onClick={handlePayClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
                   <button onClick={() => { setXentriPayStep('select'); setXentriPayError(''); setPayShowReceipt(false); setIsProcessingPayment(false); }} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
@@ -3303,7 +3303,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   </div>
                 </div>
                 {xentriPayError && (
-                  <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
                 )}
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <button onClick={() => { setPayShowReceipt(false); setXentriPayError(''); }} disabled={isProcessingPayment} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: isProcessingPayment ? 'not-allowed' : 'pointer', opacity: isProcessingPayment ? 0.6 : 1 }}>Cancel</button>
@@ -3421,7 +3421,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               </div>
 
               {(!payDonationAddressed || !payPhoneValid) && (
-                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.86rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
                   {!payPhoneValid ? 'Please enter your phone number' : 'Please select a donation amount or skip to continue'}
                 </p>
               )}
@@ -3812,7 +3812,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               </div>
 
               {!tipDonationAddressed && (
-                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>Please select a donation amount or skip to continue</p>
+                <p style={{ fontSize: '0.86rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem 0', textAlign: 'center' }}>Please select a donation amount or skip to continue</p>
               )}
 
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>

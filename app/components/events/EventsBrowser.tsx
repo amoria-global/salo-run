@@ -230,7 +230,7 @@ export function EventRowShell({ day, title, meta, status, pending, onOpen, actio
           <strong style={{ fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</strong>
           <span style={{ fontSize: 13.5, color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</span>
         </span>
-        {live ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 9999, border: '1px solid #37d0e6', color: '#37d0e6' }}>ONGOING</span> : pending ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 9999, border: '1px solid #F59E0B', color: '#F59E0B' }}>PENDING</span> : null}
+        {live ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 9999, border: '1px solid #37d0e6', color: '#37d0e6' }}>ONGOING</span> : pending ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 9999, border: '1px solid #F59E0B', color: 'var(--g-warning, #F59E0B)' }}>PENDING</span> : null}
         <i className="bi bi-chevron-right" aria-hidden="true" style={{ color: colors.textSecondary }} />
       </button>
       {actions ? <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{actions}</div> : null}

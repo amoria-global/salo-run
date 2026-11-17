@@ -2450,7 +2450,7 @@ export default function HybridEventWizardModal({
                   borderRadius: 12,
                   background: '#FEF2F2',
                   border: '1.5px solid #FCA5A5',
-                  color: '#DC2626',
+                  color: 'var(--g-error, #DC2626)',
                   fontSize: '0.84rem',
                   fontWeight: 700,
                 }}
@@ -2466,7 +2466,7 @@ export default function HybridEventWizardModal({
                     setOptionsError(null);
                   }}
                   aria-label="Dismiss error"
-                  style={{ background: 'transparent', border: 'none', color: '#DC2626', cursor: 'pointer', padding: 4, fontSize: 16, lineHeight: 1 }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--g-error, #DC2626)', cursor: 'pointer', padding: 4, fontSize: 16, lineHeight: 1 }}
                 >
                   <i className="bi bi-x-lg" />
                 </button>

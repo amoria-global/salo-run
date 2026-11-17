@@ -603,7 +603,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginBottom: '1.5rem' }}>
             {([
-              { label: 'Total streams',  value: streams.length.toString(),                                                      accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-broadcast-pin' },
+              { label: 'Total streams',  value: streams.length.toString(),                                                      accent: 'var(--g-link, #083A85)', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-broadcast-pin' },
               { label: 'Total viewers',  value: streams.reduce((acc, s) => acc + s.totalViewers, 0).toLocaleString(),           accent: '#10B981', tint: 'rgba(16,185,129,0.12)', icon: 'bi-people-fill' },
               { label: 'Chat messages',  value: streams.reduce((acc, s) => acc + s.totalMessages, 0).toString(),                accent: '#F59E0B', tint: 'rgba(245,158,11,0.12)', icon: 'bi-chat-dots-fill' },
               { label: 'Video messages', value: streams.reduce((acc, s) => acc + s.totalVideoMessages, 0).toString(),           accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-camera-video-fill' },

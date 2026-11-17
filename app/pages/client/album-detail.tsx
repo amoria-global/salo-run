@@ -562,7 +562,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                   }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                    background: 'transparent', color: '#F59E0B',
+                    background: 'transparent', color: 'var(--g-warning, #F59E0B)',
                     border: '1.5px solid #F59E0B', borderRadius: '0.5rem',
                     padding: '0.55rem 1rem',
                     fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
@@ -619,9 +619,9 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                     textAlign: 'center',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                      <span style={{ color: '#3B82F6' }}><ImageIcon /></span>
+                      <span style={{ color: 'var(--g-link, #3B82F6)' }}><ImageIcon /></span>
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#3B82F6' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--g-link, #3B82F6)' }}>
                       {album.photoCount}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Photos</div>
@@ -634,9 +634,9 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                     textAlign: 'center',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                      <span style={{ color: '#10B981' }}><DownloadIcon /></span>
+                      <span style={{ color: 'var(--g-success, #10B981)' }}><DownloadIcon /></span>
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#10B981' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--g-success, #10B981)' }}>
                       {album.downloadedCount}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Downloaded</div>
@@ -649,9 +649,9 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                     textAlign: 'center',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                      <span style={{ color: '#EF4444' }}><HeartIcon /></span>
+                      <span style={{ color: 'var(--g-error, #EF4444)' }}><HeartIcon /></span>
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#EF4444' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--g-error, #EF4444)' }}>
                       {album.favoriteCount}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Favorites</div>
@@ -690,7 +690,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       margin: '0 auto 1rem',
-                      color: '#F59E0B',
+                      color: 'var(--g-warning, #F59E0B)',
                     }}>
                       <LockIcon />
                     </div>
@@ -850,7 +850,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                 )}
 
                 {actionError && (
-                  <div role="alert" style={{ color: '#DC2626', fontSize: '0.85rem', fontWeight: '500', textAlign: 'center' }}>
+                  <div role="alert" style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.85rem', fontWeight: '500', textAlign: 'center' }}>
                     {actionError}
                   </div>
                 )}
@@ -865,7 +865,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                       justifyContent: 'center',
                       gap: '0.5rem',
                       backgroundColor: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2',
-                      color: '#EF4444',
+                      color: 'var(--g-error, #EF4444)',
                       border: `2px solid ${actualTheme === 'dark' ? '#EF444440' : '#EF444430'}`,
                       borderRadius: '0.5rem',
                       padding: '0.875rem 1.5rem',
@@ -885,7 +885,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                     borderRadius: '0.5rem',
                     padding: '1rem',
                   }}>
-                    <p style={{ fontSize: '0.85rem', color: '#EF4444', fontWeight: '600', marginBottom: '0.75rem', margin: '0 0 0.75rem 0' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--g-error, #EF4444)', fontWeight: '600', marginBottom: '0.75rem', margin: '0 0 0.75rem 0' }}>
                       Are you sure you want to delete this album? This action cannot be undone.
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>

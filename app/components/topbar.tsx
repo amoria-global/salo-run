@@ -131,7 +131,7 @@ function LegacyTopbar({ userRole = 'client' }: TopbarProps) {
                       <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--ck-text)' }}>My availability</div>
                     </div>
                     <p style={{ margin: '0 0 12px', fontSize: 11.5, color: 'var(--ck-text-soft)', lineHeight: 1.5 }}>
-                      Tap a day to mark yourself <strong style={{ color: '#ef4444' }}>booked</strong>. Booked days show red on your public profile and clients can&apos;t book them. Tap again to free the day.
+                      Tap a day to mark yourself <strong style={{ color: 'var(--g-error, #ef4444)' }}>booked</strong>. Booked days show red on your public profile and clients can&apos;t book them. Tap again to free the day.
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                       <button type="button" aria-label="Previous month"
@@ -498,7 +498,7 @@ function LegacyTopbar({ userRole = 'client' }: TopbarProps) {
                   className="ck-row"
                   style={{
                     width: '100%', border: 'none', background: 'transparent', cursor: 'pointer',
-                    color: '#DC2626', margin: 6, padding: '12px 14px',
+                    color: 'var(--g-error, #DC2626)', margin: 6, padding: '12px 14px',
                   }}>
                   <i className="bi bi-box-arrow-right" style={{ fontSize: 16, marginRight: 10 }} />
                   <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Sign out</span>
@@ -521,7 +521,7 @@ function LegacyTopbar({ userRole = 'client' }: TopbarProps) {
             width: 36, height: 36, borderRadius: 10, background: 'rgba(245, 158, 11, 0.10)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
-            <i className="bi bi-exclamation-triangle-fill" style={{ color: '#F59E0B', fontSize: 16 }} />
+            <i className="bi bi-exclamation-triangle-fill" style={{ color: 'var(--g-warning, #F59E0B)', fontSize: 16 }} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--ck-text)', letterSpacing: '-0.005em' }}>
@@ -557,7 +557,7 @@ function LegacyTopbar({ userRole = 'client' }: TopbarProps) {
           ? { accent: '#DC2626', tint: 'rgba(220,38,38,0.10)', icon: 'bi-shield-exclamation', title: 'KYC verification rejected', detail: 'Your submission needs corrections. Resubmit to continue.' }
           : isPending
           ? { accent: '#3B82F6', tint: 'rgba(59,130,246,0.10)', icon: 'bi-shield-check', title: 'KYC under review', detail: 'We’re verifying your details. This typically takes a few hours.' }
-          : { accent: '#083A85', tint: 'rgba(8,58,133,0.10)', icon: 'bi-shield-lock', title: 'Verify your identity', detail: 'Complete KYC to unlock withdrawals and full platform features.' };
+          : { accent: 'var(--g-link, #083A85)', tint: 'rgba(8,58,133,0.10)', icon: 'bi-shield-lock', title: 'Verify your identity', detail: 'Complete KYC to unlock withdrawals and full platform features.' };
         return (
           <div style={{
             margin: '10px 24px 0', padding: '14px 18px',
@@ -612,7 +612,7 @@ function LegacyTopbar({ userRole = 'client' }: TopbarProps) {
           width: 56, height: 56, borderRadius: 9999, background: '#FEF2F2',
           display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px auto 8px',
         }}>
-          <i className="bi bi-box-arrow-right" style={{ color: '#DC2626', fontSize: 22 }} />
+          <i className="bi bi-box-arrow-right" style={{ color: 'var(--g-error, #DC2626)', fontSize: 22 }} />
         </div>
         <p style={{ textAlign: 'center', color: 'var(--ck-text-soft)', margin: 0 }}>
           Your session will end on this device.

@@ -615,7 +615,7 @@ const AllTransactions = () => {
                                 borderRadius: '50%',
                                 border: 'none',
                                 backgroundColor: '#FEE2E2',
-                                color: '#DC2626',
+                                color: 'var(--g-error, #DC2626)',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',

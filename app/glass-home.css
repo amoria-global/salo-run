@@ -53,6 +53,7 @@ html.ui-glass .gh-wallet-retry { background: none; border: none; color: #fff; te
 html.ui-glass .gh-overview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
 html.ui-glass .gh-range { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 0.8125rem; color: var(--g-text-soft); }
 html.ui-glass .gh-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+html.ui-glass .gh-kpis-auto { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 html.ui-glass .gh-kpi { padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 132px; }
 html.ui-glass .gh-kpi-head { display: flex; justify-content: space-between; align-items: center; font-size: 0.8125rem; color: var(--g-text-soft); }
 html.ui-glass .gh-kpi-icon { width: 28px; height: 28px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; }
@@ -116,7 +117,10 @@ html.ui-glass .gh-error { display: flex; flex-direction: column; align-items: ce
   html.ui-glass .gh-tiles { grid-template-columns: 1fr 1fr; }
   html.ui-glass .gh-tile { flex-direction: column; align-items: flex-start; gap: 8px; }
   html.ui-glass .gh-tile > svg { display: none; }
-  html.ui-glass .gh-actions .g-btn { flex: 1 1 auto; }
+  /* One scrollable row on phones: a button that appears once permissions load must not add a row (CLS). */
+  html.ui-glass .gh-actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  html.ui-glass .gh-actions::-webkit-scrollbar { display: none; }
+  html.ui-glass .gh-actions .g-btn { flex: 0 0 auto; }
   html.ui-glass .gh-kpis { gap: 10px; }
   html.ui-glass .gh-kpi { padding: 12px; min-height: 118px; }
   html.ui-glass .gh-kpi-value { font-size: 1.375rem; }

@@ -47,7 +47,7 @@ export function HostWishInvitesRow({ eventId, initial, fetcher }: {
           {on ? 'Turn off' : 'Turn on'}
         </button>
       </div>
-      {error ? <p role="alert" style={{ margin: 0, color: '#DC2626', fontSize: '0.8rem' }}>{error}</p> : null}
+      {error ? <p role="alert" style={{ margin: 0, color: 'var(--g-error, #DC2626)', fontSize: '0.8rem' }}>{error}</p> : null}
     </div>
   );
 }

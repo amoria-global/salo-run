@@ -5,6 +5,7 @@ import "./globals.css";
 import "./glass.css";
 import "./glass-shell.css";
 import "./glass-home.css";
+import "./glass-pages.css";
 import { HEAD_SCRIPT } from "./lib/uiGlass";
 // bootstrap-icons was dropped from package.json in PR #162; the webfont is now
 // loaded via the CDN <link> in the <head> below. CSP already whitelists

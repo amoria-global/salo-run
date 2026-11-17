@@ -3,10 +3,13 @@
 /** The top bar's dialogs (Pay now, sign out, identity check), the same components and handlers as the old top bar. */
 import { LogOut } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
-import PayNowModal from '../UnlockModal';
+import dynamic from 'next/dynamic';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import KycVerificationModal from '../KycVerificationModal';
+
+// Loaded only when opened: the identity check pulls in face detection, which no page needs until then.
+const PayNowModal = dynamic(() => import('../UnlockModal'), { ssr: false });
+const KycVerificationModal = dynamic(() => import('../KycVerificationModal'), { ssr: false });
 import type { useTopbarState } from '../topbarState';
 import type { GlassRole } from './nav';
 
@@ -18,10 +21,10 @@ export default function GlassDialogs({ state }: { role: GlassRole; state: TopSta
     setShowLogoutModal, logout, showKycModal, setShowKycModal, refreshUserProfile, colors, actualTheme } = state;
   return (
     <>
-      <PayNowModal isOpen={showPayNowModal}
+      {showPayNowModal && <PayNowModal isOpen={showPayNowModal}
         onClose={() => { setShowPayNowModal(false); setTopbarPayment(null); }}
         payment={topbarPayment}
-        onPaymentSuccess={() => { setShowPayNowModal(false); setTopbarPayment(null); fetchFinancials(); }} />
+        onPaymentSuccess={() => { setShowPayNowModal(false); setTopbarPayment(null); fetchFinancials(); }} />}
 
       <Modal isOpen={showLogoutModal} onClose={() => setShowLogoutModal(false)}
         size="sm" title={t('Sign out of Connekyt?')}
@@ -39,13 +42,13 @@ export default function GlassDialogs({ state }: { role: GlassRole; state: TopSta
         <p style={{ textAlign: 'center', color: 'var(--g-text-soft)', margin: 0 }}>{t('Your session will end on this device.')}</p>
       </Modal>
 
-      <KycVerificationModal
+      {showKycModal && <KycVerificationModal
         isOpen={showKycModal}
         onClose={() => setShowKycModal(false)}
         onSuccess={() => { setShowKycModal(false); refreshUserProfile(); }}
         colors={colors as unknown as Record<string, string>}
         actualTheme={actualTheme}
-      />
+      />}
     </>
   );
 }

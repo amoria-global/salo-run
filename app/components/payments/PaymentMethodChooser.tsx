@@ -201,7 +201,7 @@ export const PaymentMethodChooser: React.FC<Props> = ({
                 </span>
                 <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, textAlign: 'center' }}>
                   {op.name}
-                  {op.disabled && <span style={{ display: 'block', fontSize: 9, color: '#ef4444', marginTop: 2, fontWeight: 700 }}>{op.disabledNote ?? 'Unavailable'}</span>}
+                  {op.disabled && <span style={{ display: 'block', fontSize: 9, color: 'var(--g-error, #ef4444)', marginTop: 2, fontWeight: 700 }}>{op.disabledNote ?? 'Unavailable'}</span>}
                 </span>
               </button>
             );

@@ -698,7 +698,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: '#EF4444',
+                    color: 'var(--g-error, #EF4444)',
                     padding: 0,
                     display: 'flex',
                     alignItems: 'center',
@@ -818,7 +818,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: '#EF4444',
+                      color: 'var(--g-error, #EF4444)',
                       padding: '0.25rem',
                       display: 'flex',
                       alignItems: 'center',
@@ -879,7 +879,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary }}>Education #{index + 1}</span>
             <button
               onClick={() => removeEducation(entry.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0.25rem' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #EF4444)', display: 'flex', alignItems: 'center', padding: '0.25rem' }}
             >
               <TrashIcon />
             </button>
@@ -926,7 +926,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
           <div key={entry.id} style={{ padding: '0.875rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa', marginBottom: '0.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary }}>Certification #{index + 1}</span>
-              <button onClick={() => removeCertification(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0.25rem' }}><TrashIcon /></button>
+              <button onClick={() => removeCertification(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #EF4444)', display: 'flex', alignItems: 'center', padding: '0.25rem' }}><TrashIcon /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <input type="text" value={entry.title} onChange={e => updateCertification(entry.id, 'title', e.target.value)} placeholder="Certification title" style={inputStyle} onFocus={focusHandler} onBlur={blurHandler} />
@@ -960,7 +960,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
           <div key={entry.id} style={{ padding: '0.875rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa', marginBottom: '0.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary }}>Training #{index + 1}</span>
-              <button onClick={() => removeTraining(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0.25rem' }}><TrashIcon /></button>
+              <button onClick={() => removeTraining(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #EF4444)', display: 'flex', alignItems: 'center', padding: '0.25rem' }}><TrashIcon /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <input type="text" value={entry.title} onChange={e => updateTraining(entry.id, 'title', e.target.value)} placeholder="Training / Workshop name" style={inputStyle} onFocus={focusHandler} onBlur={blurHandler} />
@@ -1121,7 +1121,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
             <div style={{
               padding: '0.625rem 1.5rem',
               backgroundColor: actualTheme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2',
-              color: '#EF4444',
+              color: 'var(--g-error, #EF4444)',
               fontSize: '0.85rem',
               fontWeight: 500,
               borderTop: `1px solid ${actualTheme === 'dark' ? 'rgba(239, 68, 68, 0.2)' : '#FECACA'}`,

@@ -2130,7 +2130,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     pkgMoneyCurrencies.find((o) => o.value === pkg.currencyId || o.code === pkg.currencyId)?.value ?? '';
 
   const errorMessageStyle = {
-    color: '#EF4444',
+    color: 'var(--g-error, #EF4444)',
     fontSize: '0.75rem',
     marginTop: '0.25rem',
     display: 'block'
@@ -2606,7 +2606,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                           {it.ok ? (
-                            <i className="bi bi-check-circle-fill" style={{ fontSize: 20, color: '#10B981' }} />
+                            <i className="bi bi-check-circle-fill" style={{ fontSize: 20, color: 'var(--g-success, #10B981)' }} />
                           ) : (
                             <div style={{
                               width: '100%', height: '100%',
@@ -3296,7 +3296,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         bg: actualTheme === 'dark' ? 'rgba(127,29,29,0.32)' : 'rgba(220,38,38,0.06)',
                         border: actualTheme === 'dark' ? 'rgba(252,165,165,0.36)' : 'rgba(220,38,38,0.30)',
                         icon: 'bi-exclamation-octagon-fill' }
-                    : { accent: '#083A85', textColor: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF',
+                    : { accent: 'var(--g-link, #083A85)', textColor: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF',
                         bg: actualTheme === 'dark' ? 'rgba(30,58,95,0.42)' : 'rgba(8,58,133,0.05)',
                         border: actualTheme === 'dark' ? 'rgba(147,197,253,0.30)' : 'rgba(8,58,133,0.22)',
                         icon: 'bi-shield-fill-exclamation' };
@@ -4216,7 +4216,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               backgroundPosition: 'center',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               borderBottom: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.30)' : 'rgba(245,158,11,0.22)'}`,
-                              color: '#D97706',
+                              color: 'var(--g-warning, #D97706)',
                               position: 'relative',
                             }}>
                               {!imgUrl && <i className="bi bi-camera-fill" style={{ fontSize: 22 }} />}
@@ -4846,7 +4846,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     packages.find(p => (p.serviceType ?? 'OUTDOOR') === (pkg.serviceType ?? 'OUTDOOR') && p.packageName === 'Gold')?.deliveryDays || '0') || 0;
                                   const silverDays = parseInt(
                                     packages.find(p => (p.serviceType ?? 'OUTDOOR') === (pkg.serviceType ?? 'OUTDOOR') && p.packageName === 'Silver')?.deliveryDays || '0') || 0;
-                                  const errStyle = { fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' } as const;
+                                  const errStyle = { fontSize: '0.75rem', color: 'var(--g-error, #EF4444)', margin: '0.35rem 0 0 0' } as const;
 
                                   if (pkg.packageName === 'Diamond' && goldDays > 0 && days >= goldDays) {
                                     return <p style={errStyle}>Diamond delivery must be faster (fewer days) than Gold ({goldDays} days)</p>;
@@ -4906,7 +4906,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     if (premPhotos > 0 && essentialPhotos > 0 && premPhotos <= essentialPhotos) warnings.push(`Diamond photos (${premPhotos}) must be more than Silver (${essentialPhotos})`);
                                     if (premVideos > 0 && customVideos > 0 && premVideos <= customVideos) warnings.push(`Diamond videos (${premVideos}) must be more than Gold (${customVideos})`);
                                     if (premVideos > 0 && essentialVideos > 0 && premVideos <= essentialVideos) warnings.push(`Diamond videos (${premVideos}) must be more than Silver (${essentialVideos})`);
-                                    return warnings.length > 0 ? <div style={{ marginBottom: '0.5rem' }}>{warnings.map((w, i) => <p key={i} style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.2rem 0 0 0' }}>{w}</p>)}</div> : null;
+                                    return warnings.length > 0 ? <div style={{ marginBottom: '0.5rem' }}>{warnings.map((w, i) => <p key={i} style={{ fontSize: '0.75rem', color: 'var(--g-error, #EF4444)', margin: '0.2rem 0 0 0' }}>{w}</p>)}</div> : null;
                                   })()}
                                   {pkg.packageName === 'Gold' && (() => {
                                     const photos = parseInt(pkg.includedPhotos) || 0;
@@ -4922,7 +4922,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     if (photos > 0 && essentialPhotos > 0 && photos <= essentialPhotos) warnings.push(`Gold photos (${photos}) must be more than Silver (${essentialPhotos})`);
                                     if (videos > 0 && premVideos > 0 && videos >= premVideos) warnings.push(`Gold videos (${videos}) must be less than Diamond (${premVideos})`);
                                     if (videos > 0 && essentialVideos > 0 && videos <= essentialVideos) warnings.push(`Gold videos (${videos}) must be more than Silver (${essentialVideos})`);
-                                    return warnings.length > 0 ? <div style={{ marginBottom: '0.5rem' }}>{warnings.map((w, i) => <p key={i} style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.2rem 0 0 0' }}>{w}</p>)}</div> : null;
+                                    return warnings.length > 0 ? <div style={{ marginBottom: '0.5rem' }}>{warnings.map((w, i) => <p key={i} style={{ fontSize: '0.75rem', color: 'var(--g-error, #EF4444)', margin: '0.2rem 0 0 0' }}>{w}</p>)}</div> : null;
                                   })()}
 
                                   {/* Printed photobook limit */}
@@ -5251,7 +5251,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       fontSize: '0.78rem', color: colors.textPrimary,
                                       lineHeight: 1.35,
                                     }}>
-                                      <i className="bi bi-check-circle-fill" style={{ fontSize: 11, color: '#10B981', flexShrink: 0 }} />
+                                      <i className="bi bi-check-circle-fill" style={{ fontSize: 11, color: 'var(--g-success, #10B981)', flexShrink: 0 }} />
                                       {f.featureName}
                                     </div>
                                   ))}
@@ -5421,7 +5421,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   </span>
                                 )}
                                 <button onClick={() => setPackageToRemove(pkg)} disabled={!isStudioPackageEditEnabled}
-                                  style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: isStudioPackageEditEnabled ? 'pointer' : 'not-allowed', fontSize: '0.78rem', fontWeight: 600, opacity: isStudioPackageEditEnabled ? 1 : 0.5 }}>
+                                  style={{ background: 'transparent', border: 'none', color: 'var(--g-error, #EF4444)', cursor: isStudioPackageEditEnabled ? 'pointer' : 'not-allowed', fontSize: '0.78rem', fontWeight: 600, opacity: isStudioPackageEditEnabled ? 1 : 0.5 }}>
                                   <i className="bi bi-trash" /> Remove
                                 </button>
                               </div>

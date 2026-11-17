@@ -59,7 +59,7 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
         padding: '1rem',
         marginBottom: '1rem',
       }}>
-        <div style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600, marginBottom: '0.25rem' }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--g-success, #10b981)', fontWeight: 600, marginBottom: '0.25rem' }}>
           ℹ️ FREE Album Details
         </div>
         <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4 }}>
@@ -107,7 +107,7 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
           required
         />
         {!isValid && recipientEmail && (
-          <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--g-error, #ef4444)', marginTop: '0.25rem' }}>
             Please enter a valid email address
           </div>
         )}

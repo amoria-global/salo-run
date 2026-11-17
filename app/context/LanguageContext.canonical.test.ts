@@ -26,7 +26,8 @@ describe('getDashboardCanonical case-insensitive lookup', () => {
       }
     }
     expect(compared).toBeGreaterThan(2000);
-  });
+    // The reference is the old linear loop over the whole dictionary for each key (quadratic), so it needs longer than 5 s.
+  }, 60_000);
 
   it('keeps the surrounding whitespace and trailing punctuation', () => {
     expect(getDashboardCanonical('  home: ')).toMatchObject({ canonical: 'Home', leading: '  ', suffix: ':', trailing: ' ' });

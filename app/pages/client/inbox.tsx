@@ -1279,10 +1279,10 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                       border: '1px solid #FECACA',
                       borderRadius: '0.5rem',
                       fontSize: '0.85rem',
-                      color: '#DC2626',
+                      color: 'var(--g-error, #DC2626)',
                     }}>
                       <span>{chatError}</span>
-                      <button onClick={() => setChatError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1rem', lineHeight: 1, padding: '0 0.25rem' }}>✕</button>
+                      <button onClick={() => setChatError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #DC2626)', fontSize: '1rem', lineHeight: 1, padding: '0 0.25rem' }}>✕</button>
                     </div>
                   )}
 
@@ -1564,7 +1564,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                         {alreadyHasConvo && (
                           <span style={{
                             fontSize: '0.7rem',
-                            color: '#3B82F6',
+                            color: 'var(--g-link, #3B82F6)',
                             backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
                             padding: '0.15rem 0.5rem',
                             borderRadius: '9999px',

@@ -1378,7 +1378,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   border: '1.5px solid rgba(245, 158, 11, 0.35)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--g-warning, #D97706)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       Matching ended: no photographer said yes
                     </span>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
@@ -1663,12 +1663,12 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {renderStatusBadge(event.completionStatus)}
               {event.completionStatus?.toUpperCase() === 'COMPLETED' && (
-                <span style={{ fontSize: '0.8rem', color: '#10B981', fontWeight: '500' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--g-success, #10B981)', fontWeight: '500' }}>
                   Event has been completed successfully
                 </span>
               )}
               {event.completionStatus?.toUpperCase() === 'PENDING' && (
-                <span style={{ fontSize: '0.8rem', color: '#F59E0B', fontWeight: '500' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--g-warning, #F59E0B)', fontWeight: '500' }}>
                   Awaiting confirmation
                 </span>
               )}
@@ -1747,7 +1747,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                 <div style={{ fontSize: '0.7rem', color: colors.textSecondary, fontWeight: '500', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Paid
                 </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10B981' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--g-success, #10B981)' }}>
                   {formatPrice(totalPaid)}
                 </div>
               </div>
@@ -1824,7 +1824,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                               fontSize: '0.65rem',
                               fontWeight: '600',
                               backgroundColor: 'rgba(251, 191, 36, 0.15)',
-                              color: '#D97706',
+                              color: 'var(--g-warning, #D97706)',
                             }}>
                               Held
                             </span>
@@ -1837,7 +1837,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                               fontSize: '0.65rem',
                               fontWeight: '600',
                               backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                              color: '#059669',
+                              color: 'var(--g-success, #059669)',
                             }}>
                               Released
                             </span>
@@ -1852,7 +1852,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                                 <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawable ({100 - (payment.escrowPercentage || 0)}%)</span>
                               </div>
-                              <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#10B981' }}>
+                              <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-success, #10B981)' }}>
                                 {formatPrice(withdrawableAmount)}
                               </span>
                             </div>
@@ -1861,7 +1861,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
                                 <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Held for delivery ({payment.escrowPercentage}%)</span>
                               </div>
-                              <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#F59E0B' }}>
+                              <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-warning, #F59E0B)' }}>
                                 {formatPrice(heldForDelivery)}
                               </span>
                             </div>
@@ -1912,7 +1912,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                         border: '1px solid rgba(251, 191, 36, 0.2)',
                       }}>
                         <AlertCircleIcon />
-                        <span style={{ fontSize: '0.75rem', color: '#D97706', fontWeight: '500' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--g-warning, #D97706)', fontWeight: '500' }}>
                           Escrow funds will be released after event completion
                         </span>
                       </div>
@@ -1931,7 +1931,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                         border: '1px solid rgba(16, 185, 129, 0.2)',
                       }}>
                         <CheckCircleIcon size={16} color="#10B981" />
-                        <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '500' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--g-success, #059669)', fontWeight: '500' }}>
                           Event completed - funds eligible for release
                         </span>
                       </div>
@@ -2180,8 +2180,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
               {/* Status Selection */}
               <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem' }}>
                 {[
-                  { value: 'COMPLETED', label: 'Completed', subLabel: 'Everything is perfect', color: '#10B981', icon: 'bi-check2-circle' },
-                  { value: 'REQUIRE_CHANGES', label: 'Require Changes', subLabel: 'Needs adjustments', color: '#F59E0B', icon: 'bi-arrow-counterclockwise' },
+                  { value: 'COMPLETED', label: 'Completed', subLabel: 'Everything is perfect', color: 'var(--g-success, #10B981)', icon: 'bi-check2-circle' },
+                  { value: 'REQUIRE_CHANGES', label: 'Require Changes', subLabel: 'Needs adjustments', color: 'var(--g-warning, #F59E0B)', icon: 'bi-arrow-counterclockwise' },
                 ].map((opt) => {
                   const isSel = completionStatus === opt.value;
                   return (
@@ -2341,7 +2341,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                 </div>
               </div>
               <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#059669', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Accept booking</div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--g-success, #059669)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Accept booking</div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Accept this booking?</h3>
               </div>
 
@@ -2435,7 +2435,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
               </div>
               <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
                 <div style={{
-                  fontSize: '0.66rem', fontWeight: 700, color: '#DC2626',
+                  fontSize: '0.66rem', fontWeight: 700, color: 'var(--g-error, #DC2626)',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                   marginBottom: 4,
                 }}>Decline booking</div>

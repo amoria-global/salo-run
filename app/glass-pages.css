@@ -1,0 +1,54 @@
+/*
+ * Compact Glass for every page that is not (yet) a bespoke redesign: the shared ck-* classes and base elements take
+ * the glass tokens, so pages built on them look like the new Home. Scoped under html.ui-glass; with the flag off none
+ * of this applies. Pages that style themselves inline get the palette from the token aliases in glass.css.
+ */
+html.ui-glass .g-page-host h1,
+html.ui-glass .g-page-host h2,
+html.ui-glass .g-page-host h3 { font-family: var(--g-font-display); letter-spacing: -0.02em; color: var(--g-text); }
+html.ui-glass .g-page-host { font-family: var(--g-font-text); }
+
+html.ui-glass .ck-card {
+  background: linear-gradient(180deg, var(--g-glass-top), var(--g-glass-bottom));
+  border: 1px solid var(--g-stroke); border-radius: var(--g-r-lg); box-shadow: var(--g-shadow-1);
+}
+html.ui-glass .ck-card-hover:hover { border-color: var(--g-primary-light); box-shadow: var(--g-shadow-2); transform: none; }
+
+html.ui-glass .ck-btn { border-radius: 12px; font-family: var(--g-font-text); }
+html.ui-glass .ck-btn-primary { background: var(--g-grad-raised); color: #fff; box-shadow: 0 6px 16px rgba(47, 100, 200, 0.28); }
+html.ui-glass .ck-btn-primary:hover:not(:disabled) { background: var(--g-grad-raised); filter: brightness(1.08); box-shadow: 0 8px 20px rgba(47, 100, 200, 0.34); }
+html.ui-glass .ck-btn-ghost { background: var(--g-well); color: var(--g-text); border-color: var(--g-stroke); }
+html.ui-glass .ck-pill { font-weight: 600; }
+
+html.ui-glass .ck-input, html.ui-glass .ck-search input {
+  background: var(--g-well); border: 1px solid var(--g-stroke); border-radius: 12px; color: var(--g-text);
+}
+html.ui-glass .ck-input:focus, html.ui-glass .ck-search input:focus { border-color: var(--g-primary-light); outline: none; box-shadow: 0 0 0 3px var(--g-tint); }
+
+html.ui-glass .ck-modal-card { background: var(--g-elevated); border: 1px solid var(--g-stroke); border-radius: var(--g-r-xl); box-shadow: var(--g-shadow-3); }
+html.ui-glass .ck-modal-backdrop { background: var(--g-scrim); }
+
+/* Every interactive element has a visible focus ring (WCAG 2.4.7). */
+html.ui-glass .g-page-host :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--g-primary-light); outline-offset: 2px;
+}
+
+/* Sub-tabs of a page group (Wallet: Transactions, All transactions, Payroll report). */
+html.ui-glass .g-subtabs { display: flex; gap: 4px; padding: 10px 24px 0; overflow-x: auto; scrollbar-width: none; }
+html.ui-glass .g-subtabs a {
+  display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 999px; white-space: nowrap;
+  font-size: 0.875rem; font-weight: 600; color: var(--g-text-soft); text-decoration: none; border: 1px solid transparent;
+}
+html.ui-glass .g-subtabs a:hover { background: var(--g-tint); color: var(--g-text); }
+html.ui-glass .g-subtabs a[aria-current="page"] { background: var(--g-primary); color: #fff; }
+@media (max-width: 767.98px) { html.ui-glass .g-subtabs { padding: 8px 12px 0; } }
+
+/* Tables become stacked rows on phones: a table with data-stack="true" (opt-in per page) shows each row as a card. */
+@media (max-width: 767.98px) {
+  html.ui-glass table[data-stack="true"], html.ui-glass table[data-stack="true"] tbody, html.ui-glass table[data-stack="true"] tr,
+  html.ui-glass table[data-stack="true"] td { display: block; width: 100%; }
+  html.ui-glass table[data-stack="true"] thead { display: none; }
+  html.ui-glass table[data-stack="true"] tr { padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--g-stroke); border-radius: 14px; background: var(--g-card); }
+  html.ui-glass table[data-stack="true"] td { padding: 4px 0; border: 0; }
+  html.ui-glass table[data-stack="true"] td::before { content: attr(data-label); display: block; font-size: 0.6875rem; color: var(--g-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+}

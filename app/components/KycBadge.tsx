@@ -14,7 +14,7 @@ export default function KycBadge({ kycStatus, size = 'sm' }: KycBadgeProps) {
       display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
       padding: size === 'sm' ? '2px 8px' : '4px 12px',
       borderRadius: '9999px', fontSize: size === 'sm' ? '0.7rem' : '0.8rem',
-      fontWeight: '600', backgroundColor: '#ECFDF5', color: '#059669',
+      fontWeight: '600', backgroundColor: '#ECFDF5', color: 'var(--g-success, #059669)',
       border: '1px solid #A7F3D0',
     }}>
       <svg width={size === 'sm' ? '12' : '14'} height={size === 'sm' ? '12' : '14'} viewBox="0 0 24 24" fill="none">

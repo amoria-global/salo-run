@@ -272,16 +272,16 @@ Transaction Summary:
                 <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary }}>{reportData.totalTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#10B981' }}>Completed</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#10B981' }}>{reportData.completedTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-success, #10B981)' }}>Completed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-success, #10B981)' }}>{reportData.completedTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#F59E0B' }}>Pending</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#F59E0B' }}>{reportData.pendingTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-warning, #F59E0B)' }}>Pending</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-warning, #F59E0B)' }}>{reportData.pendingTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#EF4444' }}>Failed</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#EF4444' }}>{reportData.failedTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-error, #EF4444)' }}>Failed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-error, #EF4444)' }}>{reportData.failedTransactions}</span>
               </div>
             </div>
           </div>
@@ -839,7 +839,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
           <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Failed</h4>
-          <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
+          <p style={{ fontSize: '0.9rem', color: 'var(--g-error, #EF4444)', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
             <button onClick={handleClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
             <button onClick={handleRetryPayment} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
@@ -942,7 +942,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                         background: actualTheme === 'dark' ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.12)',
                         border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.40)' : 'rgba(245,158,11,0.35)'}`,
                         borderRadius: 999, fontSize: '0.7rem',
-                        color: '#D97706', fontWeight: 700,
+                        color: 'var(--g-warning, #D97706)', fontWeight: 700,
                         letterSpacing: '0.03em',
                       }}>
                         <i className="bi bi-shield-lock-fill" style={{ fontSize: 10 }} />
@@ -970,7 +970,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                         background: actualTheme === 'dark' ? 'rgba(6,95,70,0.32)' : 'rgba(16,185,129,0.12)',
                         border: `1px solid ${actualTheme === 'dark' ? 'rgba(110,231,183,0.40)' : 'rgba(16,185,129,0.35)'}`,
                         borderRadius: 999, fontSize: '0.7rem',
-                        color: '#059669', fontWeight: 700, letterSpacing: '0.03em',
+                        color: 'var(--g-success, #059669)', fontWeight: 700, letterSpacing: '0.03em',
                       }}>
                         <i className="bi bi-clipboard-check-fill" style={{ fontSize: 10 }} />
                         Requires satisfaction survey
@@ -989,7 +989,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               background: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(245,158,11,0.08)',
               border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(245,158,11,0.30)'}`,
               borderRadius: 10,
-              fontSize: '0.82rem', color: '#D97706', lineHeight: 1.45,
+              fontSize: '0.82rem', color: 'var(--g-warning, #D97706)', lineHeight: 1.45,
             }}>
               <i className="bi bi-clipboard-check-fill" style={{ fontSize: 13, marginTop: 1, flexShrink: 0 }} />
               <span>You need to complete a satisfaction survey before making the full payment. The survey will appear in the next step.</span>
@@ -1115,8 +1115,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             </div>
             {selectedEscrowOption && selectedEscrowOption < 100 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>Remaining ({100 - selectedEscrowOption}%)</span>
-                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>{formatPrice(fullAmountDue - amountDue)} (later)</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: 'var(--g-warning, #D97706)' }}>Remaining ({100 - selectedEscrowOption}%)</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: 'var(--g-warning, #D97706)' }}>{formatPrice(fullAmountDue - amountDue)} (later)</span>
               </div>
             )}
             {donationValue > 0 && (
@@ -1138,7 +1138,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           </div>
 
           {xentriPayError && (
-            <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
           )}
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -1352,8 +1352,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             background: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(245,158,11,0.08)',
             border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(245,158,11,0.30)'}`,
           }}>
-            <i className="bi bi-shield-lock-fill" style={{ fontSize: 14, color: '#D97706', marginTop: 1, flexShrink: 0 }} />
-            <p style={{ fontSize: '0.82rem', color: '#D97706', margin: 0, lineHeight: 1.45, fontWeight: 600 }}>
+            <i className="bi bi-shield-lock-fill" style={{ fontSize: 14, color: 'var(--g-warning, #D97706)', marginTop: 1, flexShrink: 0 }} />
+            <p style={{ fontSize: '0.82rem', color: 'var(--g-warning, #D97706)', margin: 0, lineHeight: 1.45, fontWeight: 600 }}>
               You are paying <strong>{selectedEscrowOption}% ({formatPrice(amountDue)})</strong> upfront. Funds will be held securely and released after you confirm service satisfaction.
             </p>
           </div>
@@ -2757,7 +2757,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           <LiveStreamIcon />
                           <span style={{
                             fontSize: '0.65rem',
-                            color: '#EF4444',
+                            color: 'var(--g-error, #EF4444)',
                             backgroundColor: '#FEE2E2',
                             padding: '0.1rem 0.35rem',
                             borderRadius: '0.25rem',
@@ -2767,7 +2767,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           </span>
                           <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{stream.date}</span>
                         </div>
-                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(streamTotal)}</span>
+                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--g-success, #16A34A)' }}>{formatPrice(streamTotal)}</span>
                       </div>
 
                       {/* Title row */}
@@ -2899,7 +2899,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem',
                             borderRadius: '9999px', fontSize: '0.7rem', fontWeight: '600',
-                            backgroundColor: 'rgba(251, 191, 36, 0.15)', color: '#D97706',
+                            backgroundColor: 'rgba(251, 191, 36, 0.15)', color: 'var(--g-warning, #D97706)',
                           }}>
                             {payment.escrowPercentage}% held
                           </span>
@@ -2908,7 +2908,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem',
                             borderRadius: '9999px', fontSize: '0.7rem', fontWeight: '600',
-                            backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#059669',
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)', color: 'var(--g-success, #059669)',
                           }}>
                             Released
                           </span>
@@ -2965,7 +2965,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           </button>
                         )}
                         {payment.escrowStatus === 'HELD' && payment.eventCompletionStatus !== 'COMPLETED' && (
-                          <span style={{ fontSize: '0.75rem', color: '#D97706', fontWeight: '500' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--g-warning, #D97706)', fontWeight: '500' }}>
                             Awaiting completion
                           </span>
                         )}
@@ -3064,7 +3064,7 @@ Amount: ${formatPrice(payment.amountNum)}
                 <LiveStreamIcon />
                 <span style={{
                   fontSize: '0.7rem',
-                  color: '#EF4444',
+                  color: 'var(--g-error, #EF4444)',
                   backgroundColor: '#FEE2E2',
                   padding: '0.15rem 0.4rem',
                   borderRadius: '0.25rem',
@@ -3122,7 +3122,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           </span>
                         </div>
                       </div>
-                      <span style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>
+                      <span style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--g-success, #16A34A)' }}>
                         {formatPrice(gifter.amount)}
                       </span>
                     </div>

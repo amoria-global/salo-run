@@ -630,7 +630,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                     border: `1px solid ${colors.borderPrimary}`,
                   }}>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Paid</div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10B981' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--g-success, #10B981)' }}>
                       {formatPrice(payment.paidAmountInUsd)}
                     </div>
                   </div>
@@ -668,7 +668,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                   padding: '1.5rem',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <span style={{ color: '#3B82F6' }}><ShieldIcon /></span>
+                    <span style={{ color: 'var(--g-link, #3B82F6)' }}><ShieldIcon /></span>
                     <h2 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Escrow & Milestone</h2>
                   </div>
 
@@ -681,7 +681,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       border: `1px solid ${colors.borderPrimary}`,
                     }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Escrow Percentage</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#3B82F6' }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--g-link, #3B82F6)' }}>
                         {payment.escrowPercentage}%
                       </div>
                     </div>
@@ -716,7 +716,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       border: `1px solid ${colors.borderPrimary}`,
                     }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Held Amount</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#F59E0B' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--g-warning, #F59E0B)' }}>
                         {formatPrice(payment.heldAmountInUsd)}
                       </div>
                     </div>
@@ -727,7 +727,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       border: `1px solid ${colors.borderPrimary}`,
                     }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Released Amount</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10B981' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--g-success, #10B981)' }}>
                         {formatPrice(payment.releasedAmountInUsd)}
                       </div>
                     </div>
@@ -778,7 +778,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                           <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                           <div>
                             <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawable </span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#10B981' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--g-success, #10B981)' }}>
                               {formatPrice(payment.withdrawableAmountInUsd)}
                             </span>
                           </div>
@@ -815,12 +815,12 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       }}>
                         {payment.deliveryHeldReleased ? (
                           <>
-                            <span style={{ color: '#10B981' }}><CheckCircleIcon /></span>
+                            <span style={{ color: 'var(--g-success, #10B981)' }}><CheckCircleIcon /></span>
                             Delivery-held funds have been released
                           </>
                         ) : (
                           <>
-                            <span style={{ color: '#F59E0B' }}><ClockIcon /></span>
+                            <span style={{ color: 'var(--g-warning, #F59E0B)' }}><ClockIcon /></span>
                             Delivery-held funds are pending release
                           </>
                         )}
@@ -840,7 +840,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       fontWeight: '500',
                     }}>
                       {payment.eventCompletionStatus === 'COMPLETED' ? (
-                        <span style={{ color: '#10B981' }}><CheckCircleIcon /></span>
+                        <span style={{ color: 'var(--g-success, #10B981)' }}><CheckCircleIcon /></span>
                       ) : (
                         <span style={{ color: colors.textSecondary }}><ClockIcon /></span>
                       )}

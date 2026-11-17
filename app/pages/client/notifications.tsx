@@ -683,7 +683,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                 label: userRole === 'event-coordinator' ? 'Stream fees' : 'Gifts received',
                 value: notifications.filter(n => n.type === (userRole === 'event-coordinator' ? 'streamfee' : 'gift')).length,
                 icon: userRole === 'event-coordinator' ? 'bi-broadcast' : 'bi-gift-fill',
-                tint: 'rgba(16,185,129,0.10)', color: '#10B981',
+                tint: 'rgba(16,185,129,0.10)', color: 'var(--g-success, #10B981)',
               },
             ] as const).map((s) => (
               <div key={s.label} className="ck-card ck-card-hover" style={{ padding: 18, borderTop: `3px solid ${s.color}` }}>
@@ -928,7 +928,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                         {notification.amount && (
                           <span style={{
                             fontSize: '0.78rem', fontWeight: 700,
-                            color: '#16A34A',
+                            color: 'var(--g-success, #16A34A)',
                             backgroundColor: actualTheme === 'dark' ? 'rgba(22,163,74,0.15)' : '#DCFCE7',
                             padding: '0.2rem 0.6rem', borderRadius: '6px',
                           }}>
@@ -1069,7 +1069,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                       {selectedNotif.type}
                     </span>
                     {selectedNotif.amount && (
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#16A34A' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--g-success, #16A34A)' }}>
                         {formatPrice(selectedNotif.amount)}
                       </span>
                     )}

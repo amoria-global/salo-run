@@ -2104,7 +2104,7 @@ const MyEventsPage = () => {
             </div>
           ) : eventsError ? (
             <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem' }}>
-              <p style={{ color: '#DC2626', marginBottom: '0.5rem' }}>{eventsError}</p>
+              <p style={{ color: 'var(--g-error, #DC2626)', marginBottom: '0.5rem' }}>{eventsError}</p>
               <button
                 onClick={() => fetchMyEvents()}
                 style={{
@@ -2337,7 +2337,7 @@ const MyEventsPage = () => {
                           </button>
                         )}
                         {event.completionStatus === 'PENDING_CUSTOMER_CONFIRMATION' && !event.albumDelivered && (
-                          <div style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '0.375rem', fontSize: '0.65rem', fontWeight: 500, textAlign: 'center', lineHeight: '1.2' }}>
+                          <div style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(245, 158, 11, 0.2)', color: 'var(--g-warning, #F59E0B)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '0.375rem', fontSize: '0.65rem', fontWeight: 500, textAlign: 'center', lineHeight: '1.2' }}>
                             Waiting for album delivery
                           </div>
                         )}
@@ -2540,7 +2540,7 @@ const MyEventsPage = () => {
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Banner image (1200×800) <span style={{ color: '#DC2626' }}>*</span></label>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Banner image (1200×800) <span style={{ color: 'var(--g-error, #DC2626)' }}>*</span></label>
               <div
                 onClick={(e) => { if (!createBannerImagePreview) { (e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement | null)?.click(); } }}
                 style={{
@@ -2673,7 +2673,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: '#F59E0B' }} />
+                <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: 'var(--g-warning, #F59E0B)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Schedule</div>
@@ -2684,13 +2684,13 @@ const MyEventsPage = () => {
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Date *</label>
                 <input id={eventFieldId('eventDate')} type="date" value={createDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateError(''); setCreateDate(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
-                {dateError && <p style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{dateError}</p>}
+                {dateError && <p style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{dateError}</p>}
                 <FieldError id="event-field-eventDate-error" message={dateError ? null : createShown.eventDate} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Start Time *</label>
                 <input id={eventFieldId('startTime')} type="time" value={createTime} onChange={(e) => { setTimeError(''); setCreateTime(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: timeError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
-                {timeError && <p style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{timeError}</p>}
+                {timeError && <p style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{timeError}</p>}
                 <FieldError id="event-field-startTime-error" message={timeError ? null : createShown.startTime} />
               </div>
               <div>
@@ -2705,7 +2705,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-geo-alt-fill" style={{ fontSize: 13, color: '#10B981' }} />
+                <i className="bi bi-geo-alt-fill" style={{ fontSize: 13, color: 'var(--g-success, #10B981)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Attendance</div>
@@ -2759,7 +2759,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-people-fill" style={{ fontSize: 13, color: '#3B82F6' }} />
+                <i className="bi bi-people-fill" style={{ fontSize: 13, color: 'var(--g-link, #3B82F6)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Attendance</div>
@@ -2960,7 +2960,7 @@ const MyEventsPage = () => {
                   }} disabled={isSendingInvite || !invitePhotographerEmail.trim()} style={{ padding: '0.625rem 1rem', backgroundColor: (!invitePhotographerEmail.trim() || isSendingInvite) ? '#9CA3AF' : '#083A85', color: 'white', border: '2px solid #062a63', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: (!invitePhotographerEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer' }}>{isSendingInvite ? 'Sending...' : 'Send Invite'}</button>
                 </div>
                 {inviteError && (
-                  <p style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.375rem' }}>{inviteError}</p>
+                  <p style={{ color: 'var(--g-error, #EF4444)', fontSize: '0.8rem', marginTop: '0.375rem' }}>{inviteError}</p>
                 )}
                 <button type="button" onClick={() => { setPhotographerAssignMode('none'); setInvitePhotographerEmail(''); setInviteError(null); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
               </div>
@@ -2978,7 +2978,7 @@ const MyEventsPage = () => {
                     <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{selected.name}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{selected.speciality}</div>
                   </div>
-                  <button type="button" onClick={() => setCreatePhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">×</button>
+                  <button type="button" onClick={() => setCreatePhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #DC2626)', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">×</button>
                 </div>
               ) : null;
             })()}
@@ -2987,11 +2987,11 @@ const MyEventsPage = () => {
             {createPhotographerId && photographerAssignMode === 'none' && (
               <div style={{ marginTop: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Select a Package <span style={{ color: '#DC2626' }}>*</span></span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Select a Package <span style={{ color: 'var(--g-error, #DC2626)' }}>*</span></span>
                   {packagesLoading && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Loading...</span>}
                 </div>
                 {packagesError && (
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', color: '#DC2626', borderRadius: '0.375rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', color: 'var(--g-error, #DC2626)', borderRadius: '0.375rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
                     {packagesError}
                   </div>
                 )}
@@ -3545,7 +3545,7 @@ const MyEventsPage = () => {
                         justifyContent: 'center',
                         gap: '0.5rem',
                         backgroundColor: '#FEF2F2',
-                        color: '#DC2626',
+                        color: 'var(--g-error, #DC2626)',
                         border: '2px solid #FECACA',
                         borderRadius: '0.5rem',
                         padding: '0.75rem 1rem',
@@ -3567,7 +3567,7 @@ const MyEventsPage = () => {
                         justifyContent: 'center',
                         gap: '0.5rem',
                         backgroundColor: '#FEF3C7',
-                        color: '#D97706',
+                        color: 'var(--g-warning, #D97706)',
                         border: '2px solid #FDE68A',
                         borderRadius: '0.5rem',
                         padding: '0.75rem 1rem',
@@ -3589,7 +3589,7 @@ const MyEventsPage = () => {
                         justifyContent: 'center',
                         gap: '0.5rem',
                         backgroundColor: '#D1FAE5',
-                        color: '#059669',
+                        color: 'var(--g-success, #059669)',
                         border: '2px solid #A7F3D0',
                         borderRadius: '0.5rem',
                         padding: '0.75rem 1rem',
@@ -4125,7 +4125,7 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
                 <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: '#F59E0B' }} />
+                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: 'var(--g-warning, #F59E0B)' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Schedule</div>
@@ -4308,7 +4308,7 @@ const MyEventsPage = () => {
                       <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{selected.name}</div>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{selected.speciality}</div>
                     </div>
-                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
+                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #DC2626)', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', border: `2px solid #083A85`, borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF' }}>
@@ -4316,7 +4316,7 @@ const MyEventsPage = () => {
                       <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{editEvent?.photographerName || 'Assigned Photographer'}</div>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Currently assigned</div>
                     </div>
-                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
+                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #DC2626)', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
                   </div>
                 );
               })()}
@@ -4327,7 +4327,7 @@ const MyEventsPage = () => {
               <WishInvitesField value={editWishInvites} onChange={setEditWishInvites} />
             </div>
             {submitError && (
-              <div style={{ padding: '0.75rem', backgroundColor: '#FEE2E2', color: '#DC2626', borderRadius: '0.5rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ padding: '0.75rem', backgroundColor: '#FEE2E2', color: 'var(--g-error, #DC2626)', borderRadius: '0.5rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ flexShrink: 0 }}>⚠</span>
                 {submitError}
               </div>

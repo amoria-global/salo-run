@@ -346,7 +346,7 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
                       <div key={f.key} className="ck-err-card">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-1.5">
-                            <i className="bi bi-file-earmark-x-fill shrink-0 text-sm" style={{ color: '#DC2626' }} aria-hidden />
+                            <i className="bi bi-file-earmark-x-fill shrink-0 text-sm" style={{ color: 'var(--g-error, #DC2626)' }} aria-hidden />
                             <span className="ck-err-name truncate" title={f.file.name}>
                               {f.file.name}
                             </span>
