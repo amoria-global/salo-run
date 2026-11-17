@@ -130,3 +130,14 @@ html.ui-glass .gh-error { display: flex; flex-direction: column; align-items: ce
   html.ui-glass .gh-overview-head .g-seg button { flex: 1; padding: 0 6px; }
   html.ui-glass .gh-legend { display: none; }
 }
+
+/* Matching profile card (replaces the timed Instagram modal on the photographer Home) */
+html.ui-glass .gh-match { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+html.ui-glass .gh-match-wait { min-height: 84px; }
+html.ui-glass .gh-match-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+html.ui-glass .gh-match-icon { width: 44px; height: 44px; border-radius: 14px; background: var(--g-grad-brand); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+html.ui-glass .gh-match-text { flex: 1 1 200px; min-width: 0; }
+html.ui-glass .gh-match-title { margin: 0; font-size: 1.0625rem; }
+html.ui-glass .gh-match-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+html.ui-glass .gh-match-later { align-self: flex-start; }
+@media (max-width: 767.98px) { html.ui-glass .gh-match-actions { width: 100%; } html.ui-glass .gh-match-actions .g-btn { flex: 1 1 0; } }

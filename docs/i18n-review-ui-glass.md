@@ -39,3 +39,9 @@ Could not load your balance, Choose a period, Pending payouts, No upcoming event
 No change, vs previous period, Progress to goal, Not shared, We could not load this., Bookings in this period, goal sheet copy
 (Save goal, Stop comparing, New goal, Edit goal, Goal name, Earnings/Pending/Clients/Rating target, Earnings targets are in USD),
 chart empty state, Good night, Refunded, Searching…. The existing "Payment History" entry was corrected (it was word for word).
+
+## Pages (Opportunities, My hosted events, matching card, payment chip)
+Added 2026-11-17, drafted by Claude for fr, es, rw and sw (array order in lib/domTranslations.json: fr, es, rw, sw). They need
+a native-speaker review before being called final; en is the source. Keys: the Opportunities page copy and info text, the
+hosted events header and row menu, "Get matched" and "Remind me later" on the Home card, and the shared "Please wait…".
+Two older entries were corrected (they were word-by-word substitutions such as "Get matched with Plus événements").

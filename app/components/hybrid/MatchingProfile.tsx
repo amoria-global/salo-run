@@ -182,3 +182,61 @@ export function MatchingProfilePrompt() {
     </div>
   );
 }
+
+/**
+ * The same ask as MatchingProfilePrompt, as a dismissible card inside the photographer Home (Compact Glass). No timer and
+ * no overlay, so it never covers the page or becomes the largest paint. "Remind me later" uses the same storage key and
+ * the same seven days. Space is reserved only when this browser last saw the card, so it does not push the page down.
+ */
+const HINT_KEY = 'connekyt.matchingCard.shown';
+export function MatchingProfileHomeCard({ t }: { t: (s: string) => string }) {
+  const [state, setState] = useState<'wait' | 'hidden' | 'ask' | 'form'>('wait');
+  const [profile, setProfile] = useState<HybridProfile | null>(null);
+  const [reserve, setReserve] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    let hinted = false;
+    try { hinted = localStorage.getItem(HINT_KEY) === '1'; } catch { /* storage blocked */ }
+    if (snoozed()) { setState('hidden'); return; }
+    setReserve(hinted);
+    getHybridProfile().then((p) => {
+      if (!live) return;
+      const need = p.needsInstagram || p.needsCity;
+      try { localStorage.setItem(HINT_KEY, need ? '1' : '0'); } catch { /* storage blocked */ }
+      if (need) { setProfile(p); setState('ask'); } else setState('hidden');
+    }).catch(() => { if (live) setState('hidden'); });
+    return () => { live = false; };
+  }, []);
+
+  const later = () => {
+    try { localStorage.setItem(DISMISS_KEY, String(Date.now())); localStorage.setItem(HINT_KEY, '0'); } catch { /* private mode */ }
+    setState('hidden');
+  };
+
+  if (state === 'hidden') return null;
+  if (state === 'wait') return reserve ? <div className="gh-match gh-match-wait" aria-hidden /> : null;
+  return (
+    <section className="g-panel gh-match" aria-labelledby="gh-match-title" data-testid="matching-card">
+      <div className="gh-match-head">
+        <span className="gh-match-icon" aria-hidden><i className="bi bi-instagram" /></span>
+        <div className="gh-match-text">
+          <h2 id="gh-match-title" className="g-display gh-match-title">{t('Get matched with more events')}</h2>
+          <p className="gh-sub">{t('Takes 20 seconds')}</p>
+        </div>
+        {state === 'ask' && (
+          <div className="gh-match-actions">
+            <button type="button" className="g-btn g-btn-primary" onClick={() => setState('form')}>{t('Get matched')}</button>
+            <button type="button" className="g-btn g-btn-ghost" onClick={later}>{t('Remind me later')}</button>
+          </div>
+        )}
+      </div>
+      {state === 'form' && (
+        <>
+          <MatchingProfileForm initial={profile ?? undefined} onSaved={(p) => { if (!p.needsCity) setTimeout(() => { setState('hidden'); try { localStorage.setItem(HINT_KEY, '0'); } catch { /* storage blocked */ } }, 1200); }} />
+          <button type="button" className="g-btn g-btn-ghost gh-match-later" onClick={later}>{t('Remind me later')}</button>
+        </>
+      )}
+    </section>
+  );
+}

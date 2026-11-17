@@ -1,0 +1,103 @@
+/* Page building blocks for Compact Glass (see app/components/glass/ui). Everything is under html.ui-glass. */
+
+html.ui-glass .gp-page { display: flex; flex-direction: column; gap: 16px; max-width: 1180px; margin: 0 auto; padding: 20px 24px 32px; min-width: 0; }
+html.ui-glass .gp-page-narrow { max-width: 880px; }
+html.ui-glass .gp-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+html.ui-glass .gp-head-text { min-width: 0; flex: 1 1 260px; }
+html.ui-glass .gp-title { margin: 0; font-size: 1.625rem; line-height: 1.15; }
+html.ui-glass .gp-sub { margin: 4px 0 0; color: var(--g-text-soft); font-size: 0.9375rem; line-height: 1.45; }
+html.ui-glass .gp-head-action { display: flex; gap: 8px; flex-wrap: wrap; }
+html.ui-glass .gp-card { padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+/* Segmented switch (the Home period switch) */
+html.ui-glass .gp-seg { display: inline-flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--g-well); border: 1px solid var(--g-stroke); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+html.ui-glass .gp-seg::-webkit-scrollbar { display: none; }
+html.ui-glass .gp-seg-btn { border: 0; background: transparent; color: var(--g-text-soft); font: inherit; font-size: 0.875rem; font-weight: 600; padding: 7px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; min-height: 36px; }
+html.ui-glass .gp-seg-btn:hover { color: var(--g-text); }
+html.ui-glass .gp-seg-btn.is-on { background: var(--g-primary); color: #fff; }
+html.ui-glass .gp-seg-count { font-size: 0.75rem; opacity: 0.85; }
+
+/* Chips: text and background pairs chosen for 4.5:1 in both themes (tokens come from glass.css) */
+html.ui-glass .gp-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+html.ui-glass .gp-chip-success { background: var(--g-success-bg); color: var(--g-success); }
+html.ui-glass .gp-chip-pending { background: var(--g-pending-bg); color: var(--g-pending); }
+html.ui-glass .gp-chip-error { background: var(--g-error-bg); color: var(--g-error); }
+html.ui-glass .gp-chip-info { background: var(--g-tint); color: var(--g-link); }
+html.ui-glass .gp-chip-accent { background: var(--g-accent-bg, var(--g-tint)); color: var(--g-accent, var(--g-link)); }
+html.ui-glass .gp-chip-neutral { background: var(--g-well); color: var(--g-text-soft); }
+
+/* Rows */
+html.ui-glass .gp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+html.ui-glass .gp-row { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 12px; text-decoration: none; color: var(--g-text); background: transparent; border: 0; font: inherit; text-align: left; width: 100%; min-width: 0; cursor: default; }
+html.ui-glass a.gp-row, html.ui-glass button.gp-row { cursor: pointer; }
+html.ui-glass a.gp-row:hover, html.ui-glass button.gp-row:hover { background: var(--g-tint); }
+html.ui-glass .gp-row-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+html.ui-glass .gp-row-text strong { font-size: 0.9375rem; font-weight: 600; }
+html.ui-glass .gp-row-text small { font-size: 0.8125rem; color: var(--g-text-muted); }
+html.ui-glass .gp-row-amount { font-weight: 700; white-space: nowrap; }
+html.ui-glass .gp-tile { width: 44px; height: 48px; border-radius: 12px; background: var(--g-well); border: 1px solid var(--g-stroke); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1.05; }
+html.ui-glass .gp-tile b { font-size: 1.0625rem; }
+html.ui-glass .gp-tile small { font-size: 0.625rem; color: var(--g-text-muted); letter-spacing: 0.06em; }
+
+/* States */
+html.ui-glass .gp-skel { display: grid; gap: 8px; }
+html.ui-glass .gp-empty { padding: 36px 16px; border: 1px dashed var(--g-stroke); border-radius: var(--g-r-lg); }
+html.ui-glass .gp-error { border: 1px solid var(--g-error); border-radius: var(--g-r-lg); padding: 20px; }
+
+/* Modal: one blurred layer (the scrim), the card itself is a plain gradient */
+html.ui-glass .gp-scrim { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--g-scrim, rgba(5, 10, 24, 0.55)); }
+html.ui-glass .gp-modal { width: 100%; max-height: 92vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; outline: none; }
+html.ui-glass .gp-modal-title { margin: 0; font-size: 1.125rem; }
+html.ui-glass .gp-modal-body { display: flex; flex-direction: column; gap: 12px; }
+html.ui-glass .gp-modal-foot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+html.ui-glass .gp-btn-danger { background: var(--g-error); color: #fff; }
+
+/* Forms */
+html.ui-glass .gp-field { display: flex; flex-direction: column; gap: 6px; }
+html.ui-glass .gp-field > label { font-size: 0.8125rem; font-weight: 600; color: var(--g-text-soft); }
+
+@media (max-width: 767.98px) {
+  html.ui-glass .gp-page { padding: 12px 12px 24px; gap: 12px; }
+  html.ui-glass .gp-title { font-size: 1.375rem; }
+  html.ui-glass .gp-head-action { width: 100%; }
+  html.ui-glass .gp-head-action > * { flex: 1 1 auto; }
+  html.ui-glass .gp-modal-foot > .g-btn { flex: 1 1 0; }
+}
+
+/* Opportunities */
+html.ui-glass .gp-stack { display: grid; gap: 12px; }
+html.ui-glass .gp-opp.is-open { border-color: var(--g-accent, var(--g-primary-light)); }
+html.ui-glass .gp-opp.is-focused { outline: 2px solid var(--g-primary-light); outline-offset: 2px; }
+html.ui-glass .gp-opp-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+html.ui-glass .gp-opp-title { margin: 0; font-size: 1.1875rem; }
+html.ui-glass .gp-opp-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; font-size: 0.875rem; color: var(--g-text-soft); }
+html.ui-glass .gp-opp-meta span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+html.ui-glass .gp-opp-meta svg { color: var(--g-link); flex-shrink: 0; }
+html.ui-glass .gp-opp-meta strong { color: var(--g-text); }
+html.ui-glass .gp-opp-selected { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+html.ui-glass .gp-label { font-size: 0.75rem; font-weight: 700; color: var(--g-text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+html.ui-glass .gp-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+html.ui-glass .gp-note { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--g-well); color: var(--g-text-soft); font-size: 0.875rem; }
+html.ui-glass .gp-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+html.ui-glass .gp-actions .g-btn { flex: 1 1 160px; }
+html.ui-glass .gp-link { color: var(--g-link); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+html.ui-glass .gp-link:hover { text-decoration: underline; }
+html.ui-glass .gp-pill { border: 1px solid var(--g-stroke); background: var(--g-well); color: var(--g-text); font: inherit; font-size: 0.8125rem; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+html.ui-glass .gp-pill.is-on { background: var(--g-primary); border-color: var(--g-primary); color: #fff; }
+html.ui-glass .gp-info { padding: 14px 16px; }
+
+/* Hosted events */
+html.ui-glass .gp-list-spaced { gap: 10px; }
+html.ui-glass .gp-hosted { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 16px; }
+html.ui-glass .gp-hosted-main { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 260px; }
+html.ui-glass .gp-chips-inline { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+html.ui-glass .gp-hosted-actions { display: flex; align-items: center; gap: 8px; }
+html.ui-glass .gp-btn-live { background: var(--g-live-surface, rgba(230, 18, 32, 0.12)); color: var(--g-live, #C2101C); border-color: var(--g-live, #C2101C); font-weight: 700; }
+html.ui-glass .gp-menu-wrap { position: relative; }
+html.ui-glass .gp-menu { position: absolute; right: 0; top: 44px; z-index: 30; min-width: 210px; padding: 6px; display: flex; flex-direction: column; }
+html.ui-glass .gp-menu-item { text-align: left; padding: 10px 12px; background: transparent; border: 0; border-radius: 10px; color: var(--g-text); font: inherit; font-weight: 600; cursor: pointer; }
+html.ui-glass .gp-menu-item:hover:not(:disabled) { background: var(--g-tint); }
+html.ui-glass .gp-menu-item:disabled { opacity: 0.6; cursor: default; }
+html.ui-glass .gp-menu-accent { color: var(--g-link); }
+html.ui-glass .gp-menu-note { padding: 10px 12px; margin: 0; color: var(--g-text-soft); font-size: 0.875rem; }
+@media (max-width: 767.98px) { html.ui-glass .gp-hosted-actions { width: 100%; justify-content: flex-end; } }

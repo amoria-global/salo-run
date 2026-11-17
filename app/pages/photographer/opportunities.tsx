@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useUiGlass } from '../../lib/useUiGlass';
+import GlassOpportunities from '../../components/glass/pages/GlassOpportunities';
 import PhotographerOpportunitiesView from '../../components/hybrid/PhotographerOpportunitiesView';
 import { MODE_META } from '../../components/hybrid/hybridUi';
 
@@ -13,6 +15,9 @@ export default function PhotographerOpportunitiesPage() {
   const { colors } = useTheme();
   const params = useSearchParams();
   const focus = params?.get('candidate');
+  const glass = useUiGlass();
+  // Compact Glass has its own presentation of the same behaviour (useOpportunities is shared); the classic page is below.
+  if (glass) return <GlassOpportunities focusCandidateId={focus} />;
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: colors.bgPrimary, overflow: 'hidden', width: '100%' }}>

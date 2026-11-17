@@ -8394,10 +8394,10 @@
     "Wasiliana Nasi"
   ],
   "Get matched with more events": [
-    "Get matched with Plus événements",
-    "Get matched with Más eventos",
-    "Get matched with Ibindi ibirori",
-    "Get matched with More matukio"
+    "Soyez mis en relation avec plus d'événements",
+    "Consigue más eventos",
+    "Bona ibirori byinshi bikubereye",
+    "Pata matukio zaidi yanayokufaa"
   ],
   "Get notified": [
     "Être notifié",
@@ -12858,10 +12858,10 @@
     "Tags"
   ],
   "Takes 20 seconds": [
-    "Takes 20 seconds",
-    "Takes 20 seconds",
-    "Takes 20 seconds",
-    "Takes 20 seconds"
+    "Prend 20 secondes",
+    "Toma 20 segundos",
+    "Bifata amasegonda 20",
+    "Inachukua sekunde 20"
   ],
   "Talent & Booking Agency": [
     "Talent & Réservation Agency",
@@ -16408,5 +16408,167 @@
     "Buscando…",
     "Turimo gushakisha…",
     "Inatafuta…"
+  ],
+  "Get matched": [
+    "Être mis en relation",
+    "Quiero que me conecten",
+    "Mpuza n'ibirori",
+    "Nilinganishwe"
+  ],
+  "Remind me later": [
+    "Me le rappeler plus tard",
+    "Recordármelo más tarde",
+    "Unyibutse nyuma",
+    "Nikumbushe baadaye"
+  ],
+  "Please wait…": [
+    "Veuillez patienter…",
+    "Espera un momento…",
+    "Tegereza gato…",
+    "Tafadhali subiri…"
+  ],
+  "Location shared on booking": [
+    "Lieu communiqué à la réservation",
+    "Ubicación compartida al reservar",
+    "Aho bizabera bizatangazwa nyuma yo gufata",
+    "Eneo litashirikishwa wakati wa kuweka nafasi"
+  ],
+  "Not this time": [
+    "Pas cette fois",
+    "Esta vez no",
+    "Si ubu",
+    "Si wakati huu"
+  ],
+  "Get matched more often: complete your matching profile": [
+    "Soyez sélectionné plus souvent : complétez votre profil de mise en relation",
+    "Recibe más coincidencias: completa tu perfil de emparejamiento",
+    "Bonera ibirori kenshi: uzuza umwirondoro wawe wo guhuza",
+    "Pata nafasi zaidi: kamilisha wasifu wako wa kulinganishwa"
+  ],
+  "Pass on": [
+    "Passer sur",
+    "Pasar de",
+    "Reka",
+    "Acha"
+  ],
+  "Pass": [
+    "Passer",
+    "Pasar",
+    "Reka",
+    "Acha"
+  ],
+  "Yes, I'm available": [
+    "Oui, je suis disponible",
+    "Sí, estoy disponible",
+    "Yego, ndahari",
+    "Ndiyo, nipo"
+  ],
+  "Events near you that fit your calendar. Answer quickly: each one has a short response window.": [
+    "Des événements près de chez vous qui correspondent à votre agenda. Répondez vite : chacun a un court délai de réponse.",
+    "Eventos cerca de ti que encajan con tu calendario. Responde rápido: cada uno tiene un plazo corto.",
+    "Ibirori biri hafi yawe bihuye n'ikarita yawe. Subiza vuba: buri kimwe gifite igihe gito cyo gusubirizwamo.",
+    "Matukio karibu nawe yanayolingana na kalenda yako. Jibu haraka: kila moja lina muda mfupi wa kujibu."
+  ],
+  "Opportunities come from clients who used Post My Event: Connekyt matched you because you are free for the whole event and fit what they asked for. Say yes and the client sees you; they choose one photographer. These are different from booking requests, which a client sends to you directly and appear under Events.": [
+    "Les opportunités viennent de clients qui ont utilisé Post My Event : Connekyt vous a sélectionné car vous êtes libre pendant tout l'événement et correspondez à leur demande. Dites oui et le client vous voit ; il choisit un seul photographe. Elles diffèrent des demandes de réservation, qu'un client vous envoie directement et qui apparaissent sous Événements.",
+    "Las oportunidades vienen de clientes que usaron Post My Event: Connekyt te eligió porque estás libre durante todo el evento y encajas con lo que pidieron. Di que sí y el cliente te ve; elige a un solo fotógrafo. Son distintas de las solicitudes de reserva, que un cliente te envía directamente y aparecen en Eventos.",
+    "Amahirwe aturuka ku bakiriya bakoresheje Post My Event: Connekyt yaguhisemo kuko uri ubuntu mu gihe cyose cy'ibirori kandi ukwiranye n'ibyo bifuje. Vuga yego umukiriya akubone; ahitamo umufotora umwe. Aratandukanye n'ibisabwa byo gufata, umukiriya akwoherereza ubwe bigaragara muri Ibirori.",
+    "Fursa hutoka kwa wateja waliotumia Post My Event: Connekyt ilikuchagua kwa sababu uko huru kwa tukio zima na unalingana na walichoomba. Sema ndiyo na mteja anakuona; huchagua mpiga picha mmoja. Ni tofauti na maombi ya kuweka nafasi, ambayo mteja hukutumia moja kwa moja na huonekana chini ya Matukio."
+  ],
+  "Back to the stream of": [
+    "Retour au flux de",
+    "Volver a la transmisión de",
+    "Subira ku mashusho ya",
+    "Rudi kwenye matangazo ya"
+  ],
+  "Go live with": [
+    "Passer en direct avec",
+    "Salir en vivo con",
+    "Tangira gutambutsa imbonankubone",
+    "Anza kurusha moja kwa moja"
+  ],
+  "Back to stream": [
+    "Retour au direct",
+    "Volver a la transmisión",
+    "Subira ku mashusho",
+    "Rudi kwenye matangazo"
+  ],
+  "More options for": [
+    "Plus d'options pour",
+    "Más opciones para",
+    "Ibindi bisabwa kuri",
+    "Chaguo zaidi za"
+  ],
+  "Republishing...": [
+    "Republication…",
+    "Republicando…",
+    "Turongera gutangaza…",
+    "Inachapisha tena…"
+  ],
+  "Republish": [
+    "Republier",
+    "Volver a publicar",
+    "Ongera utangaze",
+    "Chapisha tena"
+  ],
+  "Turn off": [
+    "Désactiver",
+    "Desactivar",
+    "Zimya",
+    "Zima"
+  ],
+  "Turn on": [
+    "Activer",
+    "Activar",
+    "Rakira",
+    "Washa"
+  ],
+  "Host an event": [
+    "Organiser un événement",
+    "Organizar un evento",
+    "Tegura igikorwa",
+    "Andaa tukio"
+  ],
+  "Unpublish this event?": [
+    "Dépublier cet événement ?",
+    "¿Dejar de publicar este evento?",
+    "Kuvana ibi birori ku rubuga?",
+    "Ondoa tukio hili kwenye chapisho?"
+  ],
+  "Hosting is not available": [
+    "L'organisation n'est pas disponible",
+    "Organizar no está disponible",
+    "Gutegura ntibishoboka",
+    "Kuandaa hakupatikani"
+  ],
+  "Events you created and stream yourself, apart from the ones you were booked for.": [
+    "Les événements que vous avez créés et diffusez vous-même, hors ceux pour lesquels vous avez été réservé.",
+    "Eventos que creaste y transmites tú mismo, aparte de aquellos para los que te contrataron.",
+    "Ibirori wiyandikishirije ukabyerekana ubwawe, bitari ibyo wafatiwe.",
+    "Matukio uliyounda na kurusha mwenyewe, mbali na yale uliyowekewa nafasi."
+  ],
+  "Hosted events": [
+    "Événements organisés",
+    "Eventos organizados",
+    "Ibirori byateguwe",
+    "Matukio yaliyoandaliwa"
+  ],
+  "Waiting for client": [
+    "En attente du client",
+    "Esperando al cliente",
+    "Hategerejwe umukiriya",
+    "Inasubiri mteja"
+  ],
+  "History": [
+    "Historique",
+    "Historial",
+    "Amateka",
+    "Historia"
+  ],
+  "New": [
+    "Nouveau",
+    "Nuevo",
+    "Gishya",
+    "Mpya"
   ]
 }

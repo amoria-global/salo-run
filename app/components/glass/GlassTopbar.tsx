@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Bell, BellRing, CalendarCheck, ChevronDown, ChevronLeft, ChevronRight, LogOut, Menu, Monitor, Moon, Search,
+  AlertTriangle, Bell, BellRing, CalendarCheck, ChevronDown, ChevronLeft, ChevronRight, LogOut, Menu, Monitor, Moon, Search,
   ShieldCheck, Sun, User, Wallet,
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -20,7 +20,8 @@ import { useTheme } from '@/app/context/ThemeContext';
 import { requestDesktopAlerts } from '@/app/lib/notificationAlerts';
 import type { useTopbarState } from '../topbarState';
 import { NAV, bottomNav, type GlassRole } from './nav';
-import CommandPalette from './CommandPalette';
+import dynamic from 'next/dynamic';
+const CommandPalette = dynamic(() => import('./CommandPalette'), { ssr: false });
 import { Money } from './Money';
 
 type TopState = ReturnType<typeof useTopbarState>;
@@ -79,6 +80,7 @@ export default function GlassTopbar({ role, state, onOpenMenu }: { role: GlassRo
       <div className="g-spacer" />
 
       {role === 'photographer' && <AvailableToggle state={state} />}
+      <PayRequiredChip role={role} state={state} />
       <BalanceChip role={role} state={state} />
       <Notifications role={role} state={state} />
       <AvatarMenu role={role} state={state} />
@@ -170,6 +172,22 @@ function AvailableToggle({ state }: { state: TopState }) {
         </div>
       )}
     </div>
+  );
+}
+
+/* ── Payment required: a chip in the bar (fixed height), so it never pushes the page down ───────────────────────── */
+
+function PayRequiredChip({ role, state }: { role: GlassRole; state: TopState }) {
+  const { t } = useLanguage();
+  const p = state.pendingPaymentWarning;
+  if (!p || (role !== 'client' && role !== 'event-coordinator')) return null;
+  return (
+    <button type="button" className="g-chip g-pay-chip" onClick={state.openPendingPayment}
+      aria-label={`${t('Payment required')}: ${p.firstEvent}${p.count > 1 ? ` +${p.count - 1}` : ''}`}>
+      <AlertTriangle size={15} aria-hidden />
+      <span className="g-pay-chip-text">{t('Payment required')} · <Money amount={p.totalAmount} /></span>
+      <strong>{t('Pay now')}</strong>
+    </button>
   );
 }
 

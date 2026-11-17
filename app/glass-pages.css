@@ -52,3 +52,21 @@ html.ui-glass .g-subtabs a[aria-current="page"] { background: var(--g-primary); 
   html.ui-glass table[data-stack="true"] td { padding: 4px 0; border: 0; }
   html.ui-glass table[data-stack="true"] td::before { content: attr(data-label); display: block; font-size: 0.6875rem; color: var(--g-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 }
+
+/* Shared UI kit (app/components/ui: PageHeader, Tabs, Card, Modal, EmptyState): the same look as the Home blueprint. */
+html.ui-glass .ck-page-header { margin: 4px 0 18px; align-items: flex-end; }
+html.ui-glass .ck-page-title { font-family: var(--g-font-display); font-weight: 700; font-size: 1.625rem; letter-spacing: -0.01em; line-height: 1.15; }
+html.ui-glass .ck-page-subtitle { color: var(--g-text-soft); }
+html.ui-glass .ck-tabs { border-radius: 999px; background: var(--g-well); border-color: var(--g-stroke); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+html.ui-glass .ck-tabs::-webkit-scrollbar { display: none; }
+html.ui-glass .ck-tab { border-radius: 999px; min-height: 36px; color: var(--g-text-soft); white-space: nowrap; }
+html.ui-glass .ck-tab.active, html.ui-glass .ck-tab.is-active { background: var(--g-primary); color: #fff; box-shadow: none; }
+html.ui-glass .ck-tab.active span, html.ui-glass .ck-tab.is-active span { background: rgba(255, 255, 255, 0.22) !important; color: #fff !important; }
+html.ui-glass .ck-tab:hover:not(.active):not(.is-active) { background: var(--g-tint); color: var(--g-text); }
+
+/* Tailwind status text used on the Collaborate pages: AA on both themes */
+html.ui-glass .text-red-600, html.ui-glass .text-red-700 { color: var(--g-error); }
+html.ui-glass .text-emerald-600, html.ui-glass .text-emerald-700, html.ui-glass .text-emerald-800 { color: var(--g-success); }
+html.ui-glass .text-amber-600, html.ui-glass .text-amber-900 { color: var(--g-pending); }
+/* White text on the brand pink is 3.9:1; a deeper pink keeps small badge text at AA. */
+html.ui-glass .bg-\[\#F20C8F\] { background-color: #C4066F; }

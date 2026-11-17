@@ -231,3 +231,14 @@ html.ui-glass .g-skeleton {
     scroll-behavior: auto !important;
   }
 }
+
+/* Layers that are always on screen (sidebar, top bar, tab bar) do not blur: a backdrop filter there is repainted on every
+   scroll and cost 5 to 10x the paint time in the Lighthouse runs. Overlays that appear on demand (menus, drawer, palette,
+   dialog scrim) keep it. */
+html.ui-glass .g-sidebar.g-blur,
+html.ui-glass .g-topbar.g-blur,
+html.ui-glass .g-tabbar.g-blur {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--g-glass-solid);
+}
