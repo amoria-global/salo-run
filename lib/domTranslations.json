@@ -16570,5 +16570,83 @@
     "Nuevo",
     "Gishya",
     "Mpya"
+  ],
+  "Clear read": [
+    "Effacer les lus",
+    "Borrar leídas",
+    "Siba ibyasomwe",
+    "Futa zilizosomwa"
+  ],
+  "Delete all": [
+    "Tout supprimer",
+    "Eliminar todo",
+    "Siba byose",
+    "Futa zote"
+  ],
+  "Tip": [
+    "Pourboire",
+    "Propina",
+    "Inshimbu",
+    "Bakshishi"
+  ],
+  "Bonus": [
+    "Bonus",
+    "Bono",
+    "Igihembo cy'inyongera",
+    "Bonasi"
+  ],
+  "Review": [
+    "Avis",
+    "Reseña",
+    "Isuzuma",
+    "Maoni"
+  ],
+  "Opportunity": [
+    "Opportunité",
+    "Oportunidad",
+    "Amahirwe",
+    "Fursa"
+  ],
+  "unread": [
+    "non lues",
+    "sin leer",
+    "ibitarasomwa",
+    "hazijasomwa"
+  ],
+  "Showing": [
+    "Affichage de",
+    "Mostrando",
+    "Herekanwa",
+    "Inaonyesha"
+  ],
+  "Notification type": [
+    "Type de notification",
+    "Tipo de notificación",
+    "Ubwoko bw'imenyesha",
+    "Aina ya arifa"
+  ],
+  "New activity on your account shows up here.": [
+    "Les nouvelles activités de votre compte apparaissent ici.",
+    "La nueva actividad de tu cuenta aparece aquí.",
+    "Ibishya bibera kuri konti yawe bigaragara hano.",
+    "Shughuli mpya kwenye akaunti yako huonekana hapa."
+  ],
+  "Clear read notifications?": [
+    "Effacer les notifications lues ?",
+    "¿Borrar las notificaciones leídas?",
+    "Gusiba imenyesha yasomwe?",
+    "Futa arifa zilizosomwa?"
+  ],
+  "The notifications you have already read will be deleted. Unread ones stay.": [
+    "Les notifications déjà lues seront supprimées. Les non lues restent.",
+    "Se borrarán las notificaciones que ya leíste. Las no leídas se quedan.",
+    "Imenyesha wamaze gusoma izasibwa. Izitarasomwa zirasigara.",
+    "Arifa ulizokwisha kusoma zitafutwa. Ambazo hazijasomwa zinabaki."
+  ],
+  "Delete all notifications?": [
+    "Supprimer toutes les notifications ?",
+    "¿Eliminar todas las notificaciones?",
+    "Gusiba imenyesha yose?",
+    "Futa arifa zote?"
   ]
 }

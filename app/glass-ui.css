@@ -1,6 +1,6 @@
 /* Page building blocks for Compact Glass (see app/components/glass/ui). Everything is under html.ui-glass. */
 
-html.ui-glass .gp-page { display: flex; flex-direction: column; gap: 16px; max-width: 1180px; margin: 0 auto; padding: 20px 24px 32px; min-width: 0; }
+html.ui-glass .gp-page { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1180px; margin: 0 auto; box-sizing: border-box; padding: 20px 24px 32px; min-width: 0; }
 html.ui-glass .gp-page-narrow { max-width: 880px; }
 html.ui-glass .gp-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
 html.ui-glass .gp-head-text { min-width: 0; flex: 1 1 260px; }
@@ -101,3 +101,23 @@ html.ui-glass .gp-menu-item:disabled { opacity: 0.6; cursor: default; }
 html.ui-glass .gp-menu-accent { color: var(--g-link); }
 html.ui-glass .gp-menu-note { padding: 10px 12px; margin: 0; color: var(--g-text-soft); font-size: 0.875rem; }
 @media (max-width: 767.98px) { html.ui-glass .gp-hosted-actions { width: 100%; justify-content: flex-end; } }
+
+/* Notifications */
+html.ui-glass .gp-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+html.ui-glass .gp-toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+html.ui-glass .gp-n-item { content-visibility: auto; contain-intrinsic-size: auto 96px; }
+html.ui-glass .gp-n { flex-direction: row; align-items: center; gap: 8px; padding: 12px 14px; }
+html.ui-glass .gp-n.is-unread { border-color: var(--g-primary-light); }
+html.ui-glass .gp-n-main { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; background: transparent; border: 0; padding: 0; font: inherit; color: var(--g-text); text-align: left; cursor: pointer; }
+html.ui-glass .gp-n-icon, html.ui-glass .gp-n-avatar { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; object-fit: cover; }
+html.ui-glass .gp-n-title { font-size: 0.9375rem; font-weight: 600; overflow-wrap: anywhere; }
+html.ui-glass .gp-n-msg { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.8125rem; color: var(--g-text-soft); }
+html.ui-glass .gp-n-time { font-size: 0.75rem; color: var(--g-text-muted); }
+html.ui-glass .gp-n-actions { display: flex; gap: 2px; flex-shrink: 0; }
+html.ui-glass .gp-n-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+html.ui-glass .gp-n-body { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--g-text); line-height: 1.5; }
+html.ui-glass .gp-btn-quiet-danger { color: var(--g-error); margin-right: auto; }
+/* A flex item never shrinks below its content unless told: without this the type switch (7 pills) widened the whole page on phones. */
+html.ui-glass .gp-toolbar > *, html.ui-glass .gp-seg { min-width: 0; }
+html.ui-glass .gp-toolbar > .gp-seg { flex: 1 1 100%; }
+@media (min-width: 768px) { html.ui-glass .gp-toolbar > .gp-seg { flex: 0 1 auto; } }
