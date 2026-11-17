@@ -26,20 +26,22 @@ const STATUS_COPY: Record<HybridProfile['instagramStatus'], { text: string; tone
  * The form: Instagram username or link, plus base city when Connekyt can't
  * tell where the photographer works from their address.
  */
-export function MatchingProfileForm({ onSaved, compact }: { onSaved?: (p: HybridProfile) => void; compact?: boolean }) {
+export function MatchingProfileForm({ onSaved, compact, initial }: { onSaved?: (p: HybridProfile) => void; compact?: boolean; initial?: HybridProfile }) {
   const { colors } = useTheme();
   const field = useFieldStyle();
-  const [profile, setProfile] = useState<HybridProfile | null>(null);
-  const [handle, setHandle] = useState('');
-  const [city, setCity] = useState('');
+  // The prompt passes the profile it already fetched, so the form opens at its final size (no second fetch, no jump).
+  const [profile, setProfile] = useState<HybridProfile | null>(initial ?? null);
+  const [handle, setHandle] = useState(initial?.instagramHandle ? `@${initial.instagramHandle}` : '');
+  const [city, setCity] = useState(initial?.city || '');
   const [cities, setCities] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    getHybridProfile().then((p) => { setProfile(p); setHandle(p.instagramHandle ? `@${p.instagramHandle}` : ''); setCity(p.city || ''); }).catch((e) => setError(e?.message));
+    if (!initial) getHybridProfile().then((p) => { setProfile(p); setHandle(p.instagramHandle ? `@${p.instagramHandle}` : ''); setCity(p.city || ''); }).catch((e) => setError(e?.message));
     getHybridOptions().then((o) => setCities(o.cities.map((c) => c.name))).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const save = async () => {
@@ -141,11 +143,12 @@ function snoozed(): boolean {
 export function MatchingProfilePrompt() {
   const { colors } = useTheme();
   const [open, setOpen] = useState(false);
+  const [profile, setProfile] = useState<HybridProfile | null>(null);
 
   useEffect(() => {
     if (snoozed()) return;
     const t = setTimeout(() => {
-      getHybridProfile().then((p) => { if (p.needsInstagram || p.needsCity) setOpen(true); }).catch(() => {});
+      getHybridProfile().then((p) => { if (p.needsInstagram || p.needsCity) { setProfile(p); setOpen(true); } }).catch(() => {});
     }, 2500);
     return () => clearTimeout(t);
   }, []);
@@ -170,7 +173,7 @@ export function MatchingProfilePrompt() {
             <span style={{ fontSize: '0.8rem', color: colors.textTertiary }}>Takes 20 seconds</span>
           </div>
         </div>
-        <MatchingProfileForm onSaved={(p) => { if (!p.needsCity) setTimeout(() => setOpen(false), 1200); }} />
+        <MatchingProfileForm initial={profile ?? undefined} onSaved={(p) => { if (!p.needsCity) setTimeout(() => setOpen(false), 1200); }} />
         <button type="button" onClick={later} className="hy-focus"
           style={{ alignSelf: 'center', background: 'none', border: 'none', color: colors.textTertiary, fontWeight: 700, cursor: 'pointer', fontSize: '0.84rem' }}>
           Remind me later

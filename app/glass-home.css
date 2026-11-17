@@ -117,7 +117,10 @@ html.ui-glass .gh-error { display: flex; flex-direction: column; align-items: ce
   html.ui-glass .gh-tiles { grid-template-columns: 1fr 1fr; }
   html.ui-glass .gh-tile { flex-direction: column; align-items: flex-start; gap: 8px; }
   html.ui-glass .gh-tile > svg { display: none; }
-  html.ui-glass .gh-actions .g-btn { flex: 1 1 auto; }
+  /* One scrollable row on phones: a button that appears once permissions load must not add a row (CLS). */
+  html.ui-glass .gh-actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  html.ui-glass .gh-actions::-webkit-scrollbar { display: none; }
+  html.ui-glass .gh-actions .g-btn { flex: 0 0 auto; }
   html.ui-glass .gh-kpis { gap: 10px; }
   html.ui-glass .gh-kpi { padding: 12px; min-height: 118px; }
   html.ui-glass .gh-kpi-value { font-size: 1.375rem; }

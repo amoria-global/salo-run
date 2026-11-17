@@ -8,6 +8,7 @@
  * own skeleton, empty and error state.
  */
 import { useMemo, useState } from 'react';
+import { useHostGuess } from './useHostGuess';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { CalendarDays, ChevronRight, CircleDollarSign, Clock3, Gift, History, Layers, Plus, Radio, Search, Star, Users } from 'lucide-react';
@@ -93,6 +94,7 @@ export default function RoleHome({ role }: { role: RoleKey }) {
   const { user } = useDashboardAuth();
   const { isCollaborator } = useWorkspace();
   const { canHost, caption: hostedCaption, loaded: hostLoaded } = useHostEntry();
+  const hostGuess = useHostGuess(user?.id, hostLoaded, canHost);
 
   const [period, setPeriod] = useState<Period>('week');
   const [range, setRange] = useState({ from: '', to: '' });
@@ -133,7 +135,7 @@ export default function RoleHome({ role }: { role: RoleKey }) {
               ))}
             </div>
           </div>
-          {!hostLoaded && <div className="gh-tiles gh-tiles-wait" aria-hidden><div className="g-skeleton" /><div className="g-skeleton" /></div>}
+          {!hostLoaded && hostGuess !== false && <div className="gh-tiles gh-tiles-wait" aria-hidden><div className="g-skeleton" /><div className="g-skeleton" /></div>}
           {canHost && (
             <div className="gh-tiles">
               <Link href={`${cfg.base}/host?new=1`} className="gh-tile gh-tile-live">

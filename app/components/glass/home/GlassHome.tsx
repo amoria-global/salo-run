@@ -7,6 +7,7 @@
  * empty and error state; nothing shifts when data arrives.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { useHostGuess } from './useHostGuess';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -50,6 +51,8 @@ export default function GlassHome() {
   const { hasPermission } = usePermissions();
   const { canHost, caption: hostedCaption, loaded: hostLoaded } = useHostEntry();
   const router = useRouter();
+
+  const hostGuess = useHostGuess(user?.id, hostLoaded, canHost);
 
   // Same rule as the old Home: a photographer whose profile is not accepted is sent to the profile page. In someone
   // else's workspace the review status that matters is the owner's, so the viewer's own is not checked there.
@@ -118,7 +121,7 @@ export default function GlassHome() {
               )}
             </div>
           </div>
-          {!hostLoaded && !isShared && <div className="gh-tiles gh-tiles-wait" aria-hidden><div className="g-skeleton" /><div className="g-skeleton" /></div>}
+          {!hostLoaded && !isShared && hostGuess !== false && <div className="gh-tiles gh-tiles-wait" aria-hidden><div className="g-skeleton" /><div className="g-skeleton" /></div>}
           {canHost && !isShared && (
             <div className="gh-tiles">
               <Link href={`${P}/host?new=1`} className="gh-tile gh-tile-live">
