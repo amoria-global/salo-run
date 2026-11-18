@@ -84,7 +84,7 @@ export default function ShareMenu({ canCreateAlbum }: { canCreateAlbum: boolean 
         </div>
       )}
       {note && <span role="status" style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>{note}</span>}
-      {sheet && <ReferralSheet open={sheet} onClose={() => setSheet(false)} onAddCode={() => { setSheet(false); router.push(`${P}/profile?tab=settings&addReferral=1`); }} />}
+      {sheet && <ReferralSheet open={sheet} onClose={() => setSheet(false)} onAddCode={() => { setSheet(false); router.push(`${P}/preferences?tab=referral&addReferral=1`); }} />}
     </div>
   );
 }

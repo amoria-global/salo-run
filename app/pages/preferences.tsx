@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
+import AddReferralCode from '@/app/components/referral/AddReferralCode';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import EventConfirmModal from '../components/EventConfirmModal';
@@ -115,7 +116,7 @@ const TabParamHandler = ({
   setActiveTab,
   setShowAddPaymentModal
 }: {
-  setActiveTab: (tab: 'appearance' | 'payments' | 'notifications' | 'security') => void;
+  setActiveTab: (tab: 'appearance' | 'payments' | 'notifications' | 'security' | 'referral') => void;
   setShowAddPaymentModal: (show: boolean) => void;
 }) => {
   const searchParams = useSearchParams();
@@ -131,6 +132,8 @@ const TabParamHandler = ({
       setActiveTab('notifications');
     } else if (tab === 'security') {
       setActiveTab('security');
+    } else if (tab === 'referral' || searchParams.get('addReferral') === '1') {
+      setActiveTab('referral');
     }
 
     // Auto-open add payment modal if action=add-method
@@ -147,7 +150,7 @@ const TabParamHandler = ({
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
   const { theme, setTheme, actualTheme, colors } = useTheme();
   const { language, setLanguage, languages } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications' | 'security'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications' | 'security' | 'referral'>('appearance');
   const { user, updateUser } = useDashboardAuth();
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
@@ -747,7 +750,8 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               { key: 'appearance' as const, label: 'Appearance', icon: 'bi-palette' },
               { key: 'payments' as const, label: 'Payment Accounts', icon: 'bi-wallet2' },
               { key: 'notifications' as const, label: 'Notifications', icon: 'bi-bell' },
-              { key: 'security' as const, label: 'Security', icon: 'bi-shield-lock' }
+              { key: 'security' as const, label: 'Security', icon: 'bi-shield-lock' },
+              ...(userType === 'photographer' ? [{ key: 'referral' as const, label: 'Referral', icon: 'bi-gift' }] : []),
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -759,6 +763,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               </button>
             ))}
           </div>
+
+          {activeTab === 'referral' && userType === 'photographer' && (
+            <div className="g-panel" style={{ padding: 20 }}>
+              <AddReferralCode initialCode={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') || '' : ''} autoOpen />
+            </div>
+          )}
 
           {/* Appearance Tab */}
           {activeTab === 'appearance' && (

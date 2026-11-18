@@ -12,7 +12,7 @@ import { attachCode, fetchMyReferral, parseReferralCode, problemMessage, validat
 
 type Check = { kind: 'idle' } | { kind: 'checking' } | { kind: 'ok'; name: string; code: string } | { kind: 'bad'; message: string };
 
-export default function AddReferralCode({ initialCode = '', autoOpen = false }: { initialCode?: string; autoOpen?: boolean }) {
+export default function AddReferralCode({ initialCode = '' }: { initialCode?: string; autoOpen?: boolean }) {
   const { t } = useLanguage();
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -45,7 +45,6 @@ export default function AddReferralCode({ initialCode = '', autoOpen = false }: 
     return () => clearTimeout(timer);
   }, [value]);
 
-  useEffect(() => { if (autoOpen && initialCode && stats && !stats.hasReferrer) setValue(initialCode); }, [autoOpen, initialCode, stats]);
 
   if (loadFailed) return null;
   if (!stats) return <div className="g-skeleton" style={{ height: 56 }} aria-busy="true" />;

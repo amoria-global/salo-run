@@ -16654,5 +16654,239 @@
     "Tarifa de transmisión",
     "Amafaranga y'ikwirakwizwa",
     "Ada ya matangazo"
+  ],
+  "This referrer has reached their limit": [
+    "Ce parrain a atteint sa limite",
+    "Este referidor alcanzó su límite",
+    "Uyu mutumirizi yagejeje ku mubare ntarengwa",
+    "Mwalikaji huyu amefikia kikomo chake"
+  ],
+  "This referrer can't take new referrals right now": [
+    "Ce parrain ne peut pas accepter de nouveaux filleuls pour le moment",
+    "Este referidor no puede aceptar nuevos referidos ahora",
+    "Uyu mutumirizi ntashobora kwakira abatumirwa bashya ubu",
+    "Mwalikaji huyu hawezi kupokea rufaa mpya kwa sasa"
+  ],
+  "You can't use your own code": [
+    "Vous ne pouvez pas utiliser votre propre code",
+    "No puedes usar tu propio código",
+    "Ntushobora gukoresha kode yawe bwite",
+    "Huwezi kutumia msimbo wako mwenyewe"
+  ],
+  "This code can't be used": [
+    "Ce code ne peut pas être utilisé",
+    "Este código no se puede usar",
+    "Iyi kode ntishobora gukoreshwa",
+    "Msimbo huu hauwezi kutumika"
+  ],
+  "Your account already has a referrer": [
+    "Votre compte a déjà un parrain",
+    "Tu cuenta ya tiene un referidor",
+    "Konti yawe isanzwe ifite umutumirizi",
+    "Akaunti yako tayari ina mwalikaji"
+  ],
+  "This code isn't valid": [
+    "Ce code n'est pas valide",
+    "Este código no es válido",
+    "Iyi kode ntiyemewe",
+    "Msimbo huu si sahihi"
+  ],
+  "Too many attempts. Please wait a minute.": [
+    "Trop de tentatives. Veuillez patienter une minute.",
+    "Demasiados intentos. Espera un minuto.",
+    "Wagerageje inshuro nyinshi. Tegereza umunota umwe.",
+    "Majaribio mengi sana. Tafadhali subiri dakika moja."
+  ],
+  "How the referral program works": [
+    "Comment fonctionne le programme de parrainage",
+    "Cómo funciona el programa de referidos",
+    "Uko gahunda yo gutumira ikora",
+    "Jinsi mpango wa rufaa unavyofanya kazi"
+  ],
+  "Checking…": [
+    "Vérification…",
+    "Comprobando…",
+    "Iri gusuzuma…",
+    "Inakagua…"
+  ],
+  "Share your album": [
+    "Partager votre album",
+    "Compartir tu álbum",
+    "Sangiza alubumu yawe",
+    "Shiriki albamu yako"
+  ],
+  "Share referral link or code": [
+    "Partager le lien ou code de parrainage",
+    "Compartir enlace o código de referido",
+    "Sangiza link cyangwa kode yo gutumira",
+    "Shiriki kiungo au msimbo wa rufaa"
+  ],
+  "Referral program": [
+    "Programme de parrainage",
+    "Programa de referidos",
+    "Gahunda yo gutumira",
+    "Mpango wa rufaa"
+  ],
+  "Your code": [
+    "Votre code",
+    "Tu código",
+    "Kode yawe",
+    "Msimbo wako"
+  ],
+  "Your link": [
+    "Votre lien",
+    "Tu enlace",
+    "Link yawe",
+    "Kiungo chako"
+  ],
+  "WhatsApp": [
+    "WhatsApp",
+    "WhatsApp",
+    "WhatsApp",
+    "WhatsApp"
+  ],
+  "More apps": [
+    "Plus d'applis",
+    "Más apps",
+    "Izindi porogaramu",
+    "Programu zaidi"
+  ],
+  "Save QR": [
+    "Enregistrer le QR",
+    "Guardar QR",
+    "Bika QR",
+    "Hifadhi QR"
+  ],
+  "Your referrals": [
+    "Vos filleuls",
+    "Tus referidos",
+    "Abo watumiye",
+    "Rufaa zako"
+  ],
+  "Under review": [
+    "En vérification",
+    "En revisión",
+    "Barasuzumwa",
+    "Inakaguliwa"
+  ],
+  "Qualified": [
+    "Qualifié",
+    "Calificado",
+    "Byemejwe",
+    "Imestahili"
+  ],
+  "Revoked": [
+    "Révoqué",
+    "Revocado",
+    "Byakuweho",
+    "Imefutwa"
+  ],
+  "No referrals yet": [
+    "Aucun filleul pour le moment",
+    "Aún no hay referidos",
+    "Nta batumiwe baraboneka",
+    "Bado hakuna rufaa"
+  ],
+  "Share your code. A referral counts when the photographer you refer is approved and completes a paid job.": [
+    "Partagez votre code. Un parrainage compte quand le photographe parrainé est approuvé et termine une mission payée.",
+    "Comparte tu código. Un referido cuenta cuando el fotógrafo que invitas es aprobado y completa un trabajo pagado.",
+    "Sangiza kode yawe. Uwatumiwe abarwa iyo yemewe kandi akarangiza akazi kishyuwe.",
+    "Shiriki msimbo wako. Rufaa huhesabiwa mpigapicha uliyemwalika akikubaliwa na kukamilisha kazi iliyolipwa."
+  ],
+  "Couldn't load your referrals": [
+    "Impossible de charger vos filleuls",
+    "No se pudieron cargar tus referidos",
+    "Ntibyashobotse gutangaza abo watumiye",
+    "Imeshindwa kupakia rufaa zako"
+  ],
+  "Add a referral code": [
+    "Ajouter un code de parrainage",
+    "Añadir un código de referido",
+    "Ongeraho kode yo gutumira",
+    "Ongeza msimbo wa rufaa"
+  ],
+  "Enter the code or link of the photographer who referred you.": [
+    "Saisissez le code ou le lien du photographe qui vous a parrainé.",
+    "Introduce el código o enlace del fotógrafo que te refirió.",
+    "Andika kode cyangwa link y’umufotozi wagutumiye.",
+    "Weka msimbo au kiungo cha mpigapicha aliyekualika."
+  ],
+  "Confirm your referrer": [
+    "Confirmez votre parrain",
+    "Confirma a tu referidor",
+    "Emeza uwagutumiye",
+    "Thibitisha mwalikaji wako"
+  ],
+  "This can't be changed later.": [
+    "Ceci ne pourra plus être modifié.",
+    "Esto no se podrá cambiar después.",
+    "Ibi ntibishobora guhindurwa nyuma.",
+    "Hili haliwezi kubadilishwa baadaye."
+  ],
+  "of 5 to unlock 25%": [
+    "sur 5 pour débloquer 25 %",
+    "de 5 para desbloquear 25 %",
+    "kuri 5 kugira ngo ufungure 25%",
+    "kati ya 5 ili kufungua 25%"
+  ],
+  "of 20 referrals": [
+    "filleuls sur 20",
+    "referidos de 20",
+    "abatumiwe kuri 20",
+    "rufaa kati ya 20"
+  ],
+  "Your fee": [
+    "Vos frais",
+    "Tu comisión",
+    "Igiciro cyawe",
+    "Ada yako"
+  ],
+  "your fee": [
+    "vos frais",
+    "tu comisión",
+    "igiciro cyawe",
+    "ada yako"
+  ],
+  "Program complete": [
+    "Programme terminé",
+    "Programa completo",
+    "Gahunda yuzuye",
+    "Mpango umekamilika"
+  ],
+  "Referred by": [
+    "Parrainé par",
+    "Referido por",
+    "Watumiwe na",
+    "Umealikwa na"
+  ],
+  "Referral code": [
+    "Code de parrainage",
+    "Código de referido",
+    "Kode yo gutumira",
+    "Msimbo wa rufaa"
+  ],
+  "Referral": [
+    "Parrainage",
+    "Referidos",
+    "Gutumira",
+    "Rufaa"
+  ],
+  "Join me on Connekyt. Use my referral code": [
+    "Rejoignez-moi sur Connekyt. Utilisez mon code de parrainage",
+    "Únete a mí en Connekyt. Usa mi código de referido",
+    "Twifatanye kuri Connekyt. Koresha kode yanjye",
+    "Jiunge nami kwenye Connekyt. Tumia msimbo wangu wa rufaa"
+  ],
+  "Your public profile link is not available yet.": [
+    "Votre lien de profil public n’est pas encore disponible.",
+    "Tu enlace de perfil público aún no está disponible.",
+    "Link ya profili yawe ntiraboneka.",
+    "Kiungo cha wasifu wako bado hakipatikani."
+  ],
+  "Couldn't check the code. Please try again.": [
+    "Impossible de vérifier le code. Réessayez.",
+    "No se pudo comprobar el código. Inténtalo de nuevo.",
+    "Ntibyashobotse gusuzuma kode. Ongera ugerageze.",
+    "Imeshindwa kukagua msimbo. Jaribu tena."
   ]
 }

@@ -34,6 +34,7 @@ import {
 import { useResource, type Analytics, type PerfPoint, type Wallet } from './useHomeData';
 import { useGoals } from './useGoals';
 const GoalsSheet = dynamic(() => import('./GoalsSheet'), { ssr: false });
+import ShareMenu from '@/app/components/referral/ShareMenu';
 import { Empty, Hidden, Kpi, ListSkeleton, SectionError, StatusChip, formatIso, statusLabel } from './HomeParts';
 
 const PerformanceChart = dynamic(() => import('./PerformanceChart'), {
@@ -118,6 +119,7 @@ export default function GlassHome() {
               {!isShared && (
                 <Link href={`${P}/profile?tab=packages`} className="g-btn g-btn-ghost"><Plus size={16} aria-hidden /> {t('New package')}</Link>
               )}
+              {!isShared && <ShareMenu canCreateAlbum={hasPermission('events.create')} />}
               {!isShared && (
                 <button type="button" className="g-btn g-btn-ghost" onClick={() => setGoalsOpen(true)} aria-pressed={!!target}>
                   <Target size={16} aria-hidden /> <span className="g-ellipsis" style={{ maxWidth: 180 }}>{target ? target.name : t('Compare goals')}</span>
