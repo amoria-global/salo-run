@@ -7,10 +7,9 @@ import "./glass-shell.css";
 import "./glass-home.css";
 import "./glass-pages.css";
 import "./glass-ui.css";
-import { HEAD_SCRIPT } from "./lib/uiGlass";
-// bootstrap-icons was dropped from package.json in PR #162; the webfont is now
-// loaded via the CDN <link> in the <head> below. CSP already whitelists
-// cdn.jsdelivr.net in style-src and font-src.
+import { HEAD_SCRIPT, ICONS_CSS } from "./lib/uiGlass";
+// Bootstrap Icons 1.11.3 is self-hosted under public/vendor (no CDN): preloaded here, applied by the head script so
+// the stylesheet never blocks the first paint (app/lib/uiGlass.ts).
 import { DashboardAuthProvider } from "./providers/AuthProvider";
 import { ThemeProvider } from "./context/ThemeContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
@@ -60,10 +59,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: HEAD_SCRIPT }} />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-        />
+        <link rel="preload" as="style" href={ICONS_CSS} />
       </head>
       <body className={`${pragatiNarrow.variable} ${spaceGrotesk.variable} ${inter.variable} font-sans antialiased`}>
         <DashboardAuthProvider>

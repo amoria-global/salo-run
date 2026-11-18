@@ -123,7 +123,7 @@ export interface MoneyParts {
 
 /**
  * The mobile app's rule (connekt-mobile src/utils/currencyPrefix.ts): a letter code precedes the amount, spaced
- * ("RWF 5,000"), never a local symbol (RF, KSh, USh, TSh); USD and EUR keep their unambiguous signs, tight. Used by
+ * ("RWF 5,000"), never a local symbol (RF, KSh, USh, TSh) and never $ or €. Used by
  * the Compact Glass UI; the old UI keeps formatMoney.
  */
 export function moneyParts(
@@ -140,8 +140,7 @@ export function moneyParts(
   const code = info?.code ?? source;
   const decimals = info?.decimals ?? 2;
   const text = value.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-  if (code === 'USD') return { code, prefix: '$', tight: true, text, value };
-  if (code === 'EUR') return { code, prefix: '€', tight: true, text, value };
+  // Owner rule (2026-11-18): every amount carries its ISO code, USD and EUR included ("USD 60.00"), never a sign.
   return { code, prefix: code, tight: false, text, value };
 }
 

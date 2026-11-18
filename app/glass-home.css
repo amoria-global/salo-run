@@ -11,7 +11,9 @@ html.ui-glass .gh-h1 { margin: 6px 0 4px; font-size: clamp(1.5rem, 2.4vw, 2rem);
 html.ui-glass .gh-h2 { margin: 0; font-size: 1.125rem; }
 html.ui-glass .gh-h3 { margin: 0; font-size: 1rem; }
 html.ui-glass .gh-name { background: var(--g-grad-ring); -webkit-background-clip: text; background-clip: text; color: transparent; }
-html.ui-glass .gh-eyebrow { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--g-accent); }
+/* Small caps text: the deep magenta on light (5.7:1 on white), the light magenta on dark (5.3:1 on cards). */
+html.ui-glass .gh-eyebrow { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #C40A75; }
+html.ui-glass[data-theme="dark"] .gh-eyebrow { color: #FF5DB8; }
 html.ui-glass .gh-sub { margin: 0; color: var(--g-text-soft); font-size: 0.9375rem; min-height: 1.4em; }
 html.ui-glass .gh-link { font-size: 0.8125rem; font-weight: 600; color: var(--g-link); text-decoration: none; }
 html.ui-glass .gh-link:hover { text-decoration: underline; }
