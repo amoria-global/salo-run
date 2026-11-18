@@ -168,6 +168,7 @@ function Bubble({ m, own, ctl, onDelete }: { m: Msg; own: boolean; ctl: InboxCon
 }
 
 function Thread({ ctl, conv, kind, onBack, phone }: { ctl: InboxController; conv: Conv; kind: Kind; onBack: () => void; phone: boolean }) {
+  const { messagesEndRef, emojiPickerRef } = ctl;
   const { t, language } = useLanguage();
   const other = ctl.getOtherParticipant(conv);
   const name = other?.name || t('Conversation');
@@ -190,7 +191,7 @@ function Thread({ ctl, conv, kind, onBack, phone }: { ctl: InboxController; conv
     return out;
   }, [conv.messages, t, language]);
 
-  useEffect(() => { ctl.messagesEndRef.current?.scrollIntoView({ block: 'end' }); }, [conv.messages.length, ctl.messagesEndRef]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ block: 'end' }); }, [conv.messages.length, messagesEndRef]);
 
   const status = other?.isOnline ? t('Online') : other?.lastSeen ? fmtLastSeen(other.lastSeen, t, language) : '';
   const canSend = ctl.messageInput.trim().length > 0 && !ctl.isSending;
@@ -229,7 +230,7 @@ function Thread({ ctl, conv, kind, onBack, phone }: { ctl: InboxController; conv
             ))}
           </div>
         )}
-        <div ref={ctl.messagesEndRef} />
+        <div ref={messagesEndRef} />
       </div>
 
       {(ctl.chatError || ctl.contentWarning) && (
@@ -243,7 +244,7 @@ function Thread({ ctl, conv, kind, onBack, phone }: { ctl: InboxController; conv
         {kind === 'photographer' && ctl.canShareAlbums && other ? (
           <span className="gi-attach"><ShareAlbumButton partnerId={other.id} partnerName={other.name} onSent={() => { void ctl.loadMessages(other.id); void ctl.fetchConversations(); }} /></span>
         ) : kind === 'photographer' ? null : null}
-        <div className="gi-field" ref={ctl.emojiPickerRef}>
+        <div className="gi-field" ref={emojiPickerRef}>
           <button type="button" className="g-icon-btn gi-emoji-btn" aria-label={t('Emoji')} aria-expanded={ctl.showEmojiPicker} onClick={() => ctl.setShowEmojiPicker(!ctl.showEmojiPicker)}><Smile size={18} aria-hidden /></button>
           <label className="sr-only" htmlFor="gi-input">{t('Type a message...')}</label>
           <textarea id="gi-input" ref={field} rows={1} value={ctl.messageInput} placeholder={t('Type a message...')}

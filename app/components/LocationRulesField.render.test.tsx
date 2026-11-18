@@ -44,6 +44,8 @@ function Harness({ rules = [], open = true, allowBlock = true }: { rules?: Locat
     setSeeded(true);
     geo.hydrate(rules);
   }
+  // A test probe: hands the hook value to the test body (not app code).
+  // eslint-disable-next-line react-hooks/globals
   latest = { payload: geo.payload };
   return <LocationRulesField geo={geo} currencies={CURRENCIES} defaultCurrencyId="rwf" allowBlock={allowBlock} />;
 }

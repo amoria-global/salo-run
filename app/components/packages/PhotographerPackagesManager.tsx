@@ -617,7 +617,7 @@ export default function PhotographerPackagesManager({
                 height: 40,
                 borderRadius: 11,
                 background: hasDelivery ? colors.brandPrimary : `${colors.brandPrimary}14`,
-                color: hasDelivery ? '#fff' : colors.brandPrimary,
+                color: hasDelivery ? '#fff' : `var(--g-link, ${colors.brandPrimary})`,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -657,7 +657,7 @@ export default function PhotographerPackagesManager({
                 fontWeight: 800,
                 letterSpacing: '0.03em',
                 background: hasDelivery ? `${colors.brandPrimary}18` : colors.bgTertiary,
-                color: hasDelivery ? colors.brandPrimary : colors.textSecondary,
+                color: hasDelivery ? `var(--g-link, ${colors.brandPrimary})` : colors.textSecondary,
                 border: `1px solid ${hasDelivery ? `${colors.brandPrimary}40` : colors.borderPrimary}`,
               }}
             >
@@ -717,7 +717,7 @@ export default function PhotographerPackagesManager({
                 height: 40,
                 borderRadius: 11,
                 background: activeAddons.length > 0 ? colors.brandPrimary : `${colors.brandPrimary}14`,
-                color: activeAddons.length > 0 ? '#fff' : colors.brandPrimary,
+                color: activeAddons.length > 0 ? '#fff' : `var(--g-link, ${colors.brandPrimary})`,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -759,7 +759,7 @@ export default function PhotographerPackagesManager({
                 fontWeight: 800,
                 letterSpacing: '0.03em',
                 background: activeAddons.length > 0 ? `${colors.brandPrimary}18` : colors.bgTertiary,
-                color: activeAddons.length > 0 ? colors.brandPrimary : colors.textSecondary,
+                color: activeAddons.length > 0 ? `var(--g-link, ${colors.brandPrimary})` : colors.textSecondary,
                 border: `1px solid ${activeAddons.length > 0 ? `${colors.brandPrimary}40` : colors.borderPrimary}`,
               }}
             >
@@ -917,7 +917,7 @@ export default function PhotographerPackagesManager({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <i className="bi bi-shield-check" style={{ color: colors.brandPrimary, fontSize: 18 }} />
+                  <i className="bi bi-shield-check" style={{ color: `var(--g-link, ${colors.brandPrimary})`, fontSize: 18 }} />
                   <span style={{ fontSize: '1.05rem', fontWeight: 800, color: colors.textPrimary }}>
                     Delivery Policy
                   </span>
@@ -1110,7 +1110,7 @@ export default function PhotographerPackagesManager({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <i className="bi bi-airplane" style={{ color: colors.brandPrimary, fontSize: 18 }} />
+                  <i className="bi bi-airplane" style={{ color: `var(--g-link, ${colors.brandPrimary})`, fontSize: 18 }} />
                   <span style={{ fontSize: '1.05rem', fontWeight: 800, color: colors.textPrimary }}>
                     Add-ons &amp; Drone Capturing
                   </span>
@@ -1138,7 +1138,7 @@ export default function PhotographerPackagesManager({
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.9rem', color: colors.textPrimary }}>
-                    <i className="bi bi-airplane-fill" style={{ color: colors.brandPrimary, marginRight: 6 }} />
+                    <i className="bi bi-airplane-fill" style={{ color: `var(--g-link, ${colors.brandPrimary})`, marginRight: 6 }} />
                     Drone Capturing (Self-Priced)
                   </div>
                   <span
@@ -1329,7 +1329,7 @@ export default function PhotographerPackagesManager({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="gpm" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {renderPolicyAndAddonsModals()}
 
       {/* Top Header Bar */}
@@ -1404,7 +1404,7 @@ export default function PhotographerPackagesManager({
             borderRadius: 12,
             background: '#FEF2F2',
             border: '1px solid #FCA5A5',
-            color: '#DC2626',
+            color: 'var(--g-error, #DC2626)',
             fontSize: '0.84rem',
             fontWeight: 700,
             display: 'flex',
@@ -1416,7 +1416,7 @@ export default function PhotographerPackagesManager({
           <button
             type="button"
             onClick={() => setErrorMsg(null)}
-            style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer' }}
+            style={{ background: 'none', border: 'none', color: 'var(--g-error, #DC2626)', cursor: 'pointer' }}
           >
             <i className="bi bi-x-lg" />
           </button>
@@ -1430,7 +1430,7 @@ export default function PhotographerPackagesManager({
             borderRadius: 12,
             background: 'rgba(16,185,129,0.12)',
             border: '1px solid rgba(16,185,129,0.35)',
-            color: '#059669',
+            color: 'var(--g-success, #059669)',
             fontSize: '0.84rem',
             fontWeight: 700,
             display: 'flex',
@@ -1442,7 +1442,7 @@ export default function PhotographerPackagesManager({
           <button
             type="button"
             onClick={() => setSuccessMsg(null)}
-            style={{ background: 'none', border: 'none', color: '#059669', cursor: 'pointer' }}
+            style={{ background: 'none', border: 'none', color: 'var(--g-success, #059669)', cursor: 'pointer' }}
           >
             <i className="bi bi-x-lg" />
           </button>
@@ -1558,7 +1558,7 @@ export default function PhotographerPackagesManager({
                               fontSize: '0.68rem',
                               fontWeight: 800,
                               background: pkg.serviceType === 'STUDIO' ? `${colors.brandPrimary}18` : 'rgba(245,158,11,0.16)',
-                              color: pkg.serviceType === 'STUDIO' ? colors.brandPrimary : '#D97706',
+                              color: pkg.serviceType === 'STUDIO' ? `var(--g-link, ${colors.brandPrimary})` : 'var(--g-warning, #D97706)',
                             }}
                           >
                             {pkg.serviceType === 'STUDIO' ? 'Indoor (Studio)' : 'Outdoor (Events)'}
@@ -1570,14 +1570,14 @@ export default function PhotographerPackagesManager({
                           {pkg.includedVideos ? ` · ${pkg.includedVideos} video(s)` : ''}
                         </div>
                       </div>
-                      <div style={{ fontSize: '0.96rem', fontWeight: 900, color: colors.brandPrimary }}>
+                      <div style={{ fontSize: '0.96rem', fontWeight: 900, color: `var(--g-link, ${colors.brandPrimary})` }}>
                         {pkg.currency || 'RWF'} {(pkg.price ?? 0).toLocaleString()}
                       </div>
                     </div>
 
                     {pkg.deliveryPolicy && (
                       <div style={{ fontSize: '0.76rem', color: colors.textSecondary }}>
-                        <i className="bi bi-shield-check" style={{ color: colors.brandPrimary, marginRight: 5 }} />
+                        <i className="bi bi-shield-check" style={{ color: `var(--g-link, ${colors.brandPrimary})`, marginRight: 5 }} />
                         {pkg.deliveryPolicy}
                       </div>
                     )}
@@ -1593,7 +1593,7 @@ export default function PhotographerPackagesManager({
                               fontSize: '0.7rem',
                               fontWeight: 700,
                               background: `${colors.brandPrimary}16`,
-                              color: colors.brandPrimary,
+                              color: `var(--g-link, ${colors.brandPrimary})`,
                             }}
                           >
                             <i className={`bi ${addon.key === 'drone_capturing' ? 'bi-airplane-fill' : 'bi-plus-circle'}`} />{' '}
@@ -1641,7 +1641,7 @@ export default function PhotographerPackagesManager({
                             borderRadius: 8,
                             border: `1px solid ${colors.brandPrimary}`,
                             background: colors.bgCard,
-                            color: colors.brandPrimary,
+                            color: `var(--g-link, ${colors.brandPrimary})`,
                             fontSize: '0.76rem',
                             fontWeight: 700,
                             cursor: 'pointer',
@@ -1657,8 +1657,8 @@ export default function PhotographerPackagesManager({
                             padding: '6px 12px',
                             borderRadius: 8,
                             border: '1px solid rgba(220,38,38,0.35)',
-                            background: 'rgba(254,242,242,0.85)',
-                            color: '#DC2626',
+                            background: 'var(--g-error-bg, rgba(254,242,242,0.85))',
+                            color: 'var(--g-error, #DC2626)',
                             fontSize: '0.76rem',
                             fontWeight: 700,
                             cursor: 'pointer',
@@ -1734,7 +1734,7 @@ export default function PhotographerPackagesManager({
                         borderRadius: 10,
                         border: `1.5px solid ${active || done ? colors.brandPrimary : colors.borderPrimary}`,
                         background: active ? `${colors.brandPrimary}14` : colors.bgCard,
-                        color: active || done ? colors.brandPrimary : colors.textSecondary,
+                        color: active || done ? `var(--g-link, ${colors.brandPrimary})` : colors.textSecondary,
                         fontSize: '0.78rem',
                         fontWeight: 800,
                         textAlign: 'center',
@@ -1819,7 +1819,7 @@ export default function PhotographerPackagesManager({
                         borderRadius: 14,
                         border: `2px dashed ${colors.brandPrimary}`,
                         background: colors.bgCard,
-                        color: colors.brandPrimary,
+                        color: `var(--g-link, ${colors.brandPrimary})`,
                         fontWeight: 800,
                         fontSize: '0.88rem',
                         cursor: 'pointer',
@@ -1855,7 +1855,7 @@ export default function PhotographerPackagesManager({
                             <button
                               type="button"
                               onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
-                              style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', padding: 0 }}
+                              style={{ background: 'none', border: 'none', color: 'var(--g-error, #DC2626)', cursor: 'pointer', padding: 0 }}
                             >
                               ×
                             </button>
@@ -1932,7 +1932,7 @@ export default function PhotographerPackagesManager({
                                 {draft.packageName}
                               </span>
                               {idx === 0 && (
-                                <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 800, background: `${colors.brandPrimary}20`, color: colors.brandPrimary }}>
+                                <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 800, background: `${colors.brandPrimary}20`, color: `var(--g-link, ${colors.brandPrimary})` }}>
                                   HIGHEST AMOUNT • DIAMOND
                                 </span>
                               )}
@@ -1941,7 +1941,7 @@ export default function PhotographerPackagesManager({
                               Extracted from: &ldquo;{draft.originalTitle}&rdquo;
                             </div>
                           </div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 900, color: colors.brandPrimary }}>
+                          <div style={{ fontSize: '0.95rem', fontWeight: 900, color: `var(--g-link, ${colors.brandPrimary})` }}>
                             {draft.price ? `${draft.price.toLocaleString()} ${draft.currencyCode}` : 'Price needed'}
                           </div>
                         </div>
@@ -1978,7 +1978,7 @@ export default function PhotographerPackagesManager({
                                 borderRadius: 8,
                                 border: `1px solid ${colors.borderPrimary}`,
                                 background: colors.bgCard,
-                                color: colors.brandPrimary,
+                                color: `var(--g-link, ${colors.brandPrimary})`,
                                 fontSize: '0.75rem',
                                 fontWeight: 700,
                                 cursor: 'pointer',
@@ -1993,8 +1993,8 @@ export default function PhotographerPackagesManager({
                                 padding: '5px 10px',
                                 borderRadius: 8,
                                 border: '1px solid rgba(220,38,38,0.35)',
-                                background: 'rgba(254,242,242,0.85)',
-                                color: '#DC2626',
+                                background: 'var(--g-error-bg, rgba(254,242,242,0.85))',
+                                color: 'var(--g-error, #DC2626)',
                                 fontSize: '0.75rem',
                                 fontWeight: 700,
                                 cursor: 'pointer',
@@ -2021,7 +2021,7 @@ export default function PhotographerPackagesManager({
                         borderRadius: 10,
                         border: `1.5px dashed ${colors.brandPrimary}`,
                         background: colors.bgCard,
-                        color: colors.brandPrimary,
+                        color: `var(--g-link, ${colors.brandPrimary})`,
                         fontWeight: 700,
                         fontSize: '0.82rem',
                         cursor: 'pointer',
@@ -2123,7 +2123,7 @@ export default function PhotographerPackagesManager({
                           <div style={{ fontWeight: 800, fontSize: '0.92rem', color: colors.textPrimary }}>{d.packageName}</div>
                           <div style={{ fontSize: '0.76rem', color: colors.textSecondary }}>{d.ingredients.join(' • ')}</div>
                         </div>
-                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: colors.brandPrimary }}>
+                        <div style={{ fontWeight: 900, fontSize: '0.92rem', color: `var(--g-link, ${colors.brandPrimary})` }}>
                           {d.price?.toLocaleString()} {d.currencyCode}
                         </div>
                       </div>

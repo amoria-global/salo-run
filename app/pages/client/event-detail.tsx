@@ -1384,7 +1384,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F59E0B' }} />
                   </div>
                   <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0 0 14px', lineHeight: 1.5 }}>
-                    Post My Event didn't find a photographer this time. Post it again (it uses the same requirements), or switch to Find a Photographer and choose one yourself.
+                    Post My Event didn&apos;t find a photographer this time. Post it again (it uses the same requirements), or switch to Find a Photographer and choose one yourself.
                   </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <Link

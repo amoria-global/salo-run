@@ -65,6 +65,8 @@ html.ui-glass {
   /* Primary buttons: #5B8CFF is only the top highlight; the text band sits on #3E6FD8 to #3360C4, white >= 4.7:1. */
   --g-grad-raised: linear-gradient(180deg, #5B8CFF 0%, #3E6FD8 30%, #3360C4 100%);
   --g-grad-avatar: linear-gradient(135deg, #3E6FD8 0%, #C40A75 100%);
+  /* magenta as a fill under white text (5.7:1); the brand #F20C8F is only 4:1 */
+  --g-accent-strong: #C40A75;
   --g-grad-ring: linear-gradient(90deg, #083A85, #F20C8F);
   --g-grad-hero-blue: linear-gradient(135deg, #083A85, #1B55B8);
   --g-wash: radial-gradient(60rem 30rem at 0% -10%, rgba(8, 58, 133, 0.08), transparent 60%),
@@ -170,6 +172,8 @@ html.ui-glass[data-theme="dark"] {
   --g-grad-brand: linear-gradient(135deg, #14346F 0%, #2B5AB8 50%, #D01B84 100%);
   --g-grad-raised: linear-gradient(180deg, #5B8CFF 0%, #3E6FD8 30%, #3360C4 100%);
   --g-grad-avatar: linear-gradient(135deg, #3E6FD8 0%, #C40A75 100%);
+  /* magenta as a fill under white text (5.7:1); the brand #F20C8F is only 4:1 */
+  --g-accent-strong: #C40A75;
   --g-grad-ring: linear-gradient(90deg, #5B8CFF, #EE0E8F);
   --g-grad-hero-blue: linear-gradient(135deg, #173A8F, #2A5FCC);
   --g-wash: radial-gradient(60rem 30rem at 0% -10%, rgba(61, 111, 214, 0.20), transparent 60%),
