@@ -10,7 +10,14 @@ import {
 } from './hybridStatus';
 
 const ROOT = path.resolve(__dirname, '../..');
-const src = (p: string) => readFileSync(path.join(ROOT, p), 'utf8');
+// A page's rules may live in its extracted hook (the Compact Glass shared-logic pattern), so read both.
+const HOOKS: Record<string, string> = {
+  'app/pages/client/events.tsx': 'app/components/events/client/useClientEvents.tsx',
+  'app/pages/event-coordinator/events.tsx': 'app/components/events/coordinator/useCoordinatorEvents.tsx',
+  'app/pages/client/event-detail.tsx': 'app/components/events/detail/useEventDetail.tsx',
+  'app/pages/photographer/events.tsx': 'app/components/events/photographer/usePhotographerEvents.tsx',
+};
+const src = (p: string) => readFileSync(path.join(ROOT, p), 'utf8') + (HOOKS[p] ? '\n' + readFileSync(path.join(ROOT, HOOKS[p]), 'utf8') : '');
 
 describe('Post My Event status rules', () => {
   it('keeps every open Post My Event state on the Upcoming tab', () => {

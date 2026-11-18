@@ -371,7 +371,7 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
       <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Filter your photos">
         {([['ALL', 'All'], ['PENDING', 'Waiting'], ['APPROVED', 'Added'], ['REJECTED', 'Not accepted']] as [Filter, string][]).map(([key, label]) => (
           <button key={key} role="tab" aria-selected={filter === key} onClick={() => setFilter(key)}
-            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85] ${filter === key
+            className={`gk-target rounded-full px-3.5 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85] ${filter === key
               ? 'bg-[#083A85] text-white' : 'bg-[var(--ck-surface-muted)] text-[var(--ck-text-soft)] hover:text-[var(--ck-text)]'}`}>
             {label} <span className="opacity-70">{counts[key]}</span>
           </button>
