@@ -77,6 +77,13 @@ html.ui-glass .g-shell[data-collapsed="true"] .g-sidebar .g-badge {
   position: absolute; top: 4px; right: 8px; min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0;
 }
 
+/* Skip link: off screen until it has keyboard focus */
+html.ui-glass .g-skip { position: fixed; left: 12px; top: -60px; z-index: 100; padding: 10px 16px; border-radius: 12px; background: var(--g-primary); color: #fff; font-weight: 700; text-decoration: none; }
+html.ui-glass .g-skip:focus { top: 12px; }
+html.ui-glass .g-page-host:focus { outline: none; }
+/* top bar role label and page title never spill */
+html.ui-glass .g-topbar small, html.ui-glass .gh-eyebrow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; }
+
 /* Controls */
 html.ui-glass .g-icon-btn {
   width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
@@ -125,7 +132,7 @@ html.ui-glass .g-menu-row { display: flex; align-items: center; justify-content:
 html.ui-glass .g-menu-sep { height: 1px; background: var(--g-stroke); margin: 6px 4px; }
 html.ui-glass .g-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--g-well);
   border: 1px solid var(--g-stroke); }
-html.ui-glass .g-seg button { height: 30px; padding: 0 10px; border-radius: 9px; border: none; background: none;
+html.ui-glass .g-seg button { height: 34px; min-height: 34px; padding: 0 10px; border-radius: 9px; border: none; background: none;
   color: var(--g-text-soft); font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: inline-flex;
   align-items: center; gap: 6px; font-family: inherit; }
 html.ui-glass .g-seg button[aria-pressed="true"] { background: var(--g-primary); color: #fff; }

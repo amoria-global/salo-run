@@ -210,7 +210,7 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
         <Card>
           <EmptyState icon={<i className="bi bi-lock" aria-hidden />} title="You cannot open this album"
             description={error}
-            action={<Link href="/user/photographer/collaborate?tab=joined"><Button>Back to joined albums</Button></Link>} />
+            action={<Link className="gk-target" href="/user/photographer/collaborate?tab=joined"><Button>Back to joined albums</Button></Link>} />
         </Card>
       </Shell>
     );
@@ -442,7 +442,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
       <Link href="/user/photographer/collaborate?tab=joined"
-        className="mb-4 inline-flex items-center gap-1.5 rounded text-sm font-medium text-[var(--ck-text-soft)] hover:text-[#083A85] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85]">
+        className="gk-target mb-4 inline-flex items-center gap-1.5 rounded text-sm font-medium text-[var(--ck-text-soft)] hover:text-[#083A85] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85]">
         <i className="bi bi-arrow-left" aria-hidden /> Joined albums
       </Link>
       {children}

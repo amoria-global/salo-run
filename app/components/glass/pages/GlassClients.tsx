@@ -13,8 +13,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Gift, Image as ImageIcon, LayoutGrid, List, MapPin, MessageSquare, Plus, Search, Star, Heart, Users, Copy } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
-import { useDashboardAuth, dashboardAuthFetch } from '@/app/providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
+import { useDashboardAuth } from '@/app/providers/AuthProvider';
+import { fetchPublicProfileUrl } from '@/app/lib/publicProfileLink';
 import { Money } from '../Money';
 import { fmtDay, plural } from '../format';
 import {
@@ -165,13 +165,12 @@ function AddClientDialog({ onClose }: { onClose: () => void }) {
     let alive = true;
     (async () => {
       try {
-        const res = await dashboardAuthFetch(`${getApiUrl()}/api/remote/public/seo/slug-for?type=photographer&id=${encodeURIComponent(user?.customerId || user?.id || '')}`);
-        const body = res.ok ? await res.json() : null;
-        if (alive && body?.slug) setUrl(`https://connekyt.com/photographers/${body.slug}`);
+        const url = await fetchPublicProfileUrl(user);
+        if (alive && url) setUrl(url);
       } catch { /* the copy button stays disabled */ }
     })();
     return () => { alive = false; };
-  }, [user?.customerId, user?.id]);
+  }, [user]);
   const copy = async () => {
     if (!url) return;
     try { await navigator.clipboard.writeText(url); setNote(t('Link copied.')); } catch { setNote(url); }

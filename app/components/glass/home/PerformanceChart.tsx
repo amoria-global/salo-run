@@ -104,8 +104,8 @@ export default function PerformanceChart({ points, moneyHidden, moneyLabel = 'Ea
         )}
       </svg>
       {/* Keyboard: the chart is one focus stop; arrows move between points. */}
-      <div tabIndex={0} aria-label={t('Chart points, use the arrow keys')} className="g-focus"
-        style={{ position: 'absolute', inset: 0, outline: 'none' }}
+      <div tabIndex={0} role="group" aria-label={t('Chart points, use the arrow keys')} className="g-focus"
+        style={{ position: 'absolute', inset: 0 }}
         onFocus={() => setSel((s) => s ?? points.length - 1)} onBlur={() => setSel(null)}
         onKeyDown={(e) => {
           if (e.key === 'ArrowRight') setSel((s) => Math.min(points.length - 1, (s ?? -1) + 1));

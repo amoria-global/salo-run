@@ -18058,5 +18058,287 @@
     "Perfil incompleto",
     "Umwirondoro ntiwuzuye",
     "Wasifu haujakamilika"
+  ],
+  "Set default": [
+    "Définir par défaut",
+    "Predeterminar",
+    "Gira iy'ibanze",
+    "Weka kuwa chaguo-msingi"
+  ],
+  "Email code": [
+    "Code par e-mail",
+    "Código por correo",
+    "Kode kuri imeyili",
+    "Msimbo kwa barua pepe"
+  ],
+  "When you confirm a withdrawal we email a 6-digit code to": [
+    "Lorsque vous confirmez un retrait, nous envoyons un code à 6 chiffres à",
+    "Cuando confirmas un retiro, enviamos un código de 6 dígitos a",
+    "Iyo wemeje kubikuza, twohereza kode y'imibare 6 kuri",
+    "Unapothibitisha utoaji, tunatuma msimbo wa tarakimu 6 kwa"
+  ],
+  "your account email": [
+    "l'e-mail de votre compte",
+    "el correo de tu cuenta",
+    "imeyili ya konti yawe",
+    "barua pepe ya akaunti yako"
+  ],
+  "Enter it to finish. You can ask for a new code on the confirmation step, and you get an email again once the withdrawal is completed.": [
+    "Saisissez-le pour terminer. Vous pouvez demander un nouveau code à l'étape de confirmation, et vous recevez un e-mail une fois le retrait effectué.",
+    "Escríbelo para terminar. Puedes pedir un código nuevo en el paso de confirmación y recibirás otro correo cuando se complete el retiro.",
+    "Yandike kugira ngo urangize. Ushobora gusaba kode nshya ku ntambwe yo kwemeza, kandi uzongera kwakira imeyili kubikuza nibirangira.",
+    "Uweke ili kumaliza. Unaweza kuomba msimbo mpya kwenye hatua ya uthibitisho, na utapokea barua pepe tena utoaji ukikamilika."
+  ],
+  "Validating…": [
+    "Vérification…",
+    "Validando…",
+    "Birimo kugenzurwa…",
+    "Inahakiki…"
+  ],
+  "Account type": [
+    "Type de compte",
+    "Tipo de cuenta",
+    "Ubwoko bwa konti",
+    "Aina ya akaunti"
+  ],
+  "Select bank": [
+    "Choisir la banque",
+    "Elegir banco",
+    "Hitamo banki",
+    "Chagua benki"
+  ],
+  "Account number": [
+    "Numéro de compte",
+    "Número de cuenta",
+    "Nimero ya konti",
+    "Nambari ya akaunti"
+  ],
+  "Your bank account number": [
+    "Votre numéro de compte bancaire",
+    "Tu número de cuenta bancaria",
+    "Nimero ya konti yawe ya banki",
+    "Nambari ya akaunti yako ya benki"
+  ],
+  "Account holder name": [
+    "Nom du titulaire",
+    "Nombre del titular",
+    "Izina rya nyiri konti",
+    "Jina la mwenye akaunti"
+  ],
+  "MTN phone number": [
+    "Numéro de téléphone MTN",
+    "Número de teléfono MTN",
+    "Nimero ya telefoni ya MTN",
+    "Nambari ya simu ya MTN"
+  ],
+  "Airtel phone number": [
+    "Numéro de téléphone Airtel",
+    "Número de teléfono Airtel",
+    "Nimero ya telefoni ya Airtel",
+    "Nambari ya simu ya Airtel"
+  ],
+  "Name mismatch": [
+    "Noms différents",
+    "Los nombres no coinciden",
+    "Amazina ntahuye",
+    "Majina hayalingani"
+  ],
+  "You entered": [
+    "Vous avez saisi",
+    "Escribiste",
+    "Wanditse",
+    "Uliandika"
+  ],
+  "Use": [
+    "Utiliser",
+    "Usar",
+    "Koresha",
+    "Tumia"
+  ],
+  "Preference sections": [
+    "Sections des préférences",
+    "Secciones de preferencias",
+    "Ibice by'ibyo ukunda",
+    "Sehemu za mapendeleo"
+  ],
+  "You will no longer be able to use": [
+    "Vous ne pourrez plus utiliser",
+    "Ya no podrás usar",
+    "Ntuzongera gukoresha",
+    "Hutaweza tena kutumia"
+  ],
+  "for payments or withdrawals. This cannot be undone.": [
+    "pour les paiements ou les retraits. Cette action est définitive.",
+    "para pagos o retiros. No se puede deshacer.",
+    "mu kwishyura cyangwa kubikuza. Ntibishobora gusubizwa inyuma.",
+    "kwa malipo au utoaji. Hili haliwezi kutenduliwa."
+  ],
+  "Got it": [
+    "Compris",
+    "Entendido",
+    "Byumvikanye",
+    "Nimeelewa"
+  ],
+  "For security reasons, you can only update this account by removing it and adding a new one.": [
+    "Pour des raisons de sécurité, vous ne pouvez modifier ce compte qu'en le supprimant puis en en ajoutant un nouveau.",
+    "Por seguridad, solo puedes cambiar esta cuenta eliminándola y añadiendo una nueva.",
+    "Kubera umutekano, ushobora guhindura iyi konti gusa uyikuyeho ukongeraho indi nshya.",
+    "Kwa sababu za usalama, unaweza kubadilisha akaunti hii tu kwa kuiondoa na kuongeza mpya."
+  ],
+  "Synced with your device's settings.": [
+    "Synchronisé avec les réglages de votre appareil.",
+    "Sincronizado con la configuración de tu dispositivo.",
+    "Bihujwe n'igenamiterere ry'igikoresho cyawe.",
+    "Imeoanishwa na mipangilio ya kifaa chako."
+  ],
+  "Saved payment accounts": [
+    "Comptes de paiement enregistrés",
+    "Cuentas de pago guardadas",
+    "Konti zo kwishyuriraho zabitswe",
+    "Akaunti za malipo zilizohifadhiwa"
+  ],
+  "Manage the accounts you use for payments and withdrawals.": [
+    "Gérez les comptes utilisés pour les paiements et les retraits.",
+    "Gestiona las cuentas que usas para pagos y retiros.",
+    "Genzura konti ukoresha mu kwishyura no kubikuza.",
+    "Simamia akaunti unazotumia kwa malipo na utoaji."
+  ],
+  "No payment accounts saved": [
+    "Aucun compte de paiement enregistré",
+    "No hay cuentas de pago guardadas",
+    "Nta konti yo kwishyuriraho yabitswe",
+    "Hakuna akaunti ya malipo iliyohifadhiwa"
+  ],
+  "Add a mobile money or bank account to enable payments and withdrawals.": [
+    "Ajoutez un compte mobile money ou bancaire pour activer les paiements et les retraits.",
+    "Añade una cuenta de dinero móvil o bancaria para activar pagos y retiros.",
+    "Ongeraho konti ya mobile money cyangwa ya banki kugira ngo ushobore kwishyura no kubikuza.",
+    "Ongeza akaunti ya pesa ya simu au ya benki ili kuwezesha malipo na utoaji."
+  ],
+  "Notify me about booking updates and confirmations": [
+    "Prévenez-moi des mises à jour et confirmations de réservation",
+    "Avísame de cambios y confirmaciones de reservas",
+    "Mmenyesha impinduka n'iyemezwa ry'ibyo natumije",
+    "Nijulishe kuhusu masasisho na uthibitisho wa uhifadhi"
+  ],
+  "Notify me when I receive gifts": [
+    "Prévenez-moi quand je reçois un cadeau",
+    "Avísame cuando reciba regalos",
+    "Mmenyesha iyo nakiriye impano",
+    "Nijulishe ninapopokea zawadi"
+  ],
+  "Notify me when I receive live stream access fee revenue": [
+    "Prévenez-moi quand je reçois des frais d'accès au direct",
+    "Avísame cuando reciba ingresos por acceso a la transmisión",
+    "Mmenyesha iyo nakiriye amafaranga yo kwinjira muri live",
+    "Nijulishe ninapopokea mapato ya ada ya kufikia mtiririko"
+  ],
+  "Always notify me about security events (recommended)": [
+    "Toujours me prévenir des événements de sécurité (recommandé)",
+    "Avisarme siempre de eventos de seguridad (recomendado)",
+    "Buri gihe mmenyesha ibijyanye n'umutekano (birasabwa)",
+    "Nijulishe kila mara kuhusu matukio ya usalama (inapendekezwa)"
+  ],
+  "Ask for a code when you sign in, from an authenticator app or sent to your email. It is required to withdraw funds.": [
+    "Demandez un code à la connexion, depuis une application d'authentification ou envoyé par e-mail. Il est requis pour retirer des fonds.",
+    "Pide un código al iniciar sesión, desde una app de autenticación o enviado a tu correo. Es obligatorio para retirar fondos.",
+    "Saba kode iyo winjira, iturutse kuri porogaramu yo kwemeza cyangwa yoherejwe kuri imeyili yawe. Irakenewe kugira ngo ubikuze amafaranga.",
+    "Omba msimbo unapoingia, kutoka programu ya uthibitishaji au uliotumwa kwa barua pepe. Unahitajika ili kutoa pesa."
+  ],
+  "Every withdrawal is confirmed with a code sent to your email.": [
+    "Chaque retrait est confirmé par un code envoyé par e-mail.",
+    "Cada retiro se confirma con un código enviado a tu correo.",
+    "Buri kubikuza byemezwa na kode yoherejwe kuri imeyili yawe.",
+    "Kila utoaji huthibitishwa kwa msimbo uliotumwa kwa barua pepe yako."
+  ],
+  "On": [
+    "Activé",
+    "Activado",
+    "Birakora",
+    "Imewashwa"
+  ],
+  "MTN or Airtel Money": [
+    "MTN ou Airtel Money",
+    "MTN o Airtel Money",
+    "MTN cyangwa Airtel Money",
+    "MTN au Airtel Money"
+  ],
+  "MTN Mobile Money": [
+    "MTN Mobile Money",
+    "MTN Mobile Money",
+    "MTN Mobile Money",
+    "MTN Mobile Money"
+  ],
+  "Withdraw via MTN Mobile Money": [
+    "Retirer via MTN Mobile Money",
+    "Retirar con MTN Mobile Money",
+    "Bikuza ukoresheje MTN Mobile Money",
+    "Toa kupitia MTN Mobile Money"
+  ],
+  "Airtel Money": [
+    "Airtel Money",
+    "Airtel Money",
+    "Airtel Money",
+    "Airtel Money"
+  ],
+  "Withdraw via Airtel Money": [
+    "Retirer via Airtel Money",
+    "Retirar con Airtel Money",
+    "Bikuza ukoresheje Airtel Money",
+    "Toa kupitia Airtel Money"
+  ],
+  "Bank Transfer": [
+    "Virement bancaire",
+    "Transferencia bancaria",
+    "Kohereza kuri banki",
+    "Uhamisho wa benki"
+  ],
+  "Withdraw to a Rwandan bank account": [
+    "Retirer vers un compte bancaire au Rwanda",
+    "Retirar a una cuenta bancaria de Ruanda",
+    "Bikuza ujyana kuri konti ya banki yo mu Rwanda",
+    "Toa kwenda akaunti ya benki ya Rwanda"
+  ],
+  "Appearance, payment accounts, notifications and security.": [
+    "Apparence, comptes de paiement, notifications et sécurité.",
+    "Apariencia, cuentas de pago, notificaciones y seguridad.",
+    "Imigaragarire, konti zo kwishyuriraho, amatangazo n'umutekano.",
+    "Mwonekano, akaunti za malipo, arifa na usalama."
+  ],
+  "Delete this payment account?": [
+    "Supprimer ce compte de paiement ?",
+    "¿Eliminar esta cuenta de pago?",
+    "Gusiba iyi konti yo kwishyuriraho?",
+    "Futa akaunti hii ya malipo?"
+  ],
+  "Classic light theme for daytime use": [
+    "Thème clair classique pour la journée",
+    "Tema claro clásico para el día",
+    "Insanganyamatsiko y'urumuri yo ku manywa",
+    "Mandhari angavu ya kawaida kwa mchana"
+  ],
+  "Automatically match your device settings": [
+    "S'adapte automatiquement à votre appareil",
+    "Se adapta solo a tu dispositivo",
+    "Bihuza n'igenamiterere ry'igikoresho cyawe",
+    "Hufuata mipangilio ya kifaa chako"
+  ],
+  "Currently using Dark mode.": [
+    "Mode sombre utilisé actuellement.",
+    "Usando el modo oscuro.",
+    "Ukoresha uburyo bw'umwijima.",
+    "Unatumia hali ya giza."
+  ],
+  "Currently using Light mode.": [
+    "Mode clair utilisé actuellement.",
+    "Usando el modo claro.",
+    "Ukoresha uburyo bw'urumuri.",
+    "Unatumia hali angavu."
+  ],
+  "Skip to content": [
+    "Aller au contenu",
+    "Saltar al contenido",
+    "Jya ku bikubiyemo",
+    "Ruka hadi maudhui"
   ]
 }

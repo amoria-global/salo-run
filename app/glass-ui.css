@@ -124,6 +124,12 @@ html.ui-glass .gp-toolbar > *, html.ui-glass .gp-seg { min-width: 0; }
 html.ui-glass .gp-toolbar > .gp-seg { flex: 1 1 100%; }
 @media (min-width: 768px) { html.ui-glass .gp-toolbar > .gp-seg { flex: 0 1 auto; } }
 
+/* 40 px hit area for small links and text buttons in shared markup (classic pages are unaffected) */
+html.ui-glass .gk-target { display: inline-flex; align-items: center; min-height: 40px; }
+/* Tailwind magenta in the shared kit pages: AA text and fill */
+html.ui-glass .text-\[\#F20C8F\] { color: var(--g-accent-text) !important; }
+html.ui-glass .bg-\[\#F20C8F\] { background-color: var(--g-accent-strong) !important; }
+
 /* Shared: avatar, menu danger item, screen-reader text */
 html.ui-glass .gp-avatar { border-radius: 999px; object-fit: cover; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
 html.ui-glass .gp-avatar-initials { background: var(--g-grad-avatar); color: #fff; font-weight: 700; letter-spacing: 0.02em; font-family: var(--g-font-display); }
@@ -469,4 +475,55 @@ html.ui-glass .ckph-hint, html.ui-glass .ckph-chev { color: var(--g-text-soft) !
   html.ui-glass .gpf-completion { padding: 14px; gap: 12px; }
   html.ui-glass .gpf-unsaved { left: 12px; right: 12px; transform: none; bottom: calc(var(--g-tabbar-h) + 12px + env(safe-area-inset-bottom)); border-radius: 16px; flex-wrap: wrap; justify-content: space-between; }
   html.ui-glass .gpf-toasts { bottom: calc(var(--g-tabbar-h) + 12px + env(safe-area-inset-bottom)); }
+}
+
+/* Preferences */
+html.ui-glass .gpr-page { display: flex; flex-direction: column; gap: 16px; }
+html.ui-glass .gpr-tabs .gpf-tab-btn { display: inline-flex; align-items: center; gap: 8px; }
+html.ui-glass .gpr-panel { display: flex; flex-direction: column; gap: 16px; }
+html.ui-glass .gpr-card { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+html.ui-glass .gpr-head { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+html.ui-glass .gpr-head-text { flex: 1 1 260px; }
+html.ui-glass .gpr-head-text small { color: var(--g-text-soft); font-size: 0.875rem; line-height: 1.5; }
+html.ui-glass .gpr-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--g-tint); color: var(--g-link); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+html.ui-glass .gpr-title { margin: 2px 0 0; font-size: 1.125rem; color: var(--g-text); }
+html.ui-glass .gpr-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-width: 640px; }
+html.ui-glass .gpr-option { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; border: 1.5px solid var(--g-border); background: var(--g-well); color: var(--g-text); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+html.ui-glass .gpr-option.is-on, html.ui-glass .gpr-lang.is-on, html.ui-glass .gpr-type.is-on { border-color: var(--g-primary-light); background: var(--g-tint); }
+html.ui-glass .gpr-option small { color: var(--g-text-soft); font-size: 0.8125rem; line-height: 1.4; }
+html.ui-glass .gpr-option-label { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+html.ui-glass .gpr-tick { color: var(--g-link); margin-left: auto; flex-shrink: 0; }
+html.ui-glass .gpr-preview { height: 56px; border-radius: 10px; display: flex; overflow: hidden; border: 1px solid var(--g-stroke); }
+html.ui-glass .gpr-preview i { width: 28%; }
+html.ui-glass .gpr-preview b { flex: 1; }
+html.ui-glass .gpr-preview-light i { background: #FFFFFF; } html.ui-glass .gpr-preview-light b { background: #F4F6FB; }
+html.ui-glass .gpr-preview-dark i { background: #101B2E; } html.ui-glass .gpr-preview-dark b { background: #0A1220; }
+html.ui-glass .gpr-preview-system i { background: linear-gradient(180deg, #FFFFFF 50%, #101B2E 50%); } html.ui-glass .gpr-preview-system b { background: linear-gradient(180deg, #F4F6FB 50%, #0A1220 50%); }
+html.ui-glass .gpr-langs { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+html.ui-glass .gpr-lang, html.ui-glass .gpr-type { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; border-radius: 14px; border: 1.5px solid var(--g-border); background: var(--g-well); color: var(--g-text); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+html.ui-glass .gpr-lang img { border-radius: 3px; flex-shrink: 0; object-fit: cover; }
+html.ui-glass .gpr-lang .gc-two, html.ui-glass .gpr-type .gc-two { flex: 1 1 auto; }
+html.ui-glass .gpr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+html.ui-glass .gpr-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--g-stroke); min-width: 0; }
+html.ui-glass .gpr-item:first-child { border-top: 0; }
+html.ui-glass .gpr-item-solo { border-top: 0; margin-bottom: 12px; }
+html.ui-glass .gpr-item-text { flex: 1 1 auto; }
+html.ui-glass .gpr-item-actions { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+html.ui-glass .gpr-item-actions .g-icon-btn { border-color: var(--g-stroke); }
+html.ui-glass .gpr-mark { width: 44px; height: 44px; border-radius: 12px; overflow: hidden; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; background: var(--g-tint); color: var(--g-link); }
+html.ui-glass .gpr-mark img { width: 100%; height: 100%; object-fit: cover; }
+html.ui-glass .gpr-rows { display: flex; flex-direction: column; gap: 8px; }
+html.ui-glass .gpr-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border-radius: 14px; background: var(--g-well); }
+html.ui-glass .gpr-row .gc-two small { line-height: 1.4; }
+html.ui-glass .gpr-note { padding: 12px 14px; border-radius: 14px; background: var(--g-well); color: var(--g-text); }
+html.ui-glass .gpr-note p { margin: 4px 0 0; color: var(--g-text-soft); font-size: 0.875rem; line-height: 1.5; }
+html.ui-glass .gpr-types { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+html.ui-glass .gpr-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+html.ui-glass .gpr-mismatch { flex-direction: column; }
+html.ui-glass .gpr-mismatch-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 767.98px) {
+  html.ui-glass .gpr-options { grid-template-columns: minmax(0, 1fr); }
+  html.ui-glass .gpr-card { padding: 16px; }
+  html.ui-glass .gpr-item { flex-wrap: wrap; }
+  html.ui-glass .gpr-item-actions { width: 100%; justify-content: flex-end; }
 }

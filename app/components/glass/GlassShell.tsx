@@ -35,6 +35,7 @@ export default function GlassShell({ children }: { children: ReactNode }) {
 }
 
 function GlassFrame({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
   const pathname = usePathname() || '';
   const role = roleFromPath(pathname);
   const [collapsed, setCollapsed] = useState(false);
@@ -66,6 +67,8 @@ function GlassFrame({ children }: { children: ReactNode }) {
 
   return (
     <div className="g-shell" data-collapsed={collapsed ? 'true' : 'false'}>
+      {/* WCAG 2.4.1: the first Tab stop jumps over the sidebar and top bar to the page. */}
+      <a href="#g-main" className="g-skip" onClick={(e) => { e.preventDefault(); const m = document.getElementById('g-main'); m?.focus(); m?.scrollIntoView({ block: 'start' }); }}>{t('Skip to content')}</a>
       <aside className="g-sidebar g-blur" aria-label="Main">
         <Brand role={role} />
         <Suspense fallback={null}><SidebarNav role={role} badges={badges} onLogout={() => top.setShowLogoutModal(true)} /></Suspense>
@@ -79,7 +82,7 @@ function GlassFrame({ children }: { children: ReactNode }) {
       <div className="g-content">
         <div className="g-banners"><GlassBanners role={role} state={top} /></div>
         <SubTabs role={role} />
-        <div className="g-page-host" ref={hostRef}>{children}</div>
+        <div id="g-main" tabIndex={-1} className="g-page-host" ref={hostRef}>{children}</div>
       </div>
 
       <Suspense fallback={null}><TabBar role={role} badges={badges} /></Suspense>
