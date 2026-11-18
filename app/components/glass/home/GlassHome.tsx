@@ -119,13 +119,17 @@ export default function GlassHome() {
               {!isShared && (
                 <Link href={`${P}/profile?tab=packages`} className="g-btn g-btn-ghost"><Plus size={16} aria-hidden /> {t('New package')}</Link>
               )}
-              {!isShared && <ShareMenu canCreateAlbum={hasPermission('events.create')} />}
               {!isShared && (
                 <button type="button" className="g-btn g-btn-ghost" onClick={() => setGoalsOpen(true)} aria-pressed={!!target}>
                   <Target size={16} aria-hidden /> <span className="g-ellipsis" style={{ maxWidth: 180 }}>{target ? target.name : t('Compare goals')}</span>
                 </button>
               )}
             </div>
+            {!isShared && (
+              <div style={{ marginTop: 12 }}>
+                <ShareMenu canCreateAlbum={hasPermission('events.create')} />
+              </div>
+            )}
           </div>
           {!hostLoaded && !isShared && hostGuess !== false && <div className="gh-tiles gh-tiles-wait" aria-hidden><div className="g-skeleton" /><div className="g-skeleton" /></div>}
           {canHost && !isShared && (
