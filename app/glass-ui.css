@@ -527,3 +527,34 @@ html.ui-glass .gpr-mismatch-actions { display: flex; gap: 8px; flex-wrap: wrap; 
   html.ui-glass .gpr-item { flex-wrap: wrap; }
   html.ui-glass .gpr-item-actions { width: 100%; justify-content: flex-end; }
 }
+html.ui-glass .text-\[\#083A85\] { color: var(--g-link) !important; }
+
+/* Photographer Events & albums */
+html.ui-glass .gev-page { display: flex; flex-direction: column; gap: 16px; }
+html.ui-glass .gev-tools { display: grid; gap: 14px; }
+html.ui-glass .gev-act { height: 40px; padding: 0 12px; font-size: 0.8125rem; }
+html.ui-glass .gev-help, html.ui-glass .gev-dismiss { border-color: var(--g-stroke); }
+html.ui-glass .gev-warn { color: var(--g-warning); }
+html.ui-glass .gev-sums-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html.ui-glass .gev-search { max-width: 420px; }
+html.ui-glass .gev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+html.ui-glass .gev-list { display: flex; flex-direction: column; gap: 12px; }
+html.ui-glass .gev-album { padding: 0; overflow: hidden; display: flex; flex-direction: column; content-visibility: auto; contain-intrinsic-size: auto 340px; }
+html.ui-glass .gev-album.is-list { flex-direction: row; contain-intrinsic-size: auto 160px; }
+html.ui-glass .gev-cover { position: relative; border: 0; padding: 0; cursor: pointer; background: var(--g-well); aspect-ratio: 16 / 10; overflow: hidden; display: block; width: 100%; }
+html.ui-glass .gev-album.is-list .gev-cover { width: 220px; flex-shrink: 0; aspect-ratio: auto; }
+html.ui-glass .gev-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+html.ui-glass .gev-cover-chips { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+html.ui-glass .gev-cover-chips .gp-chip { background: rgba(10, 18, 32, 0.78); color: #fff; }
+html.ui-glass .gev-album-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1 1 auto; }
+html.ui-glass .gev-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 767.98px) {
+  html.ui-glass .gev-sums-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.ui-glass .gev-album.is-list { flex-direction: column; }
+  html.ui-glass .gev-album.is-list .gev-cover { width: 100%; aspect-ratio: 16 / 10; }
+  html.ui-glass .gev-grid { grid-template-columns: minmax(0, 1fr); }
+}
+html.ui-glass .gme-facts { list-style: none; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--g-well); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+html.ui-glass .gme-facts li { display: inline-flex; align-items: center; gap: 6px; color: var(--g-text); font-size: 0.8125rem; min-width: 0; }
+html.ui-glass .gme-facts li svg { color: var(--g-text-soft); flex-shrink: 0; }
+html.ui-glass .gme-mode { display: inline-flex; align-items: center; gap: 8px; }

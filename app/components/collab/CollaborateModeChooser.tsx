@@ -82,7 +82,7 @@ export function CollaborateModeChooser({ mode, onChange }: { mode: CollaborateMo
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-xs font-semibold uppercase tracking-wide" style={{ color: on ? 'var(--ck-pink)' : 'var(--ck-text-muted)' }}>{o.badge}</span>
-                <span className="block text-base font-bold text-[var(--ck-text)]">{o.title}</span>
+                <span className="block text-base font-bold text-[var(--ck-text)] [overflow-wrap:anywhere]">{o.title}</span>
               </span>
               <span
                 aria-hidden

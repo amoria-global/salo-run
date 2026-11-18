@@ -15,7 +15,7 @@ export const Card: React.FC<CardProps> = ({
   const accentBorder =
     accent === 'blue' ? { borderTop: '3px solid var(--ck-blue)' }
     : accent === 'pink' ? { borderTop: '3px solid var(--ck-pink)' }
-    : accent === 'gradient' ? { backgroundImage: 'linear-gradient(white, white), linear-gradient(135deg, var(--ck-blue), var(--ck-pink))', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', border: '2px solid transparent' }
+    : accent === 'gradient' ? { backgroundImage: 'linear-gradient(var(--g-card, white), var(--g-card, white)), linear-gradient(135deg, var(--ck-blue), var(--ck-pink))', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', border: '2px solid transparent' }
     : {};
 
   return (
