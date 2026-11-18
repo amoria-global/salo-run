@@ -305,3 +305,236 @@ followed by a time, "You are about to remove your" by a package name and then "t
 - Under review
 - Dismiss
 - Saving…
+
+## Batch 2-3 (2026-11-19): Preferences, Events (photographer, client, coordinator), Skip to content
+
+Drafted for fr, es, rw, sw; same review status. Only keys that were missing were added.
+
+- Set default
+- Default
+- Email code
+- When you confirm a withdrawal we email a 6-digit code to
+- your account email
+- Enter it to finish. You can ask for a new code on the confirmation step, and you get an email again once the withdrawal is completed.
+- Validating…
+- Account type
+- Select bank
+- Choose a bank…
+- Account number
+- Your bank account number
+- Account holder name
+- Name as it appears on your bank account
+- Name registered on your mobile money
+- MTN phone number
+- Airtel phone number
+- Name mismatch
+- You entered
+- , but this account is registered as
+- Use
+- Go back
+- Preference sections
+- You will no longer be able to use
+- for payments or withdrawals. This cannot be undone.
+- Got it
+- For security reasons, you can only update this account by removing it and adding a new one.
+- Synced with your device's settings.
+- Saved payment accounts
+- Manage the accounts you use for payments and withdrawals.
+- No payment accounts saved
+- Add a mobile money or bank account to enable payments and withdrawals.
+- Add account
+- Add payment account
+- Payment accounts
+- Payment account
+- Notification settings
+- Choose which notifications you want to receive and where you want them delivered.
+- Notification categories
+- Email notifications
+- Receive email alerts for important notifications
+- Push notifications
+- Get instant push notifications on your device
+- Payment notifications
+- Notify me when I receive payments
+- Notify me when I receive tips or bonuses
+- Album notifications
+- Notify me when new albums are shared or updated
+- Booking notifications
+- Notify me about booking updates and confirmations
+- Gift notifications
+- Notify me when I receive gifts
+- Stream fee notifications
+- Notify me when I receive live stream access fee revenue
+- Security alerts
+- Always notify me about security events (recommended)
+- Two-factor authentication
+- Ask for a code when you sign in, from an authenticator app or sent to your email. It is required to withdraw funds.
+- Withdrawal verification
+- Every withdrawal is confirmed with a code sent to your email.
+- Verification
+- On
+- Mobile Money
+- MTN or Airtel Money
+- MTN Mobile Money
+- Withdraw via MTN Mobile Money
+- Airtel Money
+- Withdraw via Airtel Money
+- Bank Transfer
+- Withdraw to a Rwandan bank account
+- Settings
+- Preferences
+- Appearance, payment accounts, notifications and security.
+- Delete this payment account?
+- Theme mode
+- Choose how the dashboard looks to you. Pick a single theme or sync with your device.
+- Classic light theme for daytime use
+- Easy on the eyes in low light
+- Automatically match your device settings
+- App language
+- Choose your preferred language across the web and mobile experience.
+- Light
+- Dark
+- System
+- Referral
+- Currently using Dark mode.
+- Currently using Light mode.
+- QR code
+- Album sent
+- Mark complete
+- days left
+- This album is saved but buyers cannot find it yet
+- Link
+- Copied
+- This album is archived. Restore it to open it to buyers again.
+- Restore
+- Archived
+- Search photobooks
+- Open photobook
+- Send back
+- Awaiting review
+- Show getting started
+- Content
+- No events yet
+- Events you are assigned to appear here.
+- Views
+- Filter albums
+- Photobooks received
+- Last 7 days
+- Library sections
+- Post
+- Waiting for album delivery
+- Create, publish and follow your events.
+- Filter events
+- Past
+- Live stream
+- Create album
+- Dismiss event
+- Edit album
+- Delete album
+- Dismiss album
+- Resend
+- Publish
+- On Face AI
+- Face AI
+- Open album
+- Personal album
+- No albums match
+- No albums yet
+- Create an album from an event, or sell photos on their own.
+- Not shared
+- Search albums
+- Albums
+- Photos
+- Shared
+- Received
+- Accepted
+- From
+- Download
+- Delete photobook
+- No photobooks match your search
+- No photobooks yet
+- Try a different keyword or clear the search.
+- Clients and coordinators can send you photobooks with their photo selections. They appear here for review.
+- Library
+- Events & albums
+- Manage your assigned events, live streams and event lifecycle.
+- Requests that match your profile.
+- Browse and manage the photo albums you created.
+- Photobooks clients sent you for review.
+- Albums you sell to everyone.
+- Sell photos
+- Event details
+- Go live
+- Rebook
+- Match nearby
+- No photographer yet. Post My Event: matching photographers say yes, you pick one.
+- Choose photographer
+- Matching ended
+- Answers
+- Unpublishing…
+- Publishing…
+- Confirm completion
+- Geo pricing
+- Pause
+- Resume
+- Create event
+- My events
+- We could not load your events.
+- No events match
+- Create your first event and book a photographer.
+- Search events
+
+## Event detail (2026-11-19)
+
+Drafted for fr, es, rw, sw; same review status.
+
+- Pausing…
+- Resuming…
+- Accepting…
+- Marking…
+- Matching ended: no photographer said yes
+- Post My Event did not find a photographer this time. Post it again with the same requirements, or use Find a Photographer and choose one yourself.
+- Reactivating…
+- Post again
+- Find a photographer
+- Candidates ready
+- Matching complete. Choose your photographer
+- Verified local creators accepted your event brief. Compare their match tiers, reviews, ratings and proposed rates, then confirm your photographer to lock your date.
+- Review candidates and confirm
+- Photographer matching active
+- Local photographers are reviewing your brief.
+- View candidates and select
+- No photographer assigned yet
+- Photographer
+- Booking details
+- No package booked
+- Included photos
+- Included videos
+- Event type
+- hour
+- hours
+- The event was completed.
+- Awaiting confirmation
+- No payment records for this event yet.
+- Payments and milestones
+- Pay now
+- Remaining
+- Escrow protection
+- Held
+- Released
+- Withdrawable
+- Held for delivery
+- Fully paid
+- Escrow funds are released after the event is completed.
+- Event completed: funds can now be released.
+- No location specified
+- guest
+- guests
+- Booking progress
+- done
+- Event information
+- Organizer
+- Visibility
+- Created
+- Event not found
+- It may have been removed.
+- Back to events

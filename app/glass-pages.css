@@ -59,9 +59,10 @@ html.ui-glass .ck-page-title { font-family: var(--g-font-display); font-weight: 
 html.ui-glass .ck-page-subtitle { color: var(--g-text-soft); }
 html.ui-glass .ck-tabs { border-radius: 999px; background: var(--g-well); border-color: var(--g-stroke); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 html.ui-glass .ck-tabs::-webkit-scrollbar { display: none; }
-html.ui-glass .ck-tab { border-radius: 999px; min-height: 36px; color: var(--g-text-soft); white-space: nowrap; }
+html.ui-glass .ck-tab { border-radius: 999px; min-height: 40px; color: var(--g-text-soft); white-space: nowrap; }
 html.ui-glass .ck-tab.active, html.ui-glass .ck-tab.is-active { background: var(--g-primary); color: #fff; box-shadow: none; }
-html.ui-glass .ck-tab.active span, html.ui-glass .ck-tab.is-active span { background: rgba(255, 255, 255, 0.22) !important; color: #fff !important; }
+/* the count on the selected pill: dark on white, like the glass Segmented badge (6:1) */
+html.ui-glass .ck-tab.active span, html.ui-glass .ck-tab.is-active span { background: #fff !important; color: #2B55B5 !important; }
 html.ui-glass .ck-tab:hover:not(.active):not(.is-active) { background: var(--g-tint); color: var(--g-text); }
 
 /* Tailwind status text used on the Collaborate pages: AA on both themes */

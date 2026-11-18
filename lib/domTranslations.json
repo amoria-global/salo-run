@@ -18340,5 +18340,449 @@
     "Saltar al contenido",
     "Jya ku bikubiyemo",
     "Ruka hadi maudhui"
+  ],
+  "QR code": [
+    "Code QR",
+    "Código QR",
+    "Kode QR",
+    "Msimbo wa QR"
+  ],
+  "Album sent": [
+    "Album envoyé",
+    "Álbum enviado",
+    "Alubumu yoherejwe",
+    "Albamu imetumwa"
+  ],
+  "Mark complete": [
+    "Marquer comme terminé",
+    "Marcar como completado",
+    "Shyiraho ko byarangiye",
+    "Weka imekamilika"
+  ],
+  "days left": [
+    "jours restants",
+    "días restantes",
+    "iminsi isigaye",
+    "siku zilizobaki"
+  ],
+  "This album is saved but buyers cannot find it yet": [
+    "Cet album est enregistré mais les acheteurs ne le trouvent pas encore",
+    "Este álbum está guardado pero los compradores aún no lo encuentran",
+    "Iyi alubumu irabitswe ariko abaguzi ntibarayibona",
+    "Albamu hii imehifadhiwa lakini wanunuzi bado hawawezi kuipata"
+  ],
+  "Link": [
+    "Lien",
+    "Enlace",
+    "Ihuza",
+    "Kiungo"
+  ],
+  "This album is archived. Restore it to open it to buyers again.": [
+    "Cet album est archivé. Restaurez-le pour le rouvrir aux acheteurs.",
+    "Este álbum está archivado. Restáuralo para abrirlo de nuevo a los compradores.",
+    "Iyi alubumu yabitswe mu bubiko. Yigarure kugira ngo abaguzi bongere bayibone.",
+    "Albamu hii imehifadhiwa kwenye kumbukumbu. Irejeshe ili wanunuzi waione tena."
+  ],
+  "Restore": [
+    "Restaurer",
+    "Restaurar",
+    "Garura",
+    "Rejesha"
+  ],
+  "Search photobooks": [
+    "Rechercher des photobooks",
+    "Buscar fotolibros",
+    "Shakisha photobooks",
+    "Tafuta vitabu vya picha"
+  ],
+  "Open photobook": [
+    "Ouvrir le photobook",
+    "Abrir fotolibro",
+    "Fungura photobook",
+    "Fungua kitabu cha picha"
+  ],
+  "Send back": [
+    "Renvoyer",
+    "Devolver",
+    "Subiza",
+    "Rudisha"
+  ],
+  "Awaiting review": [
+    "En attente de révision",
+    "Esperando revisión",
+    "Bitegereje isuzuma",
+    "Inasubiri ukaguzi"
+  ],
+  "Show getting started": [
+    "Afficher la prise en main",
+    "Mostrar la guía de inicio",
+    "Erekana uko utangira",
+    "Onyesha jinsi ya kuanza"
+  ],
+  "Content": [
+    "Contenu",
+    "Contenido",
+    "Ibikubiyemo",
+    "Maudhui"
+  ],
+  "No events yet": [
+    "Pas encore d'événements",
+    "Aún no hay eventos",
+    "Nta birori kugeza ubu",
+    "Bado hakuna matukio"
+  ],
+  "Events you are assigned to appear here.": [
+    "Les événements qui vous sont attribués apparaissent ici.",
+    "Los eventos que te asignan aparecen aquí.",
+    "Ibirori wahawe bigaragara hano.",
+    "Matukio uliyopewa huonekana hapa."
+  ],
+  "Views": [
+    "Vues",
+    "Vistas",
+    "Abarebye",
+    "Watazamaji"
+  ],
+  "Filter albums": [
+    "Filtrer les albums",
+    "Filtrar álbumes",
+    "Shungura alubumu",
+    "Chuja albamu"
+  ],
+  "Photobooks received": [
+    "Photobooks reçus",
+    "Fotolibros recibidos",
+    "Photobooks wakiriye",
+    "Vitabu vya picha vilivyopokewa"
+  ],
+  "Last 7 days": [
+    "7 derniers jours",
+    "Últimos 7 días",
+    "Iminsi 7 ishize",
+    "Siku 7 zilizopita"
+  ],
+  "Library sections": [
+    "Sections de la bibliothèque",
+    "Secciones de la biblioteca",
+    "Ibice by'ububiko",
+    "Sehemu za maktaba"
+  ],
+  "Post": [
+    "Publier la demande",
+    "Publicar",
+    "Tangaza",
+    "Chapisha"
+  ],
+  "Waiting for album delivery": [
+    "En attente de la livraison de l'album",
+    "Esperando la entrega del álbum",
+    "Bitegereje ko alubumu itangwa",
+    "Inasubiri albamu kuwasilishwa"
+  ],
+  "Create, publish and follow your events.": [
+    "Créez, publiez et suivez vos événements.",
+    "Crea, publica y sigue tus eventos.",
+    "Kora, tangaza kandi ukurikirane ibirori byawe.",
+    "Unda, chapisha na ufuatilie matukio yako."
+  ],
+  "Filter events": [
+    "Filtrer les événements",
+    "Filtrar eventos",
+    "Shungura ibirori",
+    "Chuja matukio"
+  ],
+  "Past": [
+    "Passés",
+    "Pasados",
+    "Ibyashize",
+    "Yaliyopita"
+  ],
+  "No albums match": [
+    "Aucun album ne correspond",
+    "Ningún álbum coincide",
+    "Nta alubumu ihuye",
+    "Hakuna albamu inayolingana"
+  ],
+  "Create an album from an event, or sell photos on their own.": [
+    "Créez un album depuis un événement, ou vendez des photos séparément.",
+    "Crea un álbum desde un evento o vende fotos por separado.",
+    "Kora alubumu uhereye ku birori, cyangwa ugurishe amafoto ukwayo.",
+    "Unda albamu kutoka kwa tukio, au uza picha peke yake."
+  ],
+  "No photobooks match your search": [
+    "Aucun photobook ne correspond à votre recherche",
+    "Ningún fotolibro coincide con tu búsqueda",
+    "Nta photobook ihuye n'ishakisha ryawe",
+    "Hakuna kitabu cha picha kinacholingana"
+  ],
+  "No photobooks yet": [
+    "Pas encore de photobooks",
+    "Aún no hay fotolibros",
+    "Nta photobook kugeza ubu",
+    "Bado hakuna vitabu vya picha"
+  ],
+  "Try a different keyword or clear the search.": [
+    "Essayez un autre mot-clé ou effacez la recherche.",
+    "Prueba otra palabra o borra la búsqueda.",
+    "Gerageza irindi jambo cyangwa usibe ishakisha.",
+    "Jaribu neno lingine au futa utafutaji."
+  ],
+  "Clients and coordinators can send you photobooks with their photo selections. They appear here for review.": [
+    "Les clients et coordinateurs peuvent vous envoyer des photobooks avec leur sélection de photos. Ils apparaissent ici pour révision.",
+    "Clientes y coordinadores pueden enviarte fotolibros con su selección de fotos. Aparecen aquí para revisarlos.",
+    "Abakiriya n'abategura bashobora kukoherereza photobooks zifite amafoto bahisemo. Zigaragara hano kugira ngo uzisuzume.",
+    "Wateja na waratibu wanaweza kukutumia vitabu vya picha na picha walizochagua. Huonekana hapa kwa ukaguzi."
+  ],
+  "Manage your assigned events, live streams and event lifecycle.": [
+    "Gérez vos événements, vos directs et leur cycle de vie.",
+    "Gestiona tus eventos, transmisiones y su ciclo de vida.",
+    "Genzura ibirori wahawe, live n'uko ibirori bigenda.",
+    "Simamia matukio uliyopewa, mitiririko na mzunguko wa matukio."
+  ],
+  "Requests that match your profile.": [
+    "Les demandes qui correspondent à votre profil.",
+    "Solicitudes que encajan con tu perfil.",
+    "Ubusabe buhuye n'umwirondoro wawe.",
+    "Maombi yanayolingana na wasifu wako."
+  ],
+  "Browse and manage the photo albums you created.": [
+    "Parcourez et gérez les albums que vous avez créés.",
+    "Explora y gestiona los álbumes que creaste.",
+    "Reba kandi ugenzure alubumu wakoze.",
+    "Vinjari na usimamie albamu ulizounda."
+  ],
+  "Photobooks clients sent you for review.": [
+    "Les photobooks que les clients vous ont envoyés.",
+    "Fotolibros que los clientes te enviaron para revisar.",
+    "Photobooks abakiriya bakoherereje ngo uzisuzume.",
+    "Vitabu vya picha ambavyo wateja walikutumia kukagua."
+  ],
+  "Albums you sell to everyone.": [
+    "Les albums que vous vendez à tous.",
+    "Álbumes que vendes a todos.",
+    "Alubumu ugurisha buri wese.",
+    "Albamu unazouza kwa kila mtu."
+  ],
+  "Choose photographer": [
+    "Choisir le photographe",
+    "Elegir fotógrafo",
+    "Hitamo umufotozi",
+    "Chagua mpiga picha"
+  ],
+  "Matching ended": [
+    "Recherche terminée",
+    "Búsqueda terminada",
+    "Gushaka byarangiye",
+    "Utafutaji umekwisha"
+  ],
+  "Answers": [
+    "Réponses",
+    "Respuestas",
+    "Ibisubizo",
+    "Majibu"
+  ],
+  "We could not load your events.": [
+    "Impossible de charger vos événements.",
+    "No pudimos cargar tus eventos.",
+    "Ntitwashoboye gufungura ibirori byawe.",
+    "Hatukuweza kupakia matukio yako."
+  ],
+  "No events match": [
+    "Aucun événement ne correspond",
+    "Ningún evento coincide",
+    "Nta birori bihuye",
+    "Hakuna tukio linalolingana"
+  ],
+  "Create your first event and book a photographer.": [
+    "Créez votre premier événement et réservez un photographe.",
+    "Crea tu primer evento y reserva un fotógrafo.",
+    "Kora ibirori byawe bya mbere maze utumize umufotozi.",
+    "Unda tukio lako la kwanza na uhifadhi mpiga picha."
+  ],
+  "Pausing…": [
+    "Mise en pause…",
+    "Pausando…",
+    "Birimo guhagarikwa…",
+    "Inasitisha…"
+  ],
+  "Resuming…": [
+    "Reprise…",
+    "Reanudando…",
+    "Birimo gukomeza…",
+    "Inaendelea…"
+  ],
+  "Accepting…": [
+    "Acceptation…",
+    "Aceptando…",
+    "Birimo kwemerwa…",
+    "Inakubali…"
+  ],
+  "Marking…": [
+    "Enregistrement…",
+    "Marcando…",
+    "Birimo kwandikwa…",
+    "Inaweka…"
+  ],
+  "Matching ended: no photographer said yes": [
+    "Recherche terminée : aucun photographe n'a accepté",
+    "Búsqueda terminada: ningún fotógrafo aceptó",
+    "Gushaka byarangiye: nta mufotozi wemeye",
+    "Utafutaji umekwisha: hakuna mpiga picha aliyekubali"
+  ],
+  "Post My Event did not find a photographer this time. Post it again with the same requirements, or use Find a Photographer and choose one yourself.": [
+    "Post My Event n'a pas trouvé de photographe cette fois. Republiez-le avec les mêmes critères, ou utilisez Trouver un photographe et choisissez vous-même.",
+    "Post My Event no encontró fotógrafo esta vez. Publícalo de nuevo con los mismos requisitos o usa Buscar fotógrafo y elige tú.",
+    "Post My Event ntiyabonye umufotozi ubu. Wongere uyitangaze ufite ibisabwa bimwe, cyangwa ukoreshe Shaka umufotozi maze wihitiremo.",
+    "Post My Event haikupata mpiga picha safari hii. Ichapishe tena kwa mahitaji yale yale, au tumia Tafuta mpiga picha na uchague mwenyewe."
+  ],
+  "Reactivating…": [
+    "Réactivation…",
+    "Reactivando…",
+    "Birimo kongera gukora…",
+    "Inaamilisha tena…"
+  ],
+  "Candidates ready": [
+    "Candidats prêts",
+    "Candidatos listos",
+    "Abakandida biteguye",
+    "Wagombea wako tayari"
+  ],
+  "Matching complete. Choose your photographer": [
+    "Recherche terminée. Choisissez votre photographe",
+    "Búsqueda completa. Elige tu fotógrafo",
+    "Gushaka byarangiye. Hitamo umufotozi wawe",
+    "Utafutaji umekamilika. Chagua mpiga picha wako"
+  ],
+  "Verified local creators accepted your event brief. Compare their match tiers, reviews, ratings and proposed rates, then confirm your photographer to lock your date.": [
+    "Des créateurs locaux vérifiés ont accepté votre demande. Comparez leurs niveaux, avis, notes et tarifs, puis confirmez votre photographe pour bloquer la date.",
+    "Creadores locales verificados aceptaron tu solicitud. Compara niveles, reseñas, valoraciones y tarifas, y confirma tu fotógrafo para reservar la fecha.",
+    "Abahanzi bo hafi bemejwe bemeye ubusabe bwawe. Gereranya inzego zabo, amasuzuma, amanota n'ibiciro, maze wemeze umufotozi ngo ufate itariki.",
+    "Wabunifu wa karibu waliothibitishwa wamekubali ombi lako. Linganisha viwango, maoni, alama na bei, kisha thibitisha mpiga picha ili kufunga tarehe."
+  ],
+  "Review candidates and confirm": [
+    "Voir les candidats et confirmer",
+    "Revisar candidatos y confirmar",
+    "Suzuma abakandida wemeze",
+    "Kagua wagombea na uthibitishe"
+  ],
+  "Photographer matching active": [
+    "Recherche de photographe en cours",
+    "Búsqueda de fotógrafo activa",
+    "Gushaka umufotozi birakomeje",
+    "Utafutaji wa mpiga picha unaendelea"
+  ],
+  "Local photographers are reviewing your brief.": [
+    "Des photographes locaux examinent votre demande.",
+    "Fotógrafos locales están revisando tu solicitud.",
+    "Abafotozi bo hafi barimo gusuzuma ubusabe bwawe.",
+    "Wapiga picha wa karibu wanakagua ombi lako."
+  ],
+  "View candidates and select": [
+    "Voir les candidats et choisir",
+    "Ver candidatos y elegir",
+    "Reba abakandida uhitemo",
+    "Tazama wagombea na uchague"
+  ],
+  "No photographer assigned yet": [
+    "Aucun photographe attribué",
+    "Aún sin fotógrafo asignado",
+    "Nta mufotozi urahabwa",
+    "Bado hakuna mpiga picha aliyepangwa"
+  ],
+  "No package booked": [
+    "Aucun forfait réservé",
+    "Ningún paquete reservado",
+    "Nta paki yatumijwe",
+    "Hakuna kifurushi kilichohifadhiwa"
+  ],
+  "hour": [
+    "heure",
+    "hora",
+    "isaha",
+    "saa"
+  ],
+  "The event was completed.": [
+    "L'événement est terminé.",
+    "El evento se completó.",
+    "Ibirori byarangiye.",
+    "Tukio limekamilika."
+  ],
+  "Awaiting confirmation": [
+    "En attente de confirmation",
+    "Esperando confirmación",
+    "Bitegereje kwemezwa",
+    "Inasubiri uthibitisho"
+  ],
+  "No payment records for this event yet.": [
+    "Aucun paiement enregistré pour cet événement.",
+    "Aún no hay pagos para este evento.",
+    "Nta bwishyu bwanditswe kuri ibi birori.",
+    "Bado hakuna rekodi za malipo kwa tukio hili."
+  ],
+  "Payments and milestones": [
+    "Paiements et étapes",
+    "Pagos y etapas",
+    "Ubwishyu n'intambwe",
+    "Malipo na hatua"
+  ],
+  "Escrow protection": [
+    "Protection séquestre",
+    "Protección de depósito",
+    "Kurinda amafaranga abitswe",
+    "Ulinzi wa amana"
+  ],
+  "Released": [
+    "Libéré",
+    "Liberado",
+    "Yarekuwe",
+    "Imetolewa"
+  ],
+  "Fully paid": [
+    "Entièrement payé",
+    "Pagado por completo",
+    "Byishyuwe byose",
+    "Imelipwa yote"
+  ],
+  "Escrow funds are released after the event is completed.": [
+    "Les fonds sous séquestre sont libérés après l'événement.",
+    "Los fondos retenidos se liberan al completar el evento.",
+    "Amafaranga abitswe arekurwa ibirori birangiye.",
+    "Pesa za amana hutolewa baada ya tukio kukamilika."
+  ],
+  "Event completed: funds can now be released.": [
+    "Événement terminé : les fonds peuvent être libérés.",
+    "Evento completado: los fondos ya se pueden liberar.",
+    "Ibirori byarangiye: amafaranga ashobora kurekurwa.",
+    "Tukio limekamilika: pesa sasa zinaweza kutolewa."
+  ],
+  "No location specified": [
+    "Aucun lieu indiqué",
+    "Sin ubicación",
+    "Nta hantu hagaragajwe",
+    "Hakuna mahali palipotajwa"
+  ],
+  "guest": [
+    "invité",
+    "invitado",
+    "umushyitsi",
+    "mgeni"
+  ],
+  "Event information": [
+    "Informations sur l'événement",
+    "Información del evento",
+    "Amakuru y'ibirori",
+    "Taarifa za tukio"
+  ],
+  "Event not found": [
+    "Événement introuvable",
+    "Evento no encontrado",
+    "Ibirori ntibibonetse",
+    "Tukio halikupatikana"
+  ],
+  "It may have been removed.": [
+    "Il a peut-être été supprimé.",
+    "Puede que se haya eliminado.",
+    "Bishobora kuba byarakuweho.",
+    "Huenda limeondolewa."
   ]
 }

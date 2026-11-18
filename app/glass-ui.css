@@ -558,3 +558,40 @@ html.ui-glass .gme-facts { list-style: none; margin: 0; padding: 10px 12px; bord
 html.ui-glass .gme-facts li { display: inline-flex; align-items: center; gap: 6px; color: var(--g-text); font-size: 0.8125rem; min-width: 0; }
 html.ui-glass .gme-facts li svg { color: var(--g-text-soft); flex-shrink: 0; }
 html.ui-glass .gme-mode { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Event detail */
+html.ui-glass .ged-page { display: flex; flex-direction: column; gap: 16px; }
+html.ui-glass .ged-back { align-self: flex-start; }
+html.ui-glass .ged-hero { padding: 0; overflow: hidden; }
+html.ui-glass .ged-banner { width: 100%; max-height: 260px; object-fit: cover; display: block; }
+html.ui-glass .ged-hero-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+html.ui-glass .ged-title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+html.ui-glass .ged-title-row .gp-title { margin: 0; overflow-wrap: anywhere; }
+html.ui-glass .ged-meta { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+html.ui-glass .ged-card { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+html.ui-glass .ged-card .gc-h { display: inline-flex; align-items: center; gap: 8px; }
+html.ui-glass .ged-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+html.ui-glass .ged-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+html.ui-glass .ged-facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px 16px; }
+html.ui-glass .ged-facts dt { color: var(--g-text-soft); font-size: 0.75rem; }
+html.ui-glass .ged-facts dd { margin: 2px 0 0; color: var(--g-text); font-weight: 600; font-size: 0.875rem; overflow-wrap: anywhere; }
+html.ui-glass .ged-notice { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+html.ui-glass .ged-notice p { margin: 0; color: var(--g-text-soft); font-size: 0.875rem; line-height: 1.5; }
+html.ui-glass .ged-notice strong { color: var(--g-text); }
+html.ui-glass .ged-completion { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+html.ui-glass .ged-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+html.ui-glass .ged-steps li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 999px; background: var(--g-well); color: var(--g-text-soft); font-size: 0.8125rem; font-weight: 600; }
+html.ui-glass .ged-steps li.is-done { color: var(--g-text); }
+html.ui-glass .ged-step-dot { width: 26px; height: 26px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: var(--g-muted); color: var(--g-text); font-size: 0.75rem; }
+html.ui-glass .ged-steps li.is-done .ged-step-dot { background: var(--g-primary); color: #fff; }
+html.ui-glass .ged-payments { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+html.ui-glass .ged-payment { padding: 12px; border-radius: 14px; border: 1px solid var(--g-stroke); display: flex; flex-direction: column; gap: 10px; }
+html.ui-glass .ged-payment-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+html.ui-glass .ged-payment-head .gc-two { flex: 1 1 auto; }
+html.ui-glass .ged-payment-head > strong { color: var(--g-text); }
+html.ui-glass .ged-escrow { margin: 0; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--g-text-soft); font-size: 0.8125rem; }
+html.ui-glass .ged-progress { display: flex; flex-direction: column; gap: 6px; }
+html.ui-glass .ged-progress-text { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--g-text-soft); font-size: 0.8125rem; }
+html.ui-glass .ged-bar { display: block; height: 8px; border-radius: 999px; background: var(--g-muted); overflow: hidden; }
+html.ui-glass .ged-bar i { display: block; height: 100%; background: var(--g-primary); border-radius: 999px; }
+@media (max-width: 1023.98px) { html.ui-glass .ged-grid { grid-template-columns: minmax(0, 1fr); } }
