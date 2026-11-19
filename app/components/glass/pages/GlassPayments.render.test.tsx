@@ -15,7 +15,9 @@ const pay = (over: Record<string, unknown> = {}) => ({
   escrowStatus: 'NONE', eventCompletionStatus: 'NOT_COMPLETED', ...over,
 });
 const usd = (n: number, from?: string) => `${from && from !== 'USD' ? `${from}->` : ''}USD ${n.toFixed(2)}`;
-function common(payments: Record<string, unknown>[], over: Record<string, unknown> = {}) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Ctl = Record<string, any>;
+function common(payments: Record<string, unknown>[], over: Record<string, unknown> = {}): Ctl {
   const fn = () => vi.fn();
   return {
     formatPrice: usd, payments, totalPaid: 0, totalPending: 0, totalFailed: 0, chartType: 'line', setChartType: fn(), activeTimeFilter: '1M', setActiveTimeFilter: fn(),
@@ -23,11 +25,11 @@ function common(payments: Record<string, unknown>[], over: Record<string, unknow
     currentPage: 1, setCurrentPage: fn(), totalPages: 1, totalResults: payments.length, resultsPerPage: 8, ...over,
   };
 }
-const client = (payments: Record<string, unknown>[], over: Record<string, unknown> = {}) => common(payments, {
+const client = (payments: Record<string, unknown>[], over: Record<string, unknown> = {}): Ctl => common(payments, {
   paymentsLoaded: true, paymentsError: false, retryPayments: vi.fn(), highlightId: null, highlightRowRef: { current: null },
   giftStreams: [], totalGifts: 0, setShowGiftsPaymentMethodModal: vi.fn(), handleViewGiftSenders: vi.fn(), ...over,
 });
-const coordinator = (payments: Record<string, unknown>[], over: Record<string, unknown> = {}) => common(payments, {
+const coordinator = (payments: Record<string, unknown>[], over: Record<string, unknown> = {}): Ctl => common(payments, {
   paymentsLoaded: true, isLoadingPayments: false, paymentsError: null, fetchPayments: vi.fn(), paginatedPayments: payments,
   streamFeeEvents: [], totalStreamFees: 0, giftPayments: [], totalGiftRevenue: 0, setShowStreamFeeWithdrawModal: vi.fn(), ...over,
 });
