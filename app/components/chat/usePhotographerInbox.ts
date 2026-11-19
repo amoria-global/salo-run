@@ -2,7 +2,7 @@
 
 // app/pages/photographer/inbox.tsx's behaviour, moved verbatim into a hook so the classic page and the Compact Glass page share one source
 // of truth (no behaviour change).
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useDashboardAuth, dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
@@ -108,10 +108,9 @@ export function usePhotographerInbox(opts: InboxOptions = {}) {
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
   const [conversationsError, setConversationsError] = useState(false);
   const [loadedThreads, setLoadedThreads] = useState<string[]>([]);
-  conversationsRef.current = conversations;
 
   // Keep ref in sync so callbacks can read current unreadCounts without stale closure
-  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+  useLayoutEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
   const fetchConversations = useCallback(async () => {
     try {

@@ -220,6 +220,8 @@ export function usePhotographerClients() {
   // Glass page only: neither the clients list nor its chat fallback could be read (the classic page never showed this).
   const [clientsError, setClientsError] = useState(false);
 
+  const [clients, setClients] = useState<Client[]>([]);
+
   const fetchClients = useCallback(async () => {
     setClientsError(false);
     try {
@@ -346,8 +348,6 @@ export function usePhotographerClients() {
     };
     fetchBalance();
   }, [fetchClients, isCollaborator, user]);
-
-  const [clients, setClients] = useState<Client[]>([]);
 
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Portrait', 'Fashion', 'Concert'];
 

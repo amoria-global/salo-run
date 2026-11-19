@@ -228,7 +228,7 @@ export default function ServiceAreaPanel() {
   const primary: React.CSSProperties = { padding: '0.6rem 1.1rem', borderRadius: 10, border: 0, backgroundColor: colors.brandPrimary, color: colors.textInverse, fontWeight: 600, cursor: 'pointer' };
   const secondary: React.CSSProperties = { padding: '0.5rem 0.9rem', borderRadius: 10, border: `1px solid ${colors.borderPrimary}`, backgroundColor: 'transparent', color: colors.textPrimary, cursor: 'pointer' };
 
-  const InlineError = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+  const inlineError = (message: string, onRetry: () => void) => (
     <div role="alert" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '0.65rem 0.85rem', borderRadius: 10, border: `1px solid ${colors.statusError}`, color: colors.statusError, fontSize: 13 }}>
       <span style={{ flex: 1, minWidth: 180 }}>{message}</span>
       <button type="button" onClick={onRetry} style={secondary}>Try again</button>
@@ -251,13 +251,13 @@ export default function ServiceAreaPanel() {
       {loadState === 'loading' ? (
         <p style={{ margin: 0, fontSize: 13, color: colors.textTertiary }}>Loading your service area…</p>
       ) : loadState === 'error' ? (
-        <InlineError message="We could not load your service area." onRetry={() => void load()} />
+        inlineError("We could not load your service area.", () => void load())
       ) : confirming ? (
         // ─────────── Confirm / saved ───────────
         detailsState === 'loading' ? (
           <p style={{ margin: 0, fontSize: 13, color: colors.textTertiary }}>Checking this area…</p>
         ) : detailsState === 'error' && picked ? (
-          <InlineError message="We could not check that area right now." onRetry={() => void choose(picked)} />
+          inlineError("We could not check that area right now.", () => void choose(picked))
         ) : (
           <>
             <AreaPreview lat={lat} lng={lng} />
@@ -285,7 +285,7 @@ export default function ServiceAreaPanel() {
               <span aria-hidden>👁</span>
               <span>Clients see this approximate area and a rounded distance. Your address is never shown.</span>
             </div>
-            {actionError ? <InlineError message={actionError} onRetry={() => void (picked ? save() : remove())} /> : null}
+            {actionError ? inlineError(actionError, () => void (picked ? save() : remove())) : null}
             {picked ? (
               <button type="button" style={{ ...primary, opacity: !details || busy ? 0.7 : 1 }} disabled={!details || busy !== null} onClick={save}>
                 {busy === 'save' ? 'Saving…' : 'Save service area'}
@@ -327,7 +327,8 @@ export default function ServiceAreaPanel() {
           {searchState === 'loading' ? (
             <p style={{ margin: 0, fontSize: 13, color: colors.textTertiary }}>Searching…</p>
           ) : searchState === 'error' ? (
-            <InlineError message="Area search is unavailable right now." onRetry={() => runSearch(query, 0)} />
+            // eslint-disable-next-line react-hooks/refs -- the retry handler runs on click, after render
+            inlineError("Area search is unavailable right now.", () => runSearch(query, 0))
           ) : searchState === 'done' && results.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '0.75rem', fontSize: 13, color: colors.textSecondary }}>
               <div style={{ fontWeight: 600, color: colors.textPrimary }}>{`No areas match "${query.trim()}"`}</div>
