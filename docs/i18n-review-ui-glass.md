@@ -624,3 +624,27 @@ Drafted for fr, es, rw, sw; same review status.
 - Your username can't be changed here. | fr: Votre nom d'utilisateur ne peut pas être modifié ici. | es: Tu nombre de usuario no se puede cambiar aquí. | rw: Izina ukoresha ntirishobora guhindurirwa hano. | sw: Jina lako la mtumiaji haliwezi kubadilishwa hapa.
 - Contact support to change your email. | fr: Contactez le support pour changer votre e-mail. | es: Contacta con soporte para cambiar tu correo. | rw: Vugana n'ubufasha kugira ngo uhindure imeri yawe. | sw: Wasiliana na usaidizi ili kubadilisha barua pepe yako.
 - Turn on editing to change your photo | fr: Activez la modification pour changer votre photo | es: Activa la edición para cambiar tu foto | rw: Fungura guhindura kugira ngo uhindure ifoto yawe | sw: Washa uhariri ili kubadilisha picha yako
+
+## Photographer Transactions, 2026-11-19
+
+- Bonus earned for completing your first | fr: Bonus obtenu pour vos | es: Bono obtenido por completar tus primeros | rw: Agahimbazamusyi wabonye urangije | sw: Bonasi umepata kwa kukamilisha
+- Bonus pending admin approval | fr: Bonus en attente de validation | es: Bono pendiente de aprobación | rw: Agahimbazamusyi gategereje kwemezwa | sw: Bonasi inasubiri idhini ya msimamizi
+- Bonus request was not approved | fr: La demande de bonus n'a pas été approuvée | es: La solicitud de bono no fue aprobada | rw: Gusaba agahimbazamusyi ntibyemewe | sw: Ombi la bonasi halikuidhinishwa
+- Complete your first | fr: Terminez vos | es: Completa tus primeros | rw: Rangiza | sw: Kamilisha
+- events to earn | fr: premiers événements pour gagner | es: eventos para ganar | rw: ibikorwa bya mbere ubone | sw: matukio ya kwanza upate
+- Progress to bonus | fr: Progression vers le bonus | es: Progreso hacia el bono | rw: Aho ugeze ku gahimbazamusyi | sw: Maendeleo kuelekea bonasi
+- Manage your earnings and view your complete transaction history. | fr: Gérez vos gains et consultez tout l'historique de vos transactions. | es: Gestiona tus ganancias y consulta todo tu historial de transacciones. | rw: Genzura inyungu zawe urebe amateka yose y'ibyakozwe. | sw: Simamia mapato yako na uone historia kamili ya miamala.
+- We could not load your wallet | fr: Impossible de charger votre portefeuille | es: No pudimos cargar tu billetera | rw: Ntitwashoboye gufungura ikofi yawe | sw: Hatukuweza kupakia pochi yako
+- The earnings below are not your real balance. Please refresh. | fr: Les gains ci-dessous ne sont pas votre vrai solde. Actualisez la page. | es: Las ganancias de abajo no son tu saldo real. Actualiza la página. | rw: Inyungu ziri hasi si amafaranga ufite koko. Ongera ufungure paji. | sw: Mapato yaliyo hapa chini si salio lako halisi. Tafadhali onyesha upya.
+- Total tips | fr: Total des pourboires | es: Total de propinas | rw: Ishimwe ryose | sw: Jumla ya bakshishi
+- No tips yet. | fr: Aucun pourboire pour l'instant. | es: Aún no hay propinas. | rw: Nta shimwe rirabaho. | sw: Bado hakuna bakshishi.
+- We could not load your transactions. | fr: Impossible de charger vos transactions. | es: No pudimos cargar tus transacciones. | rw: Ntitwashoboye gufungura ibyakozwe byawe. | sw: Hatukuweza kupakia miamala yako.
+- Payments for your bookings, tips and withdrawals show here. | fr: Les paiements de vos réservations, pourboires et retraits s'affichent ici. | es: Los pagos de tus reservas, propinas y retiros aparecen aquí. | rw: Ubwishyu bw'ibyo bagufashe, ishimwe n'ibyo wabikuje bigaragara hano. | sw: Malipo ya uhifadhi, bakshishi na utoaji wako yanaonekana hapa.
+- Transaction pages | fr: Pages des transactions | es: Páginas de transacciones | rw: Amapaji y'ibyakozwe | sw: Kurasa za miamala
+- In progress | fr: En cours | es: En curso | rw: Birakomeje | sw: Inaendelea
+- Initiated | fr: Lancé | es: Iniciado | rw: Byatangijwe | sw: Imeanzishwa
+- Bonus earned | fr: Bonus obtenu | es: Bono obtenido | rw: Agahimbazamusyi wabonye | sw: Bonasi imepatikana
+- Not approved | fr: Non approuvé | es: No aprobado | rw: Ntibyemewe | sw: Haijaidhinishwa
+- Not yet earned | fr: Pas encore obtenu | es: Aún no obtenido | rw: Ntirabonwa | sw: Bado haijapatikana
+- event to go | fr: événement restant | es: evento restante | rw: igikorwa gisigaye | sw: tukio limebaki
+- events to go | fr: événements restants | es: eventos restantes | rw: ibikorwa bisigaye | sw: matukio yamebaki

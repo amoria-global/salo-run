@@ -813,3 +813,4 @@ html.ui-glass .gcp-section { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 
 html.ui-glass .gwl-page { display: grid; gap: 16px; }
 html.ui-glass .gwl-card { padding: 16px; }
 html.ui-glass .gwl-note { display: flex; gap: 10px; align-items: center; color: var(--g-text-muted); font-size: 0.9rem; }
+html.ui-glass .gtx-head-actions { display: inline-flex; gap: 8px; flex-wrap: wrap; } html.ui-glass .gtx-comment { margin: 0; color: var(--g-text); font-size: 0.875rem; } html.ui-glass .gtx-comment small { display: block; color: var(--g-text-muted); }

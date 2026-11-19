@@ -16,7 +16,7 @@ import GlassWallet from './GlassWallet';
 
 let host: HTMLDivElement;
 let root: Root;
-const base = { role: 'client' as const, wallet: { id: 'w1' } as never, loading: false, error: null, reload: vi.fn(), subtitle: 'Your payments', panelTitle: 'My spending' };
+const base = { role: 'client' as const, wallet: { id: 'w1' } as never as import('@/lib/walletApi').WalletDTO | null, loading: false as boolean, error: null as string | null, reload: vi.fn(), subtitle: 'Your payments', panelTitle: 'My spending' };
 const render = async (p: Partial<typeof base> & { shared?: boolean } = {}) => { await act(async () => { root.render(<GlassWallet {...base} {...p} />); }); };
 const button = (re: RegExp) => Array.from(document.querySelectorAll('button')).find((b) => re.test((b.textContent || '').trim()));
 const click = async (el: Element | null | undefined) => { expect(el).toBeTruthy(); await act(async () => { (el as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };

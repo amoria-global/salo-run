@@ -19210,5 +19210,131 @@
     "Activa la edición para cambiar tu foto",
     "Fungura guhindura kugira ngo uhindure ifoto yawe",
     "Washa uhariri ili kubadilisha picha yako"
+  ],
+  "Bonus earned for completing your first": [
+    "Bonus obtenu pour vos",
+    "Bono obtenido por completar tus primeros",
+    "Agahimbazamusyi wabonye urangije",
+    "Bonasi umepata kwa kukamilisha"
+  ],
+  "Bonus pending admin approval": [
+    "Bonus en attente de validation",
+    "Bono pendiente de aprobación",
+    "Agahimbazamusyi gategereje kwemezwa",
+    "Bonasi inasubiri idhini ya msimamizi"
+  ],
+  "Bonus request was not approved": [
+    "La demande de bonus n'a pas été approuvée",
+    "La solicitud de bono no fue aprobada",
+    "Gusaba agahimbazamusyi ntibyemewe",
+    "Ombi la bonasi halikuidhinishwa"
+  ],
+  "Complete your first": [
+    "Terminez vos",
+    "Completa tus primeros",
+    "Rangiza",
+    "Kamilisha"
+  ],
+  "events to earn": [
+    "premiers événements pour gagner",
+    "eventos para ganar",
+    "ibikorwa bya mbere ubone",
+    "matukio ya kwanza upate"
+  ],
+  "Progress to bonus": [
+    "Progression vers le bonus",
+    "Progreso hacia el bono",
+    "Aho ugeze ku gahimbazamusyi",
+    "Maendeleo kuelekea bonasi"
+  ],
+  "Manage your earnings and view your complete transaction history.": [
+    "Gérez vos gains et consultez tout l'historique de vos transactions.",
+    "Gestiona tus ganancias y consulta todo tu historial de transacciones.",
+    "Genzura inyungu zawe urebe amateka yose y'ibyakozwe.",
+    "Simamia mapato yako na uone historia kamili ya miamala."
+  ],
+  "We could not load your wallet": [
+    "Impossible de charger votre portefeuille",
+    "No pudimos cargar tu billetera",
+    "Ntitwashoboye gufungura ikofi yawe",
+    "Hatukuweza kupakia pochi yako"
+  ],
+  "The earnings below are not your real balance. Please refresh.": [
+    "Les gains ci-dessous ne sont pas votre vrai solde. Actualisez la page.",
+    "Las ganancias de abajo no son tu saldo real. Actualiza la página.",
+    "Inyungu ziri hasi si amafaranga ufite koko. Ongera ufungure paji.",
+    "Mapato yaliyo hapa chini si salio lako halisi. Tafadhali onyesha upya."
+  ],
+  "Total tips": [
+    "Total des pourboires",
+    "Total de propinas",
+    "Ishimwe ryose",
+    "Jumla ya bakshishi"
+  ],
+  "No tips yet.": [
+    "Aucun pourboire pour l'instant.",
+    "Aún no hay propinas.",
+    "Nta shimwe rirabaho.",
+    "Bado hakuna bakshishi."
+  ],
+  "We could not load your transactions.": [
+    "Impossible de charger vos transactions.",
+    "No pudimos cargar tus transacciones.",
+    "Ntitwashoboye gufungura ibyakozwe byawe.",
+    "Hatukuweza kupakia miamala yako."
+  ],
+  "Payments for your bookings, tips and withdrawals show here.": [
+    "Les paiements de vos réservations, pourboires et retraits s'affichent ici.",
+    "Los pagos de tus reservas, propinas y retiros aparecen aquí.",
+    "Ubwishyu bw'ibyo bagufashe, ishimwe n'ibyo wabikuje bigaragara hano.",
+    "Malipo ya uhifadhi, bakshishi na utoaji wako yanaonekana hapa."
+  ],
+  "Transaction pages": [
+    "Pages des transactions",
+    "Páginas de transacciones",
+    "Amapaji y'ibyakozwe",
+    "Kurasa za miamala"
+  ],
+  "In progress": [
+    "En cours",
+    "En curso",
+    "Birakomeje",
+    "Inaendelea"
+  ],
+  "Initiated": [
+    "Lancé",
+    "Iniciado",
+    "Byatangijwe",
+    "Imeanzishwa"
+  ],
+  "Bonus earned": [
+    "Bonus obtenu",
+    "Bono obtenido",
+    "Agahimbazamusyi wabonye",
+    "Bonasi imepatikana"
+  ],
+  "Not approved": [
+    "Non approuvé",
+    "No aprobado",
+    "Ntibyemewe",
+    "Haijaidhinishwa"
+  ],
+  "Not yet earned": [
+    "Pas encore obtenu",
+    "Aún no obtenido",
+    "Ntirabonwa",
+    "Bado haijapatikana"
+  ],
+  "event to go": [
+    "événement restant",
+    "evento restante",
+    "igikorwa gisigaye",
+    "tukio limebaki"
+  ],
+  "events to go": [
+    "événements restants",
+    "eventos restantes",
+    "ibikorwa bisigaye",
+    "matukio yamebaki"
   ]
 }

@@ -19,6 +19,8 @@ const code = (file: string) => readFileSync(path.join(ROOT, file), 'utf8').repla
 const HOOKS: Record<string, string> = {
     'app/pages/client/payments.tsx': 'app/components/payments/useClientPayments.tsx',
     'app/pages/event-coordinator/payments.tsx': 'app/components/payments/useCoordinatorPayments.tsx',
+    'app/pages/photographer/transaction.tsx': 'app/components/transactions/usePhotographerTransactions.tsx',
+    'app/pages/client/photographers.tsx': 'app/components/photographers/useBookedPhotographers.tsx',
 };
 const pageAndHook = (file: string) => code(file) + (HOOKS[file] ? '\n' + code(HOOKS[file]) : '');
 
@@ -30,7 +32,7 @@ describe('dashboard money display', () => {
             expect(src, f).not.toContain('1200.13');
             expect(src, f).not.toContain('350.13');
         }
-        expect(code('app/pages/photographer/transaction.tsx'))
+        expect(pageAndHook('app/pages/photographer/transaction.tsx'))
             .toContain('available={totalCompleted} pending={totalPending} withdrawn={totalWithdrawn} transactions={transactions}');
     });
 
@@ -61,7 +63,7 @@ describe('dashboard money display', () => {
     });
 
     it('a failed read is shown as a failure, never as $0', () => {
-        expect(code('app/pages/photographer/transaction.tsx')).toContain('.catch(() => setWalletError(true))');
+        expect(pageAndHook('app/pages/photographer/transaction.tsx')).toContain('.catch(() => setWalletError(true))');
         expect(code('app/pages/photographer/payroll-report.tsx')).toContain('{loadError && !loading && (');
         expect(code('app/pages/photographer/dashboard.tsx'))
             .toContain("value={analyticsFailed ? 'Unavailable' : formatPrice(analytics?.totalEarnings || 0)}");
@@ -69,7 +71,7 @@ describe('dashboard money display', () => {
 
     it('an unrated photographer is New, not an invented 5.0', () => {
         for (const f of ['app/components/RebookWizard.tsx', 'app/pages/client/photographers.tsx', 'app/pages/photographer/profile.tsx']) {
-            const src = code(f);
+            const src = pageAndHook(f);
             expect(src, f).not.toMatch(/rating \?\? 5\)|rating \|\| 5\b|\|\| '5\.0'/);
         }
     });
