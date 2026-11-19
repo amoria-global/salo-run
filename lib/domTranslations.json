@@ -19162,5 +19162,53 @@
     "videos nuevos",
     "amashusho mashya",
     "video mpya"
+  ],
+  "User": [
+    "Utilisateur",
+    "Usuario",
+    "Ukoresha",
+    "Mtumiaji"
+  ],
+  "Your personal details and identity verification.": [
+    "Vos informations personnelles et la vérification d'identité.",
+    "Tus datos personales y la verificación de identidad.",
+    "Amakuru yawe bwite n'igenzura ry'umwirondoro.",
+    "Taarifa zako binafsi na uthibitisho wa utambulisho."
+  ],
+  "Uploading": [
+    "Envoi en cours",
+    "Subiendo",
+    "Birimo koherezwa",
+    "Inapakia"
+  ],
+  "Joined": [
+    "Inscrit depuis",
+    "Se unió en",
+    "Yinjiye",
+    "Alijiunga"
+  ],
+  "Business details": [
+    "Informations professionnelles",
+    "Datos de la empresa",
+    "Amakuru y'ubucuruzi",
+    "Taarifa za biashara"
+  ],
+  "Your username can't be changed here.": [
+    "Votre nom d'utilisateur ne peut pas être modifié ici.",
+    "Tu nombre de usuario no se puede cambiar aquí.",
+    "Izina ukoresha ntirishobora guhindurirwa hano.",
+    "Jina lako la mtumiaji haliwezi kubadilishwa hapa."
+  ],
+  "Contact support to change your email.": [
+    "Contactez le support pour changer votre e-mail.",
+    "Contacta con soporte para cambiar tu correo.",
+    "Vugana n'ubufasha kugira ngo uhindure imeri yawe.",
+    "Wasiliana na usaidizi ili kubadilisha barua pepe yako."
+  ],
+  "Turn on editing to change your photo": [
+    "Activez la modification pour changer votre photo",
+    "Activa la edición para cambiar tu foto",
+    "Fungura guhindura kugira ngo uhindure ifoto yawe",
+    "Washa uhariri ili kubadilisha picha yako"
   ]
 }

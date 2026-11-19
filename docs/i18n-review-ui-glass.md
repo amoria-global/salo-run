@@ -613,3 +613,14 @@ Drafted for fr, es, rw, sw; same review status.
 - Total viewers | fr: Total des spectateurs | es: Total de espectadores | rw: Abarebye bose | sw: Jumla ya watazamaji
 - new video | fr: nouvelle vidéo | es: video nuevo | rw: amashusho mashya | sw: video mpya
 - new videos | fr: nouvelles vidéos | es: videos nuevos | rw: amashusho mashya | sw: video mpya
+
+## Client and coordinator Profile, 2026-11-19
+
+- User | fr: Utilisateur | es: Usuario | rw: Ukoresha | sw: Mtumiaji
+- Your personal details and identity verification. | fr: Vos informations personnelles et la vérification d'identité. | es: Tus datos personales y la verificación de identidad. | rw: Amakuru yawe bwite n'igenzura ry'umwirondoro. | sw: Taarifa zako binafsi na uthibitisho wa utambulisho.
+- Uploading | fr: Envoi en cours | es: Subiendo | rw: Birimo koherezwa | sw: Inapakia
+- Joined | fr: Inscrit depuis | es: Se unió en | rw: Yinjiye | sw: Alijiunga
+- Business details | fr: Informations professionnelles | es: Datos de la empresa | rw: Amakuru y'ubucuruzi | sw: Taarifa za biashara
+- Your username can't be changed here. | fr: Votre nom d'utilisateur ne peut pas être modifié ici. | es: Tu nombre de usuario no se puede cambiar aquí. | rw: Izina ukoresha ntirishobora guhindurirwa hano. | sw: Jina lako la mtumiaji haliwezi kubadilishwa hapa.
+- Contact support to change your email. | fr: Contactez le support pour changer votre e-mail. | es: Contacta con soporte para cambiar tu correo. | rw: Vugana n'ubufasha kugira ngo uhindure imeri yawe. | sw: Wasiliana na usaidizi ili kubadilisha barua pepe yako.
+- Turn on editing to change your photo | fr: Activez la modification pour changer votre photo | es: Activa la edición para cambiar tu foto | rw: Fungura guhindura kugira ngo uhindure ifoto yawe | sw: Washa uhariri ili kubadilisha picha yako

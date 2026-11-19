@@ -767,3 +767,46 @@ html.ui-glass .gst-person { color: var(--g-text); }
 html.ui-glass .gst-facts { display: flex; gap: 14px; color: var(--g-text); font-size: 0.875rem; }
 html.ui-glass .gst-facts > span { display: inline-flex; gap: 4px; align-items: center; }
 html.ui-glass .gst-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Client and coordinator Profile (GlassProfileForm) */
+html.ui-glass .g-spin { animation: g-spin 0.9s linear infinite; }
+@keyframes g-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { html.ui-glass .g-spin { animation: none; } }
+html.ui-glass .gcp-page { display: grid; gap: 16px; padding-bottom: 72px; }
+html.ui-glass .gcp-grid { display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: 16px; align-items: start; }
+html.ui-glass .gcp-side { display: grid; gap: 16px; min-width: 0; }
+html.ui-glass .gcp-card { padding: 18px; display: grid; gap: 12px; min-width: 0; }
+html.ui-glass .gcp-person { justify-items: center; text-align: center; }
+html.ui-glass .gcp-photo { position: relative; width: 112px; height: 112px; }
+html.ui-glass .gcp-photo img, html.ui-glass .gcp-initial { width: 112px; height: 112px; border-radius: 999px; object-fit: cover; display: grid; place-items: center; }
+html.ui-glass .gcp-initial { background: var(--g-grad-avatar); color: #fff; font-size: 2.5rem; font-weight: 700; }
+html.ui-glass .gcp-photo-busy { position: absolute; inset: 0; border-radius: 999px; display: grid; place-items: center; background: rgba(10, 18, 32, 0.55); color: #fff; }
+html.ui-glass .gcp-photo-btn { position: absolute; right: -2px; bottom: -2px; width: 40px; padding: 0; justify-content: center; border-radius: 999px; }
+html.ui-glass .gcp-name { font-size: 1.125rem; color: var(--g-text); overflow-wrap: anywhere; }
+html.ui-glass .gcp-role, html.ui-glass .gcp-muted, html.ui-glass .gcp-hint { color: var(--g-text-muted); font-size: 0.8125rem; }
+html.ui-glass .gcp-kyc p { margin: 0; color: var(--g-text-muted); font-size: 0.875rem; }
+html.ui-glass .gcp-kyc-head { display: flex; gap: 8px; align-items: center; color: var(--g-text); }
+html.ui-glass .gcp-kyc.is-pending .gcp-kyc-head svg { color: var(--g-pending); }
+html.ui-glass .gcp-kyc.is-error .gcp-kyc-head svg { color: var(--g-error); }
+html.ui-glass .gcp-kyc.is-info .gcp-kyc-head svg { color: var(--g-link); }
+html.ui-glass .gcp-form-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+html.ui-glass .gcp-form-head h2 { margin: 2px 0 0; font-size: 1.125rem; color: var(--g-text); }
+html.ui-glass .gcp-eyebrow { color: var(--g-accent-text); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+html.ui-glass .gcp-switch { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 4px; background: none; border: 0; cursor: pointer; color: var(--g-text); font: inherit; font-weight: 600; }
+html.ui-glass .gcp-switch-track { width: 40px; height: 24px; border-radius: 999px; background: var(--g-stroke); position: relative; transition: background 0.15s; }
+html.ui-glass .gcp-switch-track span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.15s; }
+html.ui-glass .gcp-switch.is-on .gcp-switch-track { background: var(--g-primary-dark); }
+html.ui-glass .gcp-switch.is-on .gcp-switch-track span { transform: translateX(16px); }
+html.ui-glass .gcp-switch:focus-visible { outline: 2px solid var(--g-link); outline-offset: 2px; border-radius: 8px; }
+html.ui-glass .gcp-fields { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+html.ui-glass .gcp-field { display: grid; gap: 6px; min-width: 0; }
+html.ui-glass .gcp-label { color: var(--g-text); font-size: 0.8125rem; font-weight: 600; }
+html.ui-glass .gcp-field > input, html.ui-glass .gcp-field > select { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--g-stroke); background: var(--g-well); color: var(--g-text); font: inherit; width: 100%; }
+html.ui-glass .gcp-field > input:focus-visible, html.ui-glass .gcp-field > select:focus-visible { outline: 2px solid var(--g-link); outline-offset: 1px; }
+html.ui-glass .gcp-field > input:disabled, html.ui-glass .gcp-field > select:disabled { opacity: 0.75; cursor: not-allowed; }
+html.ui-glass .gcp-error { color: var(--g-error); font-size: 0.8125rem; }
+html.ui-glass .gcp-save { display: flex; justify-content: flex-end; align-items: center; gap: 12px; flex-wrap: wrap; }
+html.ui-glass .gcp-unsaved { position: sticky; bottom: 12px; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 16px; background: var(--g-card, #fff); border: 1px solid var(--g-link); box-shadow: 0 8px 24px rgba(8, 24, 56, 0.18); color: var(--g-text); }
+@media (max-width: 1023.98px) { html.ui-glass .gcp-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 767.98px) { html.ui-glass .gcp-fields { grid-template-columns: minmax(0, 1fr); } }
+html.ui-glass .gcp-section { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--g-stroke); font-size: 1rem; color: var(--g-text); }
