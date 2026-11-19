@@ -648,3 +648,7 @@ Drafted for fr, es, rw, sw; same review status.
 - Not yet earned | fr: Pas encore obtenu | es: Aún no obtenido | rw: Ntirabonwa | sw: Bado haijapatikana
 - event to go | fr: événement restant | es: evento restante | rw: igikorwa gisigaye | sw: tukio limebaki
 - events to go | fr: événements restants | es: eventos restantes | rw: ibikorwa bisigaye | sw: matukio yamebaki
+
+## All transactions, 2026-11-19
+
+- Search transactions | fr: Rechercher des transactions | es: Buscar transacciones | rw: Shakisha ibyakozwe | sw: Tafuta miamala
