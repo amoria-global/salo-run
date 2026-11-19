@@ -1249,302 +1249,6 @@ function extractSingleDocumentPackages(
   }));
 }
 
-export const LEGACY_STUDIO_WEDDING_TEXT = `
-Pick your Perfect Wedding Plan
-ULTIMATE
-4.5M
-2 Photobooks
-1 Album for parents
-Civil Wedding (Video Highlight)
-Pre-wedding & Video Highlights
-Traditional Wedding
-Church & Reception
-Full video & highlights + Reels
-Frames 2 = A0
-Drone in Marriage
-Live Streaming
-Fog (smoke machine)
-Full HD video & Photo on Flash disk
-Team of 10 (Photographers and videographers)
-
-PREMIUM
-3.5M
-Photobook + Album
-Civil Wedding (Video Highlight)
-Pre-wedding & video highlight
-Traditional wedding
-Church & Reception Wedding
-Full video & highlights
-2 = A1 Frames
-Soft Photos on Flash Disk
-Live streaming
-Full HD video on Flash disk
-Fog (smoke machine)
-3 Photographers & 3 videographers
-
-BASIC
-2.5M
-Photobook
-Civil Wedding (No Video)
-Pre-wedding & Video Highlights
-Full video & highlights
-Traditional wedding
-Church & Reception Wedding
-2 = A2 Frames
-All Soft Photos & Video on Flash Disk
-2 Photographers & 2 videographers
-ONE DAY COVERAGE
-
-CHURCH & RECEPTION WEDDING
-2M
-Photobook & Album
-Pre-wedding Photoshoot
-Video Shoot & highlights
-Frame 2 = A1
-Full Video & Photo on Flash disk
-Live Streaming
-3 Photographers
-3 Videographers
-
-TRADITIONAL WEDDING
-1.5M
-Photobook
-Traditional Photoshoot
-Wedding Video Shoot & highlights
-Frame 1 = A1
-Full Video & Photos soft on flash disk
-Live Streaming
-2 Photographers
-2 Videographers
-
-CIVIL WEDDING
-700K
-Photobook
-1 = A2 Frames
-Soft Photos on Flash Disk
-Video highlight
-1 videographer
-1 Photographer
-`;
-
-export const LEGACY_STUDIO_CEREMONY_TEXT = `
-Pick your Perfect Ceremony Plan Outside sessions
-BIRTHDAYS
-Photoshoot................................100K /12Photos
-Birthday Party............................200K
-Birthday Photo & Videos highlights..300K
-
-BAPTISM
-Baptism only photos....................100K
-Baptism Photos + Album.................200K
-Baptism Photos + Video Highlights......350K
-
-BRIDAL SHOWER
-Bridal Shower Photos...........100K / Per Hour
-Bridal Shower Photos & Videos highlights.......350K
-
-BABY SHOWER
-Baby Shower Photos.............100K / Per Hour
-Baby Shower Photos & Videos highlights ......350K
-
-PROPOSAL
-Proposal Photos & Video highlights for only Couple .......300K
-Proposal Party Photos & Video highlights ..................400K
-
-FUNERAL
-Funeral Photos.............................400K
-Funeral Photos & Videos....................700K
-Funeral Videos+ Photos + Album.....1M
-
-GRADUATION
-Graduation Photos..................100K/ Per Hour
-Graduation Photos & Videos Highlights........300K
-`;
-
-export const LEGACY_STUDIO_INDOOR_TEXT = `
-INDOOR PACKAGE
-GOLD
-5 Photos — 35k
-10 Photos — 60k
-15 Photos — 90k
-20 Photos — 115k
-25 Photos — 170k
-(Bonus from 20 photos: 1 A3 Frame)
-
-PLATINUM
-10 Photos — 100k
-15 Photos — 140k
-20 Photos — 185k
-25 Photos — 220k
-Includes: Private Shoot, Makeup for 1 person, Balloons, Small Decoration.
-(Bonus from 20 photos: 1 A3 Frame)
-
-ARTS PHOTOSHOOT
-5 Photos — 60k
-10 Photos — 110k
-25 Photos — 260k
-Includes: Makeup for 1 Person & a small Decoration.
-(Bonus for 25 photos: 1 A2 Frame)
-
-CREATIVE PHOTOS
-Private session between 1 & 3 hrs:
-New Construction, Materials, Makeup, Decor & Reels.
-Prices start from 300k and above.
-
-We would like to inform you that any work expected within 2 days will be considered as express work, which may incur additional charges (2.5k per 1 photo).
-`;
-
-function getJpegDimensions(bytes: Uint8Array): { width: number; height: number } | null {
-  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
-  let i = 2;
-  while (i + 9 < bytes.length) {
-    if (bytes[i] !== 0xff) {
-      i++;
-      continue;
-    }
-    const marker = bytes[i + 1];
-    if (marker === 0xd9 || marker === 0xda) break;
-    const len = (bytes[i + 2] << 8) | bytes[i + 3];
-    if (len < 2) break;
-    if (marker >= 0xc0 && marker <= 0xc3) {
-      const height = (bytes[i + 5] << 8) | bytes[i + 6];
-      const width = (bytes[i + 7] << 8) | bytes[i + 8];
-      return { width, height };
-    }
-    i += 2 + len;
-  }
-  return null;
-}
-
-function getPngDimensions(bytes: Uint8Array): { width: number; height: number } | null {
-  if (
-    bytes.length < 24 ||
-    bytes[0] !== 0x89 ||
-    bytes[1] !== 0x50 ||
-    bytes[2] !== 0x4e ||
-    bytes[3] !== 0x47
-  ) {
-    return null;
-  }
-  const width =
-    (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
-  const height =
-    (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
-  return { width, height };
-}
-
-function extractPrintableTextFromPdfBytes(bytes: Uint8Array): string {
-  try {
-    const raw = new TextDecoder('latin1').decode(bytes);
-    const chunks: string[] = [];
-    const parenRe = /\(([^()\\]{2,160})\)\s*Tj/g;
-    let m: RegExpExecArray | null;
-    while ((m = parenRe.exec(raw)) !== null) {
-      chunks.push(m[1]);
-    }
-    return chunks.join('\n');
-  } catch {
-    return '';
-  }
-}
-
-async function inspectUploadedFileForBrochureText(file: File): Promise<string> {
-  const nameLower = (file.name || '').toLowerCase();
-  if (nameLower.includes('wedding')) return LEGACY_STUDIO_WEDDING_TEXT;
-  if (nameLower.includes('ceremony') || nameLower.includes('outside')) return LEGACY_STUDIO_CEREMONY_TEXT;
-  if (nameLower.includes('indoor')) return LEGACY_STUDIO_INDOOR_TEXT;
-
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    const size = bytes.byteLength;
-
-    const dims = getJpegDimensions(bytes) || getPngDimensions(bytes);
-    if (dims) {
-      if (
-        (dims.width === 910 && dims.height === 815) ||
-        Math.abs(size - 94737) < 1500
-      ) {
-        return LEGACY_STUDIO_WEDDING_TEXT;
-      }
-      if (
-        (dims.width === 685 && dims.height === 773) ||
-        Math.abs(size - 90090) < 1500
-      ) {
-        return LEGACY_STUDIO_CEREMONY_TEXT;
-      }
-      if (
-        (dims.width === 1181 && dims.height === 886) ||
-        Math.abs(size - 221082) < 2500
-      ) {
-        return LEGACY_STUDIO_INDOOR_TEXT;
-      }
-    }
-
-    if (nameLower.endsWith('.pdf') || (file.type || '').includes('pdf')) {
-      const pdfText = extractPrintableTextFromPdfBytes(bytes);
-      if (pdfText.trim().length > 20) return pdfText;
-    }
-
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-      const objectUrl = URL.createObjectURL(file);
-      try {
-        const ocrText = await runBrowserOcrIfAvailable(objectUrl);
-        if (ocrText.trim().length > 15) {
-          const low = ocrText.toLowerCase();
-          if (low.includes('wedding plan') || (low.includes('ultimate') && low.includes('civil wedding'))) {
-            return LEGACY_STUDIO_WEDDING_TEXT;
-          }
-          if (low.includes('ceremony plan') || (low.includes('baptism') && low.includes('bridal shower'))) {
-            return LEGACY_STUDIO_CEREMONY_TEXT;
-          }
-          if (low.includes('indoor package') || (low.includes('arts photoshoot') && low.includes('creative photos'))) {
-            return LEGACY_STUDIO_INDOOR_TEXT;
-          }
-          return ocrText;
-        }
-      } finally {
-        URL.revokeObjectURL(objectUrl);
-      }
-    }
-  } catch {
-    // Ignore file fetch error
-  }
-  return '';
-}
-
-async function runBrowserOcrIfAvailable(imageUri: string): Promise<string> {
-  try {
-    const w = window as unknown as {
-      Tesseract?: {
-        recognize: (img: string, lang: string) => Promise<{ data?: { text?: string } }>;
-      };
-    };
-    if (!w.Tesseract && typeof document !== 'undefined') {
-      await new Promise<void>((resolve, reject) => {
-        const existing = document.getElementById('tesseract-cdn-script');
-        if (existing) {
-          resolve();
-          return;
-        }
-        const s = document.createElement('script');
-        s.id = 'tesseract-cdn-script';
-        s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error('OCR load failed'));
-        document.head.appendChild(s);
-      });
-    }
-    if (w.Tesseract) {
-      const res = await w.Tesseract.recognize(imageUri, 'eng');
-      return res?.data?.text ?? '';
-    }
-  } catch {
-    // Ignore OCR load failure
-  }
-  return '';
-}
-
 export function positivePrice(v: number | null | undefined): number | null {
   return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
 }
@@ -1618,128 +1322,158 @@ export async function extractPackagesWithAi(input: {
   defaultServiceType?: ServiceType;
 }): Promise<AiPackageExtractionResponse> {
   const existingPackages = await listPackages().catch(() => [] as Package[]);
+  const rawTextTrimmed = (input.rawText || '').trim();
+  const docPolicies = extractPoliciesFromBrochureText(rawTextTrimmed);
 
-  const textParts: string[] = [];
-  if (input.rawText && input.rawText.trim()) {
-    textParts.push(input.rawText.trim());
-  }
-  if (input.files && input.files.length > 0) {
-    for (const f of input.files) {
-      const fileText = await inspectUploadedFileForBrochureText(f);
-      if (fileText.trim()) {
-        textParts.push(fileText.trim());
-      }
-    }
-  }
-  const combinedLocalText = textParts.join('\n===DOCUMENT_BREAK===\n');
-  const docPolicies = extractPoliciesFromBrochureText(combinedLocalText);
-
-  try {
+  const buildForm = () => {
     const form = new FormData();
     if (input.files && input.files.length > 0) {
       for (const f of input.files) {
         form.append('files', f, f.name);
       }
     }
-    if (combinedLocalText.trim()) {
-      form.append('rawText', combinedLocalText.trim());
+    if (rawTextTrimmed) {
+      form.append('rawText', rawTextTrimmed);
     }
     if (input.defaultServiceType) {
       form.append('defaultServiceType', input.defaultServiceType);
     }
+    return form;
+  };
 
+  let lastErrorMessage = '';
+
+  // 1. Call Next.js direct OpenAI Vision/Document route (/api/packages/extract -> gpt-5.6-luna)
+  try {
+    const localRes = await fetch('/api/packages/extract', {
+      method: 'POST',
+      body: buildForm(),
+    });
+    const localBody = await localRes.json().catch(() => ({}));
+    if (localRes.ok && localBody?.action === 1) {
+      const data = (localBody?.data ?? {}) as Raw;
+      const rawExtracted = Array.isArray(data.extractedPackages)
+        ? (data.extractedPackages as Raw[])
+        : [];
+      if (rawExtracted.length > 0) {
+        const extractedPackages = applyPackageTierNamingPolicy(rawExtracted.map(mapExtractedDraft));
+        const studioCount = extractedPackages.filter((p) => p.serviceType === 'STUDIO').length;
+        const outdoorCount = extractedPackages.filter((p) => p.serviceType === 'OUTDOOR').length;
+        const extractedDeliveryPolicy =
+          str(data.extractedDeliveryPolicy) ||
+          docPolicies.deliveryPolicy ||
+          extractedPackages.find(
+            (p) =>
+              p.deliveryPolicy &&
+              p.deliveryPolicy !== 'Standard studio delivery policy applies.',
+          )?.deliveryPolicy ||
+          '';
+        const extractedOtherPolicies = Array.isArray(data.extractedOtherPolicies)
+          ? data.extractedOtherPolicies.filter(
+              (p): p is string => typeof p === 'string' && p.trim().length > 0,
+            )
+          : docPolicies.otherPolicies;
+        const detectedDroneInMenu =
+          data.detectedDroneInMenu === true ||
+          docPolicies.detectedDroneInMenu ||
+          extractedPackages.some((p) =>
+            p.ingredients.some((i) => /\bdrone\b/i.test(i)),
+          );
+
+        return {
+          extractedPackages,
+          existingPackages,
+          hasExistingOnlinePackages: existingPackages.length > 0,
+          suggestedMode: existingPackages.length > 0 ? 'REPLACE_ALL' : 'ADD_OR_UPDATE',
+          defaultSuggestedSession: studioCount > outdoorCount ? 'STUDIO' : 'OUTDOOR',
+          aiProvider: str(data.aiProvider) ?? 'openai',
+          model: str(data.model) ?? 'gpt-5.6-luna',
+          aiConfigured: true,
+          summaryNote: `Prepared ${extractedPackages.length} packages (${studioCount} Indoor, ${outdoorCount} Outdoor).`,
+          extractedDeliveryPolicy,
+          extractedOtherPolicies,
+          detectedDroneInMenu,
+        };
+      }
+    }
+    if (localBody?.message) {
+      lastErrorMessage = String(localBody.message);
+    }
+  } catch (err: any) {
+    if (err?.message) {
+      lastErrorMessage = String(err.message);
+    }
+  }
+
+  // 2. Try backend OpenAI endpoint (/api/remote/photographer/packages/ai-extract)
+  try {
     const apiUrl = getApiUrl();
     const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/packages/ai-extract`, {
       method: 'POST',
-      body: form,
+      body: buildForm(),
     });
     const body = await res.json().catch(() => ({}));
-    const data = (body?.data ?? {}) as Raw;
-    const rawExtracted = Array.isArray(data.extractedPackages) ? (data.extractedPackages as Raw[]) : [];
+    if (!res.ok || body?.action === 0) {
+      if (body?.message) {
+        lastErrorMessage = String(body.message);
+      }
+    } else {
+      const data = (body?.data ?? {}) as Raw;
+      const rawExtracted = Array.isArray(data.extractedPackages)
+        ? (data.extractedPackages as Raw[])
+        : [];
+      if (rawExtracted.length > 0) {
+        const extractedPackages = applyPackageTierNamingPolicy(rawExtracted.map(mapExtractedDraft));
+        const studioCount = extractedPackages.filter((p) => p.serviceType === 'STUDIO').length;
+        const outdoorCount = extractedPackages.filter((p) => p.serviceType === 'OUTDOOR').length;
+        const extractedDeliveryPolicy =
+          str(data.extractedDeliveryPolicy) ||
+          docPolicies.deliveryPolicy ||
+          extractedPackages.find(
+            (p) =>
+              p.deliveryPolicy &&
+              p.deliveryPolicy !== 'Standard studio delivery policy applies.',
+          )?.deliveryPolicy ||
+          '';
+        const extractedOtherPolicies = Array.isArray(data.extractedOtherPolicies)
+          ? data.extractedOtherPolicies.filter(
+              (p): p is string => typeof p === 'string' && p.trim().length > 0,
+            )
+          : docPolicies.otherPolicies;
+        const detectedDroneInMenu =
+          data.detectedDroneInMenu === true ||
+          docPolicies.detectedDroneInMenu ||
+          extractedPackages.some((p) =>
+            p.ingredients.some((i) => /\bdrone\b/i.test(i)),
+          );
 
-    if (rawExtracted.length > 0) {
-      const extractedPackages = applyPackageTierNamingPolicy(rawExtracted.map(mapExtractedDraft));
-      const studioCount = extractedPackages.filter((p) => p.serviceType === 'STUDIO').length;
-      const outdoorCount = extractedPackages.filter((p) => p.serviceType === 'OUTDOOR').length;
-      const extractedDeliveryPolicy =
-        str(data.extractedDeliveryPolicy) ||
-        docPolicies.deliveryPolicy ||
-        extractedPackages.find(
-          (p) =>
-            p.deliveryPolicy &&
-            p.deliveryPolicy !== 'Standard studio delivery policy applies.',
-        )?.deliveryPolicy ||
-        '';
-      const extractedOtherPolicies = Array.isArray(data.extractedOtherPolicies)
-        ? data.extractedOtherPolicies.filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
-        : docPolicies.otherPolicies;
-      const detectedDroneInMenu =
-        data.detectedDroneInMenu === true ||
-        docPolicies.detectedDroneInMenu ||
-        extractedPackages.some((p) =>
-          p.ingredients.some((i) => /\bdrone\b/i.test(i)),
-        );
-
-      return {
-        extractedPackages,
-        existingPackages,
-        hasExistingOnlinePackages: existingPackages.length > 0,
-        suggestedMode: existingPackages.length > 0 ? 'REPLACE_ALL' : 'ADD_OR_UPDATE',
-        defaultSuggestedSession: studioCount > outdoorCount ? 'STUDIO' : 'OUTDOOR',
-        aiProvider: str(data.aiProvider) ?? 'openai',
-        model: str(data.model) ?? 'gpt-5.6-luna',
-        aiConfigured: data.aiConfigured !== false,
-        summaryNote: `Prepared ${extractedPackages.length} packages (${studioCount} Indoor, ${outdoorCount} Outdoor).`,
-        extractedDeliveryPolicy,
-        extractedOtherPolicies,
-        detectedDroneInMenu,
-      };
+        return {
+          extractedPackages,
+          existingPackages,
+          hasExistingOnlinePackages: existingPackages.length > 0,
+          suggestedMode: existingPackages.length > 0 ? 'REPLACE_ALL' : 'ADD_OR_UPDATE',
+          defaultSuggestedSession: studioCount > outdoorCount ? 'STUDIO' : 'OUTDOOR',
+          aiProvider: str(data.aiProvider) ?? 'openai',
+          model: str(data.model) ?? 'gpt-5.6-luna',
+          aiConfigured: data.aiConfigured !== false,
+          summaryNote: `Prepared ${extractedPackages.length} packages (${studioCount} Indoor, ${outdoorCount} Outdoor).`,
+          extractedDeliveryPolicy,
+          extractedOtherPolicies,
+          detectedDroneInMenu,
+        };
+      }
     }
-  } catch {
-    // Fall through to local multi-format extraction
+  } catch (err: any) {
+    if (!lastErrorMessage && err?.message) {
+      lastErrorMessage = String(err.message);
+    }
   }
 
-  const extractedPackages = extractPackagesFromTextLocally(
-    combinedLocalText,
-    input.defaultServiceType ?? 'OUTDOOR',
+  // Never mock or invent packages when OpenAI fails or cannot read the uploaded brochure
+  throw new Error(
+    lastErrorMessage ||
+      'OpenAI could not read packages from the uploaded document. Please verify the API connection or upload a clearer brochure image/PDF.',
   );
-
-  if (extractedPackages.length === 0) {
-    throw new Error(
-      'Could not detect package prices and items from the uploaded file. Please upload a clearer brochure image/PDF or paste your package list in the text box.',
-    );
-  }
-
-  const studioCount = extractedPackages.filter((p) => p.serviceType === 'STUDIO').length;
-  const outdoorCount = extractedPackages.filter((p) => p.serviceType === 'OUTDOOR').length;
-  const extractedDeliveryPolicy =
-    docPolicies.deliveryPolicy ||
-    extractedPackages.find(
-      (p) =>
-        p.deliveryPolicy &&
-        p.deliveryPolicy !== 'Standard studio delivery policy applies.',
-    )?.deliveryPolicy ||
-    '';
-  const detectedDroneInMenu =
-    docPolicies.detectedDroneInMenu ||
-    extractedPackages.some((p) =>
-      p.ingredients.some((i) => /\bdrone\b/i.test(i)),
-    );
-
-  return {
-    extractedPackages,
-    existingPackages,
-    hasExistingOnlinePackages: existingPackages.length > 0,
-    suggestedMode: existingPackages.length > 0 ? 'REPLACE_ALL' : 'ADD_OR_UPDATE',
-    defaultSuggestedSession: studioCount > outdoorCount ? 'STUDIO' : 'OUTDOOR',
-    aiProvider: 'document-parser',
-    model: 'gpt-5.6-luna',
-    aiConfigured: true,
-    summaryNote: `Prepared ${extractedPackages.length} packages (${studioCount} Indoor, ${outdoorCount} Outdoor).`,
-    extractedDeliveryPolicy,
-    extractedOtherPolicies: docPolicies.otherPolicies,
-    detectedDroneInMenu,
-  };
 }
 
 export async function bulkPublishPackages(input: {
