@@ -332,8 +332,9 @@ export function usePhotographerClients() {
   useEffect(() => {
     fetchClients();
     const fetchBalance = async () => {
-      // A collaborator sees no money in the workspace it works in; the server refuses the balance there.
-      if (isCollaborator) return;
+      // A collaborator sees no money in the workspace it works in; the server refuses the balance there. Waits for
+      // the signed-in user, since that is what tells a collaborator login apart.
+      if (!user || isCollaborator) return;
       try {
         const apiUrl = getApiUrl();
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
@@ -344,7 +345,7 @@ export function usePhotographerClients() {
       } catch (err) { console.error('Failed to fetch balance:', err); }
     };
     fetchBalance();
-  }, [fetchClients, isCollaborator]);
+  }, [fetchClients, isCollaborator, user]);
 
   const [clients, setClients] = useState<Client[]>([]);
 

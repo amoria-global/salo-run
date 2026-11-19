@@ -48,6 +48,13 @@ describe('the Compact Glass flag', () => {
     expect(isGlassPath('/user/photographers')).toBe(false);
     expect(isGlassPath('/')).toBe(false);
   });
+
+  it('covers the two pages every signed-in role shares, and no other auth page', () => {
+    expect(isGlassPath('/user/not-authorized')).toBe(true);
+    expect(isGlassPath('/user/auth/change-password')).toBe(true);
+    expect(isGlassPath('/user/auth/login')).toBe(false);
+    expect(isGlassPath('/user/not-authorized-x')).toBe(false);
+  });
 });
 
 describe('the head script', () => {
@@ -79,5 +86,11 @@ describe('the head script', () => {
     expect(run('/user/photographer/dashboard', '', {}).glass).toBe(false);
     expect(run('/user/photographer/dashboard', 'ck_ui=classic', {}).glass).toBe(false);
     expect(run('/user/admin/wallets', 'ck_ui=glass', {}).glass).toBe(false);
+  });
+
+  it('adds ui-glass on the two shared pages too, and not on other auth pages', () => {
+    expect(run('/user/not-authorized', 'ck_ui=glass', {}).glass).toBe(true);
+    expect(run('/user/auth/change-password', 'ck_ui=glass', {}).glass).toBe(true);
+    expect(run('/user/auth/login', 'ck_ui=glass', {}).glass).toBe(false);
   });
 });

@@ -49,9 +49,14 @@ export function emailFromToken(token: string | undefined | null): string | null 
   }
 }
 
-/** Admin keeps its current shell; the redesign covers the photographer, client and coordinator dashboards. */
+/**
+ * Admin keeps its current shell; the redesign covers the photographer, client and coordinator dashboards, plus the
+ * two pages every signed-in role shares (the access explanation and the password change).
+ */
 export function isGlassPath(pathname: string): boolean {
-  return /^\/user\/(photographer|client|event-coordinator)(\/|$)/.test(pathname);
+  return /^\/user\/(photographer|client|event-coordinator)(\/|$)/.test(pathname)
+    || /^\/user\/not-authorized\/?$/.test(pathname)
+    || /^\/user\/auth\/change-password\/?$/.test(pathname);
 }
 
 export function glassEnabledFor(mode: UiGlassMode, allowlist: Set<string>, email: string | null): boolean {
@@ -76,5 +81,5 @@ var r=p.indexOf('/user/photographer')>-1?'photographer':p.indexOf('/user/client'
 var k=r==='default'?'connekt-theme':'connekt-theme-'+r;var t=null;try{t=localStorage.getItem(k)}catch(e){}
 if(t==='system'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
 if(t!=='dark')t='light';d.setAttribute('data-theme',t);
-if(/(?:^|;\\s*)${UI_GLASS_COOKIE}=glass(?:;|$)/.test(document.cookie)&&/^\\/user\\/(photographer|client|event-coordinator)(\\/|$)/.test(p)){d.classList.add('${UI_GLASS_CLASS}')}
+if(/(?:^|;\\s*)${UI_GLASS_COOKIE}=glass(?:;|$)/.test(document.cookie)&&/^\\/user\\/((photographer|client|event-coordinator)(\\/|$)|not-authorized\\/?$|auth\\/change-password\\/?$)/.test(p)){d.classList.add('${UI_GLASS_CLASS}')}
 }catch(e){}try{var l=document.createElement('link');l.rel='stylesheet';l.href='${ICONS_CSS}';document.head.appendChild(l)}catch(e){}})();`;
