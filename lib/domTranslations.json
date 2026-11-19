@@ -19084,5 +19084,83 @@
     "fotógrafos esperan un pago",
     "abafotozi bategereje kwishyurwa",
     "wapiga picha wanasubiri malipo"
+  ],
+  "We could not load your streams.": [
+    "Impossible de charger vos diffusions.",
+    "No pudimos cargar tus transmisiones.",
+    "Ntitwashoboye gufungura ibiganiro bya live byawe.",
+    "Hatukuweza kupakia matangazo yako."
+  ],
+  "No completed streams yet": [
+    "Aucune diffusion terminée pour l'instant",
+    "Aún no hay transmisiones finalizadas",
+    "Nta biganiro bya live birarangira",
+    "Bado hakuna matangazo yaliyokamilika"
+  ],
+  "When a live stream of your event ends, its chat and video messages are kept here.": [
+    "Quand le direct de votre événement se termine, ses messages et vidéos sont conservés ici.",
+    "Cuando termina la transmisión en directo de tu evento, sus mensajes y videos se guardan aquí.",
+    "Iyo live y'igikorwa cyawe irangiye, ubutumwa n'amashusho byayo bibikwa hano.",
+    "Matangazo ya moja kwa moja ya tukio lako yanapoisha, ujumbe na video zake huhifadhiwa hapa."
+  ],
+  "No completed streams found": [
+    "Aucune diffusion terminée trouvée",
+    "No se encontraron transmisiones finalizadas",
+    "Nta kiganiro cya live cyarangiye kibonetse",
+    "Hakuna matangazo yaliyokamilika yaliyopatikana"
+  ],
+  "Chat messages": [
+    "Messages du chat",
+    "Mensajes del chat",
+    "Ubutumwa bwo mu kiganiro",
+    "Ujumbe wa gumzo"
+  ],
+  "Video messages": [
+    "Messages vidéo",
+    "Mensajes de video",
+    "Ubutumwa bw'amashusho",
+    "Ujumbe wa video"
+  ],
+  "Completed streams": [
+    "Diffusions terminées",
+    "Transmisiones finalizadas",
+    "Ibiganiro bya live byarangiye",
+    "Matangazo yaliyokamilika"
+  ],
+  "Browse messages and videos from your past event streams.": [
+    "Parcourez les messages et vidéos de vos diffusions passées.",
+    "Explora los mensajes y videos de tus transmisiones pasadas.",
+    "Reba ubutumwa n'amashusho by'ibiganiro bya live byashize.",
+    "Pitia ujumbe na video kutoka matangazo yako yaliyopita."
+  ],
+  "Search streams": [
+    "Rechercher des diffusions",
+    "Buscar transmisiones",
+    "Shakisha ibiganiro bya live",
+    "Tafuta matangazo"
+  ],
+  "Total streams": [
+    "Total des diffusions",
+    "Total de transmisiones",
+    "Ibiganiro byose bya live",
+    "Jumla ya matangazo"
+  ],
+  "Total viewers": [
+    "Total des spectateurs",
+    "Total de espectadores",
+    "Abarebye bose",
+    "Jumla ya watazamaji"
+  ],
+  "new video": [
+    "nouvelle vidéo",
+    "video nuevo",
+    "amashusho mashya",
+    "video mpya"
+  ],
+  "new videos": [
+    "nouvelles vidéos",
+    "videos nuevos",
+    "amashusho mashya",
+    "video mpya"
   ]
 }

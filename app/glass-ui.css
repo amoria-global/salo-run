@@ -749,3 +749,21 @@ html.ui-glass .gph-card.is-list .gph-last { display: none; }
 /* Events search: the input's inline outline:0 hid the focus ring, and it was 24px tall */
 html.ui-glass .gev-search-box input { min-height: 40px; }
 html.ui-glass .gev-search-box input:focus-visible { outline: 2px solid var(--g-link) !important; outline-offset: 2px; border-radius: 6px; }
+
+/* Completed streams (GlassStreams) */
+html.ui-glass .gst-page { display: grid; gap: 16px; }
+html.ui-glass .gst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+html.ui-glass .gst-card { padding: 0; overflow: hidden; display: grid; min-width: 0; }
+html.ui-glass .gst-cover { position: relative; aspect-ratio: 16 / 9; background: var(--g-tint); }
+html.ui-glass .gst-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+html.ui-glass .gst-cover-chips { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+html.ui-glass .gst-duration { position: absolute; right: 10px; bottom: 10px; display: inline-flex; gap: 4px; align-items: center; padding: 2px 8px; border-radius: 999px; background: rgba(10, 18, 32, 0.78); color: #fff; font-size: 0.75rem; font-weight: 600; }
+html.ui-glass .gst-body { padding: 12px 14px 14px; display: grid; gap: 8px; min-width: 0; }
+html.ui-glass .gst-title { display: flex; gap: 8px; align-items: center; justify-content: space-between; min-width: 0; }
+html.ui-glass .gst-title strong { color: var(--g-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .gst-icon { width: 40px; padding: 0; justify-content: center; flex: none; }
+html.ui-glass .gst-meta, html.ui-glass .gst-person { display: inline-flex; gap: 6px; align-items: center; color: var(--g-text-muted); font-size: 0.8125rem; }
+html.ui-glass .gst-person { color: var(--g-text); }
+html.ui-glass .gst-facts { display: flex; gap: 14px; color: var(--g-text); font-size: 0.875rem; }
+html.ui-glass .gst-facts > span { display: inline-flex; gap: 4px; align-items: center; }
+html.ui-glass .gst-actions { display: flex; gap: 8px; flex-wrap: wrap; }

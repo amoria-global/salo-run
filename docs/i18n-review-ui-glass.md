@@ -597,3 +597,19 @@ Drafted for fr, es, rw, sw; same review status.
 - Most spent | fr: Plus dépensé | es: Mayor gasto | rw: Ayo wakoresheje menshi | sw: Uliotumia zaidi
 - photographer is waiting for payment | fr: photographe attend un paiement | es: fotógrafo espera un pago | rw: umufotozi ategereje kwishyurwa | sw: mpiga picha anasubiri malipo
 - photographers are waiting for payment | fr: photographes attendent un paiement | es: fotógrafos esperan un pago | rw: abafotozi bategereje kwishyurwa | sw: wapiga picha wanasubiri malipo
+
+## Completed streams, 2026-11-19
+
+- We could not load your streams. | fr: Impossible de charger vos diffusions. | es: No pudimos cargar tus transmisiones. | rw: Ntitwashoboye gufungura ibiganiro bya live byawe. | sw: Hatukuweza kupakia matangazo yako.
+- No completed streams yet | fr: Aucune diffusion terminée pour l'instant | es: Aún no hay transmisiones finalizadas | rw: Nta biganiro bya live birarangira | sw: Bado hakuna matangazo yaliyokamilika
+- When a live stream of your event ends, its chat and video messages are kept here. | fr: Quand le direct de votre événement se termine, ses messages et vidéos sont conservés ici. | es: Cuando termina la transmisión en directo de tu evento, sus mensajes y videos se guardan aquí. | rw: Iyo live y'igikorwa cyawe irangiye, ubutumwa n'amashusho byayo bibikwa hano. | sw: Matangazo ya moja kwa moja ya tukio lako yanapoisha, ujumbe na video zake huhifadhiwa hapa.
+- No completed streams found | fr: Aucune diffusion terminée trouvée | es: No se encontraron transmisiones finalizadas | rw: Nta kiganiro cya live cyarangiye kibonetse | sw: Hakuna matangazo yaliyokamilika yaliyopatikana
+- Chat messages | fr: Messages du chat | es: Mensajes del chat | rw: Ubutumwa bwo mu kiganiro | sw: Ujumbe wa gumzo
+- Video messages | fr: Messages vidéo | es: Mensajes de video | rw: Ubutumwa bw'amashusho | sw: Ujumbe wa video
+- Completed streams | fr: Diffusions terminées | es: Transmisiones finalizadas | rw: Ibiganiro bya live byarangiye | sw: Matangazo yaliyokamilika
+- Browse messages and videos from your past event streams. | fr: Parcourez les messages et vidéos de vos diffusions passées. | es: Explora los mensajes y videos de tus transmisiones pasadas. | rw: Reba ubutumwa n'amashusho by'ibiganiro bya live byashize. | sw: Pitia ujumbe na video kutoka matangazo yako yaliyopita.
+- Search streams | fr: Rechercher des diffusions | es: Buscar transmisiones | rw: Shakisha ibiganiro bya live | sw: Tafuta matangazo
+- Total streams | fr: Total des diffusions | es: Total de transmisiones | rw: Ibiganiro byose bya live | sw: Jumla ya matangazo
+- Total viewers | fr: Total des spectateurs | es: Total de espectadores | rw: Abarebye bose | sw: Jumla ya watazamaji
+- new video | fr: nouvelle vidéo | es: video nuevo | rw: amashusho mashya | sw: video mpya
+- new videos | fr: nouvelles vidéos | es: videos nuevos | rw: amashusho mashya | sw: video mpya
