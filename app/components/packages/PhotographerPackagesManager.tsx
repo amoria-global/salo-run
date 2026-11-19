@@ -112,7 +112,6 @@ export default function PhotographerPackagesManager({
   // ─── Upload Document (3-step) State ───
   const [aiStep, setAiStep] = useState<1 | 2 | 3>(1);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [rawBrochureText, setRawBrochureText] = useState('');
   const [defaultSession, setDefaultSession] = useState<ServiceType>('OUTDOOR');
   const [extracting, setExtracting] = useState(false);
   const [extractedDrafts, setExtractedDrafts] = useState<ExtractedAiPackageDraft[]>([]);
@@ -247,15 +246,14 @@ export default function PhotographerPackagesManager({
   // ─── Handlers ───
   const handleRunAiExtraction = async () => {
     setErrorMsg(null);
-    if (uploadedFiles.length === 0 && !rawBrochureText.trim()) {
-      setErrorMsg('Please select at least one brochure image/PDF or paste your package menu text.');
+    if (uploadedFiles.length === 0) {
+      setErrorMsg('Please select at least one brochure image or PDF.');
       return;
     }
     setExtracting(true);
     try {
       const res = await extractPackagesWithAi({
         files: uploadedFiles,
-        rawText: rawBrochureText.trim() || undefined,
         defaultServiceType: defaultSession,
       });
 
@@ -1863,27 +1861,6 @@ export default function PhotographerPackagesManager({
                         ))}
                       </div>
                     )}
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: colors.textSecondary, marginBottom: 6 }}>
-                      Or Paste Package Menu Text (Optional)
-                    </label>
-                    <textarea
-                      rows={4}
-                      value={rawBrochureText}
-                      onChange={(e) => setRawBrochureText(e.target.value)}
-                      placeholder="Paste package names, items, and prices..."
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: 10,
-                        border: `1.5px solid ${colors.borderPrimary}`,
-                        background: colors.bgCard,
-                        color: colors.textPrimary,
-                        fontSize: '0.84rem',
-                      }}
-                    />
                   </div>
 
                   <button
