@@ -10,7 +10,8 @@ const SOURCE = ['topbar.tsx', 'topbarState.ts']
 
 describe('KYC banner and workspace collaborators', () => {
   it('reads the collaborator flag from the workspace provider', () => {
-    expect(SOURCE).toContain('const { isCollaborator } = useWorkspace();');
+    // The top bar also reads isShared now (it skips the owner's wallet inside a workspace).
+    expect(SOURCE).toMatch(/const \{ isCollaborator(, isShared)? \} = useWorkspace\(\);/);
   });
 
   it('does not draw the verify-your-identity banner for a collaborator', () => {
