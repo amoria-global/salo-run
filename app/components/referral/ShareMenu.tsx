@@ -2,7 +2,7 @@
 
 /**
  * The Home "Share & invite" card. The whole card opens a menu (not just the button): Share your album (the existing
- * album creation flow), Share profile (the public profile link, shown here and not on the card) and Share referral
+ * Albums screen, where each album can be shared or published), Share profile (the public profile link, shown here and not on the card) and Share referral
  * link or code (the referral sheet, hidden for good at 20 referrals). Chips on the card say what is inside, and a
  * badge from the referral stats gives a reason to open it: "Lower fees" before 5 qualifying referrals, "Your fee: N%"
  * from 5, and nothing at 20, where the Referral chip goes too.
@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronRight, Gift, Image as ImageIcon, Share2, User } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { useDashboardAuth, dashboardAuthFetch } from '@/app/providers/AuthProvider';
-import { SELL_PHOTOS_QUERY } from '@/lib/albums/sellPhotos';
 import { getApiUrl } from '@/lib/api';
 import { fetchMyReferral } from '@/app/lib/referral';
 
@@ -119,8 +118,8 @@ export default function ShareMenu({ canCreateAlbum }: { canCreateAlbum: boolean 
           {badge && (
             <span data-testid="share-invite-badge" style={{
               display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 9px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
-              color: badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent)',
-              border: `1px solid ${badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent)'}`,
+              color: badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent-text)',
+              border: `1px solid ${badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent-text)'}`,
               background: badge.kind === 'fee' ? 'var(--g-success-bg, transparent)' : 'var(--g-accent-bg, transparent)',
             }}>
               {badge.kind === 'fee' ? `${t('Your fee')}: ${badge.fee}%` : t('Lower fees')}
@@ -132,7 +131,7 @@ export default function ShareMenu({ canCreateAlbum }: { canCreateAlbum: boolean 
       {open && (
         <div role="menu" className="g-panel" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, padding: 6, boxShadow: '0 12px 32px rgba(0,0,0,.28)' }}>
           {canCreateAlbum && (
-            <button role="menuitem" type="button" style={item} onClick={() => { setOpen(false); router.push(`${P}/events?${SELL_PHOTOS_QUERY}`); }}>
+            <button role="menuitem" type="button" style={item} onClick={() => { setOpen(false); router.push(`${P}/events?tab=albums`); }}>
               <ImageIcon size={18} aria-hidden />
               <span style={{ flex: 1, minWidth: 0, display: 'grid' }}>
                 <strong style={ellipsis}>{t('Share your album')}</strong>
