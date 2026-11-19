@@ -317,7 +317,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId, openCr
         const filtersActive = statusFilter !== 'ALL' || !!categoryFilter || !!search.trim();
 
         if (loading) {
-          return <div style={{ color: '#6b7280', padding: '16px 0' }}>Loading…</div>;
+          return <div style={{ color: 'var(--g-text-muted, #6b7280)', padding: '16px 0' }}>Loading…</div>;
         }
         if (albums.length === 0) {
           return (

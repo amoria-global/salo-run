@@ -709,3 +709,43 @@ html.ui-glass .gpd-page.is-highlighted .gpd-head { animation: gpd-pop 0.6s ease-
 @keyframes gpd-pop { 0% { transform: scale(0.98); } 60% { transform: scale(1.01); } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { html.ui-glass .gpd-page.is-highlighted .gpd-head { animation: none; } }
 @media (max-width: 1023.98px) { html.ui-glass .gpd-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Booked photographers (GlassPhotographers) */
+html.ui-glass .gph-page { display: grid; gap: 16px; }
+html.ui-glass .gph-page .gpay-notice { align-items: center; justify-content: space-between; border-color: var(--g-pending); }
+html.ui-glass .gph-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+html.ui-glass .gph-search { flex: 1 1 240px; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--g-stroke); background: var(--g-well); color: var(--g-text-muted); }
+html.ui-glass .gph-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--g-text); font: inherit; min-height: 38px; }
+html.ui-glass .gph-search:focus-within { outline: 2px solid var(--g-link); outline-offset: 2px; }
+html.ui-glass .gph-sort select { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--g-stroke); background: var(--g-well); color: var(--g-text); font: inherit; font-weight: 600; }
+html.ui-glass .g-btn.is-on, html.ui-glass .g-chip.is-active { border-color: var(--g-link); color: var(--g-link); }
+html.ui-glass .g-chip.is-active { background: var(--g-tint); }
+html.ui-glass .gph-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+html.ui-glass .gph-count { margin: 0; color: var(--g-text-muted); font-size: 0.875rem; }
+html.ui-glass .gph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+html.ui-glass .gph-list { display: grid; gap: 10px; }
+html.ui-glass .gph-card { padding: 0; overflow: hidden; display: grid; min-width: 0; }
+html.ui-glass .gph-cover { position: relative; display: block; aspect-ratio: 16 / 7; border: 0; padding: 0; cursor: pointer; background: var(--g-tint); }
+html.ui-glass .gph-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+html.ui-glass .gph-cover-chip { position: absolute; left: 10px; top: 10px; }
+html.ui-glass .gph-body { padding: 14px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+html.ui-glass .gph-who { display: flex; gap: 10px; align-items: center; min-width: 0; }
+html.ui-glass .gph-name { flex: 1; min-width: 0; display: grid; gap: 2px; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: var(--g-text); min-height: 40px; }
+html.ui-glass .gph-name strong { display: inline-flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .gph-name small { color: var(--g-text-muted); font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .gph-verified { color: var(--g-link); flex: none; }
+html.ui-glass .gph-fav { width: 40px; padding: 0; justify-content: center; color: var(--g-text-muted); }
+html.ui-glass .gph-fav.is-on { color: var(--g-accent-text); }
+html.ui-glass .gph-facts { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; color: var(--g-text); font-size: 0.875rem; }
+html.ui-glass .gph-facts small, html.ui-glass .gph-last small { color: var(--g-text-muted); }
+html.ui-glass .gph-star { color: var(--g-pending); vertical-align: -2px; }
+html.ui-glass .gph-spent { margin-left: auto; }
+html.ui-glass .gph-last { margin: 0; color: var(--g-text); font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .gph-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+html.ui-glass .gph-card.is-list .gph-body { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; align-items: center; }
+html.ui-glass .gph-card.is-list .gph-last { display: none; }
+@media (max-width: 1023.98px) { html.ui-glass .gph-card.is-list .gph-body { grid-template-columns: minmax(0, 1fr); } }
+
+/* Events search: the input's inline outline:0 hid the focus ring, and it was 24px tall */
+html.ui-glass .gev-search-box input { min-height: 40px; }
+html.ui-glass .gev-search-box input:focus-visible { outline: 2px solid var(--g-link) !important; outline-offset: 2px; border-radius: 6px; }

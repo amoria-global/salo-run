@@ -579,3 +579,21 @@ Drafted for fr, es, rw, sw; same review status.
 - Pending Hold | fr: Blocage en attente | es: Retención pendiente | rw: Gufatwa bitegerejwe | sw: Inasubiri kushikiliwa
 - Stream ticket | fr: Billet de diffusion | es: Entrada de transmisión | rw: Itike ya live | sw: Tiketi ya matangazo
 - Not completed | fr: Non terminé | es: No completado | rw: Ntibirarangira | sw: Haijakamilika
+
+## Booked photographers, 2026-11-19
+
+- More actions | fr: Plus d'actions | es: Más acciones | rw: Ibindi bikorwa | sw: Vitendo zaidi
+- Report | fr: Signaler | es: Denunciar | rw: Tanga raporo | sw: Ripoti
+- Pay | fr: Payer | es: Pagar | rw: Ishyura | sw: Lipa
+- We could not load your photographers. | fr: Impossible de charger vos photographes. | es: No pudimos cargar tus fotógrafos. | rw: Ntitwashoboye gufungura abafotozi bawe. | sw: Hatukuweza kupakia wapiga picha wako.
+- No booked photographers yet | fr: Aucun photographe réservé pour l'instant | es: Aún no has reservado fotógrafos | rw: Nta mufotozi urafata | sw: Bado hujahifadhi mpiga picha
+- Photographers you book show here, with your bookings, payments and reviews. | fr: Les photographes que vous réservez s'affichent ici, avec vos réservations, paiements et avis. | es: Los fotógrafos que reservas aparecen aquí, con tus reservas, pagos y reseñas. | rw: Abafotozi ufata bagaragara hano, n'ibyo wafashe, ubwishyu n'ibitekerezo. | sw: Wapiga picha unaowahifadhi wanaonekana hapa, pamoja na uhifadhi, malipo na maoni yako.
+- Try another search or clear the filter. | fr: Essayez une autre recherche ou retirez le filtre. | es: Prueba otra búsqueda o quita el filtro. | rw: Gerageza indi shakisha cyangwa ukureho akayunguruzo. | sw: Jaribu utafutaji mwingine au ondoa kichujio.
+- Invite new | fr: Inviter | es: Invitar | rw: Tumira mushya | sw: Alika mpya
+- Sort by | fr: Trier par | es: Ordenar por | rw: Tondeka ukurikije | sw: Panga kwa
+- Clear filter | fr: Retirer le filtre | es: Quitar filtro | rw: Kuraho akayunguruzo | sw: Ondoa kichujio
+- Highest rated | fr: Mieux notés | es: Mejor valorados | rw: Abafite amanota menshi | sw: Waliokadiriwa juu
+- Most booked | fr: Plus réservés | es: Más reservados | rw: Abafashwe kenshi | sw: Waliohifadhiwa zaidi
+- Most spent | fr: Plus dépensé | es: Mayor gasto | rw: Ayo wakoresheje menshi | sw: Uliotumia zaidi
+- photographer is waiting for payment | fr: photographe attend un paiement | es: fotógrafo espera un pago | rw: umufotozi ategereje kwishyurwa | sw: mpiga picha anasubiri malipo
+- photographers are waiting for payment | fr: photographes attendent un paiement | es: fotógrafos esperan un pago | rw: abafotozi bategereje kwishyurwa | sw: wapiga picha wanasubiri malipo

@@ -18994,5 +18994,95 @@
     "No completado",
     "Ntibirarangira",
     "Haijakamilika"
+  ],
+  "More actions": [
+    "Plus d'actions",
+    "Más acciones",
+    "Ibindi bikorwa",
+    "Vitendo zaidi"
+  ],
+  "Report": [
+    "Signaler",
+    "Denunciar",
+    "Tanga raporo",
+    "Ripoti"
+  ],
+  "Pay": [
+    "Payer",
+    "Pagar",
+    "Ishyura",
+    "Lipa"
+  ],
+  "We could not load your photographers.": [
+    "Impossible de charger vos photographes.",
+    "No pudimos cargar tus fotógrafos.",
+    "Ntitwashoboye gufungura abafotozi bawe.",
+    "Hatukuweza kupakia wapiga picha wako."
+  ],
+  "No booked photographers yet": [
+    "Aucun photographe réservé pour l'instant",
+    "Aún no has reservado fotógrafos",
+    "Nta mufotozi urafata",
+    "Bado hujahifadhi mpiga picha"
+  ],
+  "Photographers you book show here, with your bookings, payments and reviews.": [
+    "Les photographes que vous réservez s'affichent ici, avec vos réservations, paiements et avis.",
+    "Los fotógrafos que reservas aparecen aquí, con tus reservas, pagos y reseñas.",
+    "Abafotozi ufata bagaragara hano, n'ibyo wafashe, ubwishyu n'ibitekerezo.",
+    "Wapiga picha unaowahifadhi wanaonekana hapa, pamoja na uhifadhi, malipo na maoni yako."
+  ],
+  "Try another search or clear the filter.": [
+    "Essayez une autre recherche ou retirez le filtre.",
+    "Prueba otra búsqueda o quita el filtro.",
+    "Gerageza indi shakisha cyangwa ukureho akayunguruzo.",
+    "Jaribu utafutaji mwingine au ondoa kichujio."
+  ],
+  "Invite new": [
+    "Inviter",
+    "Invitar",
+    "Tumira mushya",
+    "Alika mpya"
+  ],
+  "Sort by": [
+    "Trier par",
+    "Ordenar por",
+    "Tondeka ukurikije",
+    "Panga kwa"
+  ],
+  "Clear filter": [
+    "Retirer le filtre",
+    "Quitar filtro",
+    "Kuraho akayunguruzo",
+    "Ondoa kichujio"
+  ],
+  "Highest rated": [
+    "Mieux notés",
+    "Mejor valorados",
+    "Abafite amanota menshi",
+    "Waliokadiriwa juu"
+  ],
+  "Most booked": [
+    "Plus réservés",
+    "Más reservados",
+    "Abafashwe kenshi",
+    "Waliohifadhiwa zaidi"
+  ],
+  "Most spent": [
+    "Plus dépensé",
+    "Mayor gasto",
+    "Ayo wakoresheje menshi",
+    "Uliotumia zaidi"
+  ],
+  "photographer is waiting for payment": [
+    "photographe attend un paiement",
+    "fotógrafo espera un pago",
+    "umufotozi ategereje kwishyurwa",
+    "mpiga picha anasubiri malipo"
+  ],
+  "photographers are waiting for payment": [
+    "photographes attendent un paiement",
+    "fotógrafos esperan un pago",
+    "abafotozi bategereje kwishyurwa",
+    "wapiga picha wanasubiri malipo"
   ]
 }
