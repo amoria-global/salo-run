@@ -136,7 +136,7 @@ export default function ChangePasswordPage() {
           <button type="submit" disabled={busy} style={{
             marginTop: 16, width: '100%',
             padding: '11px 16px', fontSize: 14, fontWeight: 700, borderRadius: 8,
-            background: 'var(--g-grad-raised, #F20C8F)', color: '#fff', border: 'none',
+            background: 'var(--g-primary-dark, #F20C8F)', color: '#fff', border: 'none',
             cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.65 : 1,
           }}>
             {busy ? 'Saving…' : 'Save and continue'}

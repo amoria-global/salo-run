@@ -93,7 +93,7 @@ export default function NotAuthorizedPage() {
 
 const btnPrimary: React.CSSProperties = {
   padding: '9px 18px', fontSize: 13.5, fontWeight: 600, borderRadius: 8,
-  background: 'var(--g-grad-raised, #F20C8F)', color: '#fff', textDecoration: 'none',
+  background: 'var(--g-primary-dark, #F20C8F)', color: '#fff', textDecoration: 'none',
 };
 
 const btnSecondary: React.CSSProperties = {

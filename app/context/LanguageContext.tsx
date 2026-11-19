@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { getActiveWorkspaceId } from '@/app/lib/workspace';
 import { getApiUrl } from "@/lib/api";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import domTranslationsData from "@/lib/domTranslations.json";
@@ -240,6 +241,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // 2. Sync with backend preferences when authenticated
   useEffect(() => {
     if (!isAuthenticated || !user) return;
+    // Inside another photographer's workspace the server refuses account settings (WorkspacePolicy), so the
+    // browser's own choice stands and no request is made.
+    if (getActiveWorkspaceId()) return;
     (async () => {
       try {
         const res = await dashboardAuthFetch(`${getApiUrl()}${getPreferencesBasePath()}`);

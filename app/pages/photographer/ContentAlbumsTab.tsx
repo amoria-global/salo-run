@@ -878,7 +878,7 @@ const inp: React.CSSProperties = {
 };
 const btnPrimary: React.CSSProperties = {
   padding: '9px 16px', fontSize: 13.5, fontWeight: 700, borderRadius: 8,
-  background: 'var(--g-grad-raised, #F20C8F)', color: '#fff', border: 'none', cursor: 'pointer',
+  background: 'var(--g-primary-dark, #F20C8F)', color: '#fff', border: 'none', cursor: 'pointer',
 };
 const btnPrimarySm: React.CSSProperties = { ...btnPrimary, padding: '6px 12px', fontSize: 12.5 };
 const btnSecondary: React.CSSProperties = {

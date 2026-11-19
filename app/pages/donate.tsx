@@ -234,7 +234,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
   // UI-only restyle under Compact Glass: the AA accent for text and borders, the primary gradient for filled
   // buttons, the glass tint for selected tiles. The classic page keeps its exact values. No payment logic changes.
   const accent = glass ? 'var(--g-accent-text)' : '#F20C8F';
-  const accentFill = glass ? 'var(--g-grad-raised)' : accent;
+  const accentFill = glass ? 'var(--g-primary-dark)' : accent;
   const accentSoft = glass ? 'var(--g-tint)' : (actualTheme === 'dark' ? `${accent}15` : `${accent}08`);
 
   return (
@@ -243,7 +243,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userRole} />
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', backgroundColor: colors.bgPrimary }}>
-    <div style={{ padding: 'clamp(16px, 3vw, 32px)', maxWidth: '720px', margin: '0 auto' }}>
+    <div className="g-donate" style={{ padding: 'clamp(16px, 3vw, 32px)', maxWidth: '720px', margin: '0 auto' }}>
       {/* Header */}
       <div
         style={{
@@ -393,7 +393,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
               <label style={{ fontSize: '13px', fontWeight: 600, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {tl('Your Information')}
               </label>
-              <button onClick={() => setIsAnonymous(!isAnonymous)} style={{
+              <button className="gk-target" aria-pressed={isAnonymous} onClick={() => setIsAnonymous(!isAnonymous)} style={{
                 padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', marginLeft: 'auto',
                 border: `1px solid ${isAnonymous ? accent : colors.borderPrimary}`,
                 background: isAnonymous ? accentFill : 'transparent', color: isAnonymous ? '#fff' : colors.textSecondary,

@@ -781,7 +781,6 @@ html.ui-glass .gcp-photo { position: relative; width: 112px; height: 112px; }
 html.ui-glass .gcp-photo img, html.ui-glass .gcp-initial { width: 112px; height: 112px; border-radius: 999px; object-fit: cover; display: grid; place-items: center; }
 html.ui-glass .gcp-initial { background: var(--g-grad-avatar); color: #fff; font-size: 2.5rem; font-weight: 700; }
 html.ui-glass .gcp-photo-busy { position: absolute; inset: 0; border-radius: 999px; display: grid; place-items: center; background: rgba(10, 18, 32, 0.55); color: #fff; }
-html.ui-glass .gcp-photo-btn { position: absolute; right: -2px; bottom: -2px; width: 40px; padding: 0; justify-content: center; border-radius: 999px; }
 html.ui-glass .gcp-name { font-size: 1.125rem; color: var(--g-text); overflow-wrap: anywhere; }
 html.ui-glass .gcp-role, html.ui-glass .gcp-muted, html.ui-glass .gcp-hint { color: var(--g-text-muted); font-size: 0.8125rem; }
 html.ui-glass .gcp-kyc p { margin: 0; color: var(--g-text-muted); font-size: 0.875rem; }
@@ -832,3 +831,20 @@ html.ui-glass .gpr-table tfoot th, html.ui-glass .gpr-table tfoot td { border-bo
 /* change-password: the inputs set outline:none inline, so the glass focus ring needs !important */
 html.ui-glass .g-auth-form input:focus-visible, html.ui-glass .g-auth-form button:focus-visible { outline: 2px solid var(--g-link) !important; outline-offset: 2px; }
 html.ui-glass .g-auth-form button[type=submit] { min-height: 44px; }
+
+/* Gate fixes, round 3 */
+/* chips that sit on a photo get a solid scrim so their text is readable on any image */
+html.ui-glass .gph-cover-chip .gp-chip, html.ui-glass .gst-cover-chips .gp-chip { background: rgba(10, 18, 32, 0.82); color: #fff; border-color: transparent; }
+html.ui-glass .gph-search input { min-height: 40px; }
+html.ui-glass .g-btn.gpay-page-btn.is-on { background: var(--g-primary-dark); border-color: var(--g-primary-dark); color: #fff; }
+/* wallet activity filter chips (ActivityFeed): 40px targets and an AA selected state */
+html.ui-glass .g-activity-chip { min-height: 40px; padding: 0 14px !important; }
+html.ui-glass .g-activity-chip[aria-pressed="true"] { background: var(--g-primary-dark) !important; color: #fff !important; }
+html.ui-glass .g-activity-chip:focus-visible { outline: 2px solid var(--g-link); outline-offset: 2px; }
+/* shared-workspace banner */
+html.ui-glass .g-ws-banner { background: var(--g-card); border-color: var(--g-stroke); }
+html.ui-glass .g-ws-banner [data-ws-pill] { min-height: 40px; color: var(--g-primary-dark); border-color: var(--g-primary-dark); }
+html.ui-glass .g-ws-banner [data-ws-pill]:hover { background: var(--g-primary-dark); color: #fff; }
+html.ui-glass .g-ws-banner .bi { color: var(--g-link); }
+/* Donate: its inline outline:none hid the focus ring */
+html.ui-glass .g-donate input:focus-visible, html.ui-glass .g-donate textarea:focus-visible, html.ui-glass .g-donate button:focus-visible, html.ui-glass .g-donate select:focus-visible { outline: 2px solid var(--g-link) !important; outline-offset: 2px; }

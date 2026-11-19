@@ -74,14 +74,13 @@ export function GlassProfileForm({ ctl, roleTitle, modals, extra }: { ctl: Profi
                 <span className="gcp-initial" aria-hidden>{c.formData.fullName ? c.formData.fullName.charAt(0).toUpperCase() : '?'}</span>
               )}
               {c.isUploadingImage ? <span className="gcp-photo-busy" aria-label={t('Uploading')}><Loader2 size={20} className="g-spin" aria-hidden /></span> : null}
-              <input ref={profileInputRef} type="file" accept="image/*" hidden onChange={c.handleProfileImageUpload} />
-              <button type="button" className="g-btn gcp-photo-btn" disabled={!c.isEditEnabled || c.isUploadingImage}
-                aria-label={t(c.isEditEnabled ? 'Upload profile picture' : 'Turn on editing to change your photo')}
-                title={t(c.isEditEnabled ? 'Upload profile picture' : 'Turn on editing to change your photo')}
-                onClick={() => profileInputRef.current?.click()}>
-                <Camera size={16} aria-hidden />
-              </button>
             </div>
+            <input ref={profileInputRef} type="file" accept="image/*" hidden onChange={c.handleProfileImageUpload} />
+            <button type="button" className="g-btn g-btn-ghost" disabled={!c.isEditEnabled || c.isUploadingImage}
+              title={t(c.isEditEnabled ? 'Upload profile picture' : 'Turn on editing to change your photo')}
+              onClick={() => profileInputRef.current?.click()}>
+              <Camera size={16} aria-hidden /> {t('Change photo')}
+            </button>
             <strong className="gcp-name">{name}</strong>
             <span className="gcp-role">{t(c.formData.title || roleTitle)}</span>
             {joined ? <span className="gcp-muted">{t('Joined')} {joined}</span> : null}

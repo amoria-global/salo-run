@@ -13,13 +13,14 @@ interface MoneyStatCardsProps {
  * `purple` is remapped to Rausch pink so the wallet stays on Connekyt's
  * primary blue + accent pink color story.
  */
-const PALETTE: Record<StatCard['color'], { bar: string; tint: string; icon: string }> = {
-  green:   { bar: '#10B981', tint: 'rgba(16,185,129,0.10)', icon: 'bi-cash-coin' },
-  amber:   { bar: '#F59E0B', tint: 'rgba(245,158,11,0.12)', icon: 'bi-coin' },
-  blue:    { bar: '#083A85', tint: 'rgba(8,58,133,0.10)',   icon: 'bi-bank' },
-  red:     { bar: '#DC2626', tint: 'rgba(220,38,38,0.10)',  icon: 'bi-arrow-up-right-circle' },
-  purple:  { bar: '#F20C8F', tint: 'rgba(242,12,143,0.10)', icon: 'bi-gift-fill' },
-  neutral: { bar: '#797D86', tint: 'rgba(0,0,0,0.06)',      icon: 'bi-circle-half' },
+// text: the value colour. Under Compact Glass it is the AA token for that tone; the classic page keeps the bar colour.
+const PALETTE: Record<StatCard['color'], { bar: string; tint: string; icon: string; text: string }> = {
+  green:   { bar: '#10B981', tint: 'rgba(16,185,129,0.10)', icon: 'bi-cash-coin', text: 'var(--g-success, #10B981)' },
+  amber:   { bar: '#F59E0B', tint: 'rgba(245,158,11,0.12)', icon: 'bi-coin', text: 'var(--g-pending, #F59E0B)' },
+  blue:    { bar: '#083A85', tint: 'rgba(8,58,133,0.10)',   icon: 'bi-bank', text: 'var(--g-link, #083A85)' },
+  red:     { bar: '#DC2626', tint: 'rgba(220,38,38,0.10)',  icon: 'bi-arrow-up-right-circle', text: 'var(--g-error, #DC2626)' },
+  purple:  { bar: '#F20C8F', tint: 'rgba(242,12,143,0.10)', icon: 'bi-gift-fill', text: 'var(--g-accent-text, #F20C8F)' },
+  neutral: { bar: '#797D86', tint: 'rgba(0,0,0,0.06)',      icon: 'bi-circle-half', text: 'var(--g-text-muted, #797D86)' },
 };
 
 export default function MoneyStatCards({ cards }: MoneyStatCardsProps) {
@@ -59,7 +60,7 @@ export default function MoneyStatCards({ cards }: MoneyStatCardsProps) {
             </div>
             <div style={{
               fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em',
-              color: p.bar, lineHeight: 1.1,
+              color: p.text, lineHeight: 1.1,
             }}>{formatPrice(card.value)}</div>
           </div>
         );
