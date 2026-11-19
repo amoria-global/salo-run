@@ -19342,5 +19342,35 @@
     "Buscar transacciones",
     "Shakisha ibyakozwe",
     "Tafuta miamala"
+  ],
+  "Generated": [
+    "Généré le",
+    "Generado el",
+    "Byakozwe ku wa",
+    "Imetolewa"
+  ],
+  "Print report": [
+    "Imprimer le rapport",
+    "Imprimir informe",
+    "Capa raporo",
+    "Chapisha ripoti"
+  ],
+  "We could not load your payroll report. Please try again.": [
+    "Impossible de charger votre rapport de paie. Réessayez.",
+    "No pudimos cargar tu informe de nómina. Inténtalo de nuevo.",
+    "Ntitwashoboye gufungura raporo y'umushahara wawe. Ongera ugerageze.",
+    "Hatukuweza kupakia ripoti yako ya malipo. Tafadhali jaribu tena."
+  ],
+  "No earnings in this period": [
+    "Aucun gain sur cette période",
+    "Sin ganancias en este periodo",
+    "Nta nyungu muri iki gihe",
+    "Hakuna mapato katika kipindi hiki"
+  ],
+  "Paid bookings, tips and bonuses show here once they are recorded.": [
+    "Les réservations payées, pourboires et bonus s'affichent ici une fois enregistrés.",
+    "Las reservas pagadas, propinas y bonos aparecen aquí cuando se registran.",
+    "Ibyo bagufashe byishyuwe, ishimwe n'uduhimbazamusyi bigaragara hano iyo byanditswe.",
+    "Uhifadhi uliolipwa, bakshishi na bonasi huonekana hapa zikirekodiwa."
   ]
 }

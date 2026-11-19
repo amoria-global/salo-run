@@ -652,3 +652,11 @@ Drafted for fr, es, rw, sw; same review status.
 ## All transactions, 2026-11-19
 
 - Search transactions | fr: Rechercher des transactions | es: Buscar transacciones | rw: Shakisha ibyakozwe | sw: Tafuta miamala
+
+## Payroll report, 2026-11-19
+
+- Generated | fr: Généré le | es: Generado el | rw: Byakozwe ku wa | sw: Imetolewa
+- Print report | fr: Imprimer le rapport | es: Imprimir informe | rw: Capa raporo | sw: Chapisha ripoti
+- We could not load your payroll report. Please try again. | fr: Impossible de charger votre rapport de paie. Réessayez. | es: No pudimos cargar tu informe de nómina. Inténtalo de nuevo. | rw: Ntitwashoboye gufungura raporo y'umushahara wawe. Ongera ugerageze. | sw: Hatukuweza kupakia ripoti yako ya malipo. Tafadhali jaribu tena.
+- No earnings in this period | fr: Aucun gain sur cette période | es: Sin ganancias en este periodo | rw: Nta nyungu muri iki gihe | sw: Hakuna mapato katika kipindi hiki
+- Paid bookings, tips and bonuses show here once they are recorded. | fr: Les réservations payées, pourboires et bonus s'affichent ici une fois enregistrés. | es: Las reservas pagadas, propinas y bonos aparecen aquí cuando se registran. | rw: Ibyo bagufashe byishyuwe, ishimwe n'uduhimbazamusyi bigaragara hano iyo byanditswe. | sw: Uhifadhi uliolipwa, bakshishi na bonasi huonekana hapa zikirekodiwa.

@@ -814,3 +814,18 @@ html.ui-glass .gwl-page { display: grid; gap: 16px; }
 html.ui-glass .gwl-card { padding: 16px; }
 html.ui-glass .gwl-note { display: flex; gap: 10px; align-items: center; color: var(--g-text-muted); font-size: 0.9rem; }
 html.ui-glass .gtx-head-actions { display: inline-flex; gap: 8px; flex-wrap: wrap; } html.ui-glass .gtx-comment { margin: 0; color: var(--g-text); font-size: 0.875rem; } html.ui-glass .gtx-comment small { display: block; color: var(--g-text-muted); }
+
+/* Payroll report table (GlassPayrollReport); stacks into labelled rows on phones */
+html.ui-glass .gpr-table { width: 100%; border-collapse: collapse; color: var(--g-text); font-size: 0.875rem; }
+html.ui-glass .gpr-table th { text-align: left; color: var(--g-text-soft); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 10px; border-bottom: 1px solid var(--g-stroke); }
+html.ui-glass .gpr-table td { padding: 10px; border-bottom: 1px solid var(--g-stroke); vertical-align: middle; }
+html.ui-glass .gpr-table .is-num { text-align: right; white-space: nowrap; }
+html.ui-glass .gpr-table tfoot th, html.ui-glass .gpr-table tfoot td { border-bottom: 0; font-weight: 700; color: var(--g-text); font-size: 0.875rem; text-transform: none; letter-spacing: 0; }
+@media (max-width: 767.98px) {
+  html.ui-glass .gpr-table thead { display: none; }
+  html.ui-glass .gpr-table tbody tr { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--g-stroke); }
+  html.ui-glass .gpr-table tbody td { display: flex; justify-content: space-between; gap: 12px; border: 0; padding: 2px 0; }
+  html.ui-glass .gpr-table tbody td::before { content: attr(data-label); color: var(--g-text-muted); font-size: 0.8125rem; }
+  html.ui-glass .gpr-table .is-num { text-align: left; }
+}
+@media print { html.ui-glass .g-sidebar, html.ui-glass .g-topbar, html.ui-glass .gpd-back, html.ui-glass .g-page-head button { display: none !important; } }
