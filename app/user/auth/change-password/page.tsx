@@ -73,32 +73,32 @@ export default function ChangePasswordPage() {
   return (
     <main style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 24, background: '#fafafa',
+      padding: 24, background: 'var(--g-bg, #fafafa)',
     }}>
       <section style={{
-        maxWidth: 440, width: '100%', background: '#fff',
-        border: '1px solid #e5e7eb', borderRadius: 14, padding: '32px 28px',
+        maxWidth: 440, width: '100%', background: 'var(--g-card, #fff)',
+        border: '1px solid var(--g-stroke, #e5e7eb)', borderRadius: 14, padding: '32px 28px',
         boxShadow: '0 12px 30px -12px rgba(0,0,0,0.10)',
       }}>
         <div style={{
           width: 56, height: 56, borderRadius: '50%',
-          background: 'rgba(242,12,143,0.10)', color: '#F20C8F',
+          background: 'var(--g-tint-accent, rgba(242,12,143,0.10))', color: 'var(--g-accent-text, #F20C8F)',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 26, marginBottom: 14,
         }} aria-hidden>
           <i className="bi bi-shield-lock" />
         </div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111' }}>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--g-text, #111)' }}>
           Set a new password
         </h1>
-        <p style={{ margin: '8px 0 18px', fontSize: 14, color: '#6b7280', lineHeight: 1.55 }}>
+        <p style={{ margin: '8px 0 18px', fontSize: 14, color: 'var(--g-text-muted, #6b7280)', lineHeight: 1.55 }}>
           You signed in with a temporary password from your invitation email.
           Choose your own password to continue.
         </p>
 
-        <form onSubmit={onSubmit} autoComplete="off">
+        <form className="g-auth-form" onSubmit={onSubmit} autoComplete="off">
           <label style={lbl}>Email
-            <input type="email" value={user?.email || ''} disabled style={{ ...inp, background: '#f3f4f6', color: '#6b7280' }} />
+            <input type="email" value={user?.email || ''} disabled style={{ ...inp, background: 'var(--g-well, #f3f4f6)', color: 'var(--g-text-muted, #6b7280)' }} />
           </label>
           <label style={lbl}>New password
             <input
@@ -129,14 +129,14 @@ export default function ChangePasswordPage() {
           {error && (
             <div style={{
               padding: 10, marginTop: 8, borderRadius: 6,
-              background: '#fef2f2', color: '#991b1b', fontSize: 13, border: '1px solid #fecaca',
+              background: 'var(--g-error-bg, #fef2f2)', color: 'var(--g-error, #991b1b)', fontSize: 13, border: '1px solid var(--g-error, #fecaca)',
             }}>{error}</div>
           )}
 
           <button type="submit" disabled={busy} style={{
             marginTop: 16, width: '100%',
             padding: '11px 16px', fontSize: 14, fontWeight: 700, borderRadius: 8,
-            background: '#F20C8F', color: '#fff', border: 'none',
+            background: 'var(--g-grad-raised, #F20C8F)', color: '#fff', border: 'none',
             cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.65 : 1,
           }}>
             {busy ? 'Saving…' : 'Save and continue'}
@@ -148,10 +148,10 @@ export default function ChangePasswordPage() {
 }
 
 const lbl: React.CSSProperties = {
-  display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151',
+  display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--g-text, #374151)',
   marginTop: 12,
 };
 const inp: React.CSSProperties = {
   width: '100%', padding: '10px 12px', fontSize: 14, borderRadius: 8,
-  border: '1px solid #e5e7eb', outline: 'none', marginTop: 4,
+  border: '1px solid var(--g-stroke, #e5e7eb)', outline: 'none', marginTop: 4,
 };

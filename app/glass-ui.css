@@ -829,3 +829,6 @@ html.ui-glass .gpr-table tfoot th, html.ui-glass .gpr-table tfoot td { border-bo
   html.ui-glass .gpr-table .is-num { text-align: left; }
 }
 @media print { html.ui-glass .g-sidebar, html.ui-glass .g-topbar, html.ui-glass .gpd-back, html.ui-glass .g-page-head button { display: none !important; } }
+/* change-password: the inputs set outline:none inline, so the glass focus ring needs !important */
+html.ui-glass .g-auth-form input:focus-visible, html.ui-glass .g-auth-form button:focus-visible { outline: 2px solid var(--g-link) !important; outline-offset: 2px; }
+html.ui-glass .g-auth-form button[type=submit] { min-height: 44px; }
