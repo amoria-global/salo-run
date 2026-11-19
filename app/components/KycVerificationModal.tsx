@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
+import { perfNowMs } from "../lib/clock";
 
 interface KycVerificationModalProps {
   isOpen: boolean;
@@ -241,7 +242,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     setLivenessStage(s);
     // Reset timer when entering a new challenge stage
     if (s === 'blink' || s === 'turn-left' || s === 'turn-right') {
-      challengeStartTimeRef.current = performance.now();
+      challengeStartTimeRef.current = perfNowMs();
     }
   };
 
@@ -261,7 +262,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
 
   const advanceToNextChallenge = () => {
     // Record elapsed time for the challenge just completed
-    const elapsed = Math.round(performance.now() - challengeStartTimeRef.current);
+    const elapsed = Math.round(perfNowMs() - challengeStartTimeRef.current);
     challengeTimingsRef.current.push(elapsed);
     // Capture a frame on each completed challenge
     captureFrameToBuffer();
@@ -405,7 +406,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       setTooDark(!bright);
     }
 
-    const result = lm.detectForVideo(video, performance.now());
+    const result = lm.detectForVideo(video, perfNowMs());
     const hasFace = result.faceLandmarks && result.faceLandmarks.length > 0;
     setFaceDetected(hasFace);
 
@@ -438,7 +439,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
 
     // Check challenge timeout (pause timer display ~4x/sec)
     if (stage === 'blink' || stage === 'turn-left' || stage === 'turn-right') {
-      const elapsed = performance.now() - challengeStartTimeRef.current;
+      const elapsed = perfNowMs() - challengeStartTimeRef.current;
       if (brightnessCheckCounter % 15 === 0) {
         setChallengeTimeLeft(Math.max(0, Math.ceil((CHALLENGE_TIME_LIMIT - elapsed) / 1000)));
       }
@@ -1687,6 +1688,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                   )}
 
                   {/* Live camera view with liveness challenges */}
+                  {/* eslint-disable-next-line react-hooks/refs -- challenge progress is a ref the capture loop owns; setChallengeTimeLeft re-renders this block every few frames */}
                   {cameraMode === 'live' && (() => {
                     const isChallenge = livenessStage === 'blink' || livenessStage === 'turn-left' || livenessStage === 'turn-right';
                     const ovalColor = tooDark
@@ -1904,6 +1906,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               )}
 
               {/* Step 3: Government ID. type selector + front/back capture */}
+              {/* eslint-disable-next-line react-hooks/refs -- the ID step reads its file inputs only to open them and clear them, never to decide what renders */}
               {wizardStep === 3 && (() => {
                 const backRequired = documentType && documentType !== 'PASSPORT';
                 const docOptions: Array<{ value: DocumentType; label: string; hint: string }> = [

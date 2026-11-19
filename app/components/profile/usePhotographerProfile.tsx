@@ -15,6 +15,7 @@ import { usePermissions } from "@/app/lib/usePermissions";
 import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from "@/lib/api";
 import { getPlatformConfig } from "@/lib/platformConfig";
 import { normalizeExperienceDraft, normalizeOverviewDraft, normalizePortfolioDraft } from "@/lib/profileDraft";
+import { nowMs } from "../../lib/clock";
 
 // Types
 // Configure localforage for profile form data
@@ -390,7 +391,7 @@ export function usePhotographerProfile(userType: 'photographer' | 'freelancer' =
   // They share the same backend table and the same editor card, just
   // rendered in two sections of the profile.
   const addPackage = (serviceType: 'OUTDOOR' | 'STUDIO' = 'OUTDOOR') => {
-    const newId = Date.now().toString();
+    const newId = nowMs().toString();
     setNewlyAddedId(newId);
     const newPackage: DeliveryPackage = {
       id: newId,

@@ -669,18 +669,6 @@ export function useBookedPhotographers({ userRole = 'client' }: PhotographersPag
     setSuccessMessage('');
   };
 
-  // Auto-submit rebook when package is selected and all required fields are filled
-  useEffect(() => {
-    if (rebookPackageId && !isSubmittingRebook && (
-      selectedRebookEventId || (rebookEventType && rebookDate && rebookTime && rebookLocation)
-    )) {
-      const timer = setTimeout(() => {
-        handleSendBookingRequest();
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rebookPackageId]);
 
   // --- Send rebook request (both client and coordinator) ---
   const handleSendBookingRequest = async () => {
@@ -749,6 +737,19 @@ export function useBookedPhotographers({ userRole = 'client' }: PhotographersPag
       setIsSubmittingRebook(false);
     }
   };
+
+  // Auto-submit rebook when package is selected and all required fields are filled
+  useEffect(() => {
+    if (rebookPackageId && !isSubmittingRebook && (
+      selectedRebookEventId || (rebookEventType && rebookDate && rebookTime && rebookLocation)
+    )) {
+      const timer = setTimeout(() => {
+        handleSendBookingRequest();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rebookPackageId]);
 
   // --- Invite photographer by email (coordinator + client) ---
   const inviteLink = `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/auth/signup?userType=Photographer&invitedBy=${user?.id || ''}`;

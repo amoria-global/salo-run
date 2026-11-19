@@ -79,6 +79,7 @@ import {
 } from '@/app/lib/packagePricingAnalyzer';
 import { useLocationSearch, type LocationSuggestion } from '@/app/lib/locationSearch';
 import { HybridStyles, MODE_META, Notice, useFieldStyle } from './hybridUi';
+import { nowMs } from "../../lib/clock";
 
 interface HybridEventWizardModalProps {
   isOpen: boolean;
@@ -388,11 +389,13 @@ export default function HybridEventWizardModal({
     clientEstimatedPricing.recommended,
   ]);
 
+  const existingEventTitle = existingEvent?.title;
+  const existingEventId = existingEvent?.id;
   const generatedEventTitle = useMemo(() => {
-    if (existingEvent?.title) return existingEvent.title;
+    if (existingEventTitle) return existingEventTitle;
     const typeName = draft.eventTypeKey || eventType?.name || 'Event';
     return draft.city ? `${typeName} in ${draft.city}` : typeName;
-  }, [existingEvent?.title, draft.eventTypeKey, eventType?.name, draft.city]);
+  }, [existingEventTitle, draft.eventTypeKey, eventType?.name, draft.city]);
 
   const fetchPreview = useCallback(async () => {
     if (!draft.date || !draft.city) return;
@@ -412,7 +415,7 @@ export default function HybridEventWizardModal({
         specialty: eventType?.name || draft.eventTypeKey,
         photographerSpecialty: specialty,
         locationCoverage: coverage,
-        eventId: existingEvent?.id,
+        eventId: existingEventId,
         coverageMode: draft.coverageMode,
         clientType: draft.clientType,
         editedPhotos: draft.coverageMode === 'VIDEO' ? 0 : draft.editedPhotos,
@@ -453,7 +456,7 @@ export default function HybridEventWizardModal({
     eventType,
     specialty,
     coverage,
-    existingEvent?.id,
+    existingEventId,
   ]);
 
   // Background autosave of draft across steps 1..5
@@ -1150,7 +1153,7 @@ export default function HybridEventWizardModal({
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {[
-              { label: 'Tomorrow', date: isoDate(new Date(Date.now() + 86400000)) },
+              { label: 'Tomorrow', date: isoDate(new Date(nowMs() + 86400000)) },
               { label: 'This Saturday', date: isoDate(nextWeekday(6, 0)) },
               { label: 'Next Saturday', date: isoDate(nextWeekday(6, 1)) },
             ].map((q) => (

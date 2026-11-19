@@ -958,7 +958,7 @@ export function useClientEvents() {
     } finally {
       setIsLoadingEvents(false);
     }
-  }, []);
+  }, [setEvents, setEventsError, setIsLoadingEvents]);
 
   useEffect(() => {
     fetchMyEvents();
