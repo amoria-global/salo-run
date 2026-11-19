@@ -810,3 +810,6 @@ html.ui-glass .gcp-unsaved { position: sticky; bottom: 12px; z-index: 5; display
 @media (max-width: 1023.98px) { html.ui-glass .gcp-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 767.98px) { html.ui-glass .gcp-fields { grid-template-columns: minmax(0, 1fr); } }
 html.ui-glass .gcp-section { grid-column: 1 / -1; margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--g-stroke); font-size: 1rem; color: var(--g-text); }
+html.ui-glass .gwl-page { display: grid; gap: 16px; }
+html.ui-glass .gwl-card { padding: 16px; }
+html.ui-glass .gwl-note { display: flex; gap: 10px; align-items: center; color: var(--g-text-muted); font-size: 0.9rem; }
