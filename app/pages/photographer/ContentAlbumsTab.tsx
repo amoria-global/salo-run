@@ -202,15 +202,15 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId, openCr
         gap: 12, flexWrap: 'wrap', marginBottom: 18,
       }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111' }}>Content albums</h2>
-          <p style={{ margin: '4px 0 0', fontSize: 13.5, color: '#6b7280', maxWidth: 640 }}>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--g-text, #111)' }}>Content albums</h2>
+          <p style={{ margin: '4px 0 0', fontSize: 13.5, color: 'var(--g-text-muted, #6b7280)', maxWidth: 640 }}>
             Stock-style paid albums by category (press / newspaper / luxury / diplomatic /
             nature / etc.). Public can browse on Connekyt; per-photo download is paid.
             Each album must be admin-approved before it goes live.
           </p>
         </div>
         <Can permission="albums.create">
-          <button onClick={() => setShowCreate(true)} style={btnPrimary}>
+          <button className="gk-target" onClick={() => setShowCreate(true)} style={btnPrimary}>
             + New content album
           </button>
         </Can>
@@ -265,8 +265,8 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId, openCr
                   onClick={() => setStatusFilter(c.key as any)}
                   style={{
                     padding: '6px 12px', fontSize: 12.5, fontWeight: 700,
-                    color: active ? '#fff' : '#374151',
-                    background: active ? '#111' : 'transparent',
+                    color: active ? '#fff' : 'var(--g-text-muted, #374151)',
+                    background: active ? 'var(--g-primary-dark, #111)' : 'transparent',
                     border: 'none', borderRadius: 999, cursor: 'pointer',
                   }}
                 >
@@ -878,7 +878,7 @@ const inp: React.CSSProperties = {
 };
 const btnPrimary: React.CSSProperties = {
   padding: '9px 16px', fontSize: 13.5, fontWeight: 700, borderRadius: 8,
-  background: '#F20C8F', color: '#fff', border: 'none', cursor: 'pointer',
+  background: 'var(--g-grad-raised, #F20C8F)', color: '#fff', border: 'none', cursor: 'pointer',
 };
 const btnPrimarySm: React.CSSProperties = { ...btnPrimary, padding: '6px 12px', fontSize: 12.5 };
 const btnSecondary: React.CSSProperties = {

@@ -60,7 +60,8 @@ export function EventsToolbar({ counts, status, onStatus, date, onClearDate, onP
   const pill = (on: boolean): React.CSSProperties => ({ minHeight: 40, padding: '0 14px', borderRadius: 9999, border: `1px solid ${on ? '#3E6FD8' : colors.borderPrimary}`, background: on ? 'rgba(62,111,216,0.18)' : 'transparent', color: on ? colors.textPrimary : colors.textSecondary, fontWeight: 700, cursor: 'pointer', font: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 8 });
   return (
     <div style={{ display: 'grid', gap: 10 }}>
-      <div role="tablist" aria-label="Event status" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <div role="tablist" aria-label="Event status" style={{ display: 'contents' }}>
         {ORDER.map((s) => (
           <button key={s} type="button" role="tab" aria-selected={status === s} aria-label={`${STATUS_LABEL[s]}, ${counts[s]}`} onClick={() => onStatus(s)} style={pill(status === s)}>
             {s === 'ongoing' ? <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: '#37d0e6' }} /> : null}
@@ -68,7 +69,8 @@ export function EventsToolbar({ counts, status, onStatus, date, onClearDate, onP
             <span style={{ minWidth: 22, height: 20, borderRadius: 10, padding: '0 6px', display: 'inline-grid', placeItems: 'center', fontSize: 12, background: 'rgba(0,0,0,0.25)' }}>{counts[s]}</span>
           </button>
         ))}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, minWidth: 220, border: `1px solid ${colors.borderPrimary}`, borderRadius: 9999, padding: '0 12px', minHeight: 40 }}>
+        </div>
+        <div className="gev-search-box" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, minWidth: 220, border: `1px solid ${colors.borderPrimary}`, borderRadius: 9999, padding: '0 12px', minHeight: 40 }}>
           <i className="bi bi-search" aria-hidden="true" style={{ color: colors.textSecondary }} />
           <input aria-label="Search events" placeholder="Search events…" value={search} onChange={(e) => onSearch(e.target.value)} style={{ flex: 1, border: 0, outline: 0, background: 'transparent', color: colors.textPrimary, font: 'inherit' }} />
         </div>
@@ -86,7 +88,7 @@ export function EventsToolbar({ counts, status, onStatus, date, onClearDate, onP
         <div role="radiogroup" aria-label="Events layout" style={{ display: 'inline-flex', padding: 3, gap: 2, borderRadius: 12, border: `1px solid ${colors.borderPrimary}`, background: colors.bgPrimary }}>
           {(['list', 'calendar'] as const).map((l) => (
             <button key={l} type="button" role="radio" aria-checked={layout === l} onClick={() => onLayout(l)}
-              style={{ minHeight: 36, padding: '0 14px', border: 0, borderRadius: 9, font: 'inherit', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: layout === l ? colors.bgCard : 'transparent', color: layout === l ? colors.textPrimary : colors.textSecondary }}>
+              style={{ minHeight: 40, padding: '0 14px', border: 0, borderRadius: 9, font: 'inherit', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: layout === l ? colors.bgCard : 'transparent', color: layout === l ? colors.textPrimary : colors.textSecondary }}>
               <i className={`bi ${l === 'list' ? 'bi-list-ul' : 'bi-calendar3'}`} aria-hidden="true" /> {l === 'list' ? 'List' : 'Calendar'}
             </button>
           ))}
@@ -222,7 +224,7 @@ export function EventRowShell({ day, title, meta, status, pending, onOpen, actio
         style={{ flex: 1, minWidth: 220, display: 'flex', alignItems: 'center', gap: 12, minHeight: 52, background: 'transparent', border: 0, padding: 0, cursor: 'pointer', textAlign: 'left', font: 'inherit', color: colors.textPrimary }}>
         {d ? (
           <span aria-hidden="true" style={{ width: 52, height: 52, borderRadius: 12, background: colors.bgPrimary, border: `1px solid ${colors.borderPrimary}`, display: 'grid', placeItems: 'center', alignContent: 'center', flex: 'none' }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#F20C8F', letterSpacing: '0.06em' }}>{d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--g-accent-text, #F20C8F)', letterSpacing: '0.06em' }}>{d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</span>
             <span style={{ fontSize: 18, fontWeight: 800, lineHeight: 1 }}>{d.getDate()}</span>
           </span>
         ) : null}
@@ -230,7 +232,7 @@ export function EventRowShell({ day, title, meta, status, pending, onOpen, actio
           <strong style={{ fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</strong>
           <span style={{ fontSize: 13.5, color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</span>
         </span>
-        {live ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 9999, border: '1px solid #37d0e6', color: '#37d0e6' }}>ONGOING</span> : pending ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 9999, border: '1px solid #F59E0B', color: 'var(--g-warning, #F59E0B)' }}>PENDING</span> : null}
+        {live ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 9999, border: '1px solid var(--g-active, #37d0e6)', color: 'var(--g-active, #37d0e6)' }}>ONGOING</span> : pending ? <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 9999, border: '1px solid #F59E0B', color: 'var(--g-warning, #F59E0B)' }}>PENDING</span> : null}
         <i className="bi bi-chevron-right" aria-hidden="true" style={{ color: colors.textSecondary }} />
       </button>
       {actions ? <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{actions}</div> : null}

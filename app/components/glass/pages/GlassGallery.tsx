@@ -11,6 +11,7 @@
  */
 import { BookOpen, Download, Eye, Heart, Images, LayoutGrid, List, Plus, RotateCw, Search, Share2, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
+import { fmtDay } from '../format';
 import { Avatar, Card, Chip, EmptyState, ErrorState, PageHeader, RowsSkeleton, Segmented } from '../ui';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -24,7 +25,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function AlbumCard({ c, a, list }: { c: Ctl; a: Album; list: boolean }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const open = () => { if (a.isLocked) { c.setRestoreAlbum(a); return; } c.setSelectedAlbum(a); c.setShowViewModal(true); };
   return (
     <Card className={`gev-album${list ? ' is-list' : ''}`}>
@@ -41,7 +42,7 @@ function AlbumCard({ c, a, list }: { c: Ctl; a: Album; list: boolean }) {
         <span className="gc-two"><strong className="g-ellipsis">{a.title}</strong></span>
         <span className="ggl-by">
           <Avatar name={a.photographer || '?'} src={a.photographerAvatar} size={28} />
-          <span className="gc-two"><small className="g-ellipsis">{a.photographer}</small><small>{t('Received')} {a.receivedDate}</small></span>
+          <span className="gc-two"><small className="g-ellipsis">{a.photographer}</small><small>{t('Received')} {fmtDay(a.receivedDate, language) || a.receivedDate}</small></span>
         </span>
         <div className="gev-actions">
           <button type="button" className="g-btn g-btn-primary gev-act" onClick={() => { if (a.isLocked) c.setRestoreAlbum(a); else c.openMultiSelectView(a); }}>

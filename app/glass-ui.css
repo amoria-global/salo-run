@@ -617,3 +617,47 @@ html.ui-glass .gpd-steps { list-style: none; margin: 0; padding: 0; display: fle
 html.ui-glass .gpd-steps li { display: flex; align-items: center; gap: 10px; color: var(--g-text-soft); font-size: 0.875rem; font-weight: 600; }
 html.ui-glass .gpd-steps li.is-done, html.ui-glass .gpd-steps li.is-current { color: var(--g-text); }
 html.ui-glass .gpd-steps li.is-done .ged-step-dot, html.ui-glass .gpd-steps li.is-current .ged-step-dot { background: var(--g-primary); color: #fff; }
+
+/* Client and coordinator Payments (GlassClientPayments, GlassCoordinatorPayments) */
+html.ui-glass .gpay-page { display: grid; gap: 16px; }
+html.ui-glass .gpay-notice { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--g-pending, #B45309); color: var(--g-text); }
+html.ui-glass .gpay-notice > svg { color: var(--g-pending, #B45309); flex: none; margin-top: 2px; }
+html.ui-glass .gpay-notice span { display: grid; gap: 2px; }
+html.ui-glass .gpay-notice small, html.ui-glass .gpay-muted, html.ui-glass .gpay-card-head small, html.ui-glass .gpay-who-text small { color: var(--g-text-muted); font-size: 0.8125rem; }
+html.ui-glass .gpay-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; }
+html.ui-glass .gpay-card { padding: 16px; display: grid; gap: 12px; min-width: 0; }
+html.ui-glass .gpay-card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+html.ui-glass .gpay-card-head h2 { margin: 0; font-size: 1.0625rem; font-weight: 700; color: var(--g-text); display: inline-flex; align-items: center; gap: 8px; }
+html.ui-glass .gpay-card-head > span { display: grid; gap: 2px; }
+html.ui-glass .gpay-chart { min-height: 150px; }
+html.ui-glass .gpay-gift-total { margin: 0; display: flex; justify-content: space-between; align-items: baseline; color: var(--g-text-muted); }
+html.ui-glass .gpay-gift-total strong { font-size: 1.5rem; color: var(--g-text); }
+html.ui-glass .gpay-gifts, html.ui-glass .gpay-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+html.ui-glass .gpay-gifts li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--g-border); color: var(--g-text); }
+html.ui-glass .gpay-head, html.ui-glass .gpay-row { display: grid; grid-template-columns: 110px minmax(0, 2.2fr) 130px minmax(0, 1.3fr) 110px auto; gap: 12px; align-items: center; }
+html.ui-glass .gpay-head { padding: 0 12px; color: var(--g-text-soft); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+html.ui-glass .gpay-row { padding: 10px 12px; border-radius: 14px; border: 1px solid var(--g-border); color: var(--g-text); }
+html.ui-glass .gpay-row.is-highlighted { border-color: var(--g-link); box-shadow: 0 0 0 2px var(--g-link); }
+html.ui-glass .gpay-date, html.ui-glass .gpay-invoice { color: var(--g-text-muted); font-size: 0.8125rem; }
+html.ui-glass .gpay-invoice { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+html.ui-glass .gpay-who { display: flex; gap: 10px; align-items: center; min-width: 0; }
+html.ui-glass .gpay-who-text { display: grid; gap: 2px; min-width: 0; }
+html.ui-glass .gpay-who-text strong, html.ui-glass .gpay-who-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .gpay-amount { white-space: nowrap; }
+html.ui-glass .gpay-status, html.ui-glass .gpay-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+html.ui-glass .gpay-actions { justify-content: flex-end; }
+html.ui-glass .gpay-wait { color: var(--g-text-muted); font-size: 0.8125rem; }
+html.ui-glass .gpay-icon { width: 40px; padding: 0; justify-content: center; }
+html.ui-glass .gpay-pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--g-text-muted); font-size: 0.875rem; }
+html.ui-glass .gpay-pager-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+html.ui-glass .gpay-page-btn { min-width: 40px; justify-content: center; }
+html.ui-glass .gpay-page-btn.is-on { background: var(--g-primary-dark); border-color: var(--g-primary-dark); color: #fff; }
+@media (max-width: 1023.98px) {
+  html.ui-glass .gpay-grid { grid-template-columns: minmax(0, 1fr); }
+  html.ui-glass .gpay-head { display: none; }
+  html.ui-glass .gpay-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "who amount" "date status" "invoice actions"; }
+  html.ui-glass .gpay-who { grid-area: who; } html.ui-glass .gpay-amount { grid-area: amount; text-align: right; }
+  html.ui-glass .gpay-date { grid-area: date; } html.ui-glass .gpay-status { grid-area: status; justify-content: flex-end; }
+  html.ui-glass .gpay-invoice { grid-area: invoice; } html.ui-glass .gpay-actions { grid-area: actions; }
+}
+@media (max-width: 767.98px) { html.ui-glass .gc-sums { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

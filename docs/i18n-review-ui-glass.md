@@ -538,3 +538,30 @@ Drafted for fr, es, rw, sw; same review status.
 - Event not found
 - It may have been removed.
 - Back to events
+
+## Payments (client and coordinator), 2026-11-19
+
+- Release funds | fr: Libérer les fonds | es: Liberar fondos | rw: Rekura amafaranga | sw: Toa fedha
+- Awaiting completion | fr: En attente de fin | es: Esperando la finalización | rw: Bitegereje kurangira | sw: Inasubiri kukamilika
+- Manage your payments and view transaction history | fr: Gérez vos paiements et consultez l'historique des transactions | es: Gestiona tus pagos y consulta el historial de transacciones | rw: Genzura ubwishyu bwawe urebe amateka y'ibyakozwe | sw: Simamia malipo yako na uone historia ya miamala
+- You have | fr: Vous avez | es: Tienes | rw: Ufite | sw: Una
+- in pending payments | fr: de paiements en attente | es: en pagos pendientes | rw: z'ubwishyu butarakorwa | sw: katika malipo yanayosubiri
+- Please complete your outstanding payments to avoid booking cancellations. | fr: Réglez vos paiements en attente pour éviter l'annulation de vos réservations. | es: Completa tus pagos pendientes para evitar la cancelación de tus reservas. | rw: Rangiza ubwishyu busigaye kugira ngo ibyo wafashe bidasubikwa. | sw: Tafadhali kamilisha malipo yanayosubiri ili kuepuka kughairiwa kwa uhifadhi.
+- Chart type | fr: Type de graphique | es: Tipo de gráfico | rw: Ubwoko bw'igishushanyo | sw: Aina ya chati
+- Period | fr: Période | es: Periodo | rw: Igihe | sw: Kipindi
+- Set up withdrawal | fr: Configurer le retrait | es: Configurar retiro | rw: Tegura uburyo bwo kubikuza | sw: Weka utoaji
+- No gifts yet. Gifts from your live streams show here. | fr: Aucun cadeau pour l'instant. Les cadeaux de vos directs s'affichent ici. | es: Aún no hay regalos. Los regalos de tus directos aparecen aquí. | rw: Nta mpano zirabaho. Impano ziva mu biganiro byawe bya live zigaragara hano. | sw: Bado hakuna zawadi. Zawadi kutoka matangazo yako ya moja kwa moja zinaonekana hapa.
+- View senders | fr: Voir les expéditeurs | es: Ver remitentes | rw: Reba abohereje | sw: Tazama watumaji
+- We could not load your payments. | fr: Impossible de charger vos paiements. | es: No pudimos cargar tus pagos. | rw: Ntitwashoboye gufungura ubwishyu bwawe. | sw: Hatukuweza kupakia malipo yako.
+- No payments yet | fr: Aucun paiement pour l'instant | es: Aún no hay pagos | rw: Nta bwishyu burabaho | sw: Bado hakuna malipo
+- Payments for your bookings and purchases show here. | fr: Les paiements de vos réservations et achats s'affichent ici. | es: Los pagos de tus reservas y compras aparecen aquí. | rw: Ubwishyu bw'ibyo wafashe n'ibyo waguze bugaragara hano. | sw: Malipo ya uhifadhi na ununuzi wako yanaonekana hapa.
+- Payment pages | fr: Pages des paiements | es: Páginas de pagos | rw: Amapaji y'ubwishyu | sw: Kurasa za malipo
+- Partially paid | fr: Partiellement payé | es: Pagado parcialmente | rw: Byishyuwe igice | sw: Imelipwa kiasi
+- Line | fr: Ligne | es: Línea | rw: Umurongo | sw: Mstari
+- Bar | fr: Barres | es: Barras | rw: Inkingi | sw: Pau
+- Scatter | fr: Nuage de points | es: Dispersión | rw: Utudomo | sw: Mtawanyiko
+- The totals below may be incomplete. | fr: Les totaux ci-dessous peuvent être incomplets. | es: Los totales de abajo pueden estar incompletos. | rw: Imibare iri hasi ishobora kuba ituzuye. | sw: Jumla zilizo hapa chini huenda hazijakamilika.
+- No streaming payments yet. Entry fee payments from viewers will appear here. | fr: Aucun paiement de diffusion pour l'instant. Les droits d'entrée des spectateurs s'afficheront ici. | es: Aún no hay pagos de transmisión. Los pagos de entrada de los espectadores aparecerán aquí. | rw: Nta bwishyu bwa live burabaho. Amafaranga yo kwinjira y'abareba azagaragara hano. | sw: Bado hakuna malipo ya matangazo. Ada za kuingia za watazamaji zitaonekana hapa.
+- Your share of gifts | fr: Votre part des cadeaux | es: Tu parte de los regalos | rw: Umugabane wawe ku mpano | sw: Sehemu yako ya zawadi
+- No gifts received yet. Gifts from live-stream viewers will appear here. | fr: Aucun cadeau reçu pour l'instant. Les cadeaux des spectateurs en direct s'afficheront ici. | es: Aún no has recibido regalos. Los regalos de los espectadores en directo aparecerán aquí. | rw: Nta mpano zirakirwa. Impano z'abareba live zizagaragara hano. | sw: Bado hujapokea zawadi. Zawadi kutoka kwa watazamaji wa moja kwa moja zitaonekana hapa.
+- Could not load payments. Please refresh. | fr: Impossible de charger les paiements. Actualisez la page. | es: No se pudieron cargar los pagos. Actualiza la página. | rw: Ntibyashobotse gufungura ubwishyu. Ongera ufungure paji. | sw: Imeshindwa kupakia malipo. Tafadhali onyesha upya.

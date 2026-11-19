@@ -18784,5 +18784,149 @@
     "Puede que se haya eliminado.",
     "Bishobora kuba byarakuweho.",
     "Huenda limeondolewa."
+  ],
+  "Release funds": [
+    "Libérer les fonds",
+    "Liberar fondos",
+    "Rekura amafaranga",
+    "Toa fedha"
+  ],
+  "Awaiting completion": [
+    "En attente de fin",
+    "Esperando la finalización",
+    "Bitegereje kurangira",
+    "Inasubiri kukamilika"
+  ],
+  "Manage your payments and view transaction history": [
+    "Gérez vos paiements et consultez l'historique des transactions",
+    "Gestiona tus pagos y consulta el historial de transacciones",
+    "Genzura ubwishyu bwawe urebe amateka y'ibyakozwe",
+    "Simamia malipo yako na uone historia ya miamala"
+  ],
+  "You have": [
+    "Vous avez",
+    "Tienes",
+    "Ufite",
+    "Una"
+  ],
+  "in pending payments": [
+    "de paiements en attente",
+    "en pagos pendientes",
+    "z'ubwishyu butarakorwa",
+    "katika malipo yanayosubiri"
+  ],
+  "Please complete your outstanding payments to avoid booking cancellations.": [
+    "Réglez vos paiements en attente pour éviter l'annulation de vos réservations.",
+    "Completa tus pagos pendientes para evitar la cancelación de tus reservas.",
+    "Rangiza ubwishyu busigaye kugira ngo ibyo wafashe bidasubikwa.",
+    "Tafadhali kamilisha malipo yanayosubiri ili kuepuka kughairiwa kwa uhifadhi."
+  ],
+  "Chart type": [
+    "Type de graphique",
+    "Tipo de gráfico",
+    "Ubwoko bw'igishushanyo",
+    "Aina ya chati"
+  ],
+  "Period": [
+    "Période",
+    "Periodo",
+    "Igihe",
+    "Kipindi"
+  ],
+  "Set up withdrawal": [
+    "Configurer le retrait",
+    "Configurar retiro",
+    "Tegura uburyo bwo kubikuza",
+    "Weka utoaji"
+  ],
+  "No gifts yet. Gifts from your live streams show here.": [
+    "Aucun cadeau pour l'instant. Les cadeaux de vos directs s'affichent ici.",
+    "Aún no hay regalos. Los regalos de tus directos aparecen aquí.",
+    "Nta mpano zirabaho. Impano ziva mu biganiro byawe bya live zigaragara hano.",
+    "Bado hakuna zawadi. Zawadi kutoka matangazo yako ya moja kwa moja zinaonekana hapa."
+  ],
+  "View senders": [
+    "Voir les expéditeurs",
+    "Ver remitentes",
+    "Reba abohereje",
+    "Tazama watumaji"
+  ],
+  "We could not load your payments.": [
+    "Impossible de charger vos paiements.",
+    "No pudimos cargar tus pagos.",
+    "Ntitwashoboye gufungura ubwishyu bwawe.",
+    "Hatukuweza kupakia malipo yako."
+  ],
+  "No payments yet": [
+    "Aucun paiement pour l'instant",
+    "Aún no hay pagos",
+    "Nta bwishyu burabaho",
+    "Bado hakuna malipo"
+  ],
+  "Payments for your bookings and purchases show here.": [
+    "Les paiements de vos réservations et achats s'affichent ici.",
+    "Los pagos de tus reservas y compras aparecen aquí.",
+    "Ubwishyu bw'ibyo wafashe n'ibyo waguze bugaragara hano.",
+    "Malipo ya uhifadhi na ununuzi wako yanaonekana hapa."
+  ],
+  "Payment pages": [
+    "Pages des paiements",
+    "Páginas de pagos",
+    "Amapaji y'ubwishyu",
+    "Kurasa za malipo"
+  ],
+  "Partially paid": [
+    "Partiellement payé",
+    "Pagado parcialmente",
+    "Byishyuwe igice",
+    "Imelipwa kiasi"
+  ],
+  "Line": [
+    "Ligne",
+    "Línea",
+    "Umurongo",
+    "Mstari"
+  ],
+  "Bar": [
+    "Barres",
+    "Barras",
+    "Inkingi",
+    "Pau"
+  ],
+  "Scatter": [
+    "Nuage de points",
+    "Dispersión",
+    "Utudomo",
+    "Mtawanyiko"
+  ],
+  "The totals below may be incomplete.": [
+    "Les totaux ci-dessous peuvent être incomplets.",
+    "Los totales de abajo pueden estar incompletos.",
+    "Imibare iri hasi ishobora kuba ituzuye.",
+    "Jumla zilizo hapa chini huenda hazijakamilika."
+  ],
+  "No streaming payments yet. Entry fee payments from viewers will appear here.": [
+    "Aucun paiement de diffusion pour l'instant. Les droits d'entrée des spectateurs s'afficheront ici.",
+    "Aún no hay pagos de transmisión. Los pagos de entrada de los espectadores aparecerán aquí.",
+    "Nta bwishyu bwa live burabaho. Amafaranga yo kwinjira y'abareba azagaragara hano.",
+    "Bado hakuna malipo ya matangazo. Ada za kuingia za watazamaji zitaonekana hapa."
+  ],
+  "Your share of gifts": [
+    "Votre part des cadeaux",
+    "Tu parte de los regalos",
+    "Umugabane wawe ku mpano",
+    "Sehemu yako ya zawadi"
+  ],
+  "No gifts received yet. Gifts from live-stream viewers will appear here.": [
+    "Aucun cadeau reçu pour l'instant. Les cadeaux des spectateurs en direct s'afficheront ici.",
+    "Aún no has recibido regalos. Los regalos de los espectadores en directo aparecerán aquí.",
+    "Nta mpano zirakirwa. Impano z'abareba live zizagaragara hano.",
+    "Bado hujapokea zawadi. Zawadi kutoka kwa watazamaji wa moja kwa moja zitaonekana hapa."
+  ],
+  "Could not load payments. Please refresh.": [
+    "Impossible de charger les paiements. Actualisez la page.",
+    "No se pudieron cargar los pagos. Actualiza la página.",
+    "Ntibyashobotse gufungura ubwishyu. Ongera ufungure paji.",
+    "Imeshindwa kupakia malipo. Tafadhali onyesha upya."
   ]
 }

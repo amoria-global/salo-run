@@ -15,11 +15,17 @@ vi.mock('@/lib/api', () => ({ getApiUrl: () => 'https://api.test' }));
 
 const ROOT = path.resolve(__dirname, '../..');
 const code = (file: string) => readFileSync(path.join(ROOT, file), 'utf8').replace(/\r\n/g, '\n');
+// The Payments pages keep their rules in an extracted hook shared with the Compact Glass view, so read both.
+const HOOKS: Record<string, string> = {
+    'app/pages/client/payments.tsx': 'app/components/payments/useClientPayments.tsx',
+    'app/pages/event-coordinator/payments.tsx': 'app/components/payments/useCoordinatorPayments.tsx',
+};
+const pageAndHook = (file: string) => code(file) + (HOOKS[file] ? '\n' + code(HOOKS[file]) : '');
 
 describe('dashboard money display', () => {
     it('never ships a hardcoded sample report', () => {
         for (const f of ['app/pages/photographer/transaction.tsx', 'app/pages/client/payments.tsx']) {
-            const src = code(f).split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
+            const src = pageAndHook(f).split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
             expect(src, f).not.toContain('13 - 18 July 2025');
             expect(src, f).not.toContain('1200.13');
             expect(src, f).not.toContain('350.13');
@@ -29,7 +35,7 @@ describe('dashboard money display', () => {
     });
 
     it('client stats accept only action 1 and failed money is not part of the total', () => {
-        const src = code('app/pages/client/payments.tsx');
+        const src = pageAndHook('app/pages/client/payments.tsx');
         expect(src.match(/result\.action === 1 \? result\.data : null/g)?.length).toBeGreaterThanOrEqual(2);
         expect(src).not.toContain('reportData.pending + reportData.failed');
     });
@@ -46,7 +52,7 @@ describe('dashboard money display', () => {
     }, 30_000);
 
     it('coordinator revenue comes from the backend, never a client-side guess', () => {
-        const src = code('app/pages/event-coordinator/payments.tsx');
+        const src = pageAndHook('app/pages/event-coordinator/payments.tsx');
         expect(src).not.toMatch(/\* 0\.65/);
         expect(src).not.toContain('if (!result?.totalStreamingRevenue)');
         expect(src).toContain('netAmount: Number(p.withdrawableAmountInUsd ?? 0)');

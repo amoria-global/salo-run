@@ -118,8 +118,8 @@ export default function ShareMenu({ canCreateAlbum }: { canCreateAlbum: boolean 
           {badge && (
             <span data-testid="share-invite-badge" style={{
               display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 9px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
-              color: badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent)',
-              border: `1px solid ${badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent)'}`,
+              color: badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent-text)',
+              border: `1px solid ${badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent-text)'}`,
               background: badge.kind === 'fee' ? 'var(--g-success-bg, transparent)' : 'var(--g-accent-bg, transparent)',
             }}>
               {badge.kind === 'fee' ? `${t('Your fee')}: ${badge.fee}%` : t('Lower fees')}
