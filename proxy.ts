@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getLandingUrl } from '@/lib/urls';
+import { isBlockedInSharedWorkspace } from '@/app/lib/workspace';
 import { UI_GLASS_COOKIE, emailFromToken, isGlassPath, parseAllowlist, parseMode, glassEnabledFor } from '@/app/lib/uiGlass';
 
 /**
@@ -181,6 +182,14 @@ export function proxy(request: NextRequest) {
 
     // Working in a workspace: a workspace collaborator login, or a client login that joined as a collaborator, opens the
     // photographer pages for it. With no workspace chosen a collaborator has nowhere to be, so it goes to pick one.
+    // Pages that are not part of a shared workspace (money, account, Collaborate) are refused here, before the page
+    // renders and fires requests the server would refuse anyway. RouteGuard keeps the same rule for client-side moves.
+    if (pathRole === 'photographer' && inWorkspace && isBlockedInSharedWorkspace(pathname, userRole === 'collaborator' || userRole === 'client')) {
+      const to = publicRedirect(request, '/user/not-authorized');
+      to.searchParams.set('required', 'workspace');
+      to.searchParams.set('from', pathname);
+      return NextResponse.redirect(to);
+    }
     if (pathRole === 'photographer' && inWorkspace && (userRole === 'collaborator' || userRole === 'client')) {
       return withUiFlag(request, NextResponse.next());
     }
