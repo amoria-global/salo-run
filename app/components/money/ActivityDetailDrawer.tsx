@@ -187,7 +187,7 @@ export default function ActivityDetailDrawer({
             style={{
               fontSize: '1.5rem',
               fontWeight: 700,
-              color: item.direction === 'in' ? '#059669' : colors.textPrimary,
+              color: item.direction === 'in' ? 'var(--g-success, #059669)' : colors.textPrimary,
             }}
           >
             {item.direction === 'in' ? '+' : '-'}{formatPrice(item.amount)}

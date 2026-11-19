@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import { dashboardAuthFetch } from '../providers/AuthProvider';
+import { getActiveWorkspaceId } from '@/app/lib/workspace';
 import { getApiUrl } from '@/lib/api';
 import { bucketOf, getEligibility, listHostedEvents } from '@/lib/hosting/hostedEvents';
 
@@ -15,6 +16,9 @@ export function useHostEntry(): { canHost: boolean; caption: string; loaded: boo
   // True once the eligibility answer is in, so a page can reserve the tiles' space instead of shifting when they appear.
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
+    // Hosting is the account's own business, not part of another photographer's workspace (the server refuses it
+    // there): no request, no Go live tile.
+    if (getActiveWorkspaceId()) { setCanHost(false); setLoaded(true); return; }
     const authFetch = dashboardAuthFetch as (u: string, i?: RequestInit) => Promise<Response>;
     getEligibility(apiUrl, authFetch)
       .then((e) => {

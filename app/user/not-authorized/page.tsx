@@ -26,25 +26,25 @@ export default function NotAuthorizedPage() {
   return (
     <main style={{
       minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 24, background: '#fafafa',
+      padding: 24, background: 'var(--g-bg, #fafafa)',
     }}>
       <section style={{
-        maxWidth: 520, width: '100%', background: '#fff',
-        border: '1px solid #e5e7eb', borderRadius: 14, padding: '32px 28px',
+        maxWidth: 520, width: '100%', background: 'var(--g-card, #fff)',
+        border: '1px solid var(--g-stroke, #e5e7eb)', borderRadius: 14, padding: '32px 28px',
         boxShadow: '0 12px 30px -12px rgba(0,0,0,0.10)', textAlign: 'center',
       }}>
         <div style={{
           width: 56, height: 56, borderRadius: '50%',
-          background: 'rgba(242,12,143,0.10)', color: '#F20C8F',
+          background: 'var(--g-tint-accent, rgba(242,12,143,0.10))', color: 'var(--g-accent-text, #F20C8F)',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 26, marginBottom: 14,
         }} aria-hidden>
           <i className="bi bi-shield-lock" />
         </div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111' }}>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--g-text, #111)' }}>
           {sharedWorkspace ? 'Not available in a shared workspace' : "You don't have access to this page"}
         </h1>
-        <p style={{ margin: '10px 0 0', fontSize: 14, color: '#6b7280', lineHeight: 1.55 }}>
+        <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--g-text-muted, #6b7280)', lineHeight: 1.55 }}>
           {sharedWorkspace
             ? <>You are working in {active ? <strong>{active.owner.name}</strong> : 'another photographer'}&apos;s workspace. Withdrawals, the transaction history, payroll, donating, account settings and managing access stay with its owner. Switch back to your own workspace to use them.</>
             : isOwner
@@ -54,15 +54,15 @@ export default function NotAuthorizedPage() {
 
         {!sharedWorkspace && required.length > 0 && (
           <div style={{
-            marginTop: 18, padding: '12px 14px', background: '#f3f4f6', borderRadius: 8, textAlign: 'left',
+            marginTop: 18, padding: '12px 14px', background: 'var(--g-well, #f3f4f6)', borderRadius: 8, textAlign: 'left',
           }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#374151', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--g-text, #374151)', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 }}>
               Required permission{required.length > 1 ? 's (any of)' : ''}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {required.map(r => (
                 <code key={r} style={{
-                  fontSize: 12, color: '#054d6f', background: '#eef6fb',
+                  fontSize: 12, color: 'var(--g-link, #054d6f)', background: 'var(--g-tint, #eef6fb)',
                   padding: '3px 9px', borderRadius: 999, fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace',
                 }}>{r}</code>
               ))}
@@ -72,18 +72,18 @@ export default function NotAuthorizedPage() {
 
         {from && (
           <p style={{ marginTop: 14, fontSize: 12.5, color: 'var(--g-text-muted, #9CA3AF)' }}>
-            Tried to open <code style={{ background: '#f3f4f6', padding: '2px 6px', borderRadius: 4 }}>{from}</code>
+            Tried to open <code style={{ background: 'var(--g-well, #f3f4f6)', padding: '2px 6px', borderRadius: 4 }}>{from}</code>
           </p>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 22 }}>
           {sharedWorkspace ? (
             <>
-              <Link href="/user/photographer/dashboard" style={btnPrimary}>Workspace home</Link>
-              <button type="button" onClick={() => switchTo(null)} style={btnSecondary}>Back to my workspace</button>
+              <Link className="gk-target" href="/user/photographer/dashboard" style={btnPrimary}>Workspace home</Link>
+              <button type="button" className="gk-target" onClick={() => switchTo(null)} style={btnSecondary}>Back to my workspace</button>
             </>
           ) : (
-            <Link href="/" style={btnPrimary}>Go home</Link>
+            <Link className="gk-target" href="/" style={btnPrimary}>Go home</Link>
           )}
         </div>
       </section>
@@ -93,10 +93,10 @@ export default function NotAuthorizedPage() {
 
 const btnPrimary: React.CSSProperties = {
   padding: '9px 18px', fontSize: 13.5, fontWeight: 600, borderRadius: 8,
-  background: '#F20C8F', color: '#fff', textDecoration: 'none',
+  background: 'var(--g-primary-dark, #F20C8F)', color: '#fff', textDecoration: 'none',
 };
 
 const btnSecondary: React.CSSProperties = {
   padding: '9px 18px', fontSize: 13.5, fontWeight: 600, borderRadius: 8,
-  background: '#fff', color: '#083A85', border: '1px solid #083A85', cursor: 'pointer',
+  background: 'var(--g-card, #fff)', color: 'var(--g-link, #083A85)', border: '1px solid var(--g-link, #083A85)', cursor: 'pointer',
 };

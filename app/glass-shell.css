@@ -66,7 +66,8 @@ html.ui-glass .g-nav-link[aria-disabled="true"] { opacity: 0.45; pointer-events:
 html.ui-glass .g-nav-link.g-danger { color: var(--g-error); }
 html.ui-glass .g-badge {
   margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
-  background: var(--g-accent); color: #fff; font-size: 0.6875rem; font-weight: 700;
+  /* white on the brand magenta is 4:1; #C40A75 keeps it at 5.7:1 */
+  background: #C40A75; color: #fff; font-size: 0.6875rem; font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center;
 }
 html.ui-glass .g-shell[data-collapsed="true"] .g-sidebar .g-nav-label,
@@ -76,6 +77,13 @@ html.ui-glass .g-shell[data-collapsed="true"] .g-sidebar .g-badge {
   position: absolute; top: 4px; right: 8px; min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0;
 }
 
+/* Skip link: off screen until it has keyboard focus */
+html.ui-glass .g-skip { position: fixed; left: 12px; top: -60px; z-index: 100; padding: 10px 16px; border-radius: 12px; background: var(--g-primary); color: #fff; font-weight: 700; text-decoration: none; }
+html.ui-glass .g-skip:focus { top: 12px; }
+html.ui-glass .g-page-host:focus { outline: none; }
+/* top bar role label and page title never spill */
+html.ui-glass .g-topbar small, html.ui-glass .gh-eyebrow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; }
+
 /* Controls */
 html.ui-glass .g-icon-btn {
   width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
@@ -84,7 +92,7 @@ html.ui-glass .g-icon-btn {
 }
 html.ui-glass .g-icon-btn:hover { background: var(--g-tint); color: var(--g-text); }
 html.ui-glass .g-chip {
-  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 999px;
   border: 1px solid var(--g-stroke); background: var(--g-well); color: var(--g-text); font-size: 0.8125rem;
   font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; text-decoration: none; font-family: inherit;
 }
@@ -124,7 +132,7 @@ html.ui-glass .g-menu-row { display: flex; align-items: center; justify-content:
 html.ui-glass .g-menu-sep { height: 1px; background: var(--g-stroke); margin: 6px 4px; }
 html.ui-glass .g-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--g-well);
   border: 1px solid var(--g-stroke); }
-html.ui-glass .g-seg button { height: 30px; padding: 0 10px; border-radius: 9px; border: none; background: none;
+html.ui-glass .g-seg button { height: 34px; min-height: 34px; padding: 0 10px; border-radius: 9px; border: none; background: none;
   color: var(--g-text-soft); font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: inline-flex;
   align-items: center; gap: 6px; font-family: inherit; }
 html.ui-glass .g-seg button[aria-pressed="true"] { background: var(--g-primary); color: #fff; }
@@ -160,7 +168,7 @@ html.ui-glass .g-banner { display: flex; align-items: center; gap: 12px; padding
 html.ui-glass .g-banner-icon { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: inline-flex;
   align-items: center; justify-content: center; }
 html.ui-glass .g-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 16px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px;
   border-radius: 12px; border: 1px solid transparent; font-size: 0.875rem; font-weight: 600; cursor: pointer;
   white-space: nowrap; text-decoration: none; flex-shrink: 0; font-family: inherit;
 }
@@ -180,6 +188,7 @@ html.ui-glass .g-cal button:disabled { opacity: 0.35; cursor: default; }
 @media (max-width: 767.98px) {
   html.ui-glass .g-sidebar, html.ui-glass .g-only-desktop { display: none !important; }
   html.ui-glass .g-only-mobile { display: inline-flex !important; }
+  html.ui-glass .g-topbar .g-brand.g-only-mobile { min-height: 40px; }
   html.ui-glass .g-topbar { left: 0; padding: 0 10px; gap: 6px; height: 56px; }
   html.ui-glass .g-content { left: 0; top: 56px; bottom: calc(var(--g-tabbar-h) + env(safe-area-inset-bottom)); }
   html.ui-glass .g-banners { padding: 10px 12px 0; }
@@ -194,7 +203,7 @@ html.ui-glass .g-cal button:disabled { opacity: 0.35; cursor: default; }
     color: var(--g-text-muted); font-size: 0.6875rem; font-weight: 600; text-decoration: none; position: relative;
     min-width: 0;
   }
-  html.ui-glass .g-tab[aria-current="page"] { color: var(--g-primary-light); }
+  html.ui-glass .g-tab[aria-current="page"] { color: var(--g-link); }
   html.ui-glass .g-tab-dot { position: absolute; top: 8px; left: calc(50% + 6px); width: 8px; height: 8px;
     border-radius: 999px; background: var(--g-accent); }
   html.ui-glass .g-pop { position: static; }
@@ -215,7 +224,9 @@ html.ui-glass .g-palette.g-blur { background: var(--g-elevated); }
 }
 
 /* Payment required chip in the top bar */
-html.ui-glass .g-pay-chip { color: var(--g-pending); border-color: var(--g-pending); cursor: pointer; flex-shrink: 1; min-width: 0; }
-html.ui-glass .g-pay-chip strong { color: var(--g-link); white-space: nowrap; }
-html.ui-glass .g-pay-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .g-pay-chip { color: var(--g-pending); border-color: var(--g-pending); cursor: pointer; flex-shrink: 1; min-width: 0; overflow: hidden; }
+html.ui-glass .g-pay-chip strong { color: var(--g-link); white-space: nowrap; flex-shrink: 0; }
+html.ui-glass .g-pay-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* below 1024 the top bar is crowded: the chip keeps only "Pay now" (the amount is in the payment dialog) */
+@media (max-width: 1023.98px) { html.ui-glass .g-pay-chip-text { display: none; } }
 @media (max-width: 767.98px) { html.ui-glass .g-pay-chip-text { display: none; } html.ui-glass .g-pay-chip { padding: 6px 10px; } }

@@ -1,92 +1,22 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import { useCurrency } from '@/app/context/CurrencyContext';
-import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
 
-interface PayrollData {
-  period: string;
-  generatedDate: string;
-  initial: number;
-  pending: number;
-  paid: number;
-  total: number;
-  transactions: { id: string | number; date: string; description: string; type: string; amount: number; status: string }[];
-}
+import { usePayrollReport } from '@/app/components/transactions/usePayrollReport';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassPayrollReport from '@/app/components/glass/pages/GlassPayrollReport';
+
 
 const PayrollReport = () => {
   const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
-  const { user } = useDashboardAuth();
-  const reportRef = useRef<HTMLDivElement>(null);
-
-  const [payrollData, setPayrollData] = useState<PayrollData>({
-    period: '',
-    generatedDate: '',
-    initial: 0,
-    pending: 0,
-    paid: 0,
-    total: 0,
-    transactions: [],
-  });
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    const fetchPayroll = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/payroll-report`);
-        if (res.ok) {
-          const result = await res.json();
-          if (result.action === 1 && result.data) {
-            const d = result.data;
-            setPayrollData({
-              period: d.period || '',
-              generatedDate: d.generatedDate || '',
-              initial: parseFloat(d.initial) || 0,
-              pending: parseFloat(d.pending) || 0,
-              paid: parseFloat(d.paid) || 0,
-              total: parseFloat(d.total) || 0,
-              transactions: (d.transactions || []).map((t: any) => ({
-                id: t.id,
-                date: t.date || '',
-                description: t.description || '',
-                type: t.type || 'Service Payment',
-                amount: parseFloat(t.amountInUsd ?? t.amount) || 0,
-                status: t.status || 'Pending',
-              })),
-            });
-            setLoadError(false);
-            return;
-          }
-        }
-        // Non-2xx or action 0: say so rather than print a $0 report.
-        setLoadError(true);
-      } catch (err) {
-        console.error('Failed to fetch payroll report:', err);
-        setLoadError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPayroll();
-  }, [user?.id]);
-
-  const handlePrint = () => {
-    if (typeof window !== 'undefined') {
-      window.print();
-    }
-  };
-
-  const handleDownloadPDF = () => {
-    handlePrint();
-  };
+  // The load and print handlers are shared with the Compact Glass page (usePayrollReport, moved verbatim).
+  const ctl = usePayrollReport();
+  const { formatPrice, reportRef, payrollData, loading, loadError, handleDownloadPDF } = ctl;
+  const glass = useUiGlass();
+  if (glass) return <GlassPayrollReport ctl={ctl} />;
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {

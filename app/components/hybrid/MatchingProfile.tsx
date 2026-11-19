@@ -99,7 +99,7 @@ export function MatchingProfileForm({ onSaved, compact, initial }: { onSaved?: (
       {status && !error && <Notice tone={status.tone}>{saved && profile?.instagramStatus === 'PENDING' ? 'Saved. Thank you!' : status.text}</Notice>}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" onClick={save} disabled={saving || !profile} className="hy-focus"
-          style={{ padding: '0.65rem 1.3rem', borderRadius: 12, border: 'none', background: MODE_META.HYBRID.color, color: '#fff', fontWeight: 800, cursor: saving ? 'wait' : 'pointer' }}>
+          style={{ padding: '0.65rem 1.3rem', borderRadius: 12, border: 'none', background: `var(--g-accent-strong, ${MODE_META.HYBRID.color})`, color: '#fff', fontWeight: 800, cursor: saving ? 'wait' : 'pointer', minHeight: 40 }}>
           {saving ? 'Saving…' : 'Save'}
         </button>
       </div>

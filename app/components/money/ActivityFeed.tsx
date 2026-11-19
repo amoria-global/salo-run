@@ -125,6 +125,8 @@ export default function ActivityFeed({
           return (
             <button
               key={tag}
+              className="g-activity-chip"
+              aria-pressed={active}
               onClick={() => setActiveFilter(tag)}
               style={{
                 padding: '0.25rem 0.625rem',

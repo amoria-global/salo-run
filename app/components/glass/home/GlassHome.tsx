@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useDashboardAuth } from '@/app/providers/AuthProvider';
 import { useWorkspace } from '@/app/providers/WorkspaceProvider';
+import { getActiveWorkspaceId } from '@/app/lib/workspace';
 import { usePermissions } from '@/app/lib/usePermissions';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
@@ -69,7 +70,8 @@ export default function GlassHome() {
   const [range, setRange] = useState<Range>({ from: '', to: '' });
   const q = periodQuery(period, range);
   const [analytics] = useResource<Analytics>('/api/remote/photographer/analytics');
-  const [wallet, retryWallet] = useResource<Wallet>(isCollaborator || isShared ? null : '/api/remote/wallet/me');
+  // The cookie is read directly too: on the very first render the provider has not picked the workspace up yet.
+  const [wallet, retryWallet] = useResource<Wallet>(isCollaborator || isShared || getActiveWorkspaceId() ? null : '/api/remote/wallet/me');
   const [trends, retryTrends] = useResource<Record<string, Trend>>(`/api/remote/photographer/analytics/trends?${q.trends}`);
   const [perf, retryPerf] = useResource<PerfPoint[]>(`/api/remote/photographer/performance?${q.performance}`);
   const [events, retryEvents] = useResource<RawEvent[]>('/api/remote/photographer/events');

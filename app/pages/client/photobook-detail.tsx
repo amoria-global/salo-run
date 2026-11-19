@@ -8,6 +8,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { usePhotobookDetail, type PhotobookDetailController } from '@/app/components/gallery/usePhotobookDetail';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassPhotobookDetail from '@/app/components/glass/pages/GlassPhotobookDetail';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -201,170 +204,40 @@ const getWorkflowStepIndex = (status: string): number => {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-const PhotobookDetailPage: React.FC<PhotobookDetailPageProps> = ({ userRole }) => {
-  const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
-  const { token } = useDashboardAuth();
-  const router = useRouter();
-  const params = useParams();
-  const id = params?.id as string;
-
-  const [photobook, setPhotobook] = useState<Photobook | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'events';
-
-  const fetchPhotobook = useCallback(async () => {
-    // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
-    // sends the HttpOnly cookie regardless, so gate only on id.
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const apiUrl = getApiUrl();
-      const endpoint = userRole === 'event-coordinator'
-        ? `${apiUrl}/api/remote/coordinator/photobooks/${id}`
-        : `${apiUrl}/api/remote/events/photobooks/${id}`;
-      const res = await dashboardAuthFetch(endpoint);
-      if (!res.ok) {
-        if (res.status === 404) {
-          setError('Photobook not found.');
-        } else {
-          setError('Failed to load photobook details. Please try again.');
-        }
-        setLoading(false);
-        return;
-      }
-      const result = await res.json();
-      const data = result.data || result;
-      setPhotobook({
-        id: data.id,
-        name: data.name || 'Untitled Photobook',
-        description: data.description || null,
-        layout: data.layout || null,
-        coverImage: normalizeImageUrl(data.coverImage) || null,
-        isSent: Boolean(data.isSent),
-        sentAt: data.sentAt || null,
-        senderName: data.senderName || null,
-        mediaCount: Number(data.mediaCount) || 0,
-        mediaItems: (data.mediaItems || []).map((item: any) => ({
-          id: item.id,
-          fileUrl: normalizeImageUrl(item.fileUrl) || '',
-          caption: item.caption || null,
-          sortOrder: item.sortOrder || 0,
-        })),
-        createdAt: data.createdAt || '',
-        status: data.status || 'DRAFT',
-        freePhotosLimit: data.freePhotosLimit != null ? Number(data.freePhotosLimit) : null,
-        extraPhotosCount: data.extraPhotosCount != null ? Number(data.extraPhotosCount) : null,
-        extraPhotosAmount: data.extraPhotosAmount != null ? Number(data.extraPhotosAmount) : null,
-        paymentRequired: Boolean(data.paymentRequired),
-        paymentDeclarationId: data.paymentDeclarationId || null,
-        resubmittedAt: data.resubmittedAt || null,
-        photographerName: data.photographerName || null,
-        eventId: data.eventId || null,
-        pricePerExtraPhoto: data.pricePerExtraPhoto != null ? Number(data.pricePerExtraPhoto) : null,
-        currencyId: data.currencyId || null,
-      });
-    } catch (err) {
-      console.error('Failed to fetch photobook:', err);
-      setError('An error occurred while loading photobook details.');
-    } finally {
-      setLoading(false);
-    }
-  }, [id, userRole]);
-
-  useEffect(() => {
-    fetchPhotobook();
-  }, [fetchPhotobook]);
-
-  const handleGoBack = () => {
-    router.back();
-  };
-
-  const handleSend = async () => {
-    if (!photobook || actionLoading) return;
-    setActionLoading(true);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${rolePrefix}/photobook/${id}/send`, {
-        method: 'POST',
-      });
-      if (res.ok) {
-        await fetchPhotobook();
-      }
-    } catch (err) {
-      console.error('Failed to send photobook:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleAccept = async () => {
-    if (!photobook || actionLoading) return;
-    setActionLoading(true);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${rolePrefix}/photobook/${id}/accept`, {
-        method: 'POST',
-      });
-      if (res.ok) {
-        await fetchPhotobook();
-      }
-    } catch (err) {
-      console.error('Failed to accept photobook:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handlePayForExtras = () => {
-    if (!photobook?.paymentDeclarationId) return;
-    const basePath = userRole === 'event-coordinator' ? 'event-coordinator' : 'client';
-    router.push(`/user/${basePath}/payments/${photobook.paymentDeclarationId}`);
-  };
-
-  const handleDelete = async () => {
-    if (!photobook || actionLoading) return;
-    setActionLoading(true);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${rolePrefix}/photobook/${id}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        router.back();
-      }
-    } catch (err) {
-      console.error('Failed to delete photobook:', err);
-    } finally {
-      setActionLoading(false);
-      setShowDeleteConfirm(false);
-    }
-  };
-
-  const openLightbox = (index: number) => {
-    setLightboxIndex(index);
-  };
-
-  const closeLightbox = () => {
-    setLightboxIndex(null);
-  };
-
-  const goToPrevImage = () => {
-    if (lightboxIndex === null || !photobook) return;
-    setLightboxIndex(lightboxIndex === 0 ? photobook.mediaItems.length - 1 : lightboxIndex - 1);
-  };
-
-  const goToNextImage = () => {
-    if (lightboxIndex === null || !photobook) return;
-    setLightboxIndex(lightboxIndex === photobook.mediaItems.length - 1 ? 0 : lightboxIndex + 1);
-  };
-
+const ClassicPhotobookDetailPage = ({ ctl }: { ctl: PhotobookDetailController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    token,
+    router,
+    params,
+    id,
+    photobook,
+    setPhotobook,
+    loading,
+    setLoading,
+    error,
+    setError,
+    lightboxIndex,
+    setLightboxIndex,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    actionLoading,
+    setActionLoading,
+    rolePrefix,
+    fetchPhotobook,
+    handleGoBack,
+    handleSend,
+    handleAccept,
+    handlePayForExtras,
+    handleDelete,
+    openLightbox,
+    closeLightbox,
+    goToPrevImage,
+    goToNextImage,
+    userRole,
+  } = ctl;
   // ── Render ─────────────────────────────────────────────────────────────────
 
   // Loading state
@@ -1294,5 +1167,12 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value, colors, valueColor }) =
     </span>
   </div>
 );
+
+/** One controller for both views, so the classic page (UI_GLASS=off) and the Compact Glass page behave the same. */
+const PhotobookDetailPage: React.FC<PhotobookDetailPageProps> = ({ userRole }) => {
+  const ctl = usePhotobookDetail(userRole);
+  const glass = useUiGlass();
+  return glass ? <GlassPhotobookDetail ctl={ctl} /> : <ClassicPhotobookDetailPage ctl={ctl} />;
+};
 
 export default PhotobookDetailPage;

@@ -14,7 +14,8 @@ import { describe, expect, it } from 'vitest';
  * Reading the source checks this without a signed-in session against a live backend.
  */
 
-const SOURCE = readFileSync(path.join(__dirname, 'album-detail.tsx'), 'utf8')
+// The page and its extracted hook (shared with the Compact Glass page) together hold the rules.
+const SOURCE = (readFileSync(path.join(__dirname, 'album-detail.tsx'), 'utf8') + '\n' + readFileSync(path.join(__dirname, '../../components/gallery/useAlbumDetail.tsx'), 'utf8'))
   .replace(/\r\n/g, '\n')
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/^\s*\/\/.*$/gm, '');

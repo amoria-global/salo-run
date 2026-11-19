@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest';
  * isLocked and lockedAt (the backend's album summary now sends them), a click on the badge opens the restore flow without
  * opening the album, and a finished payment reloads the list. Reading the source checks this without a signed-in session.
  */
-const SOURCE = readFileSync(path.join(__dirname, 'events.tsx'), 'utf8').replace(/\r\n/g, '\n');
+// The page and its extracted hook (shared with the Compact Glass page) together hold the rules.
+const SOURCE = (readFileSync(path.join(__dirname, 'events.tsx'), 'utf8') + '\n' + readFileSync(path.join(__dirname, '../../components/events/photographer/usePhotographerEvents.tsx'), 'utf8')).replace(/\r\n/g, '\n');
 
 describe('photographer albums: archived', () => {
   it('reads the archived state from the album summary', () => {

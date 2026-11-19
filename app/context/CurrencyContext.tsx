@@ -54,6 +54,7 @@ const DECIMALS_MAP: Record<string, number> = {
 const DEFAULT_CURRENCIES: CurrencyInfo[] = initialCurrencies();
 
 import { getApiUrl } from '@/lib/api';
+import { getActiveWorkspaceId } from '@/app/lib/workspace';
 import { useDashboardAuth, dashboardAuthFetch } from '../providers/AuthProvider';
 
 const STORAGE_KEY = "connekt-currency";
@@ -112,6 +113,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const saveToAccount = useCallback(async (code: CurrencyCode) => {
+    // Inside another photographer's workspace the server refuses account settings (WorkspacePolicy).
+    if (getActiveWorkspaceId()) return;
     try {
       await dashboardAuthFetch(`${getApiUrl()}${ACCOUNT_PATH}`, {
         method: "PUT",
@@ -126,6 +129,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   // Signed in: the account's saved currency wins; if it has none yet, save this browser's choice to it.
   useEffect(() => {
     if (!isAuthenticated) return;
+    // Same rule: in a workspace the browser's choice stands and no account read is made.
+    if (getActiveWorkspaceId()) return;
     (async () => {
       try {
         const res = await dashboardAuthFetch(`${getApiUrl()}${ACCOUNT_PATH}`);

@@ -12,9 +12,9 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronRight, Gift, Image as ImageIcon, Share2, User } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
-import { useDashboardAuth, dashboardAuthFetch } from '@/app/providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
+import { useDashboardAuth } from '@/app/providers/AuthProvider';
 import { fetchMyReferral } from '@/app/lib/referral';
+import { fetchPublicProfileUrl } from '@/app/lib/publicProfileLink';
 
 const ReferralSheet = dynamic(() => import('./ReferralSheet'), { ssr: false });
 
@@ -36,7 +36,7 @@ export function progressChip(qualifying: number): string {
 
 const chip = (accent: boolean): React.CSSProperties => ({
   display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 8px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap',
-  color: accent ? 'var(--g-accent)' : 'var(--g-primary-light)', border: `1px solid ${accent ? 'var(--g-accent)' : 'var(--g-primary-light)'}`,
+  color: accent ? 'var(--g-accent-text)' : 'var(--g-link)', border: `1px solid ${accent ? 'var(--g-accent-text)' : 'var(--g-link)'}`,
   background: accent ? 'var(--g-accent-bg, transparent)' : 'transparent',
 });
 
@@ -56,13 +56,12 @@ export default function ShareMenu({ canCreateAlbum }: { canCreateAlbum: boolean 
     fetchMyReferral().then((s) => { if (alive) setStats({ qualifying: s.qualifying, feePercent: s.feePercent, complete: s.complete }); }).catch(() => { /* keep the item; the server enforces the rules */ });
     (async () => {
       try {
-        const res = await dashboardAuthFetch(`${getApiUrl()}/api/remote/public/seo/slug-for?type=photographer&id=${encodeURIComponent(user?.customerId || user?.id || '')}`);
-        const body = res.ok ? await res.json() : null;
-        if (alive && body?.slug) setProfileUrl(`https://connekyt.com/photographers/${body.slug}`);
+        const url = await fetchPublicProfileUrl(user);
+        if (alive && url) setProfileUrl(url);
       } catch { /* the sub line stays empty */ }
     })();
     return () => { alive = false; };
-  }, [user?.customerId, user?.id]);
+  }, [user]);
 
   useEffect(() => {
     if (!open) return;

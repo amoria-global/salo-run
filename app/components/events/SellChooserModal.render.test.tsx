@@ -32,7 +32,8 @@ const mount = () => {
   return fns;
 };
 const choice = (key: string) => document.querySelector(`[data-testid="sell-choice-${key}"]`) as HTMLButtonElement;
-const SRC = (f: string) => readFileSync(path.join(__dirname, '..', '..', 'pages', 'photographer', f), 'utf8').replace(/\r\n/g, '\n');
+// events.tsx's rules now live in the page and its extracted hook, so both are read.
+const SRC = (f: string) => (readFileSync(path.join(__dirname, '..', '..', 'pages', 'photographer', f), 'utf8') + (f === 'events.tsx' ? '\n' + readFileSync(path.join(__dirname, 'photographer', 'usePhotographerEvents.tsx'), 'utf8') : '')).replace(/\r\n/g, '\n');
 
 describe('Sell photos chooser (web)', () => {
   it('asks what you want to sell with both options and their one-line descriptions', () => {

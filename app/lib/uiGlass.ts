@@ -49,9 +49,14 @@ export function emailFromToken(token: string | undefined | null): string | null 
   }
 }
 
-/** Admin keeps its current shell; the redesign covers the photographer, client and coordinator dashboards. */
+/**
+ * Admin keeps its current shell; the redesign covers the photographer, client and coordinator dashboards, plus the
+ * two pages every signed-in role shares (the access explanation and the password change).
+ */
 export function isGlassPath(pathname: string): boolean {
-  return /^\/user\/(photographer|client|event-coordinator)(\/|$)/.test(pathname);
+  return /^\/user\/(photographer|client|event-coordinator)(\/|$)/.test(pathname)
+    || /^\/user\/not-authorized\/?$/.test(pathname)
+    || /^\/user\/auth\/change-password\/?$/.test(pathname);
 }
 
 export function glassEnabledFor(mode: UiGlassMode, allowlist: Set<string>, email: string | null): boolean {
@@ -65,12 +70,16 @@ export function glassEnabledFor(mode: UiGlassMode, allowlist: Set<string>, email
  *  - data-theme, from the same localStorage key ThemeContext reads, so a dark-theme user no longer sees the light
  *    theme flash on load. Both UIs get this; it does not change how either looks once loaded.
  *  - the ui-glass class, when the flag cookie is set and the path is a redesigned dashboard.
+ *  - the self-hosted icon stylesheet, inserted from script so it does not block rendering (icons appear a moment later).
  * It must stay in step with ThemeContext's detectRoleFromPath and getThemeStorageKey.
  */
+/** Bootstrap Icons 1.11.3, self-hosted (public/vendor). Added by the head script so it never blocks the first paint. */
+export const ICONS_CSS = '/vendor/bootstrap-icons-1.11.3/bootstrap-icons.min.css';
+
 export const HEAD_SCRIPT = `(function(){try{var d=document.documentElement,p=location.pathname;
 var r=p.indexOf('/user/photographer')>-1?'photographer':p.indexOf('/user/client')>-1?'client':'default';
 var k=r==='default'?'connekt-theme':'connekt-theme-'+r;var t=null;try{t=localStorage.getItem(k)}catch(e){}
 if(t==='system'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
 if(t!=='dark')t='light';d.setAttribute('data-theme',t);
-if(/(?:^|;\\s*)${UI_GLASS_COOKIE}=glass(?:;|$)/.test(document.cookie)&&/^\\/user\\/(photographer|client|event-coordinator)(\\/|$)/.test(p)){d.classList.add('${UI_GLASS_CLASS}')}
-}catch(e){}})();`;
+if(/(?:^|;\\s*)${UI_GLASS_COOKIE}=glass(?:;|$)/.test(document.cookie)&&/^\\/user\\/((photographer|client|event-coordinator)(\\/|$)|not-authorized\\/?$|auth\\/change-password\\/?$)/.test(p)){d.classList.add('${UI_GLASS_CLASS}')}
+}catch(e){}try{var l=document.createElement('link');l.rel='stylesheet';l.href='${ICONS_CSS}';document.head.appendChild(l)}catch(e){}})();`;

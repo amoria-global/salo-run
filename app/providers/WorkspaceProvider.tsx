@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useDashboardAuth } from './AuthProvider';
 import { listMyWorkspaces, type WorkspaceMembership } from '../lib/APIs/workspaces';
 import {
@@ -59,7 +59,12 @@ export function useWorkspace(): WorkspaceContextValue {
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useDashboardAuth();
-  const [activeId, setActiveId] = useState<string | null>(() => getActiveWorkspaceId());
+  // Starts empty on purpose: the server cannot read the workspace cookie, so reading it during the first render made
+  // the client's first render differ from the server's (a hydration error, seen on a collaborator's event page).
+  // The layout effect picks it up before the first paint, so nothing flashes.
+  const [activeId, setActiveId] = useState<string | null>(null);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- one sync from the cookie after hydration, before paint
+  useLayoutEffect(() => { setActiveId(getActiveWorkspaceId()); }, []);
   const [workspaces, setWorkspaces] = useState<WorkspaceMembership[]>([]);
   const [loading, setLoading] = useState(false);
 

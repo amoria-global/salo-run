@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import WalletPanel from '../../components/WalletPanel';
@@ -9,7 +9,9 @@ import WithdrawModal from '../../components/WithdrawModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
 import { Can } from '@/app/lib/usePermissions';
-import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
+import { useMyWallet } from '@/app/components/wallet/useMyWallet';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassWallet from '@/app/components/glass/pages/GlassWallet';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 
 export default function PhotographerWalletPage() {
@@ -18,27 +20,16 @@ export default function PhotographerWalletPage() {
   // In a workspace the photographer was invited to, the balance and summaries are visible; withdrawing and the activity
   // list (the transaction history) stay with the owner.
   const { isShared, active } = useWorkspace();
-  const [wallet, setWallet] = useState<WalletDTO | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // The load is shared with the Compact Glass wallet (useMyWallet, moved verbatim).
+  const { wallet, loading, error, reload } = useMyWallet();
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const w = await getMyWallet();
-        if (!cancelled) setWallet(w);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load wallet');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const glass = useUiGlass();
+  if (glass) {
+    return <GlassWallet role="photographer" wallet={wallet} loading={loading} error={error} reload={reload} shared={isShared}
+      panelTitle={isShared ? 'Workspace earnings' : 'My earnings'} subtitle={isShared
+                  ? `${active ? `${active.owner.name}'s` : 'This workspace\'s'} earnings, tips and bonuses.`
+                  : `${user?.firstName ? `${user.firstName}, your` : 'Your'} earnings, tips, bonuses, and withdrawal history.`} />;
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--ck-surface-soft)', overflow: 'hidden' }}>

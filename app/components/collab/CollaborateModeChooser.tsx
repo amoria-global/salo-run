@@ -82,7 +82,7 @@ export function CollaborateModeChooser({ mode, onChange }: { mode: CollaborateMo
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-xs font-semibold uppercase tracking-wide" style={{ color: on ? 'var(--ck-pink)' : 'var(--ck-text-muted)' }}>{o.badge}</span>
-                <span className="block text-base font-bold text-[var(--ck-text)]">{o.title}</span>
+                <span className="block text-base font-bold text-[var(--ck-text)] [overflow-wrap:anywhere]">{o.title}</span>
               </span>
               <span
                 aria-hidden
@@ -116,7 +116,7 @@ export function CrossLink({ text, action, onClick }: { text: string; action: str
     <p className="mt-6 flex flex-wrap items-center gap-x-2 rounded-xl bg-[var(--ck-surface-soft)] px-4 py-3 text-sm text-[var(--ck-text-soft)]">
       <i className="bi bi-info-circle text-[var(--ck-text-muted)]" aria-hidden />
       <span>{text}</span>
-      <button type="button" onClick={onClick} className="font-semibold text-[var(--ck-blue)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ck-blue)]">{action}</button>
+      <button type="button" onClick={onClick} className="gk-target font-semibold text-[var(--ck-blue)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ck-blue)]">{action}</button>
     </p>
   );
 }

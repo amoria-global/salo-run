@@ -10,12 +10,14 @@
  */
 
 html.ui-glass {
-  --g-primary: #083A85;
-  --g-primary-light: #2F64C8;
-  --g-primary-dark: #062d6b;
+  /* Brand blue as a fill (white text 4.7:1). The old navy #083A85 is not used for text or buttons. */
+  --g-primary: #3E6FD8;
+  --g-primary-light: #5B8CFF;
+  --g-primary-dark: #3360C4;
   --g-accent: #F20C8F;
   --g-accent-light: #ff4fae;
-  --g-link: #083A85;
+  /* Link text: #3E6FD8 is 4.3:1 on the light page, so links go one step deeper (5.3:1 on the page, 5.8:1 on cards). */
+  --g-link: #3461C8;
 
   --g-bg: #F4F6FB;
   --g-surface: #FFFFFF;
@@ -60,7 +62,15 @@ html.ui-glass {
   --g-live-surface-end: #FFE1E7;
 
   --g-grad-brand: linear-gradient(135deg, #083A85 0%, #0a4da3 50%, #F20C8F 100%);
-  --g-grad-raised: linear-gradient(180deg, #2F64C8 0%, #083A85 55%, #062D6B 100%);
+  /* Primary buttons: #5B8CFF is only the top highlight; the text band sits on #3E6FD8 to #3360C4, white >= 4.7:1. */
+  --g-grad-raised: linear-gradient(180deg, #5B8CFF 0%, #3E6FD8 30%, #3360C4 100%);
+  --g-grad-avatar: linear-gradient(135deg, #3E6FD8 0%, #C40A75 100%);
+  /* magenta as a fill under white text (5.7:1); the brand #F20C8F is only 4:1 */
+  --g-accent-strong: #C40A75;
+  /* magenta as TEXT: deep on light (5.7:1 on white), light on dark (5.3:1 on cards) */
+  --g-accent-text: #C40A75;
+  /* the wallet hero: white text >= 5.2:1 on every stop (the brand gradient's pink end is only 4:1) */
+  --g-grad-wallet: linear-gradient(135deg, #1D3F8F 0%, #3360C4 52%, #A3086A 100%);
   --g-grad-ring: linear-gradient(90deg, #083A85, #F20C8F);
   --g-grad-hero-blue: linear-gradient(135deg, #083A85, #1B55B8);
   --g-wash: radial-gradient(60rem 30rem at 0% -10%, rgba(8, 58, 133, 0.08), transparent 60%),
@@ -94,7 +104,8 @@ html.ui-glass {
   /* The old names, pointed at the new tokens, so pages not yet redesigned render in the new palette. */
   --ck-blue: var(--g-primary);
   --ck-blue-soft: var(--g-primary-light);
-  --ck-pink: var(--g-accent);
+  /* the kit uses --ck-pink mostly as text (eyebrows), so it takes the AA text magenta */
+  --ck-pink: var(--g-accent-text);
   --ck-pink-soft: var(--g-accent-light);
   --ck-surface: var(--g-card);
   --ck-surface-soft: var(--g-bg);
@@ -121,7 +132,7 @@ html.ui-glass[data-theme="dark"] {
   --g-primary-dark: #3360C4;
   --g-accent: #EE0E8F;
   --g-accent-light: #FF5DB8;
-  --g-link: #7FA6F5;
+  --g-link: #7FA2FF;
 
   --g-bg: #0A1220;
   --g-surface: #101B2E;
@@ -164,7 +175,14 @@ html.ui-glass[data-theme="dark"] {
   --g-live-surface-end: #16101E;
 
   --g-grad-brand: linear-gradient(135deg, #14346F 0%, #2B5AB8 50%, #D01B84 100%);
-  --g-grad-raised: linear-gradient(180deg, #5B8CFF 0%, #3E6FD8 55%, #3360C4 100%);
+  --g-grad-raised: linear-gradient(180deg, #5B8CFF 0%, #3E6FD8 30%, #3360C4 100%);
+  --g-grad-avatar: linear-gradient(135deg, #3E6FD8 0%, #C40A75 100%);
+  /* magenta as a fill under white text (5.7:1); the brand #F20C8F is only 4:1 */
+  --g-accent-strong: #C40A75;
+  /* magenta as TEXT: deep on light (5.7:1 on white), light on dark (5.3:1 on cards) */
+  --g-accent-text: #FF5DB8;
+  /* the wallet hero: white text >= 5.2:1 on every stop (the brand gradient's pink end is only 4:1) */
+  --g-grad-wallet: linear-gradient(135deg, #1D3F8F 0%, #3360C4 52%, #A3086A 100%);
   --g-grad-ring: linear-gradient(90deg, #5B8CFF, #EE0E8F);
   --g-grad-hero-blue: linear-gradient(135deg, #173A8F, #2A5FCC);
   --g-wash: radial-gradient(60rem 30rem at 0% -10%, rgba(61, 111, 214, 0.20), transparent 60%),

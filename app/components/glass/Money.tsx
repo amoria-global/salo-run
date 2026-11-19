@@ -13,7 +13,7 @@ export function Money({ amount, from, size = 'inherit' }: { amount: number; from
     <span className="g-num" style={{ fontSize: size, whiteSpace: 'nowrap' }} aria-label={p.tight ? `${p.prefix}${p.text}` : `${p.prefix} ${p.text}`}>
       {p.tight
         ? <>{p.prefix}{p.text}</>
-        : <><span style={{ fontSize: '0.72em', fontWeight: 600, color: 'var(--g-text-soft)', marginRight: '0.3em' }}>{p.prefix}</span>{p.text}</>}
+        : <><span style={{ fontSize: '0.72em', fontWeight: 600, color: 'var(--g-text-soft)' }}>{p.prefix} </span>{p.text}</>}
     </span>
   );
 }

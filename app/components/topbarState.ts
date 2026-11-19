@@ -59,7 +59,7 @@ export function useTopbarState(userRole: TopbarRole = 'client') {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showKycModal, setShowKycModal] = useState(false);
   // A workspace collaborator has no identity check of its own to complete: that belongs to the owner.
-  const { isCollaborator } = useWorkspace();
+  const { isCollaborator, isShared } = useWorkspace();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -144,6 +144,8 @@ export function useTopbarState(userRole: TopbarRole = 'client') {
 
   const fetchFinancials = useCallback(async () => {
     if (!user) return;
+    // In another photographer's workspace the wallet is the owner's, and the server refuses it there.
+    if (isShared) return;
     const apiUrl = getApiUrl();
     try {
       if (userRole !== 'admin') {
@@ -186,7 +188,7 @@ export function useTopbarState(userRole: TopbarRole = 'client') {
         }
       }
     } catch { /* silent */ }
-  }, [user, userRole]);
+  }, [user, userRole, isShared]);
 
   useEffect(() => {
     fetchNotifications();

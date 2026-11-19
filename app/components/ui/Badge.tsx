@@ -21,7 +21,7 @@ const toneClass: Record<Tone, string> = {
 const toneInline: Record<Tone, React.CSSProperties> = {
   success: {}, warning: {}, error: {}, info: {}, muted: {},
   brand: { background: 'rgba(8, 58, 133, 0.10)', color: 'var(--g-link, #083A85)' },
-  accent: { background: 'rgba(242, 12, 143, 0.10)', color: '#F20C8F' },
+  accent: { background: 'rgba(242, 12, 143, 0.10)', color: 'var(--g-accent-text, #F20C8F)' },
 };
 
 export const Badge: React.FC<BadgeProps> = ({ tone = 'muted', icon, children, className, style }) => (
