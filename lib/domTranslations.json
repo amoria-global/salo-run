@@ -18928,5 +18928,71 @@
     "No se pudieron cargar los pagos. Actualiza la página.",
     "Ntibyashobotse gufungura ubwishyu. Ongera ufungure paji.",
     "Imeshindwa kupakia malipo. Tafadhali onyesha upya."
+  ],
+  "Back to Payments": [
+    "Retour aux paiements",
+    "Volver a pagos",
+    "Subira ku bwishyu",
+    "Rudi kwenye malipo"
+  ],
+  "The payment you are looking for may have been removed or does not exist.": [
+    "Le paiement recherché a peut-être été supprimé ou n'existe pas.",
+    "Es posible que el pago que buscas se haya eliminado o no exista.",
+    "Ubwishyu ushaka bushobora kuba bwarakuweho cyangwa butabaho.",
+    "Malipo unayotafuta huenda yameondolewa au hayapo."
+  ],
+  "Escrow and milestone": [
+    "Séquestre et étape",
+    "Depósito en garantía e hito",
+    "Ingwate n'icyiciro",
+    "Escrow na hatua"
+  ],
+  "Due date": [
+    "Date d'échéance",
+    "Fecha de vencimiento",
+    "Itariki ntarengwa",
+    "Tarehe ya mwisho"
+  ],
+  "Overdue": [
+    "En retard",
+    "Vencido",
+    "Byarengeje igihe",
+    "Imechelewa"
+  ],
+  "Payment type": [
+    "Type de paiement",
+    "Tipo de pago",
+    "Ubwoko bw'ubwishyu",
+    "Aina ya malipo"
+  ],
+  "Escrow": [
+    "Séquestre",
+    "Depósito en garantía",
+    "Ingwate",
+    "Escrow"
+  ],
+  "Held in Escrow": [
+    "Bloqué en séquestre",
+    "Retenido en garantía",
+    "Bifashwe mu ngwate",
+    "Imeshikiliwa kwenye escrow"
+  ],
+  "Pending Hold": [
+    "Blocage en attente",
+    "Retención pendiente",
+    "Gufatwa bitegerejwe",
+    "Inasubiri kushikiliwa"
+  ],
+  "Stream ticket": [
+    "Billet de diffusion",
+    "Entrada de transmisión",
+    "Itike ya live",
+    "Tiketi ya matangazo"
+  ],
+  "Not completed": [
+    "Non terminé",
+    "No completado",
+    "Ntibirarangira",
+    "Haijakamilika"
   ]
 }

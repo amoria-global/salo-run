@@ -661,3 +661,51 @@ html.ui-glass .gpay-page-btn.is-on { background: var(--g-primary-dark); border-c
   html.ui-glass .gpay-invoice { grid-area: invoice; } html.ui-glass .gpay-actions { grid-area: actions; }
 }
 @media (max-width: 767.98px) { html.ui-glass .gc-sums { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Payment detail (GlassPaymentDetail) */
+html.ui-glass .gpd-page { display: grid; gap: 16px; }
+html.ui-glass .gpd-back { justify-self: start; }
+html.ui-glass .gpd-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+html.ui-glass .gpd-head h1 { margin: 0 0 8px; font-size: 1.5rem; font-weight: 700; color: var(--g-text); overflow-wrap: anywhere; }
+html.ui-glass .gpd-chips, html.ui-glass .gpd-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+html.ui-glass .gpd-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+html.ui-glass .gpd-main, html.ui-glass .gpd-side { display: grid; gap: 16px; min-width: 0; }
+html.ui-glass .gpd-card { padding: 16px; display: grid; gap: 14px; min-width: 0; }
+html.ui-glass .gpd-card h2 { margin: 0; font-size: 1.0625rem; font-weight: 700; color: var(--g-text); }
+html.ui-glass .gpd-total { display: grid; gap: 2px; }
+html.ui-glass .gpd-total span, html.ui-glass .gpd-muted, html.ui-glass .gpd-split small { color: var(--g-text-muted); font-size: 0.8125rem; margin: 0; }
+html.ui-glass .gpd-total strong { font-size: 2rem; color: var(--g-text); line-height: 1.15; }
+html.ui-glass .gpd-total small { color: var(--g-text-muted); }
+html.ui-glass .gpd-progress { display: grid; gap: 6px; }
+html.ui-glass .gpd-progress-label { display: flex; justify-content: space-between; color: var(--g-text-muted); font-size: 0.8125rem; }
+html.ui-glass .gpd-bar { display: block; height: 8px; border-radius: 999px; background: var(--g-tint); overflow: hidden; }
+html.ui-glass .gpd-bar > span { display: block; height: 100%; background: var(--g-grad-raised); border-radius: inherit; }
+html.ui-glass .gpd-kvs { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+html.ui-glass .gpd-kvs.is-list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+html.ui-glass .gpd-kv { display: grid; gap: 2px; min-width: 0; }
+html.ui-glass .gpd-kvs.is-list .gpd-kv { grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
+html.ui-glass .gpd-kvs.is-list .gpd-kv strong { text-align: right; justify-self: end; }
+html.ui-glass .gpd-kv span { color: var(--g-text-muted); font-size: 0.8125rem; }
+html.ui-glass .gpd-kv strong { color: var(--g-text); font-weight: 600; overflow-wrap: anywhere; }
+html.ui-glass .gpd-split { display: grid; gap: 8px; }
+html.ui-glass .gpd-split-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--g-tint); }
+html.ui-glass .gpd-split .is-a { background: var(--g-success); }
+html.ui-glass .gpd-split .is-b { background: var(--g-pending); }
+html.ui-glass .gpd-split-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--g-text); font-size: 0.875rem; }
+html.ui-glass .gpd-split-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+html.ui-glass .gpd-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+html.ui-glass .gpd-timeline li { display: flex; gap: 10px; align-items: flex-start; color: var(--g-text-muted); }
+html.ui-glass .gpd-timeline li.is-done > svg { color: var(--g-success); }
+html.ui-glass .gpd-timeline li.is-late > svg { color: var(--g-error); }
+html.ui-glass .gpd-timeline li.is-wait > svg { color: var(--g-pending); }
+html.ui-glass .gpd-timeline span { display: grid; gap: 2px; }
+html.ui-glass .gpd-timeline strong { color: var(--g-text); }
+html.ui-glass .gpd-person { display: flex; gap: 12px; align-items: center; }
+html.ui-glass .gpd-person span { display: grid; gap: 2px; min-width: 0; }
+html.ui-glass .gpd-person strong { color: var(--g-text); }
+html.ui-glass .gpd-person small { color: var(--g-text-muted); }
+html.ui-glass .gpd-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+html.ui-glass .gpd-page.is-highlighted .gpd-head { animation: gpd-pop 0.6s ease-out 1; }
+@keyframes gpd-pop { 0% { transform: scale(0.98); } 60% { transform: scale(1.01); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { html.ui-glass .gpd-page.is-highlighted .gpd-head { animation: none; } }
+@media (max-width: 1023.98px) { html.ui-glass .gpd-grid { grid-template-columns: minmax(0, 1fr); } }

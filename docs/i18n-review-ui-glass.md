@@ -565,3 +565,17 @@ Drafted for fr, es, rw, sw; same review status.
 - Your share of gifts | fr: Votre part des cadeaux | es: Tu parte de los regalos | rw: Umugabane wawe ku mpano | sw: Sehemu yako ya zawadi
 - No gifts received yet. Gifts from live-stream viewers will appear here. | fr: Aucun cadeau reçu pour l'instant. Les cadeaux des spectateurs en direct s'afficheront ici. | es: Aún no has recibido regalos. Los regalos de los espectadores en directo aparecerán aquí. | rw: Nta mpano zirakirwa. Impano z'abareba live zizagaragara hano. | sw: Bado hujapokea zawadi. Zawadi kutoka kwa watazamaji wa moja kwa moja zitaonekana hapa.
 - Could not load payments. Please refresh. | fr: Impossible de charger les paiements. Actualisez la page. | es: No se pudieron cargar los pagos. Actualiza la página. | rw: Ntibyashobotse gufungura ubwishyu. Ongera ufungure paji. | sw: Imeshindwa kupakia malipo. Tafadhali onyesha upya.
+
+## Payment detail, 2026-11-19
+
+- Back to Payments | fr: Retour aux paiements | es: Volver a pagos | rw: Subira ku bwishyu | sw: Rudi kwenye malipo
+- The payment you are looking for may have been removed or does not exist. | fr: Le paiement recherché a peut-être été supprimé ou n'existe pas. | es: Es posible que el pago que buscas se haya eliminado o no exista. | rw: Ubwishyu ushaka bushobora kuba bwarakuweho cyangwa butabaho. | sw: Malipo unayotafuta huenda yameondolewa au hayapo.
+- Escrow and milestone | fr: Séquestre et étape | es: Depósito en garantía e hito | rw: Ingwate n'icyiciro | sw: Escrow na hatua
+- Due date | fr: Date d'échéance | es: Fecha de vencimiento | rw: Itariki ntarengwa | sw: Tarehe ya mwisho
+- Overdue | fr: En retard | es: Vencido | rw: Byarengeje igihe | sw: Imechelewa
+- Payment type | fr: Type de paiement | es: Tipo de pago | rw: Ubwoko bw'ubwishyu | sw: Aina ya malipo
+- Escrow | fr: Séquestre | es: Depósito en garantía | rw: Ingwate | sw: Escrow
+- Held in Escrow | fr: Bloqué en séquestre | es: Retenido en garantía | rw: Bifashwe mu ngwate | sw: Imeshikiliwa kwenye escrow
+- Pending Hold | fr: Blocage en attente | es: Retención pendiente | rw: Gufatwa bitegerejwe | sw: Inasubiri kushikiliwa
+- Stream ticket | fr: Billet de diffusion | es: Entrada de transmisión | rw: Itike ya live | sw: Tiketi ya matangazo
+- Not completed | fr: Non terminé | es: No completado | rw: Ntibirarangira | sw: Haijakamilika

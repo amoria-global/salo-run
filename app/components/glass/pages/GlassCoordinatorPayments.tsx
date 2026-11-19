@@ -154,7 +154,7 @@ export default function GlassCoordinatorPayments({ ctl: c, modals, chart }: { ct
             </div>
             <ul className="gpay-rows">
               {c.paginatedPayments.map((p) => (
-                <PaymentRow key={p.id} p={p} escrow={false} formatPrice={c.formatPrice}
+                <PaymentRow key={p.id} p={{ ...p, date: fmtDay(p.date, language) || p.date }} escrow={false} formatPrice={c.formatPrice}
                   onPay={() => c.handlePayNow(p)} onReceipt={() => c.handleDownloadReceipt(p)} onView={() => c.handleViewPayment(p)} />
               ))}
             </ul>

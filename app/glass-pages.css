@@ -41,7 +41,7 @@ html.ui-glass .g-subtabs a {
 }
 html.ui-glass .g-subtabs a:hover { background: var(--g-tint); color: var(--g-text); }
 html.ui-glass .g-subtabs a[aria-current="page"] { background: var(--g-primary); color: #fff; }
-@media (max-width: 767.98px) { html.ui-glass .g-subtabs { padding: 8px 12px 0; } }
+@media (max-width: 767.98px) { html.ui-glass .g-subtabs { padding: 8px 12px 0; } html.ui-glass .g-subtabs a { min-height: 40px; } }
 
 /* Tables become stacked rows on phones: a table with data-stack="true" (opt-in per page) shows each row as a card. */
 @media (max-width: 767.98px) {
