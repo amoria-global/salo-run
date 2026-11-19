@@ -143,3 +143,8 @@ html.ui-glass .gh-match-title { margin: 0; font-size: 1.0625rem; }
 html.ui-glass .gh-match-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 html.ui-glass .gh-match-later { align-self: flex-start; }
 @media (max-width: 767.98px) { html.ui-glass .gh-match-actions { width: 100%; } html.ui-glass .gh-match-actions .g-btn { flex: 1 1 0; } }
+
+/* Below 1024px the hero stacks too: its second column left the greeting too narrow at 768px (it spilled).
+   Long greetings wrap between words rather than overflow. */
+@media (max-width: 1023.98px) { html.ui-glass .gh-hero { grid-template-columns: minmax(0, 1fr); } }
+html.ui-glass .gh-h1 { overflow-wrap: break-word; }

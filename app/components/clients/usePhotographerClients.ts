@@ -5,6 +5,7 @@
 // conversations fallback), favourites, balance and bookings; actions: favourite, delete, accept and reject a booking.
 import { useState, useEffect, useCallback } from 'react';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { useWorkspace } from '../../providers/WorkspaceProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
 export interface Booking {
@@ -97,6 +98,7 @@ export interface APIBooking {
 
 export function usePhotographerClients() {
   const { token, user } = useDashboardAuth();
+  const { isCollaborator } = useWorkspace();
   void token;
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -330,6 +332,8 @@ export function usePhotographerClients() {
   useEffect(() => {
     fetchClients();
     const fetchBalance = async () => {
+      // A collaborator sees no money in the workspace it works in; the server refuses the balance there.
+      if (isCollaborator) return;
       try {
         const apiUrl = getApiUrl();
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
@@ -340,7 +344,7 @@ export function usePhotographerClients() {
       } catch (err) { console.error('Failed to fetch balance:', err); }
     };
     fetchBalance();
-  }, [fetchClients]);
+  }, [fetchClients, isCollaborator]);
 
   const [clients, setClients] = useState<Client[]>([]);
 

@@ -193,6 +193,12 @@ export function proxy(request: NextRequest) {
     if (pathRole === 'photographer' && inWorkspace && (userRole === 'collaborator' || userRole === 'client')) {
       return withUiFlag(request, NextResponse.next());
     }
+    // Pages every signed-in role shares (the access explanation and the password change) are not a role's pages: the
+    // role check below used to bounce a full page load of them to the role's home, which also swallowed the
+    // workspace redirect above.
+    if (pathRole === 'not-authorized' || pathname === '/user/auth/change-password') {
+      return withUiFlag(request, NextResponse.next());
+    }
     if (userRole === 'collaborator' && !inWorkspace) {
       const landingBase = getLandingUrl();
       if (landingBase) return NextResponse.redirect(new URL(`${landingBase}/user/workspace/choose`));

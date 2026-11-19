@@ -30,3 +30,17 @@ describe('proxy: pages that are not part of a shared workspace', () => {
     expect(proxy(req('/user/photographer/collaborate', { amoria_auth: 'x', userRole: 'photographer' })).headers.get('location')).toBeNull();
   });
 });
+
+describe('proxy: pages every signed-in role shares', () => {
+  it('a full load of not-authorized or change-password is not bounced to the role home', () => {
+    for (const [path, role] of [['/user/not-authorized?required=workspace', 'collaborator'], ['/user/not-authorized', 'client'], ['/user/auth/change-password', 'event-coordinator']]) {
+      const res = proxy(req(path, { amoria_auth: 'x', userRole: role, ckws: WS }));
+      expect(res.headers.get('location'), path).toBeNull();
+    }
+  });
+
+  it('a signed-in user opening another auth page still goes to their home', () => {
+    const res = proxy(req('/user/auth/login', { amoria_auth: 'x', userRole: 'client' }));
+    expect(new URL(res.headers.get('location') || '').pathname).toBe('/user/client/home');
+  });
+});

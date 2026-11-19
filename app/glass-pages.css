@@ -14,7 +14,7 @@ html.ui-glass .ck-card {
 }
 html.ui-glass .ck-card-hover:hover { border-color: var(--g-primary-light); box-shadow: var(--g-shadow-2); transform: none; }
 
-html.ui-glass .ck-btn { border-radius: 12px; font-family: var(--g-font-text); }
+html.ui-glass .ck-btn { border-radius: 12px; font-family: var(--g-font-text); min-height: 40px; }
 html.ui-glass .ck-btn-primary { background: var(--g-grad-raised); color: #fff; box-shadow: 0 6px 16px rgba(47, 100, 200, 0.28); }
 html.ui-glass .ck-btn-primary:hover:not(:disabled) { background: var(--g-grad-raised); filter: brightness(1.08); box-shadow: 0 8px 20px rgba(47, 100, 200, 0.34); }
 html.ui-glass .ck-btn-ghost { background: var(--g-well); color: var(--g-text); border-color: var(--g-stroke); }

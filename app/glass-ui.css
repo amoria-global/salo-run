@@ -840,6 +840,7 @@ html.ui-glass .g-btn.gpay-page-btn.is-on { background: var(--g-primary-dark); bo
 /* wallet activity filter chips (ActivityFeed): 40px targets and an AA selected state */
 html.ui-glass .g-activity-chip { min-height: 40px; padding: 0 14px !important; }
 html.ui-glass .g-activity-chip[aria-pressed="true"] { background: var(--g-primary-dark) !important; color: #fff !important; }
+html.ui-glass .g-activity-chip { transition: none !important; }
 html.ui-glass .g-activity-chip:focus-visible { outline: 2px solid var(--g-link); outline-offset: 2px; }
 /* shared-workspace banner */
 html.ui-glass .g-ws-banner { background: var(--g-card); border-color: var(--g-stroke); }
