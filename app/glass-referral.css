@@ -1,0 +1,88 @@
+/*
+ * "Grow your store" (milestone referral earnings): Home card, wide card, milestones page, sheets.
+ * Scoped under html.ui-glass like the rest of the glass layer. Tokens only, so light and dark both follow
+ * the data-theme switch. Brand: navy #083A85 and pink #F20C8F come through --g-primary and --g-accent.
+ */
+html.ui-glass .gr-card { display: grid; gap: 12px; padding: 14px; border: 1px solid color-mix(in srgb, var(--g-accent) 45%, var(--g-border)); border-radius: 16px; max-width: 100%; }
+html.ui-glass .gr-head { display: flex; align-items: center; gap: 10px; }
+html.ui-glass .gr-icon { width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; background: linear-gradient(135deg, #3E6FD8 0%, #083A85 100%); }
+html.ui-glass .gr-title { flex: 1; min-width: 0; display: grid; }
+html.ui-glass .gr-title strong { font-size: 0.95rem; }
+html.ui-glass .gr-title small { color: var(--g-text-muted); font-size: 0.78rem; line-height: 1.3; }
+html.ui-glass .gr-link { color: var(--g-link); font-weight: 600; font-size: 0.85rem; background: none; border: 0; padding: 4px 2px; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; text-decoration: none; }
+html.ui-glass .gr-link:focus-visible, html.ui-glass .gr-tier:focus-visible { outline: 2px solid var(--g-link); outline-offset: 2px; border-radius: 6px; }
+html.ui-glass .gr-body { display: flex; align-items: center; gap: 14px; }
+html.ui-glass .gr-rate { display: grid; justify-items: start; min-width: 64px; }
+html.ui-glass .gr-rate b { font-size: 2rem; line-height: 1; letter-spacing: -0.02em; }
+html.ui-glass .gr-rate span { font-size: 0.72rem; color: var(--g-text-muted); }
+html.ui-glass .gr-prog { flex: 1; min-width: 0; display: grid; gap: 6px; }
+html.ui-glass .gr-prog-line { font-size: 0.85rem; font-weight: 700; }
+html.ui-glass .gr-prog-sub { font-size: 0.78rem; color: var(--g-text-muted); }
+html.ui-glass .gr-bar { height: 6px; border-radius: 999px; background: var(--g-muted); overflow: hidden; }
+html.ui-glass .gr-bar > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #3E6FD8, #F20C8F); transition: width 0.3s ease; }
+html.ui-glass .gr-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+html.ui-glass .gr-actions .g-btn { flex: 1 1 160px; justify-content: center; }
+html.ui-glass .gr-max { display: grid; gap: 6px; }
+html.ui-glass .gr-max b { font-size: 0.95rem; color: var(--g-success); }
+html.ui-glass .gr-skel { display: grid; gap: 10px; }
+html.ui-glass .gr-err { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85rem; }
+@media (min-width: 760px) {
+  html.ui-glass .gr-card.gr-wide-ok { grid-template-columns: auto 1fr auto; align-items: center; column-gap: 18px; }
+  html.ui-glass .gr-card.gr-wide-ok .gr-head { grid-column: 1 / -1; }
+  html.ui-glass .gr-card.gr-wide-ok .gr-actions { flex-wrap: nowrap; }
+  html.ui-glass .gr-card.gr-wide-ok .gr-actions .g-btn { flex: 0 0 auto; }
+}
+html.ui-glass .gr-page { display: grid; gap: 14px; max-width: 760px; margin: 0 auto; padding-bottom: 24px; }
+html.ui-glass .gr-hero { display: grid; gap: 10px; padding: 16px; border-radius: 18px; border: 1px solid var(--g-border); background-image: radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--g-accent) 22%, transparent), transparent 60%); }
+html.ui-glass .gr-eyebrow { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--g-accent-text); }
+html.ui-glass .gr-big { font-size: 3rem; line-height: 1; font-weight: 800; letter-spacing: -0.03em; }
+html.ui-glass .gr-big small { font-size: 0.9rem; font-weight: 500; color: var(--g-text-muted); letter-spacing: 0; margin-left: 8px; }
+html.ui-glass .gr-more { color: var(--g-accent-text); font-weight: 700; font-size: 0.9rem; }
+html.ui-glass .gr-h2 { font-size: 0.95rem; margin: 0; }
+html.ui-glass .gr-steps { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+html.ui-glass .gr-steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 0.88rem; line-height: 1.4; }
+html.ui-glass .gr-steps .n { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.78rem; font-weight: 700; color: #fff; background: var(--g-primary); }
+html.ui-glass .gr-foot { font-size: 0.8rem; color: var(--g-text-muted); line-height: 1.45; margin: 0; }
+html.ui-glass .gr-tiers { display: grid; gap: 8px; }
+html.ui-glass .gr-tier { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--g-border); background: var(--g-surface); }
+html.ui-glass .gr-tier .pct { font-size: 1.25rem; font-weight: 800; min-width: 52px; }
+html.ui-glass .gr-tier .txt { flex: 1; min-width: 0; display: grid; }
+html.ui-glass .gr-tier .txt small { color: var(--g-text-muted); font-size: 0.76rem; }
+html.ui-glass .gr-tier[data-state="done"] { border-color: color-mix(in srgb, var(--g-success) 50%, var(--g-border)); }
+html.ui-glass .gr-tier[data-state="done"] .pct, html.ui-glass .gr-tier[data-state="done"] .state { color: var(--g-success); }
+html.ui-glass .gr-tier[data-state="current"] { border-color: var(--g-accent); background-image: linear-gradient(90deg, color-mix(in srgb, var(--g-accent) 14%, transparent), transparent); }
+html.ui-glass .gr-tier[data-state="locked"] { opacity: 0.82; }
+html.ui-glass .gr-tier[data-state="max"] { border-color: color-mix(in srgb, var(--g-accent) 55%, var(--g-border)); }
+html.ui-glass .gr-tier .state { color: var(--g-text-muted); display: inline-flex; }
+html.ui-glass .gr-share { display: grid; gap: 10px; }
+html.ui-glass .gr-code { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+html.ui-glass .gr-code code { flex: 1 1 140px; min-width: 0; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--g-border); background: var(--g-muted); font-weight: 700; letter-spacing: 0.08em; overflow: hidden; text-overflow: ellipsis; }
+html.ui-glass .gr-share-row { display: flex; gap: 8px; flex-wrap: wrap; }
+html.ui-glass .gr-refs { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+html.ui-glass .gr-ref { display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--g-border); background: var(--g-surface); }
+html.ui-glass .gr-ref-top { display: flex; align-items: center; gap: 8px; }
+html.ui-glass .gr-ref-top strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .gr-chip { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; border: 1px solid currentColor; white-space: nowrap; }
+html.ui-glass .gr-chip[data-s="pending"] { color: var(--g-text-soft); }
+html.ui-glass .gr-chip[data-s="under_review"] { color: var(--g-warning, #92400E); }
+html.ui-glass .gr-chip[data-s="qualified"] { color: var(--g-success); }
+html.ui-glass .gr-chip[data-s="revoked"] { color: var(--g-error); }
+html.ui-glass .gr-checks { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.78rem; color: var(--g-text-muted); }
+html.ui-glass .gr-checks span { display: inline-flex; align-items: center; gap: 4px; }
+html.ui-glass .gr-checks span[data-on="true"] { color: var(--g-success); font-weight: 600; }
+html.ui-glass .gr-hint { font-size: 0.78rem; color: var(--g-text-muted); margin: 0; }
+html.ui-glass .gr-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+html.ui-glass .gr-stat { padding: 12px; border-radius: 14px; border: 1px solid var(--g-border); background: var(--g-surface); display: grid; gap: 2px; min-width: 0; }
+html.ui-glass .gr-stat small { color: var(--g-text-muted); font-size: 0.72rem; }
+html.ui-glass .gr-stat b { font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .gr-empty { text-align: center; padding: 22px 12px; display: grid; gap: 6px; color: var(--g-text-muted); }
+html.ui-glass .gr-congrats { display: grid; justify-items: center; text-align: center; gap: 10px; padding: 8px 4px 4px; }
+html.ui-glass .gr-congrats h2 { margin: 0; font-size: 1.35rem; line-height: 1.25; }
+html.ui-glass .gr-congrats h2 em { font-style: normal; color: var(--g-accent-text); }
+html.ui-glass .gr-star { width: 76px; height: 76px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; background: radial-gradient(circle at 50% 40%, #5B8CFF, #083A85); box-shadow: 0 0 36px color-mix(in srgb, var(--g-primary-light) 55%, transparent); }
+html.ui-glass .gr-checklist { display: grid; gap: 8px; }
+html.ui-glass .gr-sale { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: var(--g-muted); }
+html.ui-glass .gr-sale-row { display: flex; justify-content: space-between; gap: 10px; font-size: 0.85rem; }
+html.ui-glass .gr-sale-row span:first-child { color: var(--g-text-muted); }
+html.ui-glass .gr-help { margin: 6px 0 0; font-size: 0.8125rem; color: var(--g-text-muted); }
+@media (prefers-reduced-motion: reduce) { html.ui-glass .gr-bar > i { transition: none; } }

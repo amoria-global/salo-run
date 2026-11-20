@@ -16757,12 +16757,6 @@
     "Bika QR",
     "Hifadhi QR"
   ],
-  "Your referrals": [
-    "Vos filleuls",
-    "Tus referidos",
-    "Abo watumiye",
-    "Rufaa zako"
-  ],
   "Under review": [
     "En vérification",
     "En revisión",
@@ -16780,24 +16774,6 @@
     "Revocado",
     "Byakuweho",
     "Imefutwa"
-  ],
-  "No referrals yet": [
-    "Aucun filleul pour le moment",
-    "Aún no hay referidos",
-    "Nta batumiwe baraboneka",
-    "Bado hakuna rufaa"
-  ],
-  "Share your code. A referral counts when the photographer you refer is approved and completes a paid job.": [
-    "Partagez votre code. Un parrainage compte quand le photographe parrainé est approuvé et termine une mission payée.",
-    "Comparte tu código. Un referido cuenta cuando el fotógrafo que invitas es aprobado y completa un trabajo pagado.",
-    "Sangiza kode yawe. Uwatumiwe abarwa iyo yemewe kandi akarangiza akazi kishyuwe.",
-    "Shiriki msimbo wako. Rufaa huhesabiwa mpigapicha uliyemwalika akikubaliwa na kukamilisha kazi iliyolipwa."
-  ],
-  "Couldn't load your referrals": [
-    "Impossible de charger vos filleuls",
-    "No se pudieron cargar tus referidos",
-    "Ntibyashobotse gutangaza abo watumiye",
-    "Imeshindwa kupakia rufaa zako"
   ],
   "Add a referral code": [
     "Ajouter un code de parrainage",
@@ -16829,24 +16805,6 @@
     "kuri 5 kugira ngo ufungure 25%",
     "kati ya 5 ili kufungua 25%"
   ],
-  "of 20 referrals": [
-    "filleuls sur 20",
-    "referidos de 20",
-    "abatumiwe kuri 20",
-    "rufaa kati ya 20"
-  ],
-  "Your fee": [
-    "Vos frais",
-    "Tu comisión",
-    "Igiciro cyawe",
-    "Ada yako"
-  ],
-  "your fee": [
-    "vos frais",
-    "tu comisión",
-    "igiciro cyawe",
-    "ada yako"
-  ],
   "Program complete": [
     "Programme terminé",
     "Programa completo",
@@ -16871,12 +16829,6 @@
     "Gutumira",
     "Rufaa"
   ],
-  "Join me on Connekyt. Use my referral code": [
-    "Rejoignez-moi sur Connekyt. Utilisez mon code de parrainage",
-    "Únete a mí en Connekyt. Usa mi código de referido",
-    "Twifatanye kuri Connekyt. Koresha kode yanjye",
-    "Jiunge nami kwenye Connekyt. Tumia msimbo wangu wa rufaa"
-  ],
   "Your public profile link is not available yet.": [
     "Votre lien de profil public n’est pas encore disponible.",
     "Tu enlace de perfil público aún no está disponible.",
@@ -16895,23 +16847,11 @@
     "Sangiza no gutumira",
     "Shiriki na ualike"
   ],
-  "Lower fees": [
-    "Frais réduits",
-    "Comisión menor",
-    "Igiciro gito",
-    "Ada ndogo"
-  ],
   "Send an album link to your clients": [
     "Envoyez un lien d’album à vos clients",
     "Envía un enlace de álbum a tus clientes",
     "Ohereza link ya alubumu ku bakiriya bawe",
     "Tuma kiungo cha albamu kwa wateja wako"
-  ],
-  "Invite photographers, lower your fee": [
-    "Invitez des photographes, baissez vos frais",
-    "Invita fotógrafos, reduce tu comisión",
-    "Tumira abafotozi, ugabanye igiciro",
-    "Alika wapigapicha, punguza ada yako"
   ],
   "Inactive": [
     "Inactif",

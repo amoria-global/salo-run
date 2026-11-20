@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import SaleSplitDetails, { type SaleSplit } from '@/app/components/referral/SaleSplitDetails';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
@@ -345,6 +346,7 @@ interface Transaction {
   status: TransactionStatus;
   transactionId: string;
   requestId: string;
+  saleSplit?: SaleSplit | null;
 }
 
 interface TransactionDetailsModalProps {
@@ -481,8 +483,10 @@ Amount: ${formatPrice(transaction.amountNum)}
         </div>
       </div>
 
+      <SaleSplitDetails split={transaction.saleSplit} />
+
       {/* Actions */}
-      <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
+      <div className="no-print" style={{ display: 'flex', gap: '0.75rem', marginTop: transaction.saleSplit ? '1rem' : 0 }}>
         <button onClick={handleDownloadReceipt} style={{
           flex: 1,
           display: 'flex',

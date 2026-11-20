@@ -8,12 +8,14 @@
 import { useEffect, useRef, useState } from 'react';
 import Modal from '@/app/components/ui/Modal';
 import { useLanguage } from '@/app/context/LanguageContext';
+import { useReferralCopy } from '@/app/lib/useReferralCopy';
 import { attachCode, fetchMyReferral, parseReferralCode, problemMessage, validateCode, type ReferralStats } from '@/app/lib/referral';
 
 type Check = { kind: 'idle' } | { kind: 'checking' } | { kind: 'ok'; name: string; code: string } | { kind: 'bad'; message: string };
 
 export default function AddReferralCode({ initialCode = '' }: { initialCode?: string; autoOpen?: boolean }) {
   const { t } = useLanguage();
+  const rt = useReferralCopy();
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [value, setValue] = useState(initialCode);
@@ -84,6 +86,7 @@ export default function AddReferralCode({ initialCode = '' }: { initialCode?: st
           onChange={(e) => setValue(e.target.value)} placeholder="ABCD2345" aria-describedby="add-referral-status" />
         <button type="button" className="g-btn g-btn-primary" disabled={check.kind !== 'ok'} onClick={() => setConfirming(true)}>{t('Confirm')}</button>
       </div>
+      <p className="gr-help" data-testid="referral-field-helper">{rt('fieldHelper')}</p>
       <p id="add-referral-status" role="status" aria-live="polite" style={{ minHeight: 18, margin: '6px 0 0', fontSize: '0.875rem', color: check.kind === 'ok' ? 'var(--g-success, #047857)' : check.kind === 'bad' ? 'var(--g-error)' : 'var(--g-text-muted)' }}>{msg}</p>
       {saveError && <p role="alert" style={{ color: 'var(--g-error)', margin: '4px 0 0' }}>{t(saveError)}</p>}
       <a href="https://connekyt.com/referral-program" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8125rem' }}>{t('How the referral program works')}</a>

@@ -2,10 +2,11 @@
 
 /**
  * The Home "Share & invite" card. The whole card opens a menu (not just the button): Share your album (the existing
- * Albums screen, where each album can be shared or published), Share profile (the public profile link, shown here and not on the card) and Share referral
- * link or code (the referral sheet, hidden for good at 20 referrals). Chips on the card say what is inside, and a
- * badge from the referral stats gives a reason to open it: "Lower fees" before 5 qualifying referrals, "Your fee: N%"
- * from 5, and nothing at 20, where the Referral chip goes too.
+ * Albums screen, where each album can be shared or published), Share profile (the public profile link, shown here and
+ * not on the card) and Share referral link or code (the invite sheet, hidden for good at 40 referrals). Chips on the
+ * card say what is inside, and a badge from the referral stats gives a reason to open it: "Earn 70%" at 0, "Unlock
+ * 75%" while building toward the first milestone, "Your share: N%" from 10, and nothing at 40, where the Referral
+ * chip goes too.
  */
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
@@ -13,26 +14,14 @@ import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronRight, Gift, Image as ImageIcon, Share2, User } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { useDashboardAuth } from '@/app/providers/AuthProvider';
-import { fetchMyReferral } from '@/app/lib/referral';
+import { badgeFor, sheetChip } from '@/app/lib/referral';
+import { useReferralCopy } from '@/app/lib/useReferralCopy';
 import { fetchPublicProfileUrl } from '@/app/lib/publicProfileLink';
+import type { StatsState } from './useReferralStats';
 
-const ReferralSheet = dynamic(() => import('./ReferralSheet'), { ssr: false });
+const InviteSheet = dynamic(() => import('./InviteSheet'), { ssr: false });
 
 const P = '/user/photographer';
-
-export type CardStats = { qualifying: number; feePercent: number | null; complete: boolean } | null;
-
-/** What the badge says: null when there is none (stats unknown, or the program is complete). */
-export function badgeFor(stats: CardStats): { kind: 'lower' | 'fee'; fee: number | null } | null {
-  if (!stats || stats.complete) return null;
-  if (stats.feePercent == null || stats.qualifying < 5) return { kind: 'lower', fee: null };
-  return { kind: 'fee', fee: stats.feePercent };
-}
-
-/** The sheet's progress chip: n/5 before 5, then n/20. */
-export function progressChip(qualifying: number): string {
-  return qualifying < 5 ? `${qualifying}/5` : `${qualifying}/20`;
-}
 
 const chip = (accent: boolean): React.CSSProperties => ({
   display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 8px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap',
@@ -40,20 +29,19 @@ const chip = (accent: boolean): React.CSSProperties => ({
   background: accent ? 'var(--g-accent-bg, transparent)' : 'transparent',
 });
 
-export default function ShareMenu({ canCreateAlbum }: { canCreateAlbum: boolean }) {
+export default function ShareMenu({ canCreateAlbum, referral }: { canCreateAlbum: boolean; referral: StatsState }) {
   const { t } = useLanguage();
+  const rt = useReferralCopy();
   const router = useRouter();
   const { user } = useDashboardAuth();
   const [open, setOpen] = useState(false);
   const [sheet, setSheet] = useState(false);
-  const [stats, setStats] = useState<CardStats>(null);
   const [profileUrl, setProfileUrl] = useState('');
   const [note, setNote] = useState('');
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let alive = true;
-    fetchMyReferral().then((s) => { if (alive) setStats({ qualifying: s.qualifying, feePercent: s.feePercent, complete: s.complete }); }).catch(() => { /* keep the item; the server enforces the rules */ });
     (async () => {
       try {
         const url = await fetchPublicProfileUrl(user);
@@ -83,7 +71,8 @@ export default function ShareMenu({ canCreateAlbum }: { canCreateAlbum: boolean 
     } catch { /* cancelled */ }
   };
 
-  const complete = stats?.complete === true;
+  const stats = referral.status === 'ready' ? referral.data : null;
+  const complete = stats?.maxRate === true || (stats !== null && stats.qualifying >= stats.cap);
   const badge = badgeFor(stats);
   const item: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 12px', background: 'none', border: 0, borderRadius: 10, color: 'inherit', cursor: 'pointer', textAlign: 'left', font: 'inherit' };
   const ellipsis: React.CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
@@ -117,11 +106,11 @@ export default function ShareMenu({ canCreateAlbum }: { canCreateAlbum: boolean 
           {badge && (
             <span data-testid="share-invite-badge" style={{
               display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 9px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
-              color: badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent-text)',
-              border: `1px solid ${badge.kind === 'fee' ? 'var(--g-success)' : 'var(--g-accent-text)'}`,
-              background: badge.kind === 'fee' ? 'var(--g-success-bg, transparent)' : 'var(--g-accent-bg, transparent)',
+              color: badge.kind === 'share' ? 'var(--g-success)' : 'var(--g-accent-text)',
+              border: `1px solid ${badge.kind === 'share' ? 'var(--g-success)' : 'var(--g-accent-text)'}`,
+              background: badge.kind === 'share' ? 'var(--g-success-bg, transparent)' : 'var(--g-accent-bg, transparent)',
             }}>
-              {badge.kind === 'fee' ? `${t('Your fee')}: ${badge.fee}%` : t('Lower fees')}
+              {badge.kind === 'share' ? rt('badgeShare', { rate: badge.rate }) : badge.kind === 'unlock' ? rt('badgeUnlock', { rate: badge.rate }) : rt('badgeEarn')}
             </span>
           )}
         </div>
@@ -152,16 +141,16 @@ export default function ShareMenu({ canCreateAlbum }: { canCreateAlbum: boolean 
               <Gift size={18} aria-hidden style={{ color: 'var(--g-accent)' }} />
               <span style={{ flex: 1, minWidth: 0, display: 'grid' }}>
                 <strong style={ellipsis}>{t('Share referral link or code')}</strong>
-                <small style={{ ...ellipsis, color: 'var(--g-text-muted)' }}>{t('Invite photographers, lower your fee')}</small>
+                <small style={{ ...ellipsis, color: 'var(--g-text-muted)' }}>{rt('growSub')}</small>
               </span>
-              {stats && <span data-testid="share-menu-progress" style={chip(true)}>{progressChip(stats.qualifying)}</span>}
+              {stats && <span data-testid="share-menu-progress" style={chip(true)}>{sheetChip(stats.qualifying)}</span>}
               <ChevronRight size={16} aria-hidden />
             </button>
           )}
         </div>
       )}
       {note && <span role="status" style={{ display: 'block', marginTop: 6, fontSize: '0.8125rem' }}>{note}</span>}
-      {sheet && <ReferralSheet open={sheet} onClose={() => setSheet(false)} onAddCode={() => { setSheet(false); router.push(`${P}/preferences?tab=referral&addReferral=1`); }} />}
+      {sheet && stats && <InviteSheet open={sheet} onClose={() => setSheet(false)} stats={stats} />}
     </div>
   );
 }

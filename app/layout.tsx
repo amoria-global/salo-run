@@ -5,6 +5,7 @@ import "./globals.css";
 import "./glass.css";
 import "./glass-shell.css";
 import "./glass-home.css";
+import "./glass-referral.css";
 import "./glass-pages.css";
 import "./glass-ui.css";
 import { HEAD_SCRIPT, ICONS_CSS } from "./lib/uiGlass";
