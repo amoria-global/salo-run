@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getApiUrl } from '@/lib/api';
 import { dashboardAuthFetch } from '../providers/AuthProvider';
 import OtpInput from './OtpInput';
+import { nowMs } from "../lib/clock";
 import {
   attemptsText,
   formatCountdown,
@@ -39,7 +40,7 @@ function useCountdown(deadlineMs: number | null): number {
     if (deadlineMs == null) return;
     const id = setInterval(() => {
       tick((n) => n + 1);
-      if (Date.now() >= deadlineMs) clearInterval(id);
+      if (nowMs() >= deadlineMs) clearInterval(id);
     }, 1000);
     return () => clearInterval(id);
   }, [deadlineMs]);
@@ -130,7 +131,7 @@ export default function TwoFactorMethods({
   const refuse = (r: CodeRefusal) => {
     setRefusal(r);
     if (r.retryAfterSeconds) {
-      const until = Date.now() + r.retryAfterSeconds * 1000;
+      const until = nowMs() + r.retryAfterSeconds * 1000;
       if (r.errorCode === 'LOCKED') setLockedUntil(until);
       else setResendAt(until);
     }
@@ -142,7 +143,7 @@ export default function TwoFactorMethods({
     try {
       const out = sentFrom(await post('2fa/email/send', { purpose }), 'We could not send a code. Try again.');
       if ('sent' in out) {
-        setResendAt(localDeadline(out.sent.resendAvailableAt, out.sent.serverTime, Date.now()));
+        setResendAt(localDeadline(out.sent.resendAvailableAt, out.sent.serverTime, nowMs()));
         setSentTo(out.sent.maskedEmail);
       } else {
         refuse(out.refused);

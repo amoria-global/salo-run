@@ -20,6 +20,7 @@ import { PaymentMethodPicker, type PaymentMethodSelection } from '../components/
 import { usePaymentCountry } from '@/lib/payments/usePaymentCountry';
 import InternationalPhoneInput, { type PhoneValue } from '../components/phone/InternationalPhoneInput';
 import { useLanguage } from '../context/LanguageContext';
+import { useUiGlass } from '@/app/lib/useUiGlass';
 
 const FALLBACK_TIERS = [1000, 2000, 5000, 10000];
 
@@ -42,6 +43,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
   const { colors, actualTheme } = useTheme();
   const { user } = useDashboardAuth();
   const { t: tl } = useLanguage();
+  const glass = useUiGlass();
 
   const categories = [
     { icon: 'bi-people-fill', title: tl('Family Support'), description: tl('Help families access healthcare, housing, and essential needs.') },
@@ -229,7 +231,11 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
     if (stopPollingRef.current) stopPollingRef.current();
   };
 
-  const accent = '#F20C8F';
+  // UI-only restyle under Compact Glass: the AA accent for text and borders, the primary gradient for filled
+  // buttons, the glass tint for selected tiles. The classic page keeps its exact values. No payment logic changes.
+  const accent = glass ? 'var(--g-accent-text)' : '#F20C8F';
+  const accentFill = glass ? 'var(--g-primary-dark)' : accent;
+  const accentSoft = glass ? 'var(--g-tint)' : (actualTheme === 'dark' ? `${accent}15` : `${accent}08`);
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%' }}>
@@ -237,7 +243,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userRole} />
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', backgroundColor: colors.bgPrimary }}>
-    <div style={{ padding: 'clamp(16px, 3vw, 32px)', maxWidth: '720px', margin: '0 auto' }}>
+    <div className="g-donate" style={{ padding: 'clamp(16px, 3vw, 32px)', maxWidth: '720px', margin: '0 auto' }}>
       {/* Header */}
       <div
         style={{
@@ -246,7 +252,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
           borderRadius: 20,
           padding: 'clamp(22px, 3vw, 32px)',
           marginBottom: 24,
-          background: 'linear-gradient(135deg, #083A85 0%, #0D52BD 55%, #F20C8F 130%)',
+          background: glass ? 'var(--g-grad-wallet)' : 'linear-gradient(135deg, #083A85 0%, #0D52BD 55%, #F20C8F 130%)',
           color: '#fff',
           boxShadow: '0 18px 44px rgba(8, 58, 133, 0.28)',
         }}
@@ -327,7 +333,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
               {categories.map((cat, i) => (
                 <button key={i} data-ck-shape="card" onClick={() => setActiveCategory(i)} style={{
                   padding: '14px 12px', borderRadius: '12px', border: `2px solid ${activeCategory === i ? accent : colors.borderPrimary}`,
-                  background: activeCategory === i ? (actualTheme === 'dark' ? `${accent}15` : `${accent}08`) : colors.bgCard,
+                  background: activeCategory === i ? accentSoft : colors.bgCard,
                   cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
                 }}>
                   <i className={`bi ${cat.icon}`} style={{ fontSize: '18px', color: activeCategory === i ? accent : colors.textSecondary, display: 'block', marginBottom: '6px' }} />
@@ -351,7 +357,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
                   <button key={tier} onClick={() => { setSelectedTier(tier); setIsCustom(false); setCustomAmount(''); }} style={{
                     padding: '12px 10px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
                     border: `2px solid ${active ? accent : colors.borderPrimary}`,
-                    background: active ? (actualTheme === 'dark' ? `${accent}15` : `${accent}08`) : colors.bgCard,
+                    background: active ? accentSoft : colors.bgCard,
                     color: active ? accent : colors.textPrimary,
                   }}>
                     {formatAmt(converted)}
@@ -387,10 +393,10 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
               <label style={{ fontSize: '13px', fontWeight: 600, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {tl('Your Information')}
               </label>
-              <button onClick={() => setIsAnonymous(!isAnonymous)} style={{
+              <button className="gk-target" aria-pressed={isAnonymous} onClick={() => setIsAnonymous(!isAnonymous)} style={{
                 padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', marginLeft: 'auto',
                 border: `1px solid ${isAnonymous ? accent : colors.borderPrimary}`,
-                background: isAnonymous ? accent : 'transparent', color: isAnonymous ? '#fff' : colors.textSecondary,
+                background: isAnonymous ? accentFill : 'transparent', color: isAnonymous ? '#fff' : colors.textSecondary,
               }}>
                 {isAnonymous ? tl('Anonymous') : tl('Make Anonymous')}
               </button>
@@ -417,8 +423,8 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
           {/* Total */}
           {getAmount() > 0 && (
             <div style={{
-              background: actualTheme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : '#f0fdf4',
-              border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', marginBottom: '16px',
+              background: glass ? 'var(--g-success-bg)' : (actualTheme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : '#f0fdf4'),
+              border: glass ? '1px solid var(--g-success)' : '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', marginBottom: '16px',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, color: colors.textPrimary }}>
                 <span>{tl('Total Donation:')}</span>
@@ -431,7 +437,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
 
           <button onClick={handleSubmit} disabled={!canSubmit || loading} style={{
             width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontSize: '15px', fontWeight: 600, cursor: canSubmit && !loading ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
-            background: canSubmit ? accent : colors.bgTertiary, color: canSubmit ? '#fff' : colors.textTertiary,
+            background: canSubmit ? accentFill : colors.bgTertiary, color: canSubmit ? '#fff' : colors.textTertiary,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
           }}>
             {loading ? <><i className="bi bi-arrow-repeat" style={{ animation: 'spin 1s linear infinite' }} /> {tl('Processing...')}</> : <><i className="bi bi-heart-fill" /> {tl('Proceed to Payment')}</>}
@@ -486,7 +492,7 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
             </button>
             <button onClick={handlePay} disabled={loading || !paymentMethod} style={{
               flex: 2, padding: '12px', borderRadius: '12px', border: 'none', fontSize: '14px', fontWeight: 600,
-              background: paymentMethod ? accent : colors.bgTertiary, color: paymentMethod ? '#fff' : colors.textTertiary,
+              background: paymentMethod ? accentFill : colors.bgTertiary, color: paymentMethod ? '#fff' : colors.textTertiary,
               cursor: paymentMethod && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}>
               {loading ? <><i className="bi bi-arrow-repeat" style={{ animation: 'spin 1s linear infinite' }} /> {tl('Processing...')}</> : tl('Pay Now')}
@@ -522,15 +528,15 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
           background: colors.bgSecondary, borderRadius: '16px', padding: '40px 28px', textAlign: 'center',
           border: `1px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard,
         }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <i className="bi bi-check-lg" style={{ fontSize: '28px', color: '#059669' }} />
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: glass ? 'var(--g-success-bg)' : '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <i className="bi bi-check-lg" style={{ fontSize: '28px', color: 'var(--g-success, #059669)' }} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: colors.textPrimary, marginBottom: '8px' }}>{tl('Thank You!')}</h3>
           <p style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: 1.5, marginBottom: '20px' }}>
             {tl("Your donation has been received. You are making a real difference in someone's life.")}
           </p>
           <button onClick={resetAll} style={{
-            padding: '12px 28px', borderRadius: '12px', border: 'none', background: accent, color: '#fff',
+            padding: '12px 28px', borderRadius: '12px', border: 'none', background: accentFill, color: '#fff',
             fontSize: '14px', fontWeight: 600, cursor: 'pointer',
           }}>
             {tl('Make Another Donation')}
@@ -544,15 +550,15 @@ export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
           background: colors.bgSecondary, borderRadius: '16px', padding: '40px 28px', textAlign: 'center',
           border: `1px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard,
         }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <i className="bi bi-x-lg" style={{ fontSize: '24px', color: '#dc2626' }} />
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: glass ? 'var(--g-error-bg)' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <i className="bi bi-x-lg" style={{ fontSize: '24px', color: 'var(--g-error, #dc2626)' }} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: colors.textPrimary, marginBottom: '8px' }}>{tl('Payment Failed')}</h3>
           <p style={{ fontSize: '14px', color: colors.textSecondary, lineHeight: 1.5, marginBottom: '20px' }}>
             {error ? tl(error) : tl('The payment could not be completed. Please try again.')}
           </p>
           <button onClick={resetAll} style={{
-            padding: '12px 28px', borderRadius: '12px', border: 'none', background: accent, color: '#fff',
+            padding: '12px 28px', borderRadius: '12px', border: 'none', background: accentFill, color: '#fff',
             fontSize: '14px', fontWeight: 600, cursor: 'pointer',
           }}>
             {tl('Try Again')}

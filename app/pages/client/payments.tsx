@@ -22,6 +22,9 @@ import { getApiUrl } from '@/lib/api';
 import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
 import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
+import { useClientPayments, type ClientPaymentsController } from '@/app/components/payments/useClientPayments';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassClientPayments from '@/app/components/glass/pages/GlassClientPayments';
 
 // Icons
 const DownloadIcon = () => (
@@ -272,16 +275,16 @@ Transaction Summary:
                 <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary }}>{reportData.totalTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#10B981' }}>Completed</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#10B981' }}>{reportData.completedTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-success, #10B981)' }}>Completed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-success, #10B981)' }}>{reportData.completedTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#F59E0B' }}>Pending</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#F59E0B' }}>{reportData.pendingTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-warning, #F59E0B)' }}>Pending</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-warning, #F59E0B)' }}>{reportData.pendingTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#EF4444' }}>Failed</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#EF4444' }}>{reportData.failedTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-error, #EF4444)' }}>Failed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-error, #EF4444)' }}>{reportData.failedTransactions}</span>
               </div>
             </div>
           </div>
@@ -839,7 +842,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
           <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Failed</h4>
-          <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
+          <p style={{ fontSize: '0.9rem', color: 'var(--g-error, #EF4444)', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
             <button onClick={handleClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
             <button onClick={handleRetryPayment} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
@@ -942,7 +945,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                         background: actualTheme === 'dark' ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.12)',
                         border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.40)' : 'rgba(245,158,11,0.35)'}`,
                         borderRadius: 999, fontSize: '0.7rem',
-                        color: '#D97706', fontWeight: 700,
+                        color: 'var(--g-warning, #D97706)', fontWeight: 700,
                         letterSpacing: '0.03em',
                       }}>
                         <i className="bi bi-shield-lock-fill" style={{ fontSize: 10 }} />
@@ -970,7 +973,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                         background: actualTheme === 'dark' ? 'rgba(6,95,70,0.32)' : 'rgba(16,185,129,0.12)',
                         border: `1px solid ${actualTheme === 'dark' ? 'rgba(110,231,183,0.40)' : 'rgba(16,185,129,0.35)'}`,
                         borderRadius: 999, fontSize: '0.7rem',
-                        color: '#059669', fontWeight: 700, letterSpacing: '0.03em',
+                        color: 'var(--g-success, #059669)', fontWeight: 700, letterSpacing: '0.03em',
                       }}>
                         <i className="bi bi-clipboard-check-fill" style={{ fontSize: 10 }} />
                         Requires satisfaction survey
@@ -989,7 +992,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               background: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(245,158,11,0.08)',
               border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(245,158,11,0.30)'}`,
               borderRadius: 10,
-              fontSize: '0.82rem', color: '#D97706', lineHeight: 1.45,
+              fontSize: '0.82rem', color: 'var(--g-warning, #D97706)', lineHeight: 1.45,
             }}>
               <i className="bi bi-clipboard-check-fill" style={{ fontSize: 13, marginTop: 1, flexShrink: 0 }} />
               <span>You need to complete a satisfaction survey before making the full payment. The survey will appear in the next step.</span>
@@ -1115,8 +1118,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             </div>
             {selectedEscrowOption && selectedEscrowOption < 100 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>Remaining ({100 - selectedEscrowOption}%)</span>
-                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>{formatPrice(fullAmountDue - amountDue)} (later)</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: 'var(--g-warning, #D97706)' }}>Remaining ({100 - selectedEscrowOption}%)</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: 'var(--g-warning, #D97706)' }}>{formatPrice(fullAmountDue - amountDue)} (later)</span>
               </div>
             )}
             {donationValue > 0 && (
@@ -1138,7 +1141,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           </div>
 
           {xentriPayError && (
-            <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
           )}
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -1352,8 +1355,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             background: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(245,158,11,0.08)',
             border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(245,158,11,0.30)'}`,
           }}>
-            <i className="bi bi-shield-lock-fill" style={{ fontSize: 14, color: '#D97706', marginTop: 1, flexShrink: 0 }} />
-            <p style={{ fontSize: '0.82rem', color: '#D97706', margin: 0, lineHeight: 1.45, fontWeight: 600 }}>
+            <i className="bi bi-shield-lock-fill" style={{ fontSize: 14, color: 'var(--g-warning, #D97706)', marginTop: 1, flexShrink: 0 }} />
+            <p style={{ fontSize: '0.82rem', color: 'var(--g-warning, #D97706)', margin: 0, lineHeight: 1.45, fontWeight: 600 }}>
               You are paying <strong>{selectedEscrowOption}% ({formatPrice(amountDue)})</strong> upfront. Funds will be held securely and released after you confirm service satisfaction.
             </p>
           </div>
@@ -1623,7 +1626,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       {/* Frame label */}
-      <div style={{ fontSize: '0.75rem', color: '#D1D5DB', marginBottom: '0.5rem' }}>Spending Trend</div>
+      <div style={{ fontSize: '0.75rem', color: 'var(--g-text-muted, #D1D5DB)', marginBottom: '0.5rem' }}>Spending Trend</div>
 
       <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
         <svg width="100%" height={height} viewBox={`0 0 ${chartWidth} ${height}`} preserveAspectRatio="none">
@@ -1681,7 +1684,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
           {data.map((item, index) => (
             <span key={index} style={{
               fontSize: '0.75rem',
-              color: '#9CA3AF',
+              color: 'var(--g-text-muted, #9CA3AF)',
               fontWeight: '500',
               minWidth: '45px',
               textAlign: 'center'
@@ -1704,8 +1707,10 @@ interface PaymentGaugeProps {
 const PaymentGauge: React.FC<PaymentGaugeProps> = ({ paid, pending, failed }) => {
   const { colors } = useTheme();
   const total = paid + pending + failed;
-  const paidAngle = (paid / total) * 180;
-  const pendingAngle = (pending / total) * 180;
+  // No payments yet: total is 0, and 0 / 0 made every arc NaN (an invalid path in the console). Draw an empty track.
+  const empty = !(total > 0);
+  const paidAngle = empty ? 0 : (paid / total) * 180;
+  const pendingAngle = empty ? 0 : (pending / total) * 180;
 
   const createArc = (startAngle: number, endAngle: number, color: string) => {
     const radius = 70;
@@ -1734,9 +1739,13 @@ const PaymentGauge: React.FC<PaymentGaugeProps> = ({ paid, pending, failed }) =>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <svg width="160" height="90" viewBox="0 0 160 90">
-        {createArc(0, paidAngle, '#10B981')}
-        {createArc(paidAngle, paidAngle + pendingAngle, '#FBBF24')}
-        {createArc(paidAngle + pendingAngle, 180, '#EF4444')}
+        {empty ? createArc(0, 180, 'var(--g-border, #E5E7EB)') : (
+          <>
+            {createArc(0, paidAngle, '#10B981')}
+            {createArc(paidAngle, paidAngle + pendingAngle, '#FBBF24')}
+            {createArc(paidAngle + pendingAngle, 180, '#EF4444')}
+          </>
+        )}
       </svg>
     </div>
   );
@@ -1788,464 +1797,95 @@ const EventTypeBadge: React.FC<EventTypeBadgeProps> = ({ type }) => {
   );
 };
 
-const PaymentsPage = () => {
-  const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
-  const { profile } = useUserProfile();
-  const { token, user } = useDashboardAuth();
-  const router = useRouter();
-  const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [chartType, setChartType] = useState<ChartType>('line');
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showPayNowModal, setShowPayNowModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
-  const [wallet, setWallet] = useState<WalletDTO | null>(null);
-
-  // Fetch wallet for compact summary
-  useEffect(() => {
-    let cancelled = false;
-    getMyWallet().then(w => { if (!cancelled) setWallet(w); }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-
-
-  const handleViewPayment = (payment: Payment) => {
-    setSelectedPayment(payment);
-    setShowPaymentModal(true);
-  };
-
-  const handlePayNow = (payment: Payment) => {
-    setPayNowPayment(payment);
-    setShowPayNowModal(true);
-  };
-
-  const handleDownloadReceipt = (payment: Payment) => {
-    const receiptContent = `
-=====================================
-        PAYMENT RECEIPT
-=====================================
-
-Invoice: ${payment.invoiceNumber}
-Date: ${payment.date}
-Status: ${payment.status}
-
-Event: ${payment.eventName}
-Photographer: ${payment.photographerName}
-Payment Method: ${payment.method}
-
-Amount: ${formatPrice(payment.amountNum)}
-
-=====================================
-    Thank you for using Connekt
-=====================================
-    `;
-    const blob = new Blob([receiptContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receipt-${payment.invoiceNumber}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const [spendingData, setSpendingData] = useState<{ date: string; value: number }[]>([]);
-
-  const fetchSpendingTrend = useCallback(async (period: string) => {
-    if (!user) return;
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/customer/payments/spending-trend?period=${period}`,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      if (!response.ok) return;
-      const result = await response.json();
-      const data = result.data;
-      if (Array.isArray(data) && data.length > 0) {
-        setSpendingData(data.map((item: any) => ({
-          date: item.date,
-          value: Number(item.value) || 0
-        })));
-      }
-    } catch (err) {
-      console.error('Failed to fetch spending trend:', err);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchSpendingTrend(activeTimeFilter);
-  }, [activeTimeFilter, fetchSpendingTrend]);
-
-  const [payments, setPayments] = useState<Payment[]>([]);
-  // Pop-highlight the matching row if arrived from "Go to notification".
-  // Match on declarationId because `payment.id` is a display-only sequence.
-  const highlightId = useHighlightOnMount();
-  const highlightRowRef = useRef<HTMLTableRowElement | null>(null);
-  useEffect(() => {
-    if (highlightId && highlightRowRef.current) {
-      highlightRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [highlightId, payments.length]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalResults, setTotalResults] = useState(0);
-  const resultsPerPage = 8;
-
-  // Map API status to frontend PaymentStatus
-  const mapStatus = (apiStatus: string): PaymentStatus => {
-    switch (apiStatus?.toUpperCase()) {
-      case 'COMPLETED': return 'paid';
-      case 'PENDING': return 'pending';
-      case 'PARTIAL': return 'partially_paid';
-      case 'FAILED': return 'failed';
-      case 'REFUNDED': return 'refunded';
-      default: return 'pending';
-    }
-  };
-
-  // Format date from API LocalDateTime
-  const formatDate = (dateStr: string): string => {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const month = months[date.getMonth()];
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours();
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const displayHour = hours % 12 || 12;
-    return `${month}, ${day} ${displayHour}:${minutes} ${ampm}`;
-  };
-
-  // Fetch payment history from API
-  const fetchPayments = useCallback(async (page: number) => {
-    if (!user) return;
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/customer/payments?page=${page - 1}&size=${resultsPerPage}`,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      if (!response.ok) return;
-      const result = await response.json();
-      const pageData = result.data;
-      const content = pageData?.content || [];
-
-      // Newest-created first. Mapped shape formats date string, so sort raw.
-      content.sort((a: any, b: any) => {
-        const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return tb - ta;
-      });
-
-      const mapped: Payment[] = content.map((item: any, index: number) => ({
-        id: index + 1 + (page - 1) * resultsPerPage,
-        declarationId: item.id,
-        eventId: item.eventId,
-        date: formatDate(item.createdAt),
-        eventName: item.eventTitle || 'Untitled Event',
-        eventType: item.paymentType || 'Booking',
-        photographerName: item.photographerName || 'Unknown',
-        photographerImage: item.photographerImage || undefined,
-        method: '-',
-        amount: formatPrice(Number(item.amount) || 0, item.currencyAbbreviation || undefined),
-        amountNum: Number(item.amountInUsd ?? item.amount) || 0,
-        paidAmount: Number(item.paidAmountInUsd ?? item.paidAmount) || 0,
-        status: mapStatus(item.status),
-        invoiceNumber: `INV-${String(item.id).substring(0, 8).toUpperCase()}`,
-        escrowStatus: item.escrowStatus || 'NONE',
-        escrowPercentage: item.escrowPercentage || null,
-        heldAmount: Number(item.heldAmount) || 0,
-        releasedAmount: Number(item.releasedAmount) || 0,
-        eventCompletionStatus: item.eventCompletionStatus || 'NOT_COMPLETED',
-      }));
-
-      setPayments(mapped);
-      setTotalPages(pageData?.totalPages || 1);
-      setTotalResults(pageData?.totalElements || 0);
-    } catch (err) {
-      console.error('Failed to fetch payments:', err);
-    }
-  }, [user, resultsPerPage]);
-
-  useEffect(() => {
-    fetchPayments(currentPage);
-  }, [currentPage, fetchPayments]);
-
-  // Balance totals from API
-  const [totalPaid, setTotalPaid] = useState(0);
-  const [totalPending, setTotalPending] = useState(0);
-  const [totalFailed, setTotalFailed] = useState(0);
-  const [streamingEarnings, setStreamingEarnings] = useState(0);
-
-  const fetchBalance = useCallback(async () => {
-    if (!user) return;
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/customer/payments/balance`,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      if (!response.ok) return;
-      const result = await response.json();
-      const data = result.action === 1 ? result.data : null; // HTTP 200 + action 0 is a failure
-      if (data) {
-        setTotalPaid(Number(data.totalPaid) || 0);
-        setTotalPending(Number(data.totalPending) || 0);
-        if (data.totalEarnings != null) setStreamingEarnings(Number(data.totalEarnings) || 0);
-      }
-    } catch (err) {
-      console.error('Failed to fetch balance:', err);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchBalance();
-  }, [fetchBalance]);
-
-  // Report/stats data. Starts empty: this used to start from a hardcoded
-  // sample ($1,200.13, "13 - 18 July 2025") that stayed on screen whenever
-  // the stats request failed. /stats is lifetime, so the period says so.
-  const [reportData, setReportData] = useState({
-    period: 'All time',
-    totalPaid: 0,
-    pending: 0,
-    failed: 0,
-    totalTransactions: 0,
-    completedTransactions: 0,
-    pendingTransactions: 0,
-    failedTransactions: 0,
-  });
-
-  const fetchStats = useCallback(async () => {
-    if (!user) return;
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/customer/payments/stats`,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      if (!response.ok) return;
-      const result = await response.json();
-      const data = result.action === 1 ? result.data : null;
-      if (data) {
-        setReportData({
-          period: 'All time',
-          totalPaid: Number(data.totalPaid) || 0,
-          pending: Number(data.pending) || 0,
-          failed: Number(data.failed) || 0,
-          totalTransactions: Number(data.totalTransactions) || 0,
-          completedTransactions: Number(data.completedTransactions) || 0,
-          pendingTransactions: Number(data.pendingTransactions) || 0,
-          failedTransactions: Number(data.failedTransactions) || 0,
-        });
-      }
-    } catch (err) {
-      console.error('Failed to fetch stats:', err);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  // Gifts data - organized by stream/event with gifters list
-  const [giftStreams, setGiftStreams] = useState<{
-    id: number;
-    streamTitle: string;
-    date: string;
-    platform: string;
-    gifters: { name: string; amount: number; message: string }[];
-  }[]>([]);
-
-  const fetchGiftStreams = useCallback(async () => {
-    if (!user) return;
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/customer/payments/gift-streams`,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      if (!response.ok) return;
-      const result = await response.json();
-      const data = result.data;
-      if (Array.isArray(data)) {
-        setGiftStreams(data.map((item: any, index: number) => ({
-          id: index + 1,
-          streamTitle: item.streamTitle || 'Untitled Stream',
-          date: item.date || '',
-          platform: item.platform || 'ConnektLive',
-          gifters: (item.gifters || []).map((g: any) => ({
-            name: g.name || 'Anonymous',
-            amount: Number(g.amount) || 0,
-            message: g.message || ''
-          }))
-        })));
-      }
-    } catch (err) {
-      console.error('Failed to fetch gift streams:', err);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchGiftStreams();
-  }, [fetchGiftStreams]);
-
-  const totalGifts = giftStreams.reduce((sum, stream) => sum + stream.gifters.reduce((s, g) => s + g.amount, 0), 0);
-
-  // State for gift senders modal
-  const [showGiftSendersModal, setShowGiftSendersModal] = useState(false);
-  const [selectedGiftStream, setSelectedGiftStream] = useState<typeof giftStreams[0] | null>(null);
-
-  // Whether user already has a withdrawal method set
-  const [hasWithdrawalMethod, setHasWithdrawalMethod] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/preferences`);
-        if (res.ok) {
-          const result = await res.json();
-          const prefs = result.data || {};
-          const hasAccounts = Object.keys(prefs).some(k => k.startsWith('payment_method_'));
-          setHasWithdrawalMethod(hasAccounts);
-        }
-      } catch { /* ignore */ }
-    })();
-  }, [user]);
-
-  // State for gifts payment method modal
-  const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
-  const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
-  const [giftPaymentDetails, setGiftPaymentDetails] = useState({
-    mtnNumber: '',
-    airtelNumber: '',
-    bankAccountNumber: '',
-    bankAccountName: '',
-    selectedBank: '',
-  });
-  // Per-network validity of the payout phone numbers (from InternationalPhoneInput).
-  const [giftPhoneValid, setGiftPhoneValid] = useState({ mtn: false, airtel: false });
-  // Default the payout phone's country to the user's saved profile phone.
-  const giftPhoneDefaultIso2 = React.useMemo(
-    () => parsePhone(`${profile.phoneCode || ''}${profile.phoneNumber || ''}`).country?.iso2 ?? null,
-    [profile.phoneCode, profile.phoneNumber]
-  );
-  const [bankProviders, setBankProviders] = useState<{ id: string; name: string }[]>([]);
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  // Load bank providers when modal opens
-  useEffect(() => {
-    if (!showGiftsPaymentMethodModal) return;
-    const apiUrl = getApiUrl();
-    dashboardAuthFetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`)
-      .then(res => res.json())
-      .then(result => setBankProviders(result?.data?.banks || []))
-      .catch(() => setBankProviders([]));
-  }, [showGiftsPaymentMethodModal, user]);
-
-  // Validate payment method selection
-  const validateGiftPaymentMethod = (): boolean => {
-    if (!selectedGiftPaymentMethod) {
-      setValidationError('Please select a payment method.');
-      return false;
-    }
-    setValidationError(null);
-    return true;
-  };
-
-  const [savingWithdrawal, setSavingWithdrawal] = useState(false);
-
-  const saveWithdrawalMethod = async () => {
-    if (!validateGiftPaymentMethod()) return;
-    if (!selectedGiftPaymentMethod || !user) return;
-
-    let methodType = '';
-    let accountName = '';
-    let accountNumber = '';
-    let bankName = '';
-
-    if (selectedGiftPaymentMethod === 'mtn') {
-      if (!giftPaymentDetails.mtnNumber.trim() || !giftPhoneValid.mtn) {
-        setValidationError('Please enter a valid MTN phone number.');
-        return;
-      }
-      methodType = 'MOBILE_MONEY';
-      accountName = 'MTN Mobile Money';
-      accountNumber = giftPaymentDetails.mtnNumber.trim();
-      bankName = 'MTN';
-    } else if (selectedGiftPaymentMethod === 'airtel') {
-      if (!giftPaymentDetails.airtelNumber.trim() || !giftPhoneValid.airtel) {
-        setValidationError('Please enter a valid Airtel phone number.');
-        return;
-      }
-      methodType = 'MOBILE_MONEY';
-      accountName = 'Airtel Money';
-      accountNumber = giftPaymentDetails.airtelNumber.trim();
-      bankName = 'Airtel';
-    } else if (selectedGiftPaymentMethod === 'bank') {
-      if (!giftPaymentDetails.bankAccountNumber.trim() || !giftPaymentDetails.bankAccountName.trim() || !giftPaymentDetails.selectedBank) {
-        setValidationError('Please fill in your bank, account number, and account holder name.');
-        return;
-      }
-      methodType = 'BANK_TRANSFER';
-      accountName = giftPaymentDetails.bankAccountName.trim();
-      accountNumber = giftPaymentDetails.bankAccountNumber.trim();
-      bankName = giftPaymentDetails.selectedBank;
-    }
-
-    setSavingWithdrawal(true);
-    setValidationError(null);
-
-    try {
-      const apiUrl = getApiUrl();
-      const params = new URLSearchParams({
-        methodType,
-        accountName,
-        accountNumber,
-        isDefault: 'true',
-      });
-      if (bankName) params.append('bankName', bankName);
-
-      const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/customer/withdrawal-methods?${params.toString()}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-
-      if (!response.ok) {
-        const errResult = await response.json().catch(() => null);
-        setValidationError(sanitizeErrorMessage(errResult?.message, 'Failed to save withdrawal method. Please try again.'));
-        return;
-      }
-
-      // Success - close modal and reset
-      setShowGiftsPaymentMethodModal(false);
-      setSelectedGiftPaymentMethod(null);
-      setGiftPaymentDetails({ mtnNumber: '', airtelNumber: '', bankAccountNumber: '', bankAccountName: '', selectedBank: '' });
-      setGiftPhoneValid({ mtn: false, airtel: false });
-      setValidationError(null);
-      setHasWithdrawalMethod(true);
-    } catch (err) {
-      console.error('Failed to save withdrawal method:', err);
-      setValidationError('Network error. Please check your connection and try again.');
-    } finally {
-      setSavingWithdrawal(false);
-    }
-  };
-
-  const handleViewGiftSenders = (stream: typeof giftStreams[0]) => {
-    setSelectedGiftStream(stream);
-    setShowGiftSendersModal(true);
-  };
-
+/** The classic page body (header, filters, list). The dialogs are PaymentsPageModals, shared with the Compact Glass page. */
+const PaymentsPageBody = ({ ctl }: { ctl: ClientPaymentsController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    profile,
+    token,
+    user,
+    router,
+    activeTimeFilter,
+    setActiveTimeFilter,
+    currentPage,
+    setCurrentPage,
+    chartType,
+    setChartType,
+    showReportModal,
+    setShowReportModal,
+    showPaymentModal,
+    setShowPaymentModal,
+    showPayNowModal,
+    setShowPayNowModal,
+    selectedPayment,
+    setSelectedPayment,
+    payNowPayment,
+    setPayNowPayment,
+    wallet,
+    setWallet,
+    handleViewPayment,
+    handlePayNow,
+    handleDownloadReceipt,
+    spendingData,
+    setSpendingData,
+    fetchSpendingTrend,
+    payments,
+    setPayments,
+    highlightId,
+    highlightRowRef,
+    totalPages,
+    setTotalPages,
+    totalResults,
+    setTotalResults,
+    resultsPerPage,
+    mapStatus,
+    formatDate,
+    fetchPayments,
+    totalPaid,
+    setTotalPaid,
+    totalPending,
+    setTotalPending,
+    totalFailed,
+    setTotalFailed,
+    streamingEarnings,
+    setStreamingEarnings,
+    fetchBalance,
+    reportData,
+    setReportData,
+    fetchStats,
+    giftStreams,
+    setGiftStreams,
+    fetchGiftStreams,
+    totalGifts,
+    showGiftSendersModal,
+    setShowGiftSendersModal,
+    selectedGiftStream,
+    setSelectedGiftStream,
+    hasWithdrawalMethod,
+    setHasWithdrawalMethod,
+    showWithdrawModal,
+    setShowWithdrawModal,
+    showGiftsPaymentMethodModal,
+    setShowGiftsPaymentMethodModal,
+    selectedGiftPaymentMethod,
+    setSelectedGiftPaymentMethod,
+    giftPaymentDetails,
+    setGiftPaymentDetails,
+    giftPhoneValid,
+    setGiftPhoneValid,
+    giftPhoneDefaultIso2,
+    bankProviders,
+    setBankProviders,
+    validationError,
+    setValidationError,
+    validateGiftPaymentMethod,
+    savingWithdrawal,
+    setSavingWithdrawal,
+    saveWithdrawalMethod,
+    handleViewGiftSenders,
+  } = ctl;
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
@@ -2751,7 +2391,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           <LiveStreamIcon />
                           <span style={{
                             fontSize: '0.65rem',
-                            color: '#EF4444',
+                            color: 'var(--g-error, #EF4444)',
                             backgroundColor: '#FEE2E2',
                             padding: '0.1rem 0.35rem',
                             borderRadius: '0.25rem',
@@ -2761,7 +2401,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           </span>
                           <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{stream.date}</span>
                         </div>
-                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(streamTotal)}</span>
+                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: 'var(--g-success, #16A34A)' }}>{formatPrice(streamTotal)}</span>
                       </div>
 
                       {/* Title row */}
@@ -2893,7 +2533,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem',
                             borderRadius: '9999px', fontSize: '0.7rem', fontWeight: '600',
-                            backgroundColor: 'rgba(251, 191, 36, 0.15)', color: '#D97706',
+                            backgroundColor: 'rgba(251, 191, 36, 0.15)', color: 'var(--g-warning, #D97706)',
                           }}>
                             {payment.escrowPercentage}% held
                           </span>
@@ -2902,7 +2542,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem',
                             borderRadius: '9999px', fontSize: '0.7rem', fontWeight: '600',
-                            backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#059669',
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)', color: 'var(--g-success, #059669)',
                           }}>
                             Released
                           </span>
@@ -2959,7 +2599,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           </button>
                         )}
                         {payment.escrowStatus === 'HELD' && payment.eventCompletionStatus !== 'COMPLETED' && (
-                          <span style={{ fontSize: '0.75rem', color: '#D97706', fontWeight: '500' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--g-warning, #D97706)', fontWeight: '500' }}>
                             Awaiting completion
                           </span>
                         )}
@@ -3024,6 +2664,101 @@ Amount: ${formatPrice(payment.amountNum)}
         </div>
       </div>
 
+    </div>
+  );
+};
+
+/** Every dialog of the page, unchanged; rendered by both the classic and the Compact Glass page. */
+export const PaymentsPageModals = ({ ctl }: { ctl: ClientPaymentsController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    profile,
+    token,
+    user,
+    router,
+    activeTimeFilter,
+    setActiveTimeFilter,
+    currentPage,
+    setCurrentPage,
+    chartType,
+    setChartType,
+    showReportModal,
+    setShowReportModal,
+    showPaymentModal,
+    setShowPaymentModal,
+    showPayNowModal,
+    setShowPayNowModal,
+    selectedPayment,
+    setSelectedPayment,
+    payNowPayment,
+    setPayNowPayment,
+    wallet,
+    setWallet,
+    handleViewPayment,
+    handlePayNow,
+    handleDownloadReceipt,
+    spendingData,
+    setSpendingData,
+    fetchSpendingTrend,
+    payments,
+    setPayments,
+    highlightId,
+    highlightRowRef,
+    totalPages,
+    setTotalPages,
+    totalResults,
+    setTotalResults,
+    resultsPerPage,
+    mapStatus,
+    formatDate,
+    fetchPayments,
+    totalPaid,
+    setTotalPaid,
+    totalPending,
+    setTotalPending,
+    totalFailed,
+    setTotalFailed,
+    streamingEarnings,
+    setStreamingEarnings,
+    fetchBalance,
+    reportData,
+    setReportData,
+    fetchStats,
+    giftStreams,
+    setGiftStreams,
+    fetchGiftStreams,
+    totalGifts,
+    showGiftSendersModal,
+    setShowGiftSendersModal,
+    selectedGiftStream,
+    setSelectedGiftStream,
+    hasWithdrawalMethod,
+    setHasWithdrawalMethod,
+    showWithdrawModal,
+    setShowWithdrawModal,
+    showGiftsPaymentMethodModal,
+    setShowGiftsPaymentMethodModal,
+    selectedGiftPaymentMethod,
+    setSelectedGiftPaymentMethod,
+    giftPaymentDetails,
+    setGiftPaymentDetails,
+    giftPhoneValid,
+    setGiftPhoneValid,
+    giftPhoneDefaultIso2,
+    bankProviders,
+    setBankProviders,
+    validationError,
+    setValidationError,
+    validateGiftPaymentMethod,
+    savingWithdrawal,
+    setSavingWithdrawal,
+    saveWithdrawalMethod,
+    handleViewGiftSenders,
+  } = ctl;
+  return (
+    <>
       {/* Modals */}
       <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} reportData={reportData} />
       <PaymentDetailsModal
@@ -3058,7 +2793,7 @@ Amount: ${formatPrice(payment.amountNum)}
                 <LiveStreamIcon />
                 <span style={{
                   fontSize: '0.7rem',
-                  color: '#EF4444',
+                  color: 'var(--g-error, #EF4444)',
                   backgroundColor: '#FEE2E2',
                   padding: '0.15rem 0.4rem',
                   borderRadius: '0.25rem',
@@ -3116,7 +2851,7 @@ Amount: ${formatPrice(payment.amountNum)}
                           </span>
                         </div>
                       </div>
-                      <span style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>
+                      <span style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--g-success, #16A34A)' }}>
                         {formatPrice(gifter.amount)}
                       </span>
                     </div>
@@ -3317,7 +3052,7 @@ Amount: ${formatPrice(payment.amountNum)}
                     {'logo' in m && m.logo && 'src' in m.logo ? (
                       <Image src={m.logo.src} alt={m.title} width={46} height={46} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                     ) : (
-                      <i className={`bi ${(m.logo as { icon: string }).icon}`} style={{ fontSize: 22, color: '#083A85' }} />
+                      <i className={`bi ${(m.logo as { icon: string }).icon}`} style={{ fontSize: 22, color: 'var(--g-link, #083A85)' }} />
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -3545,8 +3280,16 @@ Amount: ${formatPrice(payment.amountNum)}
           }
         }
       `}</style>
-    </div>
+    </>
   );
+};
+
+/** One controller for both views, so the classic page (UI_GLASS=off) and the Compact Glass page behave the same. */
+const PaymentsPage = () => {
+  const ctl = useClientPayments();
+  const glass = useUiGlass();
+  if (glass) return <GlassClientPayments ctl={ctl} modals={<PaymentsPageModals ctl={ctl} />} chart={<SpendingChart data={ctl.spendingData} height={150} chartType={ctl.chartType} />} />;
+  return <><PaymentsPageBody ctl={ctl} /><PaymentsPageModals ctl={ctl} /></>;
 };
 
 export default PaymentsPage;

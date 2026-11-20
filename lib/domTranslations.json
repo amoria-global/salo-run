@@ -3555,7 +3555,7 @@
     "Voir tout",
     "Ver todo",
     "Reba byose",
-    "Tazama all"
+    "Tazama zote"
   ],
   "Open": [
     "Ouvrir",
@@ -6462,10 +6462,10 @@
     "Collaborators"
   ],
   "Collapse sidebar": [
-    "Collapse sidebar",
-    "Collapse sidebar",
-    "Collapse sidebar",
-    "Collapse sidebar"
+    "Réduire la barre latérale",
+    "Contraer la barra lateral",
+    "Gabanya menyu y'uruhande",
+    "Kunja menyu ya pembeni"
   ],
   "Collect answers for": [
     "Collect answers for",
@@ -7938,10 +7938,10 @@
     "Exit Comparison"
   ],
   "Expand sidebar": [
-    "Expand sidebar",
-    "Expand sidebar",
-    "Expand sidebar",
-    "Expand sidebar"
+    "Développer la barre latérale",
+    "Expandir la barra lateral",
+    "Agura menyu y'uruhande",
+    "Panua menyu ya pembeni"
   ],
   "Expected Attendees *": [
     "Expected Attendees *",
@@ -8394,10 +8394,10 @@
     "Wasiliana Nasi"
   ],
   "Get matched with more events": [
-    "Get matched with Plus événements",
-    "Get matched with Más eventos",
-    "Get matched with Ibindi ibirori",
-    "Get matched with More matukio"
+    "Soyez mis en relation avec plus d'événements",
+    "Consigue más eventos",
+    "Bona ibirori byinshi bikubereye",
+    "Pata matukio zaidi yanayokufaa"
   ],
   "Get notified": [
     "Être notifié",
@@ -10620,10 +10620,10 @@
     "Malipo Maelezo"
   ],
   "Payment History": [
-    "Paiement Historique",
-    "Pago Historial",
-    "Kwishyura Amateka",
-    "Malipo Historia"
+    "Historique des paiements",
+    "Historial de pagos",
+    "Amateka y'ubwishyu",
+    "Historia ya malipo"
   ],
   "Payment Info": [
     "Paiement Info",
@@ -12858,10 +12858,10 @@
     "Tags"
   ],
   "Takes 20 seconds": [
-    "Takes 20 seconds",
-    "Takes 20 seconds",
-    "Takes 20 seconds",
-    "Takes 20 seconds"
+    "Prend 20 secondes",
+    "Toma 20 segundos",
+    "Bifata amasegonda 20",
+    "Inachukua sekunde 20"
   ],
   "Talent & Booking Agency": [
     "Talent & Réservation Agency",
@@ -16030,5 +16030,3347 @@
     "Ahora",
     "Ubu",
     "Sasa"
+  ],
+  "Search pages and actions": [
+    "Rechercher des pages et des actions",
+    "Buscar páginas y acciones",
+    "Shakisha impapuro n'ibikorwa",
+    "Tafuta kurasa na vitendo"
+  ],
+  "No results": [
+    "Aucun résultat",
+    "Sin resultados",
+    "Nta bisubizo",
+    "Hakuna matokeo"
+  ],
+  "Payment required": [
+    "Paiement requis",
+    "Pago requerido",
+    "Ubwishyu burakenewe",
+    "Malipo yanahitajika"
+  ],
+  "Your wallet is suspended": [
+    "Votre portefeuille est suspendu",
+    "Tu billetera está suspendida",
+    "Ikofi yawe yahagaritswe",
+    "Pochi yako imesimamishwa"
+  ],
+  "Log out": [
+    "Se déconnecter",
+    "Cerrar sesión",
+    "Sohoka",
+    "Toka"
+  ],
+  "Days you mark here cannot be booked": [
+    "Les jours marqués ici ne peuvent pas être réservés",
+    "Los días que marques aquí no se pueden reservar",
+    "Iminsi ushyizeho akamenyetso hano ntishobora gufatirwaho umwanya",
+    "Siku unazoweka alama hapa haziwezi kuwekewa nafasi"
+  ],
+  "Unavailable today": [
+    "Indisponible aujourd'hui",
+    "No disponible hoy",
+    "Ntabwo mboneka uyu munsi",
+    "Sipatikani leo"
+  ],
+  "Available today": [
+    "Disponible aujourd'hui",
+    "Disponible hoy",
+    "Ndaboneka uyu munsi",
+    "Ninapatikana leo"
+  ],
+  "Unavailable": [
+    "Indisponible",
+    "No disponible",
+    "Ntibihari",
+    "Haipatikani"
+  ],
+  "Wallet balance": [
+    "Solde du portefeuille",
+    "Saldo de la billetera",
+    "Amafaranga ari mu ikofi",
+    "Salio la pochi"
+  ],
+  "Turn on desktop alerts": [
+    "Activer les alertes sur l'ordinateur",
+    "Activar alertas en el escritorio",
+    "Fungura imenyesha kuri mudasobwa",
+    "Washa arifa kwenye kompyuta"
+  ],
+  "Account menu": [
+    "Menu du compte",
+    "Menú de la cuenta",
+    "Menyu ya konti",
+    "Menyu ya akaunti"
+  ],
+  "Sell photos": [
+    "Vendre des photos",
+    "Vender fotos",
+    "Gucuruza amafoto",
+    "Uza picha"
+  ],
+  "Jobs": [
+    "Missions",
+    "Trabajos",
+    "Akazi",
+    "Kazi"
+  ],
+  "Main navigation": [
+    "Navigation principale",
+    "Navegación principal",
+    "Menyu nkuru",
+    "Menyu kuu"
+  ],
+  "Color theme": [
+    "Thème de couleur",
+    "Tema de color",
+    "Imigaragarire y'amabara",
+    "Mandhari ya rangi"
+  ],
+  "Collapse menu": [
+    "Réduire le menu",
+    "Contraer el menú",
+    "Gabanya menyu",
+    "Kunja menyu"
+  ],
+  "Events this month": [
+    "Événements ce mois-ci",
+    "Eventos este mes",
+    "Ibirori by'uku kwezi",
+    "Matukio mwezi huu"
+  ],
+  "New package": [
+    "Nouveau forfait",
+    "Nuevo paquete",
+    "Ipaki nshya",
+    "Kifurushi kipya"
+  ],
+  "Compare goals": [
+    "Comparer les objectifs",
+    "Comparar objetivos",
+    "Gereranya intego",
+    "Linganisha malengo"
+  ],
+  "Host your own event": [
+    "Organisez votre propre événement",
+    "Organiza tu propio evento",
+    "Tegura ikirori cyawe",
+    "Andaa tukio lako"
+  ],
+  "My hosted events": [
+    "Mes événements organisés",
+    "Mis eventos organizados",
+    "Ibirori nateguye",
+    "Matukio niliyoandaa"
+  ],
+  "Could not load your balance. Try again": [
+    "Impossible de charger votre solde. Réessayer",
+    "No se pudo cargar tu saldo. Reintentar",
+    "Ntitwashoboye kubona amafaranga yawe. Ongera ugerageze",
+    "Imeshindwa kupakia salio lako. Jaribu tena"
+  ],
+  "Choose a period": [
+    "Choisir une période",
+    "Elegir un periodo",
+    "Hitamo igihe",
+    "Chagua kipindi"
+  ],
+  "Pick both dates to see that range.": [
+    "Choisissez les deux dates pour voir cette période.",
+    "Elige ambas fechas para ver ese periodo.",
+    "Hitamo amatariki yombi kugira ngo ubone icyo gihe.",
+    "Chagua tarehe zote mbili kuona kipindi hicho."
+  ],
+  "Pending payouts": [
+    "Paiements en attente",
+    "Pagos pendientes",
+    "Amafaranga ategereje kwishyurwa",
+    "Malipo yanayosubiri"
+  ],
+  "No upcoming events": [
+    "Aucun événement à venir",
+    "No hay eventos próximos",
+    "Nta birori biri imbere",
+    "Hakuna matukio yajayo"
+  ],
+  "New bookings will appear here.": [
+    "Les nouvelles réservations apparaîtront ici.",
+    "Las nuevas reservas aparecerán aquí.",
+    "Ibisabwa bishya bizagaragara hano.",
+    "Maombi mapya yataonekana hapa."
+  ],
+  "Nothing in the last 30 days": [
+    "Rien au cours des 30 derniers jours",
+    "Nada en los últimos 30 días",
+    "Nta kintu mu minsi 30 ishize",
+    "Hakuna kitu katika siku 30 zilizopita"
+  ],
+  "Payments and event updates will appear here.": [
+    "Les paiements et les mises à jour d'événements apparaîtront ici.",
+    "Los pagos y las novedades de eventos aparecerán aquí.",
+    "Ubwishyu n'amakuru y'ibirori bizagaragara hano.",
+    "Malipo na taarifa za matukio zitaonekana hapa."
+  ],
+  "Payment pending": [
+    "Paiement en attente",
+    "Pago pendiente",
+    "Ubwishyu butegerejwe",
+    "Malipo yanasubiri"
+  ],
+  "attempts": [
+    "tentatives",
+    "intentos",
+    "inshuro",
+    "majaribio"
+  ],
+  "No change": [
+    "Aucun changement",
+    "Sin cambios",
+    "Nta mpinduka",
+    "Hakuna mabadiliko"
+  ],
+  "vs previous period": [
+    "vs période précédente",
+    "vs periodo anterior",
+    "ugereranyije n'igihe cyabanje",
+    "ukilinganisha na kipindi kilichopita"
+  ],
+  "Progress to goal": [
+    "Progression vers l'objectif",
+    "Progreso hacia el objetivo",
+    "Aho ugeze ku ntego",
+    "Maendeleo kuelekea lengo"
+  ],
+  "Not shared in this workspace": [
+    "Non partagé dans cet espace de travail",
+    "No compartido en este espacio de trabajo",
+    "Ntibisangiwe muri iyi workspace",
+    "Haishirikiwi katika eneo hili la kazi"
+  ],
+  "Not shared": [
+    "Non partagé",
+    "No compartido",
+    "Ntibisangiwe",
+    "Haishirikiwi"
+  ],
+  "We could not load this.": [
+    "Impossible de charger ceci.",
+    "No pudimos cargar esto.",
+    "Ntitwashoboye kubibona.",
+    "Hatukuweza kupakia hiki."
+  ],
+  "This week": [
+    "Cette semaine",
+    "Esta semana",
+    "Iki cyumweru",
+    "Wiki hii"
+  ],
+  "This month": [
+    "Ce mois-ci",
+    "Este mes",
+    "Uku kwezi",
+    "Mwezi huu"
+  ],
+  "Bookings in this period": [
+    "Réservations sur cette période",
+    "Reservas en este periodo",
+    "Ibisabwa muri iki gihe",
+    "Maombi katika kipindi hiki"
+  ],
+  "Earnings and bookings in this period": [
+    "Revenus et réservations sur cette période",
+    "Ingresos y reservas en este periodo",
+    "Amafaranga yinjiye n'ibisabwa muri iki gihe",
+    "Mapato na maombi katika kipindi hiki"
+  ],
+  "Set targets and see progress on your Home cards.": [
+    "Fixez des objectifs et suivez votre progression sur l'accueil.",
+    "Fija objetivos y sigue tu progreso en el inicio.",
+    "Shyiraho intego urebe aho ugeze ku ikarita z'Ahabanza.",
+    "Weka malengo na uone maendeleo kwenye kadi za Nyumbani."
+  ],
+  "Save goal": [
+    "Enregistrer l'objectif",
+    "Guardar objetivo",
+    "Bika intego",
+    "Hifadhi lengo"
+  ],
+  "Stop comparing": [
+    "Arrêter la comparaison",
+    "Dejar de comparar",
+    "Hagarika kugereranya",
+    "Acha kulinganisha"
+  ],
+  "New goal": [
+    "Nouvel objectif",
+    "Nuevo objetivo",
+    "Intego nshya",
+    "Lengo jipya"
+  ],
+  "Edit goal": [
+    "Modifier l'objectif",
+    "Editar objetivo",
+    "Hindura intego",
+    "Hariri lengo"
+  ],
+  "We could not save that. Please try again.": [
+    "Impossible d'enregistrer. Veuillez réessayer.",
+    "No se pudo guardar. Inténtalo de nuevo.",
+    "Ntitwashoboye kubika. Ongera ugerageze.",
+    "Hatukuweza kuhifadhi. Tafadhali jaribu tena."
+  ],
+  "Goal name": [
+    "Nom de l'objectif",
+    "Nombre del objetivo",
+    "Izina ry'intego",
+    "Jina la lengo"
+  ],
+  "e.g. December push": [
+    "ex. Objectif de décembre",
+    "p. ej. Impulso de diciembre",
+    "urugero: Intego y'Ukuboza",
+    "mfano: Lengo la Desemba"
+  ],
+  "Earnings target": [
+    "Objectif de revenus",
+    "Objetivo de ingresos",
+    "Intego y'amafaranga yinjira",
+    "Lengo la mapato"
+  ],
+  "Pending payouts target": [
+    "Objectif de paiements en attente",
+    "Objetivo de pagos pendientes",
+    "Intego y'amafaranga ategereje",
+    "Lengo la malipo yanayosubiri"
+  ],
+  "Clients target": [
+    "Objectif de clients",
+    "Objetivo de clientes",
+    "Intego y'abakiriya",
+    "Lengo la wateja"
+  ],
+  "Rating target": [
+    "Objectif de note",
+    "Objetivo de valoración",
+    "Intego y'amanota",
+    "Lengo la ukadiriaji"
+  ],
+  "Earnings targets are in USD.": [
+    "Les objectifs de revenus sont en USD.",
+    "Los objetivos de ingresos están en USD.",
+    "Intego z'amafaranga ziri mu madolari (USD).",
+    "Malengo ya mapato yako kwa USD."
+  ],
+  "No goals yet. Create one to compare against.": [
+    "Aucun objectif pour l'instant. Créez-en un pour comparer.",
+    "Aún no hay objetivos. Crea uno para comparar.",
+    "Nta ntego zirahari. Kora imwe yo kugereranya.",
+    "Bado hakuna malengo. Unda moja ili kulinganisha."
+  ],
+  "No earnings in this period yet": [
+    "Aucun revenu sur cette période pour l'instant",
+    "Aún no hay ingresos en este periodo",
+    "Nta mafaranga arinjira muri iki gihe",
+    "Bado hakuna mapato katika kipindi hiki"
+  ],
+  "Paid bookings and sales will show here.": [
+    "Les réservations payées et les ventes s'afficheront ici.",
+    "Las reservas pagadas y las ventas se mostrarán aquí.",
+    "Ibisabwa byishyuwe n'ibyagurishijwe bizagaragara hano.",
+    "Maombi yaliyolipwa na mauzo yataonekana hapa."
+  ],
+  "Earnings and bookings chart": [
+    "Graphique des revenus et réservations",
+    "Gráfico de ingresos y reservas",
+    "Igishushanyo cy'amafaranga n'ibisabwa",
+    "Chati ya mapato na maombi"
+  ],
+  "Chart points, use the arrow keys": [
+    "Points du graphique, utilisez les flèches",
+    "Puntos del gráfico, usa las flechas",
+    "Ingingo z'igishushanyo, koresha imyambi",
+    "Alama za chati, tumia vitufe vya mishale"
+  ],
+  "Good night": [
+    "Bonne nuit",
+    "Buenas noches",
+    "Ijoro ryiza",
+    "Usiku mwema"
+  ],
+  "Refunded": [
+    "Remboursé",
+    "Reembolsado",
+    "Byasubijwe",
+    "Imerejeshwa"
+  ],
+  "Searching…": [
+    "Recherche…",
+    "Buscando…",
+    "Turimo gushakisha…",
+    "Inatafuta…"
+  ],
+  "Get matched": [
+    "Être mis en relation",
+    "Quiero que me conecten",
+    "Mpuza n'ibirori",
+    "Nilinganishwe"
+  ],
+  "Remind me later": [
+    "Me le rappeler plus tard",
+    "Recordármelo más tarde",
+    "Unyibutse nyuma",
+    "Nikumbushe baadaye"
+  ],
+  "Please wait…": [
+    "Veuillez patienter…",
+    "Espera un momento…",
+    "Tegereza gato…",
+    "Tafadhali subiri…"
+  ],
+  "Location shared on booking": [
+    "Lieu communiqué à la réservation",
+    "Ubicación compartida al reservar",
+    "Aho bizabera bizatangazwa nyuma yo gufata",
+    "Eneo litashirikishwa wakati wa kuweka nafasi"
+  ],
+  "Not this time": [
+    "Pas cette fois",
+    "Esta vez no",
+    "Si ubu",
+    "Si wakati huu"
+  ],
+  "Get matched more often: complete your matching profile": [
+    "Soyez sélectionné plus souvent : complétez votre profil de mise en relation",
+    "Recibe más coincidencias: completa tu perfil de emparejamiento",
+    "Bonera ibirori kenshi: uzuza umwirondoro wawe wo guhuza",
+    "Pata nafasi zaidi: kamilisha wasifu wako wa kulinganishwa"
+  ],
+  "Pass on": [
+    "Passer sur",
+    "Pasar de",
+    "Reka",
+    "Acha"
+  ],
+  "Pass": [
+    "Passer",
+    "Pasar",
+    "Reka",
+    "Acha"
+  ],
+  "Yes, I'm available": [
+    "Oui, je suis disponible",
+    "Sí, estoy disponible",
+    "Yego, ndahari",
+    "Ndiyo, nipo"
+  ],
+  "Events near you that fit your calendar. Answer quickly: each one has a short response window.": [
+    "Des événements près de chez vous qui correspondent à votre agenda. Répondez vite : chacun a un court délai de réponse.",
+    "Eventos cerca de ti que encajan con tu calendario. Responde rápido: cada uno tiene un plazo corto.",
+    "Ibirori biri hafi yawe bihuye n'ikarita yawe. Subiza vuba: buri kimwe gifite igihe gito cyo gusubirizwamo.",
+    "Matukio karibu nawe yanayolingana na kalenda yako. Jibu haraka: kila moja lina muda mfupi wa kujibu."
+  ],
+  "Opportunities come from clients who used Post My Event: Connekyt matched you because you are free for the whole event and fit what they asked for. Say yes and the client sees you; they choose one photographer. These are different from booking requests, which a client sends to you directly and appear under Events.": [
+    "Les opportunités viennent de clients qui ont utilisé Post My Event : Connekyt vous a sélectionné car vous êtes libre pendant tout l'événement et correspondez à leur demande. Dites oui et le client vous voit ; il choisit un seul photographe. Elles diffèrent des demandes de réservation, qu'un client vous envoie directement et qui apparaissent sous Événements.",
+    "Las oportunidades vienen de clientes que usaron Post My Event: Connekyt te eligió porque estás libre durante todo el evento y encajas con lo que pidieron. Di que sí y el cliente te ve; elige a un solo fotógrafo. Son distintas de las solicitudes de reserva, que un cliente te envía directamente y aparecen en Eventos.",
+    "Amahirwe aturuka ku bakiriya bakoresheje Post My Event: Connekyt yaguhisemo kuko uri ubuntu mu gihe cyose cy'ibirori kandi ukwiranye n'ibyo bifuje. Vuga yego umukiriya akubone; ahitamo umufotora umwe. Aratandukanye n'ibisabwa byo gufata, umukiriya akwoherereza ubwe bigaragara muri Ibirori.",
+    "Fursa hutoka kwa wateja waliotumia Post My Event: Connekyt ilikuchagua kwa sababu uko huru kwa tukio zima na unalingana na walichoomba. Sema ndiyo na mteja anakuona; huchagua mpiga picha mmoja. Ni tofauti na maombi ya kuweka nafasi, ambayo mteja hukutumia moja kwa moja na huonekana chini ya Matukio."
+  ],
+  "Back to the stream of": [
+    "Retour au flux de",
+    "Volver a la transmisión de",
+    "Subira ku mashusho ya",
+    "Rudi kwenye matangazo ya"
+  ],
+  "Go live with": [
+    "Passer en direct avec",
+    "Salir en vivo con",
+    "Tangira gutambutsa imbonankubone",
+    "Anza kurusha moja kwa moja"
+  ],
+  "Back to stream": [
+    "Retour au direct",
+    "Volver a la transmisión",
+    "Subira ku mashusho",
+    "Rudi kwenye matangazo"
+  ],
+  "More options for": [
+    "Plus d'options pour",
+    "Más opciones para",
+    "Ibindi bisabwa kuri",
+    "Chaguo zaidi za"
+  ],
+  "Republishing...": [
+    "Republication…",
+    "Republicando…",
+    "Turongera gutangaza…",
+    "Inachapisha tena…"
+  ],
+  "Republish": [
+    "Republier",
+    "Volver a publicar",
+    "Ongera utangaze",
+    "Chapisha tena"
+  ],
+  "Turn off": [
+    "Désactiver",
+    "Desactivar",
+    "Zimya",
+    "Zima"
+  ],
+  "Turn on": [
+    "Activer",
+    "Activar",
+    "Rakira",
+    "Washa"
+  ],
+  "Host an event": [
+    "Organiser un événement",
+    "Organizar un evento",
+    "Tegura igikorwa",
+    "Andaa tukio"
+  ],
+  "Unpublish this event?": [
+    "Dépublier cet événement ?",
+    "¿Dejar de publicar este evento?",
+    "Kuvana ibi birori ku rubuga?",
+    "Ondoa tukio hili kwenye chapisho?"
+  ],
+  "Hosting is not available": [
+    "L'organisation n'est pas disponible",
+    "Organizar no está disponible",
+    "Gutegura ntibishoboka",
+    "Kuandaa hakupatikani"
+  ],
+  "Events you created and stream yourself, apart from the ones you were booked for.": [
+    "Les événements que vous avez créés et diffusez vous-même, hors ceux pour lesquels vous avez été réservé.",
+    "Eventos que creaste y transmites tú mismo, aparte de aquellos para los que te contrataron.",
+    "Ibirori wiyandikishirije ukabyerekana ubwawe, bitari ibyo wafatiwe.",
+    "Matukio uliyounda na kurusha mwenyewe, mbali na yale uliyowekewa nafasi."
+  ],
+  "Hosted events": [
+    "Événements organisés",
+    "Eventos organizados",
+    "Ibirori byateguwe",
+    "Matukio yaliyoandaliwa"
+  ],
+  "Waiting for client": [
+    "En attente du client",
+    "Esperando al cliente",
+    "Hategerejwe umukiriya",
+    "Inasubiri mteja"
+  ],
+  "History": [
+    "Historique",
+    "Historial",
+    "Amateka",
+    "Historia"
+  ],
+  "New": [
+    "Nouveau",
+    "Nuevo",
+    "Gishya",
+    "Mpya"
+  ],
+  "Clear read": [
+    "Effacer les lus",
+    "Borrar leídas",
+    "Siba ibyasomwe",
+    "Futa zilizosomwa"
+  ],
+  "Delete all": [
+    "Tout supprimer",
+    "Eliminar todo",
+    "Siba byose",
+    "Futa zote"
+  ],
+  "Tip": [
+    "Pourboire",
+    "Propina",
+    "Inshimbu",
+    "Bakshishi"
+  ],
+  "Bonus": [
+    "Bonus",
+    "Bono",
+    "Igihembo cy'inyongera",
+    "Bonasi"
+  ],
+  "Review": [
+    "Avis",
+    "Reseña",
+    "Isuzuma",
+    "Maoni"
+  ],
+  "Opportunity": [
+    "Opportunité",
+    "Oportunidad",
+    "Amahirwe",
+    "Fursa"
+  ],
+  "unread": [
+    "non lues",
+    "sin leer",
+    "ibitarasomwa",
+    "hazijasomwa"
+  ],
+  "Showing": [
+    "Affichage de",
+    "Mostrando",
+    "Herekanwa",
+    "Inaonyesha"
+  ],
+  "Notification type": [
+    "Type de notification",
+    "Tipo de notificación",
+    "Ubwoko bw'imenyesha",
+    "Aina ya arifa"
+  ],
+  "New activity on your account shows up here.": [
+    "Les nouvelles activités de votre compte apparaissent ici.",
+    "La nueva actividad de tu cuenta aparece aquí.",
+    "Ibishya bibera kuri konti yawe bigaragara hano.",
+    "Shughuli mpya kwenye akaunti yako huonekana hapa."
+  ],
+  "Clear read notifications?": [
+    "Effacer les notifications lues ?",
+    "¿Borrar las notificaciones leídas?",
+    "Gusiba imenyesha yasomwe?",
+    "Futa arifa zilizosomwa?"
+  ],
+  "The notifications you have already read will be deleted. Unread ones stay.": [
+    "Les notifications déjà lues seront supprimées. Les non lues restent.",
+    "Se borrarán las notificaciones que ya leíste. Las no leídas se quedan.",
+    "Imenyesha wamaze gusoma izasibwa. Izitarasomwa zirasigara.",
+    "Arifa ulizokwisha kusoma zitafutwa. Ambazo hazijasomwa zinabaki."
+  ],
+  "Delete all notifications?": [
+    "Supprimer toutes les notifications ?",
+    "¿Eliminar todas las notificaciones?",
+    "Gusiba imenyesha yose?",
+    "Futa arifa zote?"
+  ],
+  "Stream fee": [
+    "Frais de diffusion",
+    "Tarifa de transmisión",
+    "Amafaranga y'ikwirakwizwa",
+    "Ada ya matangazo"
+  ],
+  "This referrer has reached their limit": [
+    "Ce parrain a atteint sa limite",
+    "Este referidor alcanzó su límite",
+    "Uyu mutumirizi yagejeje ku mubare ntarengwa",
+    "Mwalikaji huyu amefikia kikomo chake"
+  ],
+  "This referrer can't take new referrals right now": [
+    "Ce parrain ne peut pas accepter de nouveaux filleuls pour le moment",
+    "Este referidor no puede aceptar nuevos referidos ahora",
+    "Uyu mutumirizi ntashobora kwakira abatumirwa bashya ubu",
+    "Mwalikaji huyu hawezi kupokea rufaa mpya kwa sasa"
+  ],
+  "You can't use your own code": [
+    "Vous ne pouvez pas utiliser votre propre code",
+    "No puedes usar tu propio código",
+    "Ntushobora gukoresha kode yawe bwite",
+    "Huwezi kutumia msimbo wako mwenyewe"
+  ],
+  "This code can't be used": [
+    "Ce code ne peut pas être utilisé",
+    "Este código no se puede usar",
+    "Iyi kode ntishobora gukoreshwa",
+    "Msimbo huu hauwezi kutumika"
+  ],
+  "Your account already has a referrer": [
+    "Votre compte a déjà un parrain",
+    "Tu cuenta ya tiene un referidor",
+    "Konti yawe isanzwe ifite umutumirizi",
+    "Akaunti yako tayari ina mwalikaji"
+  ],
+  "This code isn't valid": [
+    "Ce code n'est pas valide",
+    "Este código no es válido",
+    "Iyi kode ntiyemewe",
+    "Msimbo huu si sahihi"
+  ],
+  "Too many attempts. Please wait a minute.": [
+    "Trop de tentatives. Veuillez patienter une minute.",
+    "Demasiados intentos. Espera un minuto.",
+    "Wagerageje inshuro nyinshi. Tegereza umunota umwe.",
+    "Majaribio mengi sana. Tafadhali subiri dakika moja."
+  ],
+  "How the referral program works": [
+    "Comment fonctionne le programme de parrainage",
+    "Cómo funciona el programa de referidos",
+    "Uko gahunda yo gutumira ikora",
+    "Jinsi mpango wa rufaa unavyofanya kazi"
+  ],
+  "Checking…": [
+    "Vérification…",
+    "Comprobando…",
+    "Iri gusuzuma…",
+    "Inakagua…"
+  ],
+  "Share your album": [
+    "Partager votre album",
+    "Compartir tu álbum",
+    "Sangiza alubumu yawe",
+    "Shiriki albamu yako"
+  ],
+  "Share referral link or code": [
+    "Partager le lien ou code de parrainage",
+    "Compartir enlace o código de referido",
+    "Sangiza link cyangwa kode yo gutumira",
+    "Shiriki kiungo au msimbo wa rufaa"
+  ],
+  "Referral program": [
+    "Programme de parrainage",
+    "Programa de referidos",
+    "Gahunda yo gutumira",
+    "Mpango wa rufaa"
+  ],
+  "Your code": [
+    "Votre code",
+    "Tu código",
+    "Kode yawe",
+    "Msimbo wako"
+  ],
+  "Your link": [
+    "Votre lien",
+    "Tu enlace",
+    "Link yawe",
+    "Kiungo chako"
+  ],
+  "WhatsApp": [
+    "WhatsApp",
+    "WhatsApp",
+    "WhatsApp",
+    "WhatsApp"
+  ],
+  "More apps": [
+    "Plus d'applis",
+    "Más apps",
+    "Izindi porogaramu",
+    "Programu zaidi"
+  ],
+  "Save QR": [
+    "Enregistrer le QR",
+    "Guardar QR",
+    "Bika QR",
+    "Hifadhi QR"
+  ],
+  "Your referrals": [
+    "Vos filleuls",
+    "Tus referidos",
+    "Abo watumiye",
+    "Rufaa zako"
+  ],
+  "Under review": [
+    "En vérification",
+    "En revisión",
+    "Barasuzumwa",
+    "Inakaguliwa"
+  ],
+  "Qualified": [
+    "Qualifié",
+    "Calificado",
+    "Byemejwe",
+    "Imestahili"
+  ],
+  "Revoked": [
+    "Révoqué",
+    "Revocado",
+    "Byakuweho",
+    "Imefutwa"
+  ],
+  "No referrals yet": [
+    "Aucun filleul pour le moment",
+    "Aún no hay referidos",
+    "Nta batumiwe baraboneka",
+    "Bado hakuna rufaa"
+  ],
+  "Share your code. A referral counts when the photographer you refer is approved and completes a paid job.": [
+    "Partagez votre code. Un parrainage compte quand le photographe parrainé est approuvé et termine une mission payée.",
+    "Comparte tu código. Un referido cuenta cuando el fotógrafo que invitas es aprobado y completa un trabajo pagado.",
+    "Sangiza kode yawe. Uwatumiwe abarwa iyo yemewe kandi akarangiza akazi kishyuwe.",
+    "Shiriki msimbo wako. Rufaa huhesabiwa mpigapicha uliyemwalika akikubaliwa na kukamilisha kazi iliyolipwa."
+  ],
+  "Couldn't load your referrals": [
+    "Impossible de charger vos filleuls",
+    "No se pudieron cargar tus referidos",
+    "Ntibyashobotse gutangaza abo watumiye",
+    "Imeshindwa kupakia rufaa zako"
+  ],
+  "Add a referral code": [
+    "Ajouter un code de parrainage",
+    "Añadir un código de referido",
+    "Ongeraho kode yo gutumira",
+    "Ongeza msimbo wa rufaa"
+  ],
+  "Enter the code or link of the photographer who referred you.": [
+    "Saisissez le code ou le lien du photographe qui vous a parrainé.",
+    "Introduce el código o enlace del fotógrafo que te refirió.",
+    "Andika kode cyangwa link y’umufotozi wagutumiye.",
+    "Weka msimbo au kiungo cha mpigapicha aliyekualika."
+  ],
+  "Confirm your referrer": [
+    "Confirmez votre parrain",
+    "Confirma a tu referidor",
+    "Emeza uwagutumiye",
+    "Thibitisha mwalikaji wako"
+  ],
+  "This can't be changed later.": [
+    "Ceci ne pourra plus être modifié.",
+    "Esto no se podrá cambiar después.",
+    "Ibi ntibishobora guhindurwa nyuma.",
+    "Hili haliwezi kubadilishwa baadaye."
+  ],
+  "of 5 to unlock 25%": [
+    "sur 5 pour débloquer 25 %",
+    "de 5 para desbloquear 25 %",
+    "kuri 5 kugira ngo ufungure 25%",
+    "kati ya 5 ili kufungua 25%"
+  ],
+  "of 20 referrals": [
+    "filleuls sur 20",
+    "referidos de 20",
+    "abatumiwe kuri 20",
+    "rufaa kati ya 20"
+  ],
+  "Your fee": [
+    "Vos frais",
+    "Tu comisión",
+    "Igiciro cyawe",
+    "Ada yako"
+  ],
+  "your fee": [
+    "vos frais",
+    "tu comisión",
+    "igiciro cyawe",
+    "ada yako"
+  ],
+  "Program complete": [
+    "Programme terminé",
+    "Programa completo",
+    "Gahunda yuzuye",
+    "Mpango umekamilika"
+  ],
+  "Referred by": [
+    "Parrainé par",
+    "Referido por",
+    "Watumiwe na",
+    "Umealikwa na"
+  ],
+  "Referral code": [
+    "Code de parrainage",
+    "Código de referido",
+    "Kode yo gutumira",
+    "Msimbo wa rufaa"
+  ],
+  "Referral": [
+    "Parrainage",
+    "Referidos",
+    "Gutumira",
+    "Rufaa"
+  ],
+  "Join me on Connekyt. Use my referral code": [
+    "Rejoignez-moi sur Connekyt. Utilisez mon code de parrainage",
+    "Únete a mí en Connekyt. Usa mi código de referido",
+    "Twifatanye kuri Connekyt. Koresha kode yanjye",
+    "Jiunge nami kwenye Connekyt. Tumia msimbo wangu wa rufaa"
+  ],
+  "Your public profile link is not available yet.": [
+    "Votre lien de profil public n’est pas encore disponible.",
+    "Tu enlace de perfil público aún no está disponible.",
+    "Link ya profili yawe ntiraboneka.",
+    "Kiungo cha wasifu wako bado hakipatikani."
+  ],
+  "Couldn't check the code. Please try again.": [
+    "Impossible de vérifier le code. Réessayez.",
+    "No se pudo comprobar el código. Inténtalo de nuevo.",
+    "Ntibyashobotse gusuzuma kode. Ongera ugerageze.",
+    "Imeshindwa kukagua msimbo. Jaribu tena."
+  ],
+  "Share & invite": [
+    "Partager et inviter",
+    "Compartir e invitar",
+    "Sangiza no gutumira",
+    "Shiriki na ualike"
+  ],
+  "Lower fees": [
+    "Frais réduits",
+    "Comisión menor",
+    "Igiciro gito",
+    "Ada ndogo"
+  ],
+  "Send an album link to your clients": [
+    "Envoyez un lien d’album à vos clients",
+    "Envía un enlace de álbum a tus clientes",
+    "Ohereza link ya alubumu ku bakiriya bawe",
+    "Tuma kiungo cha albamu kwa wateja wako"
+  ],
+  "Invite photographers, lower your fee": [
+    "Invitez des photographes, baissez vos frais",
+    "Invita fotógrafos, reduce tu comisión",
+    "Tumira abafotozi, ugabanye igiciro",
+    "Alika wapigapicha, punguza ada yako"
+  ],
+  "Inactive": [
+    "Inactif",
+    "Inactivo",
+    "Ntakora",
+    "Hayupo hai"
+  ],
+  "No review": [
+    "Aucun avis",
+    "Sin reseña",
+    "Nta isuzuma",
+    "Hakuna maoni"
+  ],
+  "out of 5": [
+    "sur 5",
+    "de 5",
+    "kuri 5",
+    "kati ya 5"
+  ],
+  "No bookings yet": [
+    "Aucune réservation pour l'instant",
+    "Aún no hay reservas",
+    "Nta gutumiza kurabaho",
+    "Bado hakuna uhifadhi"
+  ],
+  "Remove from favorites": [
+    "Retirer des favoris",
+    "Quitar de favoritos",
+    "Kuramo mu byo ukunda",
+    "Ondoa kwenye vipendwa"
+  ],
+  "Add to favorites": [
+    "Ajouter aux favoris",
+    "Añadir a favoritos",
+    "Shyira mu byo ukunda",
+    "Ongeza kwenye vipendwa"
+  ],
+  "Tips and bonuses": [
+    "Pourboires et bonus",
+    "Propinas y bonos",
+    "Inshimbu n'ibihembo",
+    "Bakshishi na bonasi"
+  ],
+  "View bookings": [
+    "Voir les réservations",
+    "Ver reservas",
+    "Reba ibyatumijwe",
+    "Tazama uhifadhi"
+  ],
+  "Message": [
+    "Message",
+    "Mensaje",
+    "Ubutumwa",
+    "Ujumbe"
+  ],
+  "Favorite": [
+    "Favori",
+    "Favorito",
+    "Ukunda",
+    "Kipendwa"
+  ],
+  "Last": [
+    "Dernière",
+    "Última",
+    "Iheruka",
+    "Ya mwisho"
+  ],
+  "Spent": [
+    "Dépensé",
+    "Gastado",
+    "Yakoresheje",
+    "Alitumia"
+  ],
+  "No tips yet": [
+    "Pas encore de pourboire",
+    "Aún sin propinas",
+    "Nta nshimbu kugeza ubu",
+    "Bado hakuna bakshishi"
+  ],
+  "No review yet": [
+    "Pas encore d'avis",
+    "Aún sin reseña",
+    "Nta isuzuma kugeza ubu",
+    "Bado hakuna maoni"
+  ],
+  "Link copied.": [
+    "Lien copié.",
+    "Enlace copiado.",
+    "Ihuza ryakoporowe.",
+    "Kiungo kimenakiliwa."
+  ],
+  "Copy profile link": [
+    "Copier le lien du profil",
+    "Copiar enlace del perfil",
+    "Koporora ihuza ry'umwirondoro",
+    "Nakili kiungo cha wasifu"
+  ],
+  "Clients are added for you when they book you, buy your photos or message you. Share your profile link so new clients can find and book you.": [
+    "Les clients sont ajoutés automatiquement lorsqu'ils vous réservent, achètent vos photos ou vous écrivent. Partagez le lien de votre profil pour que de nouveaux clients vous trouvent et vous réservent.",
+    "Los clientes se añaden solos cuando te reservan, compran tus fotos o te escriben. Comparte el enlace de tu perfil para que nuevos clientes te encuentren y te reserven.",
+    "Abakiriya bongerwaho iyo bagutumije, baguze amafoto yawe cyangwa bakwandikiye. Sangiza ihuza ry'umwirondoro wawe kugira ngo abakiriya bashya bakubone kandi bagutumize.",
+    "Wateja huongezwa wenyewe wanapokuhifadhi, wanaponunua picha zako au wanapokutumia ujumbe. Shiriki kiungo cha wasifu wako ili wateja wapya wakupate na kukuhifadhi."
+  ],
+  "Client since": [
+    "Client depuis",
+    "Cliente desde",
+    "Umukiriya kuva",
+    "Mteja tangu"
+  ],
+  "Not set": [
+    "Non renseigné",
+    "Sin definir",
+    "Ntibyashyizweho",
+    "Haijawekwa"
+  ],
+  "Last active": [
+    "Dernière activité",
+    "Última actividad",
+    "Aheruka gukora",
+    "Alikuwa hai mwisho"
+  ],
+  "List": [
+    "Liste",
+    "Lista",
+    "Urutonde",
+    "Orodha"
+  ],
+  "Add client": [
+    "Ajouter un client",
+    "Añadir cliente",
+    "Ongeraho umukiriya",
+    "Ongeza mteja"
+  ],
+  "Add a client": [
+    "Ajouter un client",
+    "Añadir un cliente",
+    "Ongeraho umukiriya",
+    "Ongeza mteja"
+  ],
+  "Booked you twice or more": [
+    "Vous ont réservé au moins deux fois",
+    "Te reservaron dos veces o más",
+    "Bagutumije inshuro ebyiri cyangwa zirenga",
+    "Wamekuhifadhi mara mbili au zaidi"
+  ],
+  "Nothing pending": [
+    "Rien en attente",
+    "Nada pendiente",
+    "Nta kitegereje",
+    "Hakuna kinachosubiri"
+  ],
+  "Search clients": [
+    "Rechercher des clients",
+    "Buscar clientes",
+    "Shakisha abakiriya",
+    "Tafuta wateja"
+  ],
+  "Sort clients": [
+    "Trier les clients",
+    "Ordenar clientes",
+    "Tondeka abakiriya",
+    "Panga wateja"
+  ],
+  "Share your profile": [
+    "Partager votre profil",
+    "Compartir tu perfil",
+    "Sangiza umwirondoro wawe",
+    "Shiriki wasifu wako"
+  ],
+  "will be removed from your clients. Their bookings and payments stay.": [
+    "sera retiré de vos clients. Ses réservations et paiements restent.",
+    "se quitará de tus clientes. Sus reservas y pagos se conservan.",
+    "azakurwa mu bakiriya bawe. Ibyo yatumije n'ibyo yishyuye birasigara.",
+    "ataondolewa kwenye wateja wako. Uhifadhi na malipo yake yanabaki."
+  ],
+  "Most recent": [
+    "Plus récents",
+    "Más recientes",
+    "Ibya vuba",
+    "Za karibuni"
+  ],
+  "Oldest first": [
+    "Plus anciens d'abord",
+    "Más antiguos primero",
+    "Ibya kera mbere",
+    "Za zamani kwanza"
+  ],
+  "Most bookings": [
+    "Plus de réservations",
+    "Más reservas",
+    "Abatumije kenshi",
+    "Uhifadhi mwingi zaidi"
+  ],
+  "Highest spent": [
+    "Dépense la plus élevée",
+    "Mayor gasto",
+    "Abakoresheje menshi",
+    "Waliotumia zaidi"
+  ],
+  "Filter booking requests": [
+    "Filtrer les demandes de réservation",
+    "Filtrar solicitudes de reserva",
+    "Shungura ubusabe bwo gutumiza",
+    "Chuja maombi ya uhifadhi"
+  ],
+  "Declined": [
+    "Refusée",
+    "Rechazada",
+    "Byanzwe",
+    "Imekataliwa"
+  ],
+  "New requests from clients show up here.": [
+    "Les nouvelles demandes des clients apparaissent ici.",
+    "Las nuevas solicitudes de clientes aparecen aquí.",
+    "Ubusabe bushya bw'abakiriya bugaragara hano.",
+    "Maombi mapya ya wateja huonekana hapa."
+  ],
+  "No booking requests yet": [
+    "Aucune demande de réservation pour l'instant",
+    "Aún no hay solicitudes de reserva",
+    "Nta busabe bwo gutumiza kugeza ubu",
+    "Bado hakuna maombi ya uhifadhi"
+  ],
+  "No booking requests match": [
+    "Aucune demande ne correspond",
+    "Ninguna solicitud coincide",
+    "Nta busabe buhuye",
+    "Hakuna maombi yanayolingana"
+  ],
+  "Your clients": [
+    "Vos clients",
+    "Tus clientes",
+    "Abakiriya bawe",
+    "Wateja wako"
+  ],
+  "Everyone who booked you or bought your photos.": [
+    "Toutes les personnes qui vous ont réservé ou ont acheté vos photos.",
+    "Todas las personas que te reservaron o compraron tus fotos.",
+    "Abantu bose bagutumije cyangwa baguze amafoto yawe.",
+    "Kila aliyekuhifadhi au kununua picha zako."
+  ],
+  "Clients or booking requests": [
+    "Clients ou demandes de réservation",
+    "Clientes o solicitudes de reserva",
+    "Abakiriya cyangwa ubusabe bwo gutumiza",
+    "Wateja au maombi ya uhifadhi"
+  ],
+  "Repeat clients": [
+    "Clients fidèles",
+    "Clientes recurrentes",
+    "Abakiriya bagaruka",
+    "Wateja wanaorudi"
+  ],
+  "Total earned from clients": [
+    "Total gagné auprès des clients",
+    "Total ganado con clientes",
+    "Ayo winjije ku bakiriya yose",
+    "Jumla ya mapato kutoka kwa wateja"
+  ],
+  "Tips received": [
+    "Pourboires reçus",
+    "Propinas recibidas",
+    "Inshimbu wakiriye",
+    "Bakshishi ulizopokea"
+  ],
+  "Filter clients": [
+    "Filtrer les clients",
+    "Filtrar clientes",
+    "Shungura abakiriya",
+    "Chuja wateja"
+  ],
+  "All clients": [
+    "Tous les clients",
+    "Todos los clientes",
+    "Abakiriya bose",
+    "Wateja wote"
+  ],
+  "Fav": [
+    "Favoris",
+    "Fav.",
+    "Ukunda",
+    "Vipendwa"
+  ],
+  "Pending payments": [
+    "Paiements en attente",
+    "Pagos pendientes",
+    "Ubwishyu butegereje",
+    "Malipo yanayosubiri"
+  ],
+  "No clients yet": [
+    "Pas encore de clients",
+    "Aún no hay clientes",
+    "Nta bakiriya kugeza ubu",
+    "Bado hakuna wateja"
+  ],
+  "When someone books you, buys your photos or messages you, they appear here.": [
+    "Lorsqu'une personne vous réserve, achète vos photos ou vous écrit, elle apparaît ici.",
+    "Cuando alguien te reserva, compra tus fotos o te escribe, aparece aquí.",
+    "Iyo umuntu agutumije, aguze amafoto yawe cyangwa akwandikiye, agaragara hano.",
+    "Mtu anapokuhifadhi, kununua picha zako au kukutumia ujumbe, huonekana hapa."
+  ],
+  "No clients match": [
+    "Aucun client ne correspond",
+    "Ningún cliente coincide",
+    "Nta mukiriya uhuye",
+    "Hakuna mteja anayelingana"
+  ],
+  "Try another filter or search.": [
+    "Essayez un autre filtre ou une autre recherche.",
+    "Prueba otro filtro o búsqueda.",
+    "Gerageza ikindi cyungurura cyangwa ishakisha.",
+    "Jaribu kichujio au utafutaji mwingine."
+  ],
+  "Remove this client?": [
+    "Retirer ce client ?",
+    "¿Quitar este cliente?",
+    "Kuramo uyu mukiriya?",
+    "Ondoa mteja huyu?"
+  ],
+  "We could not load your clients.": [
+    "Impossible de charger vos clients.",
+    "No pudimos cargar tus clientes.",
+    "Ntitwashoboye gufungura abakiriya bawe.",
+    "Hatukuweza kupakia wateja wako."
+  ],
+  "Conversation": [
+    "Conversation",
+    "Conversación",
+    "Ikiganiro",
+    "Mazungumzo"
+  ],
+  "Conversations": [
+    "Conversations",
+    "Conversaciones",
+    "Ibiganiro",
+    "Mazungumzo"
+  ],
+  "You": [
+    "Vous",
+    "Tú",
+    "Wowe",
+    "Wewe"
+  ],
+  "Message removed": [
+    "Message supprimé",
+    "Mensaje eliminado",
+    "Ubutumwa bwakuweho",
+    "Ujumbe umeondolewa"
+  ],
+  "Sending": [
+    "Envoi",
+    "Enviando",
+    "Birimo koherezwa",
+    "Inatuma"
+  ],
+  "Read": [
+    "Lu",
+    "Leído",
+    "Byasomwe",
+    "Imesomwa"
+  ],
+  "Not sent. Retry": [
+    "Non envoyé. Réessayer",
+    "No enviado. Reintentar",
+    "Ntibyoherejwe. Ongera ugerageze",
+    "Haijatumwa. Jaribu tena"
+  ],
+  "Conversation with": [
+    "Conversation avec",
+    "Conversación con",
+    "Ikiganiro na",
+    "Mazungumzo na"
+  ],
+  "Back to messages": [
+    "Retour aux messages",
+    "Volver a mensajes",
+    "Subira ku butumwa",
+    "Rudi kwenye ujumbe"
+  ],
+  "Refresh conversation": [
+    "Actualiser la conversation",
+    "Actualizar conversación",
+    "Vugurura ikiganiro",
+    "Onyesha upya mazungumzo"
+  ],
+  "Messages with": [
+    "Messages avec",
+    "Mensajes con",
+    "Ubutumwa na",
+    "Ujumbe na"
+  ],
+  "This is the start of your conversation with": [
+    "Voici le début de votre conversation avec",
+    "Este es el inicio de tu conversación con",
+    "Aha ni intangiriro y'ikiganiro cyawe na",
+    "Huu ni mwanzo wa mazungumzo yako na"
+  ],
+  "Emoji": [
+    "Émoji",
+    "Emoji",
+    "Utumenyetso",
+    "Emoji"
+  ],
+  "Search contacts": [
+    "Rechercher des contacts",
+    "Buscar contactos",
+    "Shakisha abo muvugana",
+    "Tafuta anwani"
+  ],
+  "Search conversations": [
+    "Rechercher des conversations",
+    "Buscar conversaciones",
+    "Shakisha ibiganiro",
+    "Tafuta mazungumzo"
+  ],
+  "Start a conversation": [
+    "Démarrer une conversation",
+    "Iniciar una conversación",
+    "Tangira ikiganiro",
+    "Anzisha mazungumzo"
+  ],
+  "Say hello": [
+    "Dites bonjour",
+    "Saluda",
+    "Vuga muraho",
+    "Sema habari"
+  ],
+  "Delete this message?": [
+    "Supprimer ce message ?",
+    "¿Eliminar este mensaje?",
+    "Gusiba ubu butumwa?",
+    "Futa ujumbe huu?"
+  ],
+  "It is removed for both of you.": [
+    "Il est supprimé pour vous deux.",
+    "Se elimina para los dos.",
+    "Burasibwa kuri mwembi.",
+    "Unafutwa kwa nyote wawili."
+  ],
+  "New message": [
+    "Nouveau message",
+    "Nuevo mensaje",
+    "Ubutumwa bushya",
+    "Ujumbe mpya"
+  ],
+  "Filter conversations": [
+    "Filtrer les conversations",
+    "Filtrar conversaciones",
+    "Shungura ibiganiro",
+    "Chuja mazungumzo"
+  ],
+  "Pinned": [
+    "Épinglées",
+    "Fijadas",
+    "Byashyizwe imbere",
+    "Zilizobandikwa"
+  ],
+  "unread message": [
+    "message non lu",
+    "mensaje sin leer",
+    "ubutumwa butarasomwa",
+    "ujumbe ambao haujasomwa"
+  ],
+  "unread messages": [
+    "messages non lus",
+    "mensajes sin leer",
+    "ubutumwa butarasomwa",
+    "jumbe ambazo hazijasomwa"
+  ],
+  "Start a conversation and it will show up here.": [
+    "Démarrez une conversation et elle apparaîtra ici.",
+    "Inicia una conversación y aparecerá aquí.",
+    "Tangira ikiganiro kigaragare hano.",
+    "Anzisha mazungumzo nayo yataonekana hapa."
+  ],
+  "No pinned conversations": [
+    "Aucune conversation épinglée",
+    "No hay conversaciones fijadas",
+    "Nta biganiro byashyizwe imbere",
+    "Hakuna mazungumzo yaliyobandikwa"
+  ],
+  "You are all caught up": [
+    "Vous êtes à jour",
+    "Estás al día",
+    "Nta kintu gishya",
+    "Umesoma kila kitu"
+  ],
+  "No conversations match": [
+    "Aucune conversation ne correspond",
+    "Ninguna conversación coincide",
+    "Nta kiganiro gihuye",
+    "Hakuna mazungumzo yanayolingana"
+  ],
+  "Pick a conversation on the left, or start a new one.": [
+    "Choisissez une conversation à gauche ou démarrez-en une nouvelle.",
+    "Elige una conversación a la izquierda o inicia una nueva.",
+    "Hitamo ikiganiro ibumoso cyangwa utangire igishya.",
+    "Chagua mazungumzo upande wa kushoto au anzisha mapya."
+  ],
+  "We could not load your messages.": [
+    "Impossible de charger vos messages.",
+    "No pudimos cargar tus mensajes.",
+    "Ntitwashoboye gufungura ubutumwa bwawe.",
+    "Hatukuweza kupakia ujumbe wako."
+  ],
+  "No contacts yet": [
+    "Pas encore de contacts",
+    "Aún no hay contactos",
+    "Nta bo muvugana kugeza ubu",
+    "Bado hakuna anwani"
+  ],
+  "No contacts match": [
+    "Aucun contact ne correspond",
+    "Ningún contacto coincide",
+    "Nta muntu uhuye",
+    "Hakuna anwani inayolingana"
+  ],
+  "Try another name.": [
+    "Essayez un autre nom.",
+    "Prueba otro nombre.",
+    "Gerageza irindi zina.",
+    "Jaribu jina lingine."
+  ],
+  "People you work with show up here.": [
+    "Les personnes avec qui vous travaillez apparaissent ici.",
+    "Las personas con las que trabajas aparecen aquí.",
+    "Abo mukorana bagaragara hano.",
+    "Watu unaofanya nao kazi huonekana hapa."
+  ],
+  "Yesterday": [
+    "Hier",
+    "Ayer",
+    "Ejo hashize",
+    "Jana"
+  ],
+  "Last seen today at": [
+    "Vu aujourd'hui à",
+    "Visto hoy a las",
+    "Aheruka kuboneka uyu munsi saa",
+    "Alionekana leo saa"
+  ],
+  "Last seen yesterday at": [
+    "Vu hier à",
+    "Visto ayer a las",
+    "Aheruka kuboneka ejo saa",
+    "Alionekana jana saa"
+  ],
+  "Last seen on": [
+    "Vu le",
+    "Visto el",
+    "Aheruka kuboneka ku wa",
+    "Alionekana tarehe"
+  ],
+  "Pending approval": [
+    "En attente d'approbation",
+    "Pendiente de aprobación",
+    "Bitegereje kwemezwa",
+    "Inasubiri idhini"
+  ],
+  "Missing": [
+    "Manquant",
+    "Falta",
+    "Ibibura",
+    "Kinakosekana"
+  ],
+  "Currently": [
+    "Actuellement",
+    "Actualmente",
+    "Ubu",
+    "Kwa sasa"
+  ],
+  "No languages picked yet": [
+    "Aucune langue choisie",
+    "Aún no hay idiomas elegidos",
+    "Nta rurimi rwatoranyijwe",
+    "Bado hakuna lugha iliyochaguliwa"
+  ],
+  "No entries yet": [
+    "Aucune entrée pour l'instant",
+    "Aún no hay entradas",
+    "Nta byanditswe kugeza ubu",
+    "Bado hakuna maingizo"
+  ],
+  "Add a description over 50 characters to one of your entries": [
+    "Ajoutez une description de plus de 50 caractères à l'une de vos entrées",
+    "Añade una descripción de más de 50 caracteres a una de tus entradas",
+    "Ongeraho ibisobanuro birenga inyuguti 50 kuri kimwe mu byo wanditse",
+    "Ongeza maelezo ya herufi zaidi ya 50 kwenye mojawapo ya maingizo yako"
+  ],
+  "Jump there": [
+    "Y aller",
+    "Ir allí",
+    "Jya aho",
+    "Nenda huko"
+  ],
+  "Change cover photo": [
+    "Changer la photo de couverture",
+    "Cambiar foto de portada",
+    "Hindura ifoto yo hejuru",
+    "Badilisha picha ya jalada"
+  ],
+  "Turn on Editing to change it": [
+    "Activez la modification pour la changer",
+    "Activa la edición para cambiarla",
+    "Fungura uburyo bwo guhindura kugira ngo uyihindure",
+    "Washa Kuhariri ili uibadilishe"
+  ],
+  "Change profile photo": [
+    "Changer la photo de profil",
+    "Cambiar foto de perfil",
+    "Hindura ifoto y'umwirondoro",
+    "Badilisha picha ya wasifu"
+  ],
+  "KYC verified": [
+    "KYC vérifié",
+    "KYC verificado",
+    "KYC yemejwe",
+    "KYC imethibitishwa"
+  ],
+  "KYC rejected": [
+    "KYC refusé",
+    "KYC rechazado",
+    "KYC yanzwe",
+    "KYC imekataliwa"
+  ],
+  "KYC required": [
+    "KYC requis",
+    "KYC obligatorio",
+    "KYC irakenewe",
+    "KYC inahitajika"
+  ],
+  "booking requests accepted": [
+    "demandes de réservation acceptées",
+    "solicitudes de reserva aceptadas",
+    "ubusabe bwo gutumiza bwemewe",
+    "maombi ya uhifadhi yaliyokubaliwa"
+  ],
+  "No booking requests responded to yet": [
+    "Aucune demande de réservation traitée pour l'instant",
+    "Aún no has respondido solicitudes de reserva",
+    "Nta busabe bwo gutumiza urasubiza",
+    "Bado hujajibu maombi ya uhifadhi"
+  ],
+  "Client reviews": [
+    "Avis des clients",
+    "Reseñas de clientes",
+    "Isuzuma ry'abakiriya",
+    "Maoni ya wateja"
+  ],
+  "more review": [
+    "autre avis",
+    "reseña más",
+    "isuzuma ryiyongera",
+    "maoni zaidi"
+  ],
+  "more reviews": [
+    "autres avis",
+    "reseñas más",
+    "amasuzuma yiyongera",
+    "maoni zaidi"
+  ],
+  "Preferred name *": [
+    "Nom d'usage *",
+    "Nombre preferido *",
+    "Izina ukunda *",
+    "Jina unalopendelea *"
+  ],
+  "Your working name as clients know it. Real legal names are not required.": [
+    "Votre nom professionnel, tel que les clients le connaissent. Le nom légal n'est pas exigé.",
+    "Tu nombre de trabajo, como te conocen los clientes. No hace falta el nombre legal.",
+    "Izina ukoresha mu kazi nk'uko abakiriya barizi. Izina nyakuri ry'irangamuntu ntirikenewe.",
+    "Jina lako la kazi kama wateja wanavyolijua. Jina rasmi halihitajiki."
+  ],
+  "e.g. Joe Photocuts": [
+    "ex. Joe Photocuts",
+    "p. ej. Joe Photocuts",
+    "urugero: Joe Photocuts",
+    "mfano Joe Photocuts"
+  ],
+  "Your sign-in email cannot be changed here.": [
+    "L'e-mail de connexion ne peut pas être modifié ici.",
+    "El correo de acceso no se puede cambiar aquí.",
+    "Imeyili winjiriraho ntishobora guhindurirwa hano.",
+    "Barua pepe ya kuingia haiwezi kubadilishwa hapa."
+  ],
+  "Working city": [
+    "Ville de travail",
+    "Ciudad de trabajo",
+    "Umujyi ukoreramo",
+    "Mji unaofanyia kazi"
+  ],
+  "The city you mostly work in. Your map area is set in Service area below.": [
+    "La ville où vous travaillez le plus. Votre zone sur la carte se règle dans Zone de service ci-dessous.",
+    "La ciudad donde más trabajas. Tu zona en el mapa se define en Zona de servicio, abajo.",
+    "Umujyi ukoreramo cyane. Agace kawe ku ikarita gashyirwaho mu Gace ukoreramo hepfo.",
+    "Mji unaofanyia kazi zaidi. Eneo lako kwenye ramani huwekwa kwenye Eneo la huduma hapa chini."
+  ],
+  "Specialties *": [
+    "Spécialités *",
+    "Especialidades *",
+    "Ibyo winzobereyemo *",
+    "Utaalamu *"
+  ],
+  "Pick at least 2 categories that describe your work.": [
+    "Choisissez au moins 2 catégories qui décrivent votre travail.",
+    "Elige al menos 2 categorías que describan tu trabajo.",
+    "Hitamo nibura ibyiciro 2 bisobanura akazi kawe.",
+    "Chagua angalau aina 2 zinazoelezea kazi yako."
+  ],
+  "Pick every language you can comfortably work in. Clients see this on your public profile.": [
+    "Choisissez chaque langue dans laquelle vous travaillez à l'aise. Les clients la voient sur votre profil public.",
+    "Elige cada idioma en el que trabajas con soltura. Los clientes lo ven en tu perfil público.",
+    "Hitamo buri rurimi ushobora gukoresha neza mu kazi. Abakiriya barubona ku mwirondoro wawe rusange.",
+    "Chagua kila lugha unayoweza kufanyia kazi vizuri. Wateja wanaiona kwenye wasifu wako wa umma."
+  ],
+  "English": [
+    "Anglais",
+    "Inglés",
+    "Icyongereza",
+    "Kiingereza"
+  ],
+  "French": [
+    "Français",
+    "Francés",
+    "Igifaransa",
+    "Kifaransa"
+  ],
+  "Kinyarwanda": [
+    "Kinyarwanda",
+    "Kinyarwanda",
+    "Ikinyarwanda",
+    "Kinyarwanda"
+  ],
+  "Swahili": [
+    "Swahili",
+    "Suajili",
+    "Igiswahili",
+    "Kiswahili"
+  ],
+  "Spanish": [
+    "Espagnol",
+    "Español",
+    "Icyesipanyolo",
+    "Kihispania"
+  ],
+  "Chinese": [
+    "Chinois",
+    "Chino",
+    "Igishinwa",
+    "Kichina"
+  ],
+  "Set your working hours for each day of the week.": [
+    "Définissez vos horaires pour chaque jour de la semaine.",
+    "Define tu horario para cada día de la semana.",
+    "Shyiraho amasaha ukora kuri buri munsi w'icyumweru.",
+    "Weka saa zako za kazi kwa kila siku ya wiki."
+  ],
+  "Not available": [
+    "Indisponible",
+    "No disponible",
+    "Ntaboneka",
+    "Hapatikani"
+  ],
+  "Save availability": [
+    "Enregistrer la disponibilité",
+    "Guardar disponibilidad",
+    "Bika igihe uboneka",
+    "Hifadhi upatikanaji"
+  ],
+  "Featured projects": [
+    "Projets mis en avant",
+    "Proyectos destacados",
+    "Imishinga y'ingenzi",
+    "Miradi maalum"
+  ],
+  "Add project": [
+    "Ajouter un projet",
+    "Añadir proyecto",
+    "Ongeraho umushinga",
+    "Ongeza mradi"
+  ],
+  "Show your best work with a photo, a title and a short description.": [
+    "Montrez vos meilleurs travaux avec une photo, un titre et une courte description.",
+    "Muestra tu mejor trabajo con una foto, un título y una breve descripción.",
+    "Erekana akazi kawe keza ukoresheje ifoto, umutwe n'ibisobanuro bigufi.",
+    "Onyesha kazi zako bora kwa picha, kichwa na maelezo mafupi."
+  ],
+  "Show your best work to attract more clients.": [
+    "Montrez vos meilleurs travaux pour attirer plus de clients.",
+    "Muestra tu mejor trabajo para atraer más clientes.",
+    "Erekana akazi kawe keza ukurure abakiriya benshi.",
+    "Onyesha kazi zako bora ili kuvutia wateja zaidi."
+  ],
+  "Add your first project": [
+    "Ajouter votre premier projet",
+    "Añade tu primer proyecto",
+    "Ongeraho umushinga wawe wa mbere",
+    "Ongeza mradi wako wa kwanza"
+  ],
+  "Upload image": [
+    "Téléverser une image",
+    "Subir imagen",
+    "Shyiraho ifoto",
+    "Pakia picha"
+  ],
+  "Untitled": [
+    "Sans titre",
+    "Sin título",
+    "Nta mutwe",
+    "Bila kichwa"
+  ],
+  "Add experience": [
+    "Ajouter une expérience",
+    "Añadir experiencia",
+    "Ongeraho uburambe",
+    "Ongeza uzoefu"
+  ],
+  "Add the work that shows your professional background.": [
+    "Ajoutez le travail qui montre votre parcours professionnel.",
+    "Añade el trabajo que muestra tu trayectoria profesional.",
+    "Ongeraho akazi kerekana amateka yawe mu mwuga.",
+    "Ongeza kazi zinazoonyesha historia yako ya kitaaluma."
+  ],
+  "No work experience added yet": [
+    "Aucune expérience ajoutée",
+    "Aún no hay experiencia",
+    "Nta burambe burongerwaho",
+    "Bado hakuna uzoefu ulioongezwa"
+  ],
+  "New experience": [
+    "Nouvelle expérience",
+    "Nueva experiencia",
+    "Uburambe bushya",
+    "Uzoefu mpya"
+  ],
+  "Position or title *": [
+    "Poste ou titre *",
+    "Puesto o cargo *",
+    "Umwanya cyangwa izina ry'akazi *",
+    "Nafasi au cheo *"
+  ],
+  "Company or organisation *": [
+    "Entreprise ou organisation *",
+    "Empresa u organización *",
+    "Ikigo cyangwa umuryango *",
+    "Kampuni au shirika *"
+  ],
+  "e.g. Lead wedding photographer": [
+    "ex. Photographe principal de mariage",
+    "p. ej. Fotógrafo principal de bodas",
+    "urugero: Umufotozi mukuru w'ubukwe",
+    "mfano Mpiga picha mkuu wa harusi"
+  ],
+  "e.g. Elite Studios": [
+    "ex. Elite Studios",
+    "p. ej. Elite Studios",
+    "urugero: Elite Studios",
+    "mfano Elite Studios"
+  ],
+  "Over 50 characters counts towards your profile score.": [
+    "Plus de 50 caractères compte pour le score de votre profil.",
+    "Más de 50 caracteres suma a la puntuación de tu perfil.",
+    "Inyuguti zirenga 50 zibarwa mu manota y'umwirondoro wawe.",
+    "Herufi zaidi ya 50 huhesabiwa kwenye alama ya wasifu wako."
+  ],
+  "Your responsibilities, achievements and key projects": [
+    "Vos responsabilités, réalisations et projets clés",
+    "Tus responsabilidades, logros y proyectos clave",
+    "Inshingano zawe, ibyo wagezeho n'imishinga y'ingenzi",
+    "Majukumu yako, mafanikio na miradi muhimu"
+  ],
+  "Save experience": [
+    "Enregistrer l'expérience",
+    "Guardar experiencia",
+    "Bika uburambe",
+    "Hifadhi uzoefu"
+  ],
+  "Position": [
+    "Poste",
+    "Puesto",
+    "Umwanya",
+    "Nafasi"
+  ],
+  "View only": [
+    "Lecture seule",
+    "Solo lectura",
+    "Kureba gusa",
+    "Kutazama tu"
+  ],
+  "you do not have the profile.edit permission. Ask an organisation owner to grant it if you need to make changes.": [
+    "vous n'avez pas l'autorisation profile.edit. Demandez-la au propriétaire de l'organisation si vous devez faire des modifications.",
+    "no tienes el permiso profile.edit. Pídeselo al propietario de la organización si necesitas hacer cambios.",
+    "ntufite uburenganzira bwa profile.edit. Saba nyir'umuryango abuguhe niba ukeneye guhindura.",
+    "huna ruhusa la profile.edit. Muombe mmiliki wa shirika akupe ikiwa unahitaji kufanya mabadiliko."
+  ],
+  "Your previous changes have been restored.": [
+    "Vos modifications précédentes ont été restaurées.",
+    "Se restauraron tus cambios anteriores.",
+    "Ibyo wari wahinduye mbere byagaruwe.",
+    "Mabadiliko yako ya awali yamerejeshwa."
+  ],
+  "Your profile needs changes before it can be approved": [
+    "Votre profil doit être modifié avant d'être approuvé",
+    "Tu perfil necesita cambios antes de ser aprobado",
+    "Umwirondoro wawe ukeneye guhindurwa mbere yo kwemezwa",
+    "Wasifu wako unahitaji mabadiliko kabla ya kuidhinishwa"
+  ],
+  "Our team reviewed your profile and found areas that need attention. Update the sections and save to resubmit.": [
+    "Notre équipe a examiné votre profil et relevé des points à corriger. Mettez à jour les sections et enregistrez pour le soumettre à nouveau.",
+    "Nuestro equipo revisó tu perfil y encontró puntos que corregir. Actualiza las secciones y guarda para volver a enviarlo.",
+    "Itsinda ryacu ryasuzumye umwirondoro wawe risanga hari ibikeneye gukosorwa. Vugurura ibice maze ubike kugira ngo wongere uwohereze.",
+    "Timu yetu imekagua wasifu wako na kupata maeneo yanayohitaji marekebisho. Sasisha sehemu hizo kisha uhifadhi ili kuuwasilisha tena."
+  ],
+  "Complete your profile to get started": [
+    "Complétez votre profil pour commencer",
+    "Completa tu perfil para empezar",
+    "Uzuza umwirondoro wawe kugira ngo utangire",
+    "Kamilisha wasifu wako ili kuanza"
+  ],
+  "Once your profile reaches 85%, it is submitted for review automatically.": [
+    "Dès que votre profil atteint 85 %, il est soumis automatiquement pour vérification.",
+    "Cuando tu perfil llegue al 85 %, se enviará a revisión automáticamente.",
+    "Umwirondoro wawe nugera kuri 85%, uzoherezwa gusuzumwa mu buryo bwikora.",
+    "Wasifu wako ukifika 85%, unawasilishwa kwa ukaguzi moja kwa moja."
+  ],
+  "Your profile is under review": [
+    "Votre profil est en cours de vérification",
+    "Tu perfil está en revisión",
+    "Umwirondoro wawe urimo gusuzumwa",
+    "Wasifu wako unakaguliwa"
+  ],
+  "You will be notified once your account is approved and you can start receiving bookings.": [
+    "Vous serez averti dès que votre compte sera approuvé et que vous pourrez recevoir des réservations.",
+    "Te avisaremos cuando tu cuenta sea aprobada y puedas recibir reservas.",
+    "Uzamenyeshwa konti yawe nimara kwemezwa ugatangira kwakira abagutumiza.",
+    "Utaarifiwa akaunti yako ikiidhinishwa na utaanza kupokea uhifadhi."
+  ],
+  "profile change pending approval": [
+    "modification du profil en attente d'approbation",
+    "cambio de perfil pendiente de aprobación",
+    "impinduka y'umwirondoro itegereje kwemezwa",
+    "badiliko la wasifu linalosubiri idhini"
+  ],
+  "profile changes pending approval": [
+    "modifications du profil en attente d'approbation",
+    "cambios de perfil pendientes de aprobación",
+    "impinduka z'umwirondoro zitegereje kwemezwa",
+    "mabadiliko ya wasifu yanayosubiri idhini"
+  ],
+  "You changed sensitive fields. Our team reviews them and applies them once approved. Look for the Pending approval tag.": [
+    "Vous avez modifié des champs sensibles. Notre équipe les examine et les applique après approbation. Repérez l'étiquette En attente d'approbation.",
+    "Cambiaste campos sensibles. Nuestro equipo los revisa y los aplica una vez aprobados. Busca la etiqueta Pendiente de aprobación.",
+    "Wahinduye amakuru y'ingenzi. Itsinda ryacu riyasuzuma rikayashyiraho amaze kwemezwa. Reba akamenyetso Bitegereje kwemezwa.",
+    "Umebadilisha sehemu nyeti. Timu yetu inazikagua na kuzitumia zikiidhinishwa. Tafuta lebo ya Inasubiri idhini."
+  ],
+  "Your profile is complete": [
+    "Votre profil est complet",
+    "Tu perfil está completo",
+    "Umwirondoro wawe wuzuye",
+    "Wasifu wako umekamilika"
+  ],
+  "Nice work. Every section clients look at is filled in.": [
+    "Bravo. Chaque section que les clients consultent est remplie.",
+    "Buen trabajo. Todas las secciones que miran los clientes están completas.",
+    "Ni byiza. Ibice byose abakiriya bareba byuzuye.",
+    "Kazi nzuri. Kila sehemu wanayoangalia wateja imejazwa."
+  ],
+  "A complete profile helps clients find you and trust your work.": [
+    "Un profil complet aide les clients à vous trouver et à faire confiance à votre travail.",
+    "Un perfil completo ayuda a los clientes a encontrarte y confiar en tu trabajo.",
+    "Umwirondoro wuzuye ufasha abakiriya kukubona no kwizera akazi kawe.",
+    "Wasifu kamili huwasaidia wateja kukupata na kuamini kazi yako."
+  ],
+  "Add profile photo": [
+    "Ajouter une photo de profil",
+    "Añadir foto de perfil",
+    "Ongeraho ifoto y'umwirondoro",
+    "Ongeza picha ya wasifu"
+  ],
+  "Add specialties": [
+    "Ajouter des spécialités",
+    "Añadir especialidades",
+    "Ongeraho ibyo winzobereyemo",
+    "Ongeza utaalamu"
+  ],
+  "Add a project": [
+    "Ajouter un projet",
+    "Añadir un proyecto",
+    "Ongeraho umushinga",
+    "Ongeza mradi"
+  ],
+  "Delivery packages": [
+    "Forfaits de livraison",
+    "Paquetes de entrega",
+    "Amapaki yo gutanga",
+    "Vifurushi vya huduma"
+  ],
+  "Experience": [
+    "Expérience",
+    "Experiencia",
+    "Uburambe",
+    "Uzoefu"
+  ],
+  "Changes are saved to your public profile.": [
+    "Les modifications sont enregistrées sur votre profil public.",
+    "Los cambios se guardan en tu perfil público.",
+    "Ibyahinduwe bibikwa ku mwirondoro wawe rusange.",
+    "Mabadiliko huhifadhiwa kwenye wasifu wako wa umma."
+  ],
+  "Turn on Editing to change your details.": [
+    "Activez la modification pour changer vos informations.",
+    "Activa la edición para cambiar tus datos.",
+    "Fungura uburyo bwo guhindura kugira ngo uhindure amakuru yawe.",
+    "Washa Kuhariri ili ubadilishe taarifa zako."
+  ],
+  "Editing": [
+    "Modification",
+    "Edición",
+    "Guhindura",
+    "Kuhariri"
+  ],
+  "Submit profile": [
+    "Soumettre le profil",
+    "Enviar perfil",
+    "Ohereza umwirondoro",
+    "Wasilisha wasifu"
+  ],
+  "Submit changes": [
+    "Soumettre les modifications",
+    "Enviar cambios",
+    "Ohereza ibyahinduwe",
+    "Wasilisha mabadiliko"
+  ],
+  "Unsaved changes": [
+    "Modifications non enregistrées",
+    "Cambios sin guardar",
+    "Ibyahinduwe bitabitswe",
+    "Mabadiliko ambayo hayajahifadhiwa"
+  ],
+  "You have unsaved changes": [
+    "Vous avez des modifications non enregistrées",
+    "Tienes cambios sin guardar",
+    "Ufite ibyahinduwe bitabitswe",
+    "Una mabadiliko ambayo hayajahifadhiwa"
+  ],
+  "Finish your profile": [
+    "Terminez votre profil",
+    "Termina tu perfil",
+    "Rangiza umwirondoro wawe",
+    "Maliza wasifu wako"
+  ],
+  "Your profile is at": [
+    "Votre profil est à",
+    "Tu perfil está al",
+    "Umwirondoro wawe ugeze kuri",
+    "Wasifu wako uko"
+  ],
+  "Finish these sections to use the rest of the dashboard.": [
+    "Terminez ces sections pour utiliser le reste du tableau de bord.",
+    "Termina estas secciones para usar el resto del panel.",
+    "Rangiza ibi bice kugira ngo ukoreshe ibindi bice by'urubuga.",
+    "Maliza sehemu hizi ili kutumia sehemu nyingine za dashibodi."
+  ],
+  "What is still missing": [
+    "Ce qui manque encore",
+    "Lo que aún falta",
+    "Ibikibura",
+    "Kinachokosekana bado"
+  ],
+  "Basic info (name, phone, working city, profile photo)": [
+    "Infos de base (nom, téléphone, ville de travail, photo de profil)",
+    "Datos básicos (nombre, teléfono, ciudad de trabajo, foto de perfil)",
+    "Amakuru y'ibanze (izina, telefoni, umujyi ukoreramo, ifoto y'umwirondoro)",
+    "Taarifa za msingi (jina, simu, mji wa kazi, picha ya wasifu)"
+  ],
+  "At least 2 specialties selected": [
+    "Au moins 2 spécialités choisies",
+    "Al menos 2 especialidades elegidas",
+    "Nibura ibyo winzobereyemo 2 byatoranyijwe",
+    "Angalau utaalamu 2 umechaguliwa"
+  ],
+  "At least 1 spoken language selected": [
+    "Au moins 1 langue parlée choisie",
+    "Al menos 1 idioma elegido",
+    "Nibura ururimi 1 rwatoranyijwe",
+    "Angalau lugha 1 imechaguliwa"
+  ],
+  "At least 1 portfolio project": [
+    "Au moins 1 projet de portfolio",
+    "Al menos 1 proyecto en el portafolio",
+    "Nibura umushinga 1 mu bikorwa",
+    "Angalau mradi 1 kwenye kwingineko"
+  ],
+  "At least 1 work experience with a description (50+ characters)": [
+    "Au moins 1 expérience avec une description (50 caractères ou plus)",
+    "Al menos 1 experiencia con descripción (50 caracteres o más)",
+    "Nibura uburambe 1 bufite ibisobanuro (inyuguti 50 cyangwa zirenga)",
+    "Angalau uzoefu 1 wenye maelezo (herufi 50 au zaidi)"
+  ],
+  "Discard your changes?": [
+    "Abandonner vos modifications ?",
+    "¿Descartar tus cambios?",
+    "Kureka ibyo wahinduye?",
+    "Tupa mabadiliko yako?"
+  ],
+  "Your edits since you turned on Editing are removed.": [
+    "Les modifications faites depuis l'activation de la modification sont supprimées.",
+    "Se eliminan los cambios hechos desde que activaste la edición.",
+    "Ibyo wahinduye kuva wafungura uburyo bwo guhindura birakurwaho.",
+    "Mabadiliko uliyofanya tangu uwashe Kuhariri yanaondolewa."
+  ],
+  "Remove this package?": [
+    "Retirer ce forfait ?",
+    "¿Quitar este paquete?",
+    "Kuramo iyi paki?",
+    "Ondoa kifurushi hiki?"
+  ],
+  "You are about to remove your": [
+    "Vous allez retirer votre",
+    "Vas a quitar tu",
+    "Ugiye gukuraho",
+    "Unakaribia kuondoa"
+  ],
+  "tier. Clients will no longer see it on your profile or in the booking wizard.": [
+    "niveau. Les clients ne le verront plus sur votre profil ni dans l'assistant de réservation.",
+    "nivel. Los clientes ya no lo verán en tu perfil ni en el asistente de reservas.",
+    "y'urwego. Abakiriya ntibazongera kuyibona ku mwirondoro wawe cyangwa mu gutumiza.",
+    "ngazi. Wateja hawataiona tena kwenye wasifu wako wala kwenye mchakato wa uhifadhi."
+  ],
+  "Account active": [
+    "Compte actif",
+    "Cuenta activa",
+    "Konti irakora",
+    "Akaunti iko hai"
+  ],
+  "Changes needed": [
+    "Modifications requises",
+    "Cambios necesarios",
+    "Hakenewe impinduka",
+    "Mabadiliko yanahitajika"
+  ],
+  "Profile incomplete": [
+    "Profil incomplet",
+    "Perfil incompleto",
+    "Umwirondoro ntiwuzuye",
+    "Wasifu haujakamilika"
+  ],
+  "Set default": [
+    "Définir par défaut",
+    "Predeterminar",
+    "Gira iy'ibanze",
+    "Weka kuwa chaguo-msingi"
+  ],
+  "Email code": [
+    "Code par e-mail",
+    "Código por correo",
+    "Kode kuri imeyili",
+    "Msimbo kwa barua pepe"
+  ],
+  "When you confirm a withdrawal we email a 6-digit code to": [
+    "Lorsque vous confirmez un retrait, nous envoyons un code à 6 chiffres à",
+    "Cuando confirmas un retiro, enviamos un código de 6 dígitos a",
+    "Iyo wemeje kubikuza, twohereza kode y'imibare 6 kuri",
+    "Unapothibitisha utoaji, tunatuma msimbo wa tarakimu 6 kwa"
+  ],
+  "your account email": [
+    "l'e-mail de votre compte",
+    "el correo de tu cuenta",
+    "imeyili ya konti yawe",
+    "barua pepe ya akaunti yako"
+  ],
+  "Enter it to finish. You can ask for a new code on the confirmation step, and you get an email again once the withdrawal is completed.": [
+    "Saisissez-le pour terminer. Vous pouvez demander un nouveau code à l'étape de confirmation, et vous recevez un e-mail une fois le retrait effectué.",
+    "Escríbelo para terminar. Puedes pedir un código nuevo en el paso de confirmación y recibirás otro correo cuando se complete el retiro.",
+    "Yandike kugira ngo urangize. Ushobora gusaba kode nshya ku ntambwe yo kwemeza, kandi uzongera kwakira imeyili kubikuza nibirangira.",
+    "Uweke ili kumaliza. Unaweza kuomba msimbo mpya kwenye hatua ya uthibitisho, na utapokea barua pepe tena utoaji ukikamilika."
+  ],
+  "Validating…": [
+    "Vérification…",
+    "Validando…",
+    "Birimo kugenzurwa…",
+    "Inahakiki…"
+  ],
+  "Account type": [
+    "Type de compte",
+    "Tipo de cuenta",
+    "Ubwoko bwa konti",
+    "Aina ya akaunti"
+  ],
+  "Select bank": [
+    "Choisir la banque",
+    "Elegir banco",
+    "Hitamo banki",
+    "Chagua benki"
+  ],
+  "Account number": [
+    "Numéro de compte",
+    "Número de cuenta",
+    "Nimero ya konti",
+    "Nambari ya akaunti"
+  ],
+  "Your bank account number": [
+    "Votre numéro de compte bancaire",
+    "Tu número de cuenta bancaria",
+    "Nimero ya konti yawe ya banki",
+    "Nambari ya akaunti yako ya benki"
+  ],
+  "Account holder name": [
+    "Nom du titulaire",
+    "Nombre del titular",
+    "Izina rya nyiri konti",
+    "Jina la mwenye akaunti"
+  ],
+  "MTN phone number": [
+    "Numéro de téléphone MTN",
+    "Número de teléfono MTN",
+    "Nimero ya telefoni ya MTN",
+    "Nambari ya simu ya MTN"
+  ],
+  "Airtel phone number": [
+    "Numéro de téléphone Airtel",
+    "Número de teléfono Airtel",
+    "Nimero ya telefoni ya Airtel",
+    "Nambari ya simu ya Airtel"
+  ],
+  "Name mismatch": [
+    "Noms différents",
+    "Los nombres no coinciden",
+    "Amazina ntahuye",
+    "Majina hayalingani"
+  ],
+  "You entered": [
+    "Vous avez saisi",
+    "Escribiste",
+    "Wanditse",
+    "Uliandika"
+  ],
+  "Use": [
+    "Utiliser",
+    "Usar",
+    "Koresha",
+    "Tumia"
+  ],
+  "Preference sections": [
+    "Sections des préférences",
+    "Secciones de preferencias",
+    "Ibice by'ibyo ukunda",
+    "Sehemu za mapendeleo"
+  ],
+  "You will no longer be able to use": [
+    "Vous ne pourrez plus utiliser",
+    "Ya no podrás usar",
+    "Ntuzongera gukoresha",
+    "Hutaweza tena kutumia"
+  ],
+  "for payments or withdrawals. This cannot be undone.": [
+    "pour les paiements ou les retraits. Cette action est définitive.",
+    "para pagos o retiros. No se puede deshacer.",
+    "mu kwishyura cyangwa kubikuza. Ntibishobora gusubizwa inyuma.",
+    "kwa malipo au utoaji. Hili haliwezi kutenduliwa."
+  ],
+  "Got it": [
+    "Compris",
+    "Entendido",
+    "Byumvikanye",
+    "Nimeelewa"
+  ],
+  "For security reasons, you can only update this account by removing it and adding a new one.": [
+    "Pour des raisons de sécurité, vous ne pouvez modifier ce compte qu'en le supprimant puis en en ajoutant un nouveau.",
+    "Por seguridad, solo puedes cambiar esta cuenta eliminándola y añadiendo una nueva.",
+    "Kubera umutekano, ushobora guhindura iyi konti gusa uyikuyeho ukongeraho indi nshya.",
+    "Kwa sababu za usalama, unaweza kubadilisha akaunti hii tu kwa kuiondoa na kuongeza mpya."
+  ],
+  "Synced with your device's settings.": [
+    "Synchronisé avec les réglages de votre appareil.",
+    "Sincronizado con la configuración de tu dispositivo.",
+    "Bihujwe n'igenamiterere ry'igikoresho cyawe.",
+    "Imeoanishwa na mipangilio ya kifaa chako."
+  ],
+  "Saved payment accounts": [
+    "Comptes de paiement enregistrés",
+    "Cuentas de pago guardadas",
+    "Konti zo kwishyuriraho zabitswe",
+    "Akaunti za malipo zilizohifadhiwa"
+  ],
+  "Manage the accounts you use for payments and withdrawals.": [
+    "Gérez les comptes utilisés pour les paiements et les retraits.",
+    "Gestiona las cuentas que usas para pagos y retiros.",
+    "Genzura konti ukoresha mu kwishyura no kubikuza.",
+    "Simamia akaunti unazotumia kwa malipo na utoaji."
+  ],
+  "No payment accounts saved": [
+    "Aucun compte de paiement enregistré",
+    "No hay cuentas de pago guardadas",
+    "Nta konti yo kwishyuriraho yabitswe",
+    "Hakuna akaunti ya malipo iliyohifadhiwa"
+  ],
+  "Add a mobile money or bank account to enable payments and withdrawals.": [
+    "Ajoutez un compte mobile money ou bancaire pour activer les paiements et les retraits.",
+    "Añade una cuenta de dinero móvil o bancaria para activar pagos y retiros.",
+    "Ongeraho konti ya mobile money cyangwa ya banki kugira ngo ushobore kwishyura no kubikuza.",
+    "Ongeza akaunti ya pesa ya simu au ya benki ili kuwezesha malipo na utoaji."
+  ],
+  "Notify me about booking updates and confirmations": [
+    "Prévenez-moi des mises à jour et confirmations de réservation",
+    "Avísame de cambios y confirmaciones de reservas",
+    "Mmenyesha impinduka n'iyemezwa ry'ibyo natumije",
+    "Nijulishe kuhusu masasisho na uthibitisho wa uhifadhi"
+  ],
+  "Notify me when I receive gifts": [
+    "Prévenez-moi quand je reçois un cadeau",
+    "Avísame cuando reciba regalos",
+    "Mmenyesha iyo nakiriye impano",
+    "Nijulishe ninapopokea zawadi"
+  ],
+  "Notify me when I receive live stream access fee revenue": [
+    "Prévenez-moi quand je reçois des frais d'accès au direct",
+    "Avísame cuando reciba ingresos por acceso a la transmisión",
+    "Mmenyesha iyo nakiriye amafaranga yo kwinjira muri live",
+    "Nijulishe ninapopokea mapato ya ada ya kufikia mtiririko"
+  ],
+  "Always notify me about security events (recommended)": [
+    "Toujours me prévenir des événements de sécurité (recommandé)",
+    "Avisarme siempre de eventos de seguridad (recomendado)",
+    "Buri gihe mmenyesha ibijyanye n'umutekano (birasabwa)",
+    "Nijulishe kila mara kuhusu matukio ya usalama (inapendekezwa)"
+  ],
+  "Ask for a code when you sign in, from an authenticator app or sent to your email. It is required to withdraw funds.": [
+    "Demandez un code à la connexion, depuis une application d'authentification ou envoyé par e-mail. Il est requis pour retirer des fonds.",
+    "Pide un código al iniciar sesión, desde una app de autenticación o enviado a tu correo. Es obligatorio para retirar fondos.",
+    "Saba kode iyo winjira, iturutse kuri porogaramu yo kwemeza cyangwa yoherejwe kuri imeyili yawe. Irakenewe kugira ngo ubikuze amafaranga.",
+    "Omba msimbo unapoingia, kutoka programu ya uthibitishaji au uliotumwa kwa barua pepe. Unahitajika ili kutoa pesa."
+  ],
+  "Every withdrawal is confirmed with a code sent to your email.": [
+    "Chaque retrait est confirmé par un code envoyé par e-mail.",
+    "Cada retiro se confirma con un código enviado a tu correo.",
+    "Buri kubikuza byemezwa na kode yoherejwe kuri imeyili yawe.",
+    "Kila utoaji huthibitishwa kwa msimbo uliotumwa kwa barua pepe yako."
+  ],
+  "On": [
+    "Activé",
+    "Activado",
+    "Birakora",
+    "Imewashwa"
+  ],
+  "MTN or Airtel Money": [
+    "MTN ou Airtel Money",
+    "MTN o Airtel Money",
+    "MTN cyangwa Airtel Money",
+    "MTN au Airtel Money"
+  ],
+  "MTN Mobile Money": [
+    "MTN Mobile Money",
+    "MTN Mobile Money",
+    "MTN Mobile Money",
+    "MTN Mobile Money"
+  ],
+  "Withdraw via MTN Mobile Money": [
+    "Retirer via MTN Mobile Money",
+    "Retirar con MTN Mobile Money",
+    "Bikuza ukoresheje MTN Mobile Money",
+    "Toa kupitia MTN Mobile Money"
+  ],
+  "Airtel Money": [
+    "Airtel Money",
+    "Airtel Money",
+    "Airtel Money",
+    "Airtel Money"
+  ],
+  "Withdraw via Airtel Money": [
+    "Retirer via Airtel Money",
+    "Retirar con Airtel Money",
+    "Bikuza ukoresheje Airtel Money",
+    "Toa kupitia Airtel Money"
+  ],
+  "Bank Transfer": [
+    "Virement bancaire",
+    "Transferencia bancaria",
+    "Kohereza kuri banki",
+    "Uhamisho wa benki"
+  ],
+  "Withdraw to a Rwandan bank account": [
+    "Retirer vers un compte bancaire au Rwanda",
+    "Retirar a una cuenta bancaria de Ruanda",
+    "Bikuza ujyana kuri konti ya banki yo mu Rwanda",
+    "Toa kwenda akaunti ya benki ya Rwanda"
+  ],
+  "Appearance, payment accounts, notifications and security.": [
+    "Apparence, comptes de paiement, notifications et sécurité.",
+    "Apariencia, cuentas de pago, notificaciones y seguridad.",
+    "Imigaragarire, konti zo kwishyuriraho, amatangazo n'umutekano.",
+    "Mwonekano, akaunti za malipo, arifa na usalama."
+  ],
+  "Delete this payment account?": [
+    "Supprimer ce compte de paiement ?",
+    "¿Eliminar esta cuenta de pago?",
+    "Gusiba iyi konti yo kwishyuriraho?",
+    "Futa akaunti hii ya malipo?"
+  ],
+  "Classic light theme for daytime use": [
+    "Thème clair classique pour la journée",
+    "Tema claro clásico para el día",
+    "Insanganyamatsiko y'urumuri yo ku manywa",
+    "Mandhari angavu ya kawaida kwa mchana"
+  ],
+  "Automatically match your device settings": [
+    "S'adapte automatiquement à votre appareil",
+    "Se adapta solo a tu dispositivo",
+    "Bihuza n'igenamiterere ry'igikoresho cyawe",
+    "Hufuata mipangilio ya kifaa chako"
+  ],
+  "Currently using Dark mode.": [
+    "Mode sombre utilisé actuellement.",
+    "Usando el modo oscuro.",
+    "Ukoresha uburyo bw'umwijima.",
+    "Unatumia hali ya giza."
+  ],
+  "Currently using Light mode.": [
+    "Mode clair utilisé actuellement.",
+    "Usando el modo claro.",
+    "Ukoresha uburyo bw'urumuri.",
+    "Unatumia hali angavu."
+  ],
+  "Skip to content": [
+    "Aller au contenu",
+    "Saltar al contenido",
+    "Jya ku bikubiyemo",
+    "Ruka hadi maudhui"
+  ],
+  "QR code": [
+    "Code QR",
+    "Código QR",
+    "Kode QR",
+    "Msimbo wa QR"
+  ],
+  "Album sent": [
+    "Album envoyé",
+    "Álbum enviado",
+    "Alubumu yoherejwe",
+    "Albamu imetumwa"
+  ],
+  "Mark complete": [
+    "Marquer comme terminé",
+    "Marcar como completado",
+    "Shyiraho ko byarangiye",
+    "Weka imekamilika"
+  ],
+  "days left": [
+    "jours restants",
+    "días restantes",
+    "iminsi isigaye",
+    "siku zilizobaki"
+  ],
+  "This album is saved but buyers cannot find it yet": [
+    "Cet album est enregistré mais les acheteurs ne le trouvent pas encore",
+    "Este álbum está guardado pero los compradores aún no lo encuentran",
+    "Iyi alubumu irabitswe ariko abaguzi ntibarayibona",
+    "Albamu hii imehifadhiwa lakini wanunuzi bado hawawezi kuipata"
+  ],
+  "Link": [
+    "Lien",
+    "Enlace",
+    "Ihuza",
+    "Kiungo"
+  ],
+  "This album is archived. Restore it to open it to buyers again.": [
+    "Cet album est archivé. Restaurez-le pour le rouvrir aux acheteurs.",
+    "Este álbum está archivado. Restáuralo para abrirlo de nuevo a los compradores.",
+    "Iyi alubumu yabitswe mu bubiko. Yigarure kugira ngo abaguzi bongere bayibone.",
+    "Albamu hii imehifadhiwa kwenye kumbukumbu. Irejeshe ili wanunuzi waione tena."
+  ],
+  "Restore": [
+    "Restaurer",
+    "Restaurar",
+    "Garura",
+    "Rejesha"
+  ],
+  "Search photobooks": [
+    "Rechercher des photobooks",
+    "Buscar fotolibros",
+    "Shakisha photobooks",
+    "Tafuta vitabu vya picha"
+  ],
+  "Open photobook": [
+    "Ouvrir le photobook",
+    "Abrir fotolibro",
+    "Fungura photobook",
+    "Fungua kitabu cha picha"
+  ],
+  "Send back": [
+    "Renvoyer",
+    "Devolver",
+    "Subiza",
+    "Rudisha"
+  ],
+  "Awaiting review": [
+    "En attente de révision",
+    "Esperando revisión",
+    "Bitegereje isuzuma",
+    "Inasubiri ukaguzi"
+  ],
+  "Show getting started": [
+    "Afficher la prise en main",
+    "Mostrar la guía de inicio",
+    "Erekana uko utangira",
+    "Onyesha jinsi ya kuanza"
+  ],
+  "Content": [
+    "Contenu",
+    "Contenido",
+    "Ibikubiyemo",
+    "Maudhui"
+  ],
+  "No events yet": [
+    "Pas encore d'événements",
+    "Aún no hay eventos",
+    "Nta birori kugeza ubu",
+    "Bado hakuna matukio"
+  ],
+  "Events you are assigned to appear here.": [
+    "Les événements qui vous sont attribués apparaissent ici.",
+    "Los eventos que te asignan aparecen aquí.",
+    "Ibirori wahawe bigaragara hano.",
+    "Matukio uliyopewa huonekana hapa."
+  ],
+  "Views": [
+    "Vues",
+    "Vistas",
+    "Abarebye",
+    "Watazamaji"
+  ],
+  "Filter albums": [
+    "Filtrer les albums",
+    "Filtrar álbumes",
+    "Shungura alubumu",
+    "Chuja albamu"
+  ],
+  "Photobooks received": [
+    "Photobooks reçus",
+    "Fotolibros recibidos",
+    "Photobooks wakiriye",
+    "Vitabu vya picha vilivyopokewa"
+  ],
+  "Last 7 days": [
+    "7 derniers jours",
+    "Últimos 7 días",
+    "Iminsi 7 ishize",
+    "Siku 7 zilizopita"
+  ],
+  "Library sections": [
+    "Sections de la bibliothèque",
+    "Secciones de la biblioteca",
+    "Ibice by'ububiko",
+    "Sehemu za maktaba"
+  ],
+  "Post": [
+    "Publier la demande",
+    "Publicar",
+    "Tangaza",
+    "Chapisha"
+  ],
+  "Waiting for album delivery": [
+    "En attente de la livraison de l'album",
+    "Esperando la entrega del álbum",
+    "Bitegereje ko alubumu itangwa",
+    "Inasubiri albamu kuwasilishwa"
+  ],
+  "Create, publish and follow your events.": [
+    "Créez, publiez et suivez vos événements.",
+    "Crea, publica y sigue tus eventos.",
+    "Kora, tangaza kandi ukurikirane ibirori byawe.",
+    "Unda, chapisha na ufuatilie matukio yako."
+  ],
+  "Filter events": [
+    "Filtrer les événements",
+    "Filtrar eventos",
+    "Shungura ibirori",
+    "Chuja matukio"
+  ],
+  "Past": [
+    "Passés",
+    "Pasados",
+    "Ibyashize",
+    "Yaliyopita"
+  ],
+  "No albums match": [
+    "Aucun album ne correspond",
+    "Ningún álbum coincide",
+    "Nta alubumu ihuye",
+    "Hakuna albamu inayolingana"
+  ],
+  "Create an album from an event, or sell photos on their own.": [
+    "Créez un album depuis un événement, ou vendez des photos séparément.",
+    "Crea un álbum desde un evento o vende fotos por separado.",
+    "Kora alubumu uhereye ku birori, cyangwa ugurishe amafoto ukwayo.",
+    "Unda albamu kutoka kwa tukio, au uza picha peke yake."
+  ],
+  "No photobooks match your search": [
+    "Aucun photobook ne correspond à votre recherche",
+    "Ningún fotolibro coincide con tu búsqueda",
+    "Nta photobook ihuye n'ishakisha ryawe",
+    "Hakuna kitabu cha picha kinacholingana"
+  ],
+  "No photobooks yet": [
+    "Pas encore de photobooks",
+    "Aún no hay fotolibros",
+    "Nta photobook kugeza ubu",
+    "Bado hakuna vitabu vya picha"
+  ],
+  "Try a different keyword or clear the search.": [
+    "Essayez un autre mot-clé ou effacez la recherche.",
+    "Prueba otra palabra o borra la búsqueda.",
+    "Gerageza irindi jambo cyangwa usibe ishakisha.",
+    "Jaribu neno lingine au futa utafutaji."
+  ],
+  "Clients and coordinators can send you photobooks with their photo selections. They appear here for review.": [
+    "Les clients et coordinateurs peuvent vous envoyer des photobooks avec leur sélection de photos. Ils apparaissent ici pour révision.",
+    "Clientes y coordinadores pueden enviarte fotolibros con su selección de fotos. Aparecen aquí para revisarlos.",
+    "Abakiriya n'abategura bashobora kukoherereza photobooks zifite amafoto bahisemo. Zigaragara hano kugira ngo uzisuzume.",
+    "Wateja na waratibu wanaweza kukutumia vitabu vya picha na picha walizochagua. Huonekana hapa kwa ukaguzi."
+  ],
+  "Manage your assigned events, live streams and event lifecycle.": [
+    "Gérez vos événements, vos directs et leur cycle de vie.",
+    "Gestiona tus eventos, transmisiones y su ciclo de vida.",
+    "Genzura ibirori wahawe, live n'uko ibirori bigenda.",
+    "Simamia matukio uliyopewa, mitiririko na mzunguko wa matukio."
+  ],
+  "Requests that match your profile.": [
+    "Les demandes qui correspondent à votre profil.",
+    "Solicitudes que encajan con tu perfil.",
+    "Ubusabe buhuye n'umwirondoro wawe.",
+    "Maombi yanayolingana na wasifu wako."
+  ],
+  "Browse and manage the photo albums you created.": [
+    "Parcourez et gérez les albums que vous avez créés.",
+    "Explora y gestiona los álbumes que creaste.",
+    "Reba kandi ugenzure alubumu wakoze.",
+    "Vinjari na usimamie albamu ulizounda."
+  ],
+  "Photobooks clients sent you for review.": [
+    "Les photobooks que les clients vous ont envoyés.",
+    "Fotolibros que los clientes te enviaron para revisar.",
+    "Photobooks abakiriya bakoherereje ngo uzisuzume.",
+    "Vitabu vya picha ambavyo wateja walikutumia kukagua."
+  ],
+  "Albums you sell to everyone.": [
+    "Les albums que vous vendez à tous.",
+    "Álbumes que vendes a todos.",
+    "Alubumu ugurisha buri wese.",
+    "Albamu unazouza kwa kila mtu."
+  ],
+  "Choose photographer": [
+    "Choisir le photographe",
+    "Elegir fotógrafo",
+    "Hitamo umufotozi",
+    "Chagua mpiga picha"
+  ],
+  "Matching ended": [
+    "Recherche terminée",
+    "Búsqueda terminada",
+    "Gushaka byarangiye",
+    "Utafutaji umekwisha"
+  ],
+  "Answers": [
+    "Réponses",
+    "Respuestas",
+    "Ibisubizo",
+    "Majibu"
+  ],
+  "We could not load your events.": [
+    "Impossible de charger vos événements.",
+    "No pudimos cargar tus eventos.",
+    "Ntitwashoboye gufungura ibirori byawe.",
+    "Hatukuweza kupakia matukio yako."
+  ],
+  "No events match": [
+    "Aucun événement ne correspond",
+    "Ningún evento coincide",
+    "Nta birori bihuye",
+    "Hakuna tukio linalolingana"
+  ],
+  "Create your first event and book a photographer.": [
+    "Créez votre premier événement et réservez un photographe.",
+    "Crea tu primer evento y reserva un fotógrafo.",
+    "Kora ibirori byawe bya mbere maze utumize umufotozi.",
+    "Unda tukio lako la kwanza na uhifadhi mpiga picha."
+  ],
+  "Pausing…": [
+    "Mise en pause…",
+    "Pausando…",
+    "Birimo guhagarikwa…",
+    "Inasitisha…"
+  ],
+  "Resuming…": [
+    "Reprise…",
+    "Reanudando…",
+    "Birimo gukomeza…",
+    "Inaendelea…"
+  ],
+  "Accepting…": [
+    "Acceptation…",
+    "Aceptando…",
+    "Birimo kwemerwa…",
+    "Inakubali…"
+  ],
+  "Marking…": [
+    "Enregistrement…",
+    "Marcando…",
+    "Birimo kwandikwa…",
+    "Inaweka…"
+  ],
+  "Matching ended: no photographer said yes": [
+    "Recherche terminée : aucun photographe n'a accepté",
+    "Búsqueda terminada: ningún fotógrafo aceptó",
+    "Gushaka byarangiye: nta mufotozi wemeye",
+    "Utafutaji umekwisha: hakuna mpiga picha aliyekubali"
+  ],
+  "Post My Event did not find a photographer this time. Post it again with the same requirements, or use Find a Photographer and choose one yourself.": [
+    "Post My Event n'a pas trouvé de photographe cette fois. Republiez-le avec les mêmes critères, ou utilisez Trouver un photographe et choisissez vous-même.",
+    "Post My Event no encontró fotógrafo esta vez. Publícalo de nuevo con los mismos requisitos o usa Buscar fotógrafo y elige tú.",
+    "Post My Event ntiyabonye umufotozi ubu. Wongere uyitangaze ufite ibisabwa bimwe, cyangwa ukoreshe Shaka umufotozi maze wihitiremo.",
+    "Post My Event haikupata mpiga picha safari hii. Ichapishe tena kwa mahitaji yale yale, au tumia Tafuta mpiga picha na uchague mwenyewe."
+  ],
+  "Reactivating…": [
+    "Réactivation…",
+    "Reactivando…",
+    "Birimo kongera gukora…",
+    "Inaamilisha tena…"
+  ],
+  "Candidates ready": [
+    "Candidats prêts",
+    "Candidatos listos",
+    "Abakandida biteguye",
+    "Wagombea wako tayari"
+  ],
+  "Matching complete. Choose your photographer": [
+    "Recherche terminée. Choisissez votre photographe",
+    "Búsqueda completa. Elige tu fotógrafo",
+    "Gushaka byarangiye. Hitamo umufotozi wawe",
+    "Utafutaji umekamilika. Chagua mpiga picha wako"
+  ],
+  "Verified local creators accepted your event brief. Compare their match tiers, reviews, ratings and proposed rates, then confirm your photographer to lock your date.": [
+    "Des créateurs locaux vérifiés ont accepté votre demande. Comparez leurs niveaux, avis, notes et tarifs, puis confirmez votre photographe pour bloquer la date.",
+    "Creadores locales verificados aceptaron tu solicitud. Compara niveles, reseñas, valoraciones y tarifas, y confirma tu fotógrafo para reservar la fecha.",
+    "Abahanzi bo hafi bemejwe bemeye ubusabe bwawe. Gereranya inzego zabo, amasuzuma, amanota n'ibiciro, maze wemeze umufotozi ngo ufate itariki.",
+    "Wabunifu wa karibu waliothibitishwa wamekubali ombi lako. Linganisha viwango, maoni, alama na bei, kisha thibitisha mpiga picha ili kufunga tarehe."
+  ],
+  "Review candidates and confirm": [
+    "Voir les candidats et confirmer",
+    "Revisar candidatos y confirmar",
+    "Suzuma abakandida wemeze",
+    "Kagua wagombea na uthibitishe"
+  ],
+  "Photographer matching active": [
+    "Recherche de photographe en cours",
+    "Búsqueda de fotógrafo activa",
+    "Gushaka umufotozi birakomeje",
+    "Utafutaji wa mpiga picha unaendelea"
+  ],
+  "Local photographers are reviewing your brief.": [
+    "Des photographes locaux examinent votre demande.",
+    "Fotógrafos locales están revisando tu solicitud.",
+    "Abafotozi bo hafi barimo gusuzuma ubusabe bwawe.",
+    "Wapiga picha wa karibu wanakagua ombi lako."
+  ],
+  "View candidates and select": [
+    "Voir les candidats et choisir",
+    "Ver candidatos y elegir",
+    "Reba abakandida uhitemo",
+    "Tazama wagombea na uchague"
+  ],
+  "No photographer assigned yet": [
+    "Aucun photographe attribué",
+    "Aún sin fotógrafo asignado",
+    "Nta mufotozi urahabwa",
+    "Bado hakuna mpiga picha aliyepangwa"
+  ],
+  "No package booked": [
+    "Aucun forfait réservé",
+    "Ningún paquete reservado",
+    "Nta paki yatumijwe",
+    "Hakuna kifurushi kilichohifadhiwa"
+  ],
+  "hour": [
+    "heure",
+    "hora",
+    "isaha",
+    "saa"
+  ],
+  "The event was completed.": [
+    "L'événement est terminé.",
+    "El evento se completó.",
+    "Ibirori byarangiye.",
+    "Tukio limekamilika."
+  ],
+  "Awaiting confirmation": [
+    "En attente de confirmation",
+    "Esperando confirmación",
+    "Bitegereje kwemezwa",
+    "Inasubiri uthibitisho"
+  ],
+  "No payment records for this event yet.": [
+    "Aucun paiement enregistré pour cet événement.",
+    "Aún no hay pagos para este evento.",
+    "Nta bwishyu bwanditswe kuri ibi birori.",
+    "Bado hakuna rekodi za malipo kwa tukio hili."
+  ],
+  "Payments and milestones": [
+    "Paiements et étapes",
+    "Pagos y etapas",
+    "Ubwishyu n'intambwe",
+    "Malipo na hatua"
+  ],
+  "Escrow protection": [
+    "Protection séquestre",
+    "Protección de depósito",
+    "Kurinda amafaranga abitswe",
+    "Ulinzi wa amana"
+  ],
+  "Released": [
+    "Libéré",
+    "Liberado",
+    "Yarekuwe",
+    "Imetolewa"
+  ],
+  "Fully paid": [
+    "Entièrement payé",
+    "Pagado por completo",
+    "Byishyuwe byose",
+    "Imelipwa yote"
+  ],
+  "Escrow funds are released after the event is completed.": [
+    "Les fonds sous séquestre sont libérés après l'événement.",
+    "Los fondos retenidos se liberan al completar el evento.",
+    "Amafaranga abitswe arekurwa ibirori birangiye.",
+    "Pesa za amana hutolewa baada ya tukio kukamilika."
+  ],
+  "Event completed: funds can now be released.": [
+    "Événement terminé : les fonds peuvent être libérés.",
+    "Evento completado: los fondos ya se pueden liberar.",
+    "Ibirori byarangiye: amafaranga ashobora kurekurwa.",
+    "Tukio limekamilika: pesa sasa zinaweza kutolewa."
+  ],
+  "No location specified": [
+    "Aucun lieu indiqué",
+    "Sin ubicación",
+    "Nta hantu hagaragajwe",
+    "Hakuna mahali palipotajwa"
+  ],
+  "guest": [
+    "invité",
+    "invitado",
+    "umushyitsi",
+    "mgeni"
+  ],
+  "Event information": [
+    "Informations sur l'événement",
+    "Información del evento",
+    "Amakuru y'ibirori",
+    "Taarifa za tukio"
+  ],
+  "Event not found": [
+    "Événement introuvable",
+    "Evento no encontrado",
+    "Ibirori ntibibonetse",
+    "Tukio halikupatikana"
+  ],
+  "It may have been removed.": [
+    "Il a peut-être été supprimé.",
+    "Puede que se haya eliminado.",
+    "Bishobora kuba byarakuweho.",
+    "Huenda limeondolewa."
+  ],
+  "Release funds": [
+    "Libérer les fonds",
+    "Liberar fondos",
+    "Rekura amafaranga",
+    "Toa fedha"
+  ],
+  "Awaiting completion": [
+    "En attente de fin",
+    "Esperando la finalización",
+    "Bitegereje kurangira",
+    "Inasubiri kukamilika"
+  ],
+  "Manage your payments and view transaction history": [
+    "Gérez vos paiements et consultez l'historique des transactions",
+    "Gestiona tus pagos y consulta el historial de transacciones",
+    "Genzura ubwishyu bwawe urebe amateka y'ibyakozwe",
+    "Simamia malipo yako na uone historia ya miamala"
+  ],
+  "You have": [
+    "Vous avez",
+    "Tienes",
+    "Ufite",
+    "Una"
+  ],
+  "in pending payments": [
+    "de paiements en attente",
+    "en pagos pendientes",
+    "z'ubwishyu butarakorwa",
+    "katika malipo yanayosubiri"
+  ],
+  "Please complete your outstanding payments to avoid booking cancellations.": [
+    "Réglez vos paiements en attente pour éviter l'annulation de vos réservations.",
+    "Completa tus pagos pendientes para evitar la cancelación de tus reservas.",
+    "Rangiza ubwishyu busigaye kugira ngo ibyo wafashe bidasubikwa.",
+    "Tafadhali kamilisha malipo yanayosubiri ili kuepuka kughairiwa kwa uhifadhi."
+  ],
+  "Chart type": [
+    "Type de graphique",
+    "Tipo de gráfico",
+    "Ubwoko bw'igishushanyo",
+    "Aina ya chati"
+  ],
+  "Period": [
+    "Période",
+    "Periodo",
+    "Igihe",
+    "Kipindi"
+  ],
+  "Set up withdrawal": [
+    "Configurer le retrait",
+    "Configurar retiro",
+    "Tegura uburyo bwo kubikuza",
+    "Weka utoaji"
+  ],
+  "No gifts yet. Gifts from your live streams show here.": [
+    "Aucun cadeau pour l'instant. Les cadeaux de vos directs s'affichent ici.",
+    "Aún no hay regalos. Los regalos de tus directos aparecen aquí.",
+    "Nta mpano zirabaho. Impano ziva mu biganiro byawe bya live zigaragara hano.",
+    "Bado hakuna zawadi. Zawadi kutoka matangazo yako ya moja kwa moja zinaonekana hapa."
+  ],
+  "View senders": [
+    "Voir les expéditeurs",
+    "Ver remitentes",
+    "Reba abohereje",
+    "Tazama watumaji"
+  ],
+  "We could not load your payments.": [
+    "Impossible de charger vos paiements.",
+    "No pudimos cargar tus pagos.",
+    "Ntitwashoboye gufungura ubwishyu bwawe.",
+    "Hatukuweza kupakia malipo yako."
+  ],
+  "No payments yet": [
+    "Aucun paiement pour l'instant",
+    "Aún no hay pagos",
+    "Nta bwishyu burabaho",
+    "Bado hakuna malipo"
+  ],
+  "Payments for your bookings and purchases show here.": [
+    "Les paiements de vos réservations et achats s'affichent ici.",
+    "Los pagos de tus reservas y compras aparecen aquí.",
+    "Ubwishyu bw'ibyo wafashe n'ibyo waguze bugaragara hano.",
+    "Malipo ya uhifadhi na ununuzi wako yanaonekana hapa."
+  ],
+  "Payment pages": [
+    "Pages des paiements",
+    "Páginas de pagos",
+    "Amapaji y'ubwishyu",
+    "Kurasa za malipo"
+  ],
+  "Partially paid": [
+    "Partiellement payé",
+    "Pagado parcialmente",
+    "Byishyuwe igice",
+    "Imelipwa kiasi"
+  ],
+  "Line": [
+    "Ligne",
+    "Línea",
+    "Umurongo",
+    "Mstari"
+  ],
+  "Bar": [
+    "Barres",
+    "Barras",
+    "Inkingi",
+    "Pau"
+  ],
+  "Scatter": [
+    "Nuage de points",
+    "Dispersión",
+    "Utudomo",
+    "Mtawanyiko"
+  ],
+  "The totals below may be incomplete.": [
+    "Les totaux ci-dessous peuvent être incomplets.",
+    "Los totales de abajo pueden estar incompletos.",
+    "Imibare iri hasi ishobora kuba ituzuye.",
+    "Jumla zilizo hapa chini huenda hazijakamilika."
+  ],
+  "No streaming payments yet. Entry fee payments from viewers will appear here.": [
+    "Aucun paiement de diffusion pour l'instant. Les droits d'entrée des spectateurs s'afficheront ici.",
+    "Aún no hay pagos de transmisión. Los pagos de entrada de los espectadores aparecerán aquí.",
+    "Nta bwishyu bwa live burabaho. Amafaranga yo kwinjira y'abareba azagaragara hano.",
+    "Bado hakuna malipo ya matangazo. Ada za kuingia za watazamaji zitaonekana hapa."
+  ],
+  "Your share of gifts": [
+    "Votre part des cadeaux",
+    "Tu parte de los regalos",
+    "Umugabane wawe ku mpano",
+    "Sehemu yako ya zawadi"
+  ],
+  "No gifts received yet. Gifts from live-stream viewers will appear here.": [
+    "Aucun cadeau reçu pour l'instant. Les cadeaux des spectateurs en direct s'afficheront ici.",
+    "Aún no has recibido regalos. Los regalos de los espectadores en directo aparecerán aquí.",
+    "Nta mpano zirakirwa. Impano z'abareba live zizagaragara hano.",
+    "Bado hujapokea zawadi. Zawadi kutoka kwa watazamaji wa moja kwa moja zitaonekana hapa."
+  ],
+  "Could not load payments. Please refresh.": [
+    "Impossible de charger les paiements. Actualisez la page.",
+    "No se pudieron cargar los pagos. Actualiza la página.",
+    "Ntibyashobotse gufungura ubwishyu. Ongera ufungure paji.",
+    "Imeshindwa kupakia malipo. Tafadhali onyesha upya."
+  ],
+  "Back to Payments": [
+    "Retour aux paiements",
+    "Volver a pagos",
+    "Subira ku bwishyu",
+    "Rudi kwenye malipo"
+  ],
+  "The payment you are looking for may have been removed or does not exist.": [
+    "Le paiement recherché a peut-être été supprimé ou n'existe pas.",
+    "Es posible que el pago que buscas se haya eliminado o no exista.",
+    "Ubwishyu ushaka bushobora kuba bwarakuweho cyangwa butabaho.",
+    "Malipo unayotafuta huenda yameondolewa au hayapo."
+  ],
+  "Escrow and milestone": [
+    "Séquestre et étape",
+    "Depósito en garantía e hito",
+    "Ingwate n'icyiciro",
+    "Escrow na hatua"
+  ],
+  "Due date": [
+    "Date d'échéance",
+    "Fecha de vencimiento",
+    "Itariki ntarengwa",
+    "Tarehe ya mwisho"
+  ],
+  "Overdue": [
+    "En retard",
+    "Vencido",
+    "Byarengeje igihe",
+    "Imechelewa"
+  ],
+  "Payment type": [
+    "Type de paiement",
+    "Tipo de pago",
+    "Ubwoko bw'ubwishyu",
+    "Aina ya malipo"
+  ],
+  "Escrow": [
+    "Séquestre",
+    "Depósito en garantía",
+    "Ingwate",
+    "Escrow"
+  ],
+  "Held in Escrow": [
+    "Bloqué en séquestre",
+    "Retenido en garantía",
+    "Bifashwe mu ngwate",
+    "Imeshikiliwa kwenye escrow"
+  ],
+  "Pending Hold": [
+    "Blocage en attente",
+    "Retención pendiente",
+    "Gufatwa bitegerejwe",
+    "Inasubiri kushikiliwa"
+  ],
+  "Stream ticket": [
+    "Billet de diffusion",
+    "Entrada de transmisión",
+    "Itike ya live",
+    "Tiketi ya matangazo"
+  ],
+  "Not completed": [
+    "Non terminé",
+    "No completado",
+    "Ntibirarangira",
+    "Haijakamilika"
+  ],
+  "More actions": [
+    "Plus d'actions",
+    "Más acciones",
+    "Ibindi bikorwa",
+    "Vitendo zaidi"
+  ],
+  "Report": [
+    "Signaler",
+    "Denunciar",
+    "Tanga raporo",
+    "Ripoti"
+  ],
+  "Pay": [
+    "Payer",
+    "Pagar",
+    "Ishyura",
+    "Lipa"
+  ],
+  "We could not load your photographers.": [
+    "Impossible de charger vos photographes.",
+    "No pudimos cargar tus fotógrafos.",
+    "Ntitwashoboye gufungura abafotozi bawe.",
+    "Hatukuweza kupakia wapiga picha wako."
+  ],
+  "No booked photographers yet": [
+    "Aucun photographe réservé pour l'instant",
+    "Aún no has reservado fotógrafos",
+    "Nta mufotozi urafata",
+    "Bado hujahifadhi mpiga picha"
+  ],
+  "Photographers you book show here, with your bookings, payments and reviews.": [
+    "Les photographes que vous réservez s'affichent ici, avec vos réservations, paiements et avis.",
+    "Los fotógrafos que reservas aparecen aquí, con tus reservas, pagos y reseñas.",
+    "Abafotozi ufata bagaragara hano, n'ibyo wafashe, ubwishyu n'ibitekerezo.",
+    "Wapiga picha unaowahifadhi wanaonekana hapa, pamoja na uhifadhi, malipo na maoni yako."
+  ],
+  "Try another search or clear the filter.": [
+    "Essayez une autre recherche ou retirez le filtre.",
+    "Prueba otra búsqueda o quita el filtro.",
+    "Gerageza indi shakisha cyangwa ukureho akayunguruzo.",
+    "Jaribu utafutaji mwingine au ondoa kichujio."
+  ],
+  "Invite new": [
+    "Inviter",
+    "Invitar",
+    "Tumira mushya",
+    "Alika mpya"
+  ],
+  "Sort by": [
+    "Trier par",
+    "Ordenar por",
+    "Tondeka ukurikije",
+    "Panga kwa"
+  ],
+  "Clear filter": [
+    "Retirer le filtre",
+    "Quitar filtro",
+    "Kuraho akayunguruzo",
+    "Ondoa kichujio"
+  ],
+  "Highest rated": [
+    "Mieux notés",
+    "Mejor valorados",
+    "Abafite amanota menshi",
+    "Waliokadiriwa juu"
+  ],
+  "Most booked": [
+    "Plus réservés",
+    "Más reservados",
+    "Abafashwe kenshi",
+    "Waliohifadhiwa zaidi"
+  ],
+  "Most spent": [
+    "Plus dépensé",
+    "Mayor gasto",
+    "Ayo wakoresheje menshi",
+    "Uliotumia zaidi"
+  ],
+  "photographer is waiting for payment": [
+    "photographe attend un paiement",
+    "fotógrafo espera un pago",
+    "umufotozi ategereje kwishyurwa",
+    "mpiga picha anasubiri malipo"
+  ],
+  "photographers are waiting for payment": [
+    "photographes attendent un paiement",
+    "fotógrafos esperan un pago",
+    "abafotozi bategereje kwishyurwa",
+    "wapiga picha wanasubiri malipo"
+  ],
+  "We could not load your streams.": [
+    "Impossible de charger vos diffusions.",
+    "No pudimos cargar tus transmisiones.",
+    "Ntitwashoboye gufungura ibiganiro bya live byawe.",
+    "Hatukuweza kupakia matangazo yako."
+  ],
+  "No completed streams yet": [
+    "Aucune diffusion terminée pour l'instant",
+    "Aún no hay transmisiones finalizadas",
+    "Nta biganiro bya live birarangira",
+    "Bado hakuna matangazo yaliyokamilika"
+  ],
+  "When a live stream of your event ends, its chat and video messages are kept here.": [
+    "Quand le direct de votre événement se termine, ses messages et vidéos sont conservés ici.",
+    "Cuando termina la transmisión en directo de tu evento, sus mensajes y videos se guardan aquí.",
+    "Iyo live y'igikorwa cyawe irangiye, ubutumwa n'amashusho byayo bibikwa hano.",
+    "Matangazo ya moja kwa moja ya tukio lako yanapoisha, ujumbe na video zake huhifadhiwa hapa."
+  ],
+  "No completed streams found": [
+    "Aucune diffusion terminée trouvée",
+    "No se encontraron transmisiones finalizadas",
+    "Nta kiganiro cya live cyarangiye kibonetse",
+    "Hakuna matangazo yaliyokamilika yaliyopatikana"
+  ],
+  "Chat messages": [
+    "Messages du chat",
+    "Mensajes del chat",
+    "Ubutumwa bwo mu kiganiro",
+    "Ujumbe wa gumzo"
+  ],
+  "Video messages": [
+    "Messages vidéo",
+    "Mensajes de video",
+    "Ubutumwa bw'amashusho",
+    "Ujumbe wa video"
+  ],
+  "Completed streams": [
+    "Diffusions terminées",
+    "Transmisiones finalizadas",
+    "Ibiganiro bya live byarangiye",
+    "Matangazo yaliyokamilika"
+  ],
+  "Browse messages and videos from your past event streams.": [
+    "Parcourez les messages et vidéos de vos diffusions passées.",
+    "Explora los mensajes y videos de tus transmisiones pasadas.",
+    "Reba ubutumwa n'amashusho by'ibiganiro bya live byashize.",
+    "Pitia ujumbe na video kutoka matangazo yako yaliyopita."
+  ],
+  "Search streams": [
+    "Rechercher des diffusions",
+    "Buscar transmisiones",
+    "Shakisha ibiganiro bya live",
+    "Tafuta matangazo"
+  ],
+  "Total streams": [
+    "Total des diffusions",
+    "Total de transmisiones",
+    "Ibiganiro byose bya live",
+    "Jumla ya matangazo"
+  ],
+  "Total viewers": [
+    "Total des spectateurs",
+    "Total de espectadores",
+    "Abarebye bose",
+    "Jumla ya watazamaji"
+  ],
+  "new video": [
+    "nouvelle vidéo",
+    "video nuevo",
+    "amashusho mashya",
+    "video mpya"
+  ],
+  "new videos": [
+    "nouvelles vidéos",
+    "videos nuevos",
+    "amashusho mashya",
+    "video mpya"
+  ],
+  "User": [
+    "Utilisateur",
+    "Usuario",
+    "Ukoresha",
+    "Mtumiaji"
+  ],
+  "Your personal details and identity verification.": [
+    "Vos informations personnelles et la vérification d'identité.",
+    "Tus datos personales y la verificación de identidad.",
+    "Amakuru yawe bwite n'igenzura ry'umwirondoro.",
+    "Taarifa zako binafsi na uthibitisho wa utambulisho."
+  ],
+  "Uploading": [
+    "Envoi en cours",
+    "Subiendo",
+    "Birimo koherezwa",
+    "Inapakia"
+  ],
+  "Joined": [
+    "Inscrit depuis",
+    "Se unió en",
+    "Yinjiye",
+    "Alijiunga"
+  ],
+  "Business details": [
+    "Informations professionnelles",
+    "Datos de la empresa",
+    "Amakuru y'ubucuruzi",
+    "Taarifa za biashara"
+  ],
+  "Your username can't be changed here.": [
+    "Votre nom d'utilisateur ne peut pas être modifié ici.",
+    "Tu nombre de usuario no se puede cambiar aquí.",
+    "Izina ukoresha ntirishobora guhindurirwa hano.",
+    "Jina lako la mtumiaji haliwezi kubadilishwa hapa."
+  ],
+  "Contact support to change your email.": [
+    "Contactez le support pour changer votre e-mail.",
+    "Contacta con soporte para cambiar tu correo.",
+    "Vugana n'ubufasha kugira ngo uhindure imeri yawe.",
+    "Wasiliana na usaidizi ili kubadilisha barua pepe yako."
+  ],
+  "Turn on editing to change your photo": [
+    "Activez la modification pour changer votre photo",
+    "Activa la edición para cambiar tu foto",
+    "Fungura guhindura kugira ngo uhindure ifoto yawe",
+    "Washa uhariri ili kubadilisha picha yako"
+  ],
+  "Bonus earned for completing your first": [
+    "Bonus obtenu pour vos",
+    "Bono obtenido por completar tus primeros",
+    "Agahimbazamusyi wabonye urangije",
+    "Bonasi umepata kwa kukamilisha"
+  ],
+  "Bonus pending admin approval": [
+    "Bonus en attente de validation",
+    "Bono pendiente de aprobación",
+    "Agahimbazamusyi gategereje kwemezwa",
+    "Bonasi inasubiri idhini ya msimamizi"
+  ],
+  "Bonus request was not approved": [
+    "La demande de bonus n'a pas été approuvée",
+    "La solicitud de bono no fue aprobada",
+    "Gusaba agahimbazamusyi ntibyemewe",
+    "Ombi la bonasi halikuidhinishwa"
+  ],
+  "Complete your first": [
+    "Terminez vos",
+    "Completa tus primeros",
+    "Rangiza",
+    "Kamilisha"
+  ],
+  "events to earn": [
+    "premiers événements pour gagner",
+    "eventos para ganar",
+    "ibikorwa bya mbere ubone",
+    "matukio ya kwanza upate"
+  ],
+  "Progress to bonus": [
+    "Progression vers le bonus",
+    "Progreso hacia el bono",
+    "Aho ugeze ku gahimbazamusyi",
+    "Maendeleo kuelekea bonasi"
+  ],
+  "Manage your earnings and view your complete transaction history.": [
+    "Gérez vos gains et consultez tout l'historique de vos transactions.",
+    "Gestiona tus ganancias y consulta todo tu historial de transacciones.",
+    "Genzura inyungu zawe urebe amateka yose y'ibyakozwe.",
+    "Simamia mapato yako na uone historia kamili ya miamala."
+  ],
+  "We could not load your wallet": [
+    "Impossible de charger votre portefeuille",
+    "No pudimos cargar tu billetera",
+    "Ntitwashoboye gufungura ikofi yawe",
+    "Hatukuweza kupakia pochi yako"
+  ],
+  "The earnings below are not your real balance. Please refresh.": [
+    "Les gains ci-dessous ne sont pas votre vrai solde. Actualisez la page.",
+    "Las ganancias de abajo no son tu saldo real. Actualiza la página.",
+    "Inyungu ziri hasi si amafaranga ufite koko. Ongera ufungure paji.",
+    "Mapato yaliyo hapa chini si salio lako halisi. Tafadhali onyesha upya."
+  ],
+  "Total tips": [
+    "Total des pourboires",
+    "Total de propinas",
+    "Ishimwe ryose",
+    "Jumla ya bakshishi"
+  ],
+  "No tips yet.": [
+    "Aucun pourboire pour l'instant.",
+    "Aún no hay propinas.",
+    "Nta shimwe rirabaho.",
+    "Bado hakuna bakshishi."
+  ],
+  "We could not load your transactions.": [
+    "Impossible de charger vos transactions.",
+    "No pudimos cargar tus transacciones.",
+    "Ntitwashoboye gufungura ibyakozwe byawe.",
+    "Hatukuweza kupakia miamala yako."
+  ],
+  "Payments for your bookings, tips and withdrawals show here.": [
+    "Les paiements de vos réservations, pourboires et retraits s'affichent ici.",
+    "Los pagos de tus reservas, propinas y retiros aparecen aquí.",
+    "Ubwishyu bw'ibyo bagufashe, ishimwe n'ibyo wabikuje bigaragara hano.",
+    "Malipo ya uhifadhi, bakshishi na utoaji wako yanaonekana hapa."
+  ],
+  "Transaction pages": [
+    "Pages des transactions",
+    "Páginas de transacciones",
+    "Amapaji y'ibyakozwe",
+    "Kurasa za miamala"
+  ],
+  "In progress": [
+    "En cours",
+    "En curso",
+    "Birakomeje",
+    "Inaendelea"
+  ],
+  "Initiated": [
+    "Lancé",
+    "Iniciado",
+    "Byatangijwe",
+    "Imeanzishwa"
+  ],
+  "Bonus earned": [
+    "Bonus obtenu",
+    "Bono obtenido",
+    "Agahimbazamusyi wabonye",
+    "Bonasi imepatikana"
+  ],
+  "Not approved": [
+    "Non approuvé",
+    "No aprobado",
+    "Ntibyemewe",
+    "Haijaidhinishwa"
+  ],
+  "Not yet earned": [
+    "Pas encore obtenu",
+    "Aún no obtenido",
+    "Ntirabonwa",
+    "Bado haijapatikana"
+  ],
+  "event to go": [
+    "événement restant",
+    "evento restante",
+    "igikorwa gisigaye",
+    "tukio limebaki"
+  ],
+  "events to go": [
+    "événements restants",
+    "eventos restantes",
+    "ibikorwa bisigaye",
+    "matukio yamebaki"
+  ],
+  "Search transactions": [
+    "Rechercher des transactions",
+    "Buscar transacciones",
+    "Shakisha ibyakozwe",
+    "Tafuta miamala"
+  ],
+  "Generated": [
+    "Généré le",
+    "Generado el",
+    "Byakozwe ku wa",
+    "Imetolewa"
+  ],
+  "Print report": [
+    "Imprimer le rapport",
+    "Imprimir informe",
+    "Capa raporo",
+    "Chapisha ripoti"
+  ],
+  "We could not load your payroll report. Please try again.": [
+    "Impossible de charger votre rapport de paie. Réessayez.",
+    "No pudimos cargar tu informe de nómina. Inténtalo de nuevo.",
+    "Ntitwashoboye gufungura raporo y'umushahara wawe. Ongera ugerageze.",
+    "Hatukuweza kupakia ripoti yako ya malipo. Tafadhali jaribu tena."
+  ],
+  "No earnings in this period": [
+    "Aucun gain sur cette période",
+    "Sin ganancias en este periodo",
+    "Nta nyungu muri iki gihe",
+    "Hakuna mapato katika kipindi hiki"
+  ],
+  "Paid bookings, tips and bonuses show here once they are recorded.": [
+    "Les réservations payées, pourboires et bonus s'affichent ici une fois enregistrés.",
+    "Las reservas pagadas, propinas y bonos aparecen aquí cuando se registran.",
+    "Ibyo bagufashe byishyuwe, ishimwe n'uduhimbazamusyi bigaragara hano iyo byanditswe.",
+    "Uhifadhi uliolipwa, bakshishi na bonasi huonekana hapa zikirekodiwa."
   ]
 }

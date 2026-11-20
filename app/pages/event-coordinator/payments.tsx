@@ -22,6 +22,9 @@ import type { PaymentOperator } from '@/lib/payments/types';
 import { getApiUrl } from '@/lib/api';
 import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
 import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
+import { useCoordinatorPayments, type CoordinatorPaymentsController } from '@/app/components/payments/useCoordinatorPayments';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassCoordinatorPayments from '@/app/components/glass/pages/GlassCoordinatorPayments';
 
 // Icons
 const DownloadIcon = () => (
@@ -271,16 +274,16 @@ Transaction Summary:
                 <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary }}>{reportData.totalTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#10B981' }}>Completed</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#10B981' }}>{reportData.completedTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-success, #10B981)' }}>Completed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-success, #10B981)' }}>{reportData.completedTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#F59E0B' }}>Pending</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#F59E0B' }}>{reportData.pendingTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-warning, #F59E0B)' }}>Pending</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-warning, #F59E0B)' }}>{reportData.pendingTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#EF4444' }}>Failed</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#EF4444' }}>{reportData.failedTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-error, #EF4444)' }}>Failed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-error, #EF4444)' }}>{reportData.failedTransactions}</span>
               </div>
             </div>
           </div>
@@ -850,7 +853,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
           <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Failed</h4>
-          <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
+          <p style={{ fontSize: '0.9rem', color: 'var(--g-error, #EF4444)', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
             <button onClick={handleClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
             <button onClick={handleRetryPayment} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
@@ -953,7 +956,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                         background: actualTheme === 'dark' ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.12)',
                         border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.40)' : 'rgba(245,158,11,0.35)'}`,
                         borderRadius: 999, fontSize: '0.7rem',
-                        color: '#D97706', fontWeight: 700,
+                        color: 'var(--g-warning, #D97706)', fontWeight: 700,
                         letterSpacing: '0.03em',
                       }}>
                         <i className="bi bi-shield-lock-fill" style={{ fontSize: 10 }} />
@@ -981,7 +984,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                         background: actualTheme === 'dark' ? 'rgba(6,95,70,0.32)' : 'rgba(16,185,129,0.12)',
                         border: `1px solid ${actualTheme === 'dark' ? 'rgba(110,231,183,0.40)' : 'rgba(16,185,129,0.35)'}`,
                         borderRadius: 999, fontSize: '0.7rem',
-                        color: '#059669', fontWeight: 700, letterSpacing: '0.03em',
+                        color: 'var(--g-success, #059669)', fontWeight: 700, letterSpacing: '0.03em',
                       }}>
                         <i className="bi bi-clipboard-check-fill" style={{ fontSize: 10 }} />
                         Requires satisfaction survey
@@ -1000,7 +1003,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
               background: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(245,158,11,0.08)',
               border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(245,158,11,0.30)'}`,
               borderRadius: 10,
-              fontSize: '0.82rem', color: '#D97706', lineHeight: 1.45,
+              fontSize: '0.82rem', color: 'var(--g-warning, #D97706)', lineHeight: 1.45,
             }}>
               <i className="bi bi-clipboard-check-fill" style={{ fontSize: 13, marginTop: 1, flexShrink: 0 }} />
               <span>You need to complete a satisfaction survey before making the full payment. The survey will appear in the next step.</span>
@@ -1126,8 +1129,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             </div>
             {selectedEscrowOption && selectedEscrowOption < 100 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>Remaining ({100 - selectedEscrowOption}%)</span>
-                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>{formatPrice(fullAmountDue - amountDue)} (later)</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: 'var(--g-warning, #D97706)' }}>Remaining ({100 - selectedEscrowOption}%)</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: 'var(--g-warning, #D97706)' }}>{formatPrice(fullAmountDue - amountDue)} (later)</span>
               </div>
             )}
             {donationValue > 0 && (
@@ -1149,7 +1152,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
           </div>
 
           {xentriPayError && (
-            <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
           )}
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -1380,8 +1383,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             background: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(245,158,11,0.08)',
             border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(245,158,11,0.30)'}`,
           }}>
-            <i className="bi bi-shield-lock-fill" style={{ fontSize: 14, color: '#D97706', marginTop: 1, flexShrink: 0 }} />
-            <p style={{ fontSize: '0.82rem', color: '#D97706', margin: 0, lineHeight: 1.45, fontWeight: 600 }}>
+            <i className="bi bi-shield-lock-fill" style={{ fontSize: 14, color: 'var(--g-warning, #D97706)', marginTop: 1, flexShrink: 0 }} />
+            <p style={{ fontSize: '0.82rem', color: 'var(--g-warning, #D97706)', margin: 0, lineHeight: 1.45, fontWeight: 600 }}>
               You are paying <strong>{selectedEscrowOption}% ({formatPrice(amountDue)})</strong> upfront. Funds will be held securely and released after you confirm service satisfaction.
             </p>
           </div>
@@ -1651,7 +1654,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       {/* Frame label */}
-      <div style={{ fontSize: '0.75rem', color: '#D1D5DB', marginBottom: '0.5rem' }}>Spending Trend</div>
+      <div style={{ fontSize: '0.75rem', color: 'var(--g-text-muted, #D1D5DB)', marginBottom: '0.5rem' }}>Spending Trend</div>
 
       <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
         <svg width="100%" height={height} viewBox={`0 0 ${chartWidth} ${height}`} preserveAspectRatio="none">
@@ -1709,7 +1712,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
           {data.map((item, index) => (
             <span key={index} style={{
               fontSize: '0.75rem',
-              color: '#9CA3AF',
+              color: 'var(--g-text-muted, #9CA3AF)',
               fontWeight: '500',
               minWidth: '45px',
               textAlign: 'center'
@@ -1732,8 +1735,10 @@ interface PaymentGaugeProps {
 const PaymentGauge: React.FC<PaymentGaugeProps> = ({ paid, pending, failed }) => {
   const { colors } = useTheme();
   const total = paid + pending + failed;
-  const paidAngle = (paid / total) * 180;
-  const pendingAngle = (pending / total) * 180;
+  // No payments yet: total is 0, and 0 / 0 made every arc NaN (an invalid path in the console). Draw an empty track.
+  const empty = !(total > 0);
+  const paidAngle = empty ? 0 : (paid / total) * 180;
+  const pendingAngle = empty ? 0 : (pending / total) * 180;
 
   const createArc = (startAngle: number, endAngle: number, color: string) => {
     const radius = 70;
@@ -1762,9 +1767,13 @@ const PaymentGauge: React.FC<PaymentGaugeProps> = ({ paid, pending, failed }) =>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <svg width="160" height="90" viewBox="0 0 160 90">
-        {createArc(0, paidAngle, '#10B981')}
-        {createArc(paidAngle, paidAngle + pendingAngle, '#FBBF24')}
-        {createArc(paidAngle + pendingAngle, 180, '#EF4444')}
+        {empty ? createArc(0, 180, 'var(--g-border, #E5E7EB)') : (
+          <>
+            {createArc(0, paidAngle, '#10B981')}
+            {createArc(paidAngle, paidAngle + pendingAngle, '#FBBF24')}
+            {createArc(paidAngle + pendingAngle, 180, '#EF4444')}
+          </>
+        )}
       </svg>
     </div>
   );
@@ -1816,319 +1825,87 @@ const EventTypeBadge: React.FC<EventTypeBadgeProps> = ({ type }) => {
   );
 };
 
-const PaymentsPage = () => {
-  const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
-  const { profile } = useUserProfile();
-  const { user, token } = useDashboardAuth();
-  const router = useRouter();
-  const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [chartType, setChartType] = useState<ChartType>('line');
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showPayNowModal, setShowPayNowModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
-  const [wallet, setWallet] = useState<WalletDTO | null>(null);
-  const [apiPayments, setApiPayments] = useState<Payment[]>([]);
-
-  // Fetch wallet for compact summary
-  useEffect(() => {
-    let cancelled = false;
-    getMyWallet().then(w => { if (!cancelled) setWallet(w); }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
-  const [paymentsError, setPaymentsError] = useState<string | null>(null);
-  const [streamFeeEvents, setStreamFeeEvents] = useState<Array<{
-    id: string;
-    eventTitle: string;
-    viewerName: string;
-    viewerEmail: string;
-    date: string;
-    amount: number;
-    currency: string;
-    method: string;
-    status: string;
-  }>>([]);
-  const [totalStreamingRevenue, setTotalStreamingRevenue] = useState(0);
-  const [giftPayments, setGiftPayments] = useState<Array<{
-    id: string;
-    eventTitle: string;
-    amount: number;
-    netAmount: number;
-    currency: string;
-    giftMessage: string | null;
-    customerPhone: string;
-    method: string;
-    status: string;
-    date: string;
-  }>>([]);
-  const [totalGiftRevenue, setTotalGiftRevenue] = useState(0);
-
-  // Fetch payments from coordinator API
-  const fetchPayments = useCallback(async () => {
-    setIsLoadingPayments(true);
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments`);
-      const result = response.ok ? await response.json() : null;
-      // HTTP 200 with action 0 is a failure; say so instead of showing $0.
-      if (!result || result.action !== 1) {
-        setPaymentsError(result?.message || 'Could not load payments. Please refresh.');
-      } else {
-        setPaymentsError(null);
-        const data = result?.data?.content || result?.data || [];
-        if (data.length > 0) {
-          const mapped: Payment[] = data.map((p: any, idx: number) => ({
-            id: p.id || idx + 1,
-            declarationId: p.declarationId || p.id?.toString(),
-            eventId: p.eventId,
-            date: p.date || p.createdAt || '',
-            eventName: p.eventName || p.description || '',
-            eventType: p.eventType || '',
-            photographerName: p.photographerName || '',
-            photographerImage: p.photographerImage || undefined,
-            method: p.method || p.paymentMethod || '-',
-            // amountNum is USD; the label used to put "$" on the booking-currency amount.
-            amount: `${Number(p.amountInUsd ?? p.amount ?? 0).toFixed(2)}`,
-            amountNum: p.amountInUsd ?? p.amount ?? p.amountNum ?? 0,
-            paidAmount: p.paidAmountInUsd ?? p.paidAmount ?? 0,
-            status: mapCoordinatorStatus(p.status),
-            invoiceNumber: p.invoiceNumber || `INV-${p.id || idx + 1}`,
-            escrowStatus: p.escrowStatus || 'NONE',
-            escrowPercentage: p.escrowPercentage || null,
-            heldAmount: Number(p.heldAmount) || 0,
-            releasedAmount: Number(p.releasedAmount) || 0,
-            eventCompletionStatus: p.eventCompletionStatus || 'NOT_COMPLETED',
-          }));
-          setApiPayments(mapped);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch payments:', err);
-      setPaymentsError('Could not load payments. Please refresh.');
-    } finally {
-      setIsLoadingPayments(false);
-    }
-  }, []);
-
-  // Fetch streaming payments from dedicated endpoint
-  const fetchStreams = useCallback(async () => {
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments/streaming`);
-      if (response.ok) {
-        const result = await response.json();
-        if (result?.action !== 1) throw new Error(result?.message || 'stream payments failed');
-        const data = result?.data?.content || result?.data || [];
-        if (result?.totalStreamingRevenue !== undefined) {
-          setTotalStreamingRevenue(result.totalStreamingRevenue);
-        }
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped = data.map((p: any) => ({
-            id: p.id || '',
-            eventTitle: p.eventTitle || p.description || 'Live Stream',
-            viewerName: p.viewerName || 'Unknown Viewer',
-            viewerEmail: p.viewerEmail || '',
-            date: p.createdAt || p.date || '',
-            amount: p.amount || 0,
-            currency: p.currencyAbbreviation || 'RWF',
-            method: p.paymentMethod || p.method || '-',
-            status: (p.status || 'pending').toLowerCase(),
-          }));
-          // No fallback total: a 0 wallet bucket is real, and summing these
-          // gross booking-currency rows as USD overstated revenue about 1,460x.
-          setStreamFeeEvents(mapped);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch streaming payments:', err);
-    }
-  }, []);
-
-  // Fetch gift payments
-  const fetchGifts = useCallback(async () => {
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments?type=GIFT&page=0&size=100`);
-      if (response.ok) {
-        const result = await response.json();
-        if (result?.action !== 1) throw new Error(result?.message || 'gift payments failed');
-        const data = result?.data?.content || result?.data || [];
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped = data.map((p: any) => ({
-            id: p.id || '',
-            eventTitle: p.eventTitle || 'Live Stream',
-            // Both in USD so they match the label; the share comes from the
-            // backend split, never an assumed 65%.
-            amount: Number(p.amountInUsd ?? 0),
-            netAmount: Number(p.withdrawableAmountInUsd ?? 0),
-            currency: 'USD',
-            giftMessage: p.giftMessage || null,
-            customerPhone: p.senderName || p.viewerName || p.customerPhone || p.viewerEmail || '',
-            method: p.paymentMethod || '-',
-            status: (p.status || 'pending').toLowerCase(),
-            date: p.paymentCompletedAt || p.dueDate || p.createdAt || '',
-          }));
-          setGiftPayments(mapped);
-          setTotalGiftRevenue(mapped.filter((g: { status: string }) => g.status === 'completed').reduce((sum: number, g: { netAmount: number }) => sum + g.netAmount, 0));
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch gift payments:', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchPayments();
-      fetchStreams();
-      fetchGifts();
-    }
-  }, [user?.id, fetchPayments, fetchStreams, fetchGifts]);
-
-  const handleViewPayment = (payment: Payment) => {
-    setSelectedPayment(payment);
-    setShowPaymentModal(true);
-  };
-
-  const handlePayNow = (payment: Payment) => {
-    setPayNowPayment(payment);
-    setShowPayNowModal(true);
-  };
-
-  const handleDownloadReceipt = (payment: Payment) => {
-    const receiptContent = `
-=====================================
-        PAYMENT RECEIPT
-=====================================
-
-Invoice: ${payment.invoiceNumber}
-Date: ${payment.date}
-Status: ${payment.status}
-
-Event: ${payment.eventName}
-Photographer: ${payment.photographerName}
-Payment Method: ${payment.method}
-
-Amount: ${formatPrice(payment.amountNum)}
-
-=====================================
-    Thank you for using Connekt
-=====================================
-    `;
-    const blob = new Blob([receiptContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receipt-${payment.invoiceNumber}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Derive spending chart data from actual payments
-  const spendingData = (() => {
-    if (apiPayments.length === 0) return [];
-    const grouped: Record<string, number> = {};
-    apiPayments.forEach(p => {
-      if (!p.date) return;
-      const d = new Date(p.date);
-      const label = isNaN(d.getTime()) ? p.date.substring(0, 6) : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      grouped[label] = (grouped[label] || 0) + p.amountNum;
-    });
-    return Object.entries(grouped).slice(-7).map(([date, value]) => ({ date, value }));
-  })();
-
-  const payments: Payment[] = apiPayments;
-
-  // Calculate totals
-  const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amountNum, 0);
-  const totalPending = payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').reduce((sum, p) => sum + (p.amountNum - p.paidAmount), 0);
-  const totalFailed = payments.filter(p => p.status === 'failed').reduce((sum, p) => sum + p.amountNum, 0);
-
-  const totalStreamFees = totalStreamingRevenue;
-
-  // State for stream fee events (no individual payer modal needed)
-  const [selectedStreamFeeEvent, setSelectedStreamFeeEvent] = useState<typeof streamFeeEvents[0] | null>(null);
-
-  // Whether user already has a withdrawal method set
-  const [hasWithdrawalMethod, setHasWithdrawalMethod] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences`);
-        if (res.ok) {
-          const result = await res.json();
-          const prefs = result.data || {};
-          setHasWithdrawalMethod(Object.keys(prefs).some(k => k.startsWith('payment_method_')));
-        }
-      } catch { /* ignore */ }
-    })();
-  }, [user]);
-
-  // State for stream fee withdrawal modal
-  const [showStreamFeeWithdrawModal, setShowStreamFeeWithdrawModal] = useState(false);
-  const [selectedStreamFeePaymentMethod, setSelectedStreamFeePaymentMethod] = useState<string | null>(null);
-  const [streamFeePaymentDetails, setStreamFeePaymentDetails] = useState({
-    mtnNumber: '',
-    airtelNumber: '',
-    selectedBank: '',
-    bankAccountNumber: '',
-    bankAccountName: ''
-  });
-  // Per-network validity of the payout phone numbers (from InternationalPhoneInput).
-  const [streamFeePhoneValid, setStreamFeePhoneValid] = useState({ mtn: false, airtel: false });
-  // Default the payout phone's country to the coordinator's saved profile phone.
-  const streamFeePhoneDefaultIso2 = React.useMemo(
-    () => parsePhone(`${profile.phoneCode || ''}${profile.phoneNumber || ''}`).country?.iso2 ?? null,
-    [profile.phoneCode, profile.phoneNumber]
-  );
-  const [bankProviders, setBankProviders] = useState<{ id: string; name: string }[]>([]);
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  // Load bank providers when withdrawal modal opens
-  useEffect(() => {
-    if (!showStreamFeeWithdrawModal) return;
-    const apiUrl = getApiUrl();
-    dashboardAuthFetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`)
-      .then(res => res.json())
-      .then(result => setBankProviders(result?.data?.banks || []))
-      .catch(() => setBankProviders([]));
-  }, [showStreamFeeWithdrawModal, user]);
-
-  // Check if Rwanda requires mobile money selection
-  const isRwanda = profile.country === 'Rwanda';
-  const hasMobileMoneySelected = selectedStreamFeePaymentMethod === 'mtn' || selectedStreamFeePaymentMethod === 'airtel';
-
-  // Validate that Rwanda users have selected a mobile money option
-  const validateStreamFeePaymentMethod = (): boolean => {
-    if (isRwanda && !hasMobileMoneySelected) {
-      setValidationError('For users in Rwanda, you must select either MTN or Airtel Mobile Money as a payment method.');
-      return false;
-    }
-    if (selectedStreamFeePaymentMethod === 'mtn' && !streamFeePhoneValid.mtn) {
-      setValidationError('Please enter a valid MTN phone number.');
-      return false;
-    }
-    if (selectedStreamFeePaymentMethod === 'airtel' && !streamFeePhoneValid.airtel) {
-      setValidationError('Please enter a valid Airtel phone number.');
-      return false;
-    }
-    setValidationError(null);
-    return true;
-  };
-
-  const resultsPerPage = 8;
-  const totalResults = payments.length;
-  const totalPages = Math.max(1, Math.ceil(totalResults / resultsPerPage));
-  const paginatedPayments = payments.slice((currentPage - 1) * resultsPerPage, currentPage * resultsPerPage);
-
+/** The classic page body (header, filters, list). The dialogs are PaymentsPageModals, shared with the Compact Glass page. */
+const PaymentsPageBody = ({ ctl }: { ctl: CoordinatorPaymentsController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    profile,
+    user,
+    token,
+    router,
+    activeTimeFilter,
+    setActiveTimeFilter,
+    currentPage,
+    setCurrentPage,
+    chartType,
+    setChartType,
+    showReportModal,
+    setShowReportModal,
+    showPaymentModal,
+    setShowPaymentModal,
+    showPayNowModal,
+    setShowPayNowModal,
+    selectedPayment,
+    setSelectedPayment,
+    payNowPayment,
+    setPayNowPayment,
+    wallet,
+    setWallet,
+    apiPayments,
+    setApiPayments,
+    isLoadingPayments,
+    setIsLoadingPayments,
+    paymentsError,
+    setPaymentsError,
+    streamFeeEvents,
+    setStreamFeeEvents,
+    totalStreamingRevenue,
+    setTotalStreamingRevenue,
+    giftPayments,
+    setGiftPayments,
+    totalGiftRevenue,
+    setTotalGiftRevenue,
+    fetchPayments,
+    fetchStreams,
+    fetchGifts,
+    handleViewPayment,
+    handlePayNow,
+    handleDownloadReceipt,
+    spendingData,
+    payments,
+    totalPaid,
+    totalPending,
+    totalFailed,
+    totalStreamFees,
+    selectedStreamFeeEvent,
+    setSelectedStreamFeeEvent,
+    hasWithdrawalMethod,
+    setHasWithdrawalMethod,
+    showWithdrawModal,
+    setShowWithdrawModal,
+    showStreamFeeWithdrawModal,
+    setShowStreamFeeWithdrawModal,
+    selectedStreamFeePaymentMethod,
+    setSelectedStreamFeePaymentMethod,
+    streamFeePaymentDetails,
+    setStreamFeePaymentDetails,
+    streamFeePhoneValid,
+    setStreamFeePhoneValid,
+    streamFeePhoneDefaultIso2,
+    bankProviders,
+    setBankProviders,
+    validationError,
+    setValidationError,
+    isRwanda,
+    hasMobileMoneySelected,
+    validateStreamFeePaymentMethod,
+    resultsPerPage,
+    totalResults,
+    totalPages,
+    paginatedPayments,
+  } = ctl;
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
@@ -2579,7 +2356,7 @@ Amount: ${formatPrice(payment.amountNum)}
                             </div>
                           </td>
                           <td style={{ padding: '0.65rem 0.75rem', fontSize: '0.82rem', color: colors.textSecondary, textTransform: 'capitalize' }}>{payment.method}</td>
-                          <td style={{ padding: '0.65rem 0.75rem', fontSize: '0.85rem', fontWeight: 700, color: '#16A34A' }}>
+                          <td style={{ padding: '0.65rem 0.75rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--g-success, #16A34A)' }}>
                             {formatPrice(payment.amount)} {payment.currency}
                           </td>
                           <td style={{ padding: '0.65rem 0.75rem', fontSize: '0.78rem', color: colors.textSecondary }}>
@@ -2817,6 +2594,93 @@ Amount: ${formatPrice(payment.amountNum)}
         </div>
       </div>
 
+    </div>
+  );
+};
+
+/** Every dialog of the page, unchanged; rendered by both the classic and the Compact Glass page. */
+export const PaymentsPageModals = ({ ctl }: { ctl: CoordinatorPaymentsController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    profile,
+    user,
+    token,
+    router,
+    activeTimeFilter,
+    setActiveTimeFilter,
+    currentPage,
+    setCurrentPage,
+    chartType,
+    setChartType,
+    showReportModal,
+    setShowReportModal,
+    showPaymentModal,
+    setShowPaymentModal,
+    showPayNowModal,
+    setShowPayNowModal,
+    selectedPayment,
+    setSelectedPayment,
+    payNowPayment,
+    setPayNowPayment,
+    wallet,
+    setWallet,
+    apiPayments,
+    setApiPayments,
+    isLoadingPayments,
+    setIsLoadingPayments,
+    paymentsError,
+    setPaymentsError,
+    streamFeeEvents,
+    setStreamFeeEvents,
+    totalStreamingRevenue,
+    setTotalStreamingRevenue,
+    giftPayments,
+    setGiftPayments,
+    totalGiftRevenue,
+    setTotalGiftRevenue,
+    fetchPayments,
+    fetchStreams,
+    fetchGifts,
+    handleViewPayment,
+    handlePayNow,
+    handleDownloadReceipt,
+    spendingData,
+    payments,
+    totalPaid,
+    totalPending,
+    totalFailed,
+    totalStreamFees,
+    selectedStreamFeeEvent,
+    setSelectedStreamFeeEvent,
+    hasWithdrawalMethod,
+    setHasWithdrawalMethod,
+    showWithdrawModal,
+    setShowWithdrawModal,
+    showStreamFeeWithdrawModal,
+    setShowStreamFeeWithdrawModal,
+    selectedStreamFeePaymentMethod,
+    setSelectedStreamFeePaymentMethod,
+    streamFeePaymentDetails,
+    setStreamFeePaymentDetails,
+    streamFeePhoneValid,
+    setStreamFeePhoneValid,
+    streamFeePhoneDefaultIso2,
+    bankProviders,
+    setBankProviders,
+    validationError,
+    setValidationError,
+    isRwanda,
+    hasMobileMoneySelected,
+    validateStreamFeePaymentMethod,
+    resultsPerPage,
+    totalResults,
+    totalPages,
+    paginatedPayments,
+  } = ctl;
+  return (
+    <>
       {/* Modals */}
       <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} payments={payments} />
       <PaymentDetailsModal
@@ -2991,7 +2855,7 @@ Amount: ${formatPrice(payment.amountNum)}
                     {'logo' in m && m.logo && 'src' in m.logo ? (
                       <Image src={m.logo.src} alt={m.title} width={46} height={46} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                     ) : (
-                      <i className={`bi ${(m.logo as { icon: string }).icon}`} style={{ fontSize: 22, color: '#083A85' }} />
+                      <i className={`bi ${(m.logo as { icon: string }).icon}`} style={{ fontSize: 22, color: 'var(--g-link, #083A85)' }} />
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -3001,7 +2865,7 @@ Amount: ${formatPrice(payment.amountNum)}
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: 3,
                           fontSize: '0.6rem', fontWeight: 700,
-                          color: '#D97706',
+                          color: 'var(--g-warning, #D97706)',
                           background: actualTheme === 'dark' ? 'rgba(120,53,15,0.45)' : 'rgba(245,158,11,0.14)',
                           border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.40)' : 'rgba(245,158,11,0.35)'}`,
                           padding: '2px 7px',
@@ -3238,8 +3102,16 @@ Amount: ${formatPrice(payment.amountNum)}
           }
         }
       `}</style>
-    </div>
+    </>
   );
+};
+
+/** One controller for both views, so the classic page (UI_GLASS=off) and the Compact Glass page behave the same. */
+const PaymentsPage = () => {
+  const ctl = useCoordinatorPayments();
+  const glass = useUiGlass();
+  if (glass) return <GlassCoordinatorPayments ctl={ctl} modals={<PaymentsPageModals ctl={ctl} />} chart={<SpendingChart data={ctl.spendingData} height={150} chartType={ctl.chartType} />} />;
+  return <><PaymentsPageBody ctl={ctl} /><PaymentsPageModals ctl={ctl} /></>;
 };
 
 export default PaymentsPage;

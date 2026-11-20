@@ -1,0 +1,232 @@
+/*
+ * Compact Glass shell: fixed glass sidebar and top bar on desktop; on phones (under 768px) a compact header, a bottom
+ * tab bar and the sidebar as a drawer. Scoped under html.ui-glass like glass.css. The page keeps rendering its own
+ * content; the shell only places it in .g-content.
+ */
+html.ui-glass .g-shell { --g-left: var(--g-sidebar-w); }
+html.ui-glass .g-shell[data-collapsed="true"] { --g-left: var(--g-sidebar-w-collapsed); }
+
+html.ui-glass .g-sidebar {
+  position: fixed; inset: 0 auto 0 0; width: var(--g-left); z-index: 45;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--g-stroke);
+  transition: width 200ms var(--ck-ease);
+}
+html.ui-glass .g-brand { display: flex; align-items: center; gap: 10px; height: var(--g-topbar-h); padding: 0 18px;
+  font-family: var(--g-font-display); font-weight: 700; font-size: 1.125rem; color: var(--g-text); text-decoration: none; }
+html.ui-glass .g-brand img { width: 28px; height: 28px; object-fit: contain; }
+html.ui-glass .g-shell[data-collapsed="true"] .g-brand { justify-content: center; padding: 0; }
+html.ui-glass .g-shell[data-collapsed="true"] .g-brand span { display: none; }
+
+html.ui-glass .g-topbar {
+  position: fixed; top: 0; left: var(--g-left); right: 0; height: var(--g-topbar-h); z-index: 40;
+  display: flex; align-items: center; gap: 12px; padding: 0 20px;
+  border-bottom: 1px solid var(--g-stroke);
+  transition: left 200ms var(--ck-ease);
+}
+html.ui-glass .g-title { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+html.ui-glass .g-title small { font-size: 0.6875rem; color: var(--g-text-muted); font-weight: 500; }
+html.ui-glass .g-title strong { font-family: var(--g-font-display); font-size: 1.0625rem; font-weight: 700; color: var(--g-text); }
+html.ui-glass .g-spacer { flex: 1; min-width: 0; }
+
+/* The page's own wrapper is a 100vh flex box that scrolls inside itself; here it fills the space the shell leaves. */
+html.ui-glass .g-content {
+  position: fixed; top: var(--g-topbar-h); left: var(--g-left); right: 0; bottom: 0;
+  display: flex; flex-direction: column; min-width: 0;
+  transition: left 200ms var(--ck-ease);
+}
+html.ui-glass .g-page-host { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-x: hidden; }
+/* The page is the last child (a workspace banner may come first). */
+html.ui-glass .g-page-host > :last-child {
+  height: auto !important; min-height: 0 !important; flex: 1 1 0;
+  background: transparent !important;
+}
+html.ui-glass .g-banners { padding: 12px 24px 0; display: grid; gap: 10px; }
+html.ui-glass .g-banners:empty { display: none; }
+
+html.ui-glass .g-tabbar, html.ui-glass .g-only-mobile { display: none; }
+
+/* Nav */
+html.ui-glass .g-nav { flex: 1; overflow-y: auto; padding: 4px 12px 8px; scrollbar-width: none; }
+html.ui-glass .g-nav-bottom { padding: 8px 12px 14px; border-top: 1px solid var(--g-stroke); }
+html.ui-glass .g-nav-group { margin: 14px 0 4px; padding: 0 10px; font-size: 0.6875rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--g-text-muted); }
+html.ui-glass .g-nav-link {
+  display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 10px; margin: 2px 0;
+  border-radius: 12px; color: var(--g-text-soft); font-size: 0.875rem; font-weight: 500; text-decoration: none;
+  position: relative; border: 1px solid transparent; background: none; width: 100%; cursor: pointer; text-align: left;
+  font-family: inherit;
+}
+html.ui-glass .g-nav-link:hover { background: var(--g-tint); color: var(--g-text); }
+html.ui-glass .g-nav-link[aria-current="page"] {
+  background: var(--g-tint); color: var(--g-text); border-color: var(--g-stroke); font-weight: 600;
+}
+html.ui-glass .g-nav-link[aria-current="page"] svg { color: var(--g-primary-light); }
+html.ui-glass .g-nav-link[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+html.ui-glass .g-nav-link.g-danger { color: var(--g-error); }
+html.ui-glass .g-badge {
+  margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  /* white on the brand magenta is 4:1; #C40A75 keeps it at 5.7:1 */
+  background: #C40A75; color: #fff; font-size: 0.6875rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+html.ui-glass .g-shell[data-collapsed="true"] .g-sidebar .g-nav-label,
+html.ui-glass .g-shell[data-collapsed="true"] .g-sidebar .g-nav-group { display: none; }
+html.ui-glass .g-shell[data-collapsed="true"] .g-sidebar .g-nav-link { justify-content: center; padding: 0; }
+html.ui-glass .g-shell[data-collapsed="true"] .g-sidebar .g-badge {
+  position: absolute; top: 4px; right: 8px; min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0;
+}
+
+/* Skip link: off screen until it has keyboard focus */
+html.ui-glass .g-skip { position: fixed; left: 12px; top: -60px; z-index: 100; padding: 10px 16px; border-radius: 12px; background: var(--g-primary); color: #fff; font-weight: 700; text-decoration: none; }
+html.ui-glass .g-skip:focus { top: 12px; }
+html.ui-glass .g-page-host:focus { outline: none; }
+/* top bar role label and page title never spill */
+html.ui-glass .g-topbar small, html.ui-glass .gh-eyebrow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; }
+
+/* Controls */
+html.ui-glass .g-icon-btn {
+  width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--g-text-soft); background: transparent; border: 1px solid transparent; cursor: pointer; position: relative;
+  flex-shrink: 0;
+}
+html.ui-glass .g-icon-btn:hover { background: var(--g-tint); color: var(--g-text); }
+html.ui-glass .g-chip {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--g-stroke); background: var(--g-well); color: var(--g-text); font-size: 0.8125rem;
+  font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; text-decoration: none; font-family: inherit;
+}
+html.ui-glass .g-chip:hover { border-color: var(--g-primary-light); }
+html.ui-glass .g-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--g-success); flex-shrink: 0; }
+html.ui-glass .g-dot.off { background: var(--g-text-muted); }
+html.ui-glass .g-count-dot {
+  position: absolute; top: 3px; right: 3px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+  background: var(--g-accent); color: #fff; font-size: 0.625rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--g-surface);
+}
+html.ui-glass .g-search {
+  display: inline-flex; align-items: center; gap: 10px; height: 38px; width: min(340px, 30vw); padding: 0 12px;
+  border-radius: 12px; border: 1px solid var(--g-stroke); background: var(--g-well); color: var(--g-text-muted);
+  font-size: 0.8125rem; cursor: pointer; font-family: inherit;
+}
+html.ui-glass .g-kbd { margin-left: auto; font-size: 0.6875rem; padding: 2px 6px; border-radius: 6px;
+  border: 1px solid var(--g-stroke); color: var(--g-text-muted); }
+html.ui-glass .g-avatar { width: 32px; height: 32px; border-radius: 999px; object-fit: cover; flex-shrink: 0;
+  background: var(--g-muted); display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.8125rem; font-weight: 700; color: var(--g-text); overflow: hidden; }
+
+/* Menus and sheets: fixed layers, so they may blur. */
+html.ui-glass .g-pop { position: relative; }
+html.ui-glass .g-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; min-width: 260px; max-width: min(380px, calc(100vw - 24px));
+  border-radius: 16px; border: 1px solid var(--g-stroke); box-shadow: var(--g-shadow-3); padding: 6px; color: var(--g-text);
+}
+html.ui-glass .g-menu-head { padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+html.ui-glass .g-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0 10px; border-radius: 10px;
+  background: none; border: none; color: var(--g-text); font-size: 0.875rem; cursor: pointer; text-align: left;
+  text-decoration: none; font-family: inherit;
+}
+html.ui-glass .g-menu-item:hover { background: var(--g-tint); }
+html.ui-glass .g-menu-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; padding: 0 10px; font-size: 0.875rem; }
+html.ui-glass .g-menu-sep { height: 1px; background: var(--g-stroke); margin: 6px 4px; }
+html.ui-glass .g-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--g-well);
+  border: 1px solid var(--g-stroke); }
+html.ui-glass .g-seg button { height: 34px; min-height: 34px; padding: 0 10px; border-radius: 9px; border: none; background: none;
+  color: var(--g-text-soft); font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 6px; font-family: inherit; }
+html.ui-glass .g-seg button[aria-pressed="true"] { background: var(--g-primary); color: #fff; }
+html.ui-glass .g-select { height: 32px; border-radius: 9px; border: 1px solid var(--g-stroke); background: var(--g-well);
+  color: var(--g-text); padding: 0 8px; font-size: 0.8125rem; font-family: inherit; }
+html.ui-glass .g-notif { display: flex; gap: 10px; padding: 10px; border-radius: 12px; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer; color: var(--g-text); font-family: inherit; }
+html.ui-glass .g-notif:hover { background: var(--g-tint); }
+html.ui-glass .g-notif[data-unread="true"] { background: var(--g-tint); }
+
+html.ui-glass .g-scrim { position: fixed; inset: 0; background: var(--g-scrim); z-index: 70; }
+html.ui-glass .g-drawer {
+  position: fixed; inset: 0 auto 0 0; width: min(300px, 86vw); z-index: 71; display: flex; flex-direction: column;
+  border-right: 1px solid var(--g-stroke); box-shadow: var(--g-shadow-3);
+  animation: g-drawer-in 220ms var(--ck-ease) both;
+}
+@keyframes g-drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
+
+html.ui-glass .g-palette {
+  position: fixed; top: 12vh; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); z-index: 72;
+  border-radius: 18px; border: 1px solid var(--g-stroke); box-shadow: var(--g-shadow-3); overflow: hidden; color: var(--g-text);
+}
+html.ui-glass .g-palette-input { position: relative; }
+html.ui-glass .g-palette-input svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--g-text-muted); }
+html.ui-glass .g-palette input { width: 100%; height: 52px; padding: 0 16px 0 44px; border: none; outline: none;
+  background: transparent; color: var(--g-text); font-size: 1rem; border-bottom: 1px solid var(--g-stroke); font-family: inherit; }
+html.ui-glass .g-palette ul { list-style: none; margin: 0; padding: 6px; max-height: 50vh; overflow-y: auto; }
+html.ui-glass .g-palette li[aria-selected="true"] > * { background: var(--g-tint); }
+html.ui-glass .g-palette-empty { padding: 18px; text-align: center; color: var(--g-text-muted); font-size: 0.875rem; }
+
+/* Banners under the top bar (pending payment, identity check, suspended wallet). */
+html.ui-glass .g-banner { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+html.ui-glass .g-banner-icon { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: inline-flex;
+  align-items: center; justify-content: center; }
+html.ui-glass .g-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px;
+  border-radius: 12px; border: 1px solid transparent; font-size: 0.875rem; font-weight: 600; cursor: pointer;
+  white-space: nowrap; text-decoration: none; flex-shrink: 0; font-family: inherit;
+}
+html.ui-glass .g-btn-primary { background: var(--g-grad-raised); color: #fff; box-shadow: 0 6px 16px rgba(47, 100, 200, 0.28); }
+html.ui-glass .g-btn-ghost { background: var(--g-well); color: var(--g-text); border-color: var(--g-stroke); }
+
+/* Availability calendar */
+html.ui-glass .g-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 4px 6px 8px; }
+html.ui-glass .g-cal span { font-size: 0.6875rem; color: var(--g-text-muted); text-align: center; padding: 4px 0; }
+html.ui-glass .g-cal button { height: 34px; border-radius: 9px; border: 1px solid transparent; background: none;
+  color: var(--g-text); font-size: 0.8125rem; cursor: pointer; font-family: inherit; }
+html.ui-glass .g-cal button:hover:not(:disabled) { background: var(--g-tint); }
+html.ui-glass .g-cal button[aria-pressed="true"] { background: var(--g-error-bg); color: var(--g-error); border-color: var(--g-error); }
+html.ui-glass .g-cal button:disabled { opacity: 0.35; cursor: default; }
+
+/* Phones */
+@media (max-width: 767.98px) {
+  html.ui-glass .g-sidebar, html.ui-glass .g-only-desktop { display: none !important; }
+  html.ui-glass .g-only-mobile { display: inline-flex !important; }
+  html.ui-glass .g-topbar .g-brand.g-only-mobile { min-height: 40px; }
+  html.ui-glass .g-topbar { left: 0; padding: 0 10px; gap: 6px; height: 56px; }
+  html.ui-glass .g-content { left: 0; top: 56px; bottom: calc(var(--g-tabbar-h) + env(safe-area-inset-bottom)); }
+  html.ui-glass .g-banners { padding: 10px 12px 0; }
+  html.ui-glass .g-banner { flex-wrap: wrap; }
+  html.ui-glass .g-tabbar {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    height: calc(var(--g-tabbar-h) + env(safe-area-inset-bottom)); padding: 0 6px env(safe-area-inset-bottom);
+    border-top: 1px solid var(--g-stroke);
+  }
+  html.ui-glass .g-tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    color: var(--g-text-muted); font-size: 0.6875rem; font-weight: 600; text-decoration: none; position: relative;
+    min-width: 0;
+  }
+  html.ui-glass .g-tab[aria-current="page"] { color: var(--g-link); }
+  html.ui-glass .g-tab-dot { position: absolute; top: 8px; left: calc(50% + 6px); width: 8px; height: 8px;
+    border-radius: 999px; background: var(--g-accent); }
+  html.ui-glass .g-pop { position: static; }
+  html.ui-glass .g-menu { position: fixed; top: 62px; right: 8px; left: 8px; max-width: none; }
+}
+
+/* A blurred layer inside the blurred top bar cannot blur the page (the bar is its backdrop root), so menus and the
+   drawer sit on a solid raised surface instead; readable over any content. */
+html.ui-glass .g-menu.g-blur,
+html.ui-glass .g-drawer.g-blur {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  background: var(--g-elevated);
+}
+html.ui-glass .g-palette.g-blur { background: var(--g-elevated); }
+/* Visibility helpers win over component display rules. */
+@media (min-width: 768px) {
+  html.ui-glass .g-only-mobile { display: none !important; }
+}
+
+/* Payment required chip in the top bar */
+html.ui-glass .g-pay-chip { color: var(--g-pending); border-color: var(--g-pending); cursor: pointer; flex-shrink: 1; min-width: 0; overflow: hidden; }
+html.ui-glass .g-pay-chip strong { color: var(--g-link); white-space: nowrap; flex-shrink: 0; }
+html.ui-glass .g-pay-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* below 1024 the top bar is crowded: the chip keeps only "Pay now" (the amount is in the payment dialog) */
+@media (max-width: 1023.98px) { html.ui-glass .g-pay-chip-text { display: none; } }
+@media (max-width: 767.98px) { html.ui-glass .g-pay-chip-text { display: none; } html.ui-glass .g-pay-chip { padding: 6px 10px; } }

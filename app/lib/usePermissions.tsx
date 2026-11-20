@@ -1,7 +1,7 @@
 'use client';
 
 import React, {
-  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
+  createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
 import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
@@ -173,6 +173,9 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
     };
   });
   const inFlight = useRef(false);
+  // fetchPerms hands itself out as the context `refresh`; reading it through a ref lets it do so before it is declared.
+  const fetchPermsRef = useRef<() => Promise<void>>(async () => {});
+  const refresh = useCallback(() => fetchPermsRef.current(), []);
 
   const fetchPerms = useCallback(async () => {
     if (inFlight.current) return;
@@ -195,7 +198,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
     // window where a slow /me/permissions response leaves the sidebar
     // empty for the org owner.
     if (user && user.isTeamMember === false) {
-      setState({ ...ownerCtxFrom(user), refresh: fetchPerms });
+      setState({ ...ownerCtxFrom(user), refresh });
       return;
     }
     inFlight.current = true;
@@ -208,7 +211,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
         setState({
           ...defaultCtx, loading: false,
           hasPermission: () => false, hasAny: () => false, hasAll: () => false,
-          refresh: fetchPerms,
+          refresh,
         });
         return;
       }
@@ -218,7 +221,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       // ship an empty permissions array for owners since they're implicit
       // all-perms; trust the flag, not the list).
       if (d.isOwner === true) {
-        setState({ ...ownerCtxFrom(user), refresh: fetchPerms });
+        setState({ ...ownerCtxFrom(user), refresh });
         writeCache(user?.id ?? null, {
           isOwner: true,
           organizationId: d.organizationId ?? null,
@@ -248,13 +251,13 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
         hasPermission: (p: string) => perms.has(p),
         hasAny: (ps: string[]) => ps.some(p => perms.has(p)),
         hasAll: (ps: string[]) => ps.every(p => perms.has(p)),
-        refresh: fetchPerms,
+        refresh,
       });
     } catch {
       setState({
         ...defaultCtx, loading: false,
         hasPermission: () => false, hasAny: () => false, hasAll: () => false,
-        refresh: fetchPerms,
+        refresh,
       });
     } finally {
       inFlight.current = false;
@@ -262,6 +265,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, user?.id]);
 
+  useLayoutEffect(() => { fetchPermsRef.current = fetchPerms; }, [fetchPerms]);
   useEffect(() => { void fetchPerms(); }, [fetchPerms]);
 
   // Defensive owner-state assertion. fetchPerms can transiently nuke
@@ -273,12 +277,12 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
   // up in the owner ctx within one tick of their user object loading.
   useEffect(() => {
     if (user && user.isTeamMember === false) {
-      setState({ ...ownerCtxFrom(user), refresh: fetchPerms });
+      setState({ ...ownerCtxFrom(user), refresh });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?.isTeamMember]);
 
-  const value = useMemo(() => ({ ...state, refresh: fetchPerms }), [state, fetchPerms]);
+  const value = useMemo(() => ({ ...state, refresh }), [state, fetchPerms]);
   return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>;
 }
 

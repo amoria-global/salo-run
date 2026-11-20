@@ -29,6 +29,7 @@ import {
   estimateOfferPriceRwf,
   EXPRESS_MAJOR_EVENT_MIN_BUDGET_RWF,
   formatCoverageModeLabel,
+  formatDroneCapturingSummary,
   formatInstantWishesSummary,
   formatLiveStreamSummary,
   formatLongVideosSummary,
@@ -71,8 +72,14 @@ import {
   type EventSessionType,
   type HybridOfferDraft,
 } from '@/app/lib/offerBrief';
+import {
+  analyzePackagesForDraft,
+  fetchAllPlatformPackagesForPricing,
+  type AnalyzedPhotographerPackage,
+} from '@/app/lib/packagePricingAnalyzer';
 import { useLocationSearch, type LocationSuggestion } from '@/app/lib/locationSearch';
 import { HybridStyles, MODE_META, Notice, useFieldStyle } from './hybridUi';
+import { nowMs } from "../../lib/clock";
 
 interface HybridEventWizardModalProps {
   isOpen: boolean;
@@ -203,6 +210,9 @@ export default function HybridEventWizardModal({
 
   const [preview, setPreview] = useState<MatchPreviewResult | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [platformPackages, setPlatformPackages] = useState<AnalyzedPhotographerPackage[]>([]);
+  const [analyzingPackagesPreloader, setAnalyzingPackagesPreloader] = useState(false);
+  const [preloaderStageIndex, setPreloaderStageIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [discardingDraft, setDiscardingDraft] = useState(false);
@@ -305,32 +315,28 @@ export default function HybridEventWizardModal({
   const cityInfo = options?.cities.find((c) => c.name === draft.city);
   const eventType = options?.eventTypes.find((t) => t.id === draft.eventTypeId);
 
+  const clientCurrency = (options?.currency || 'RWF').toUpperCase();
+
+  const packageAnalysis = useMemo(
+    () => analyzePackagesForDraft(draft, minutes, platformPackages, clientCurrency),
+    [draft, minutes, platformPackages, clientCurrency],
+  );
+
   const clientEstimatedPricing = useMemo(
-    () => estimateOfferPriceRwf(draft, minutes, options?.packageBenchmarks),
-    [draft, minutes, options?.packageBenchmarks],
+    () => ({
+      low: packageAnalysis.low,
+      recommended: packageAnalysis.recommended,
+      priority: packageAnalysis.priority,
+      isSmallEventTariff: (minutes || 360) / 60 < 7,
+      isExpressMajorFloor: packageAnalysis.isExpressMajorFloor,
+      minimumAllowedBudget: packageAnalysis.minimumAllowedBudget,
+    }),
+    [packageAnalysis, minutes],
   );
 
   const estimatedPricing = useMemo(() => {
-    const serverLow = preview?.packagePriceLow;
-    const serverRec = preview?.packagePriceRecommended;
-    const serverPri = preview?.packagePricePriority;
-    if (
-      typeof serverLow === 'number' &&
-      serverLow > 0 &&
-      typeof serverRec === 'number' &&
-      serverRec > 0 &&
-      typeof serverPri === 'number' &&
-      serverPri > 0
-    ) {
-      return {
-        ...clientEstimatedPricing,
-        low: serverLow,
-        recommended: serverRec,
-        priority: serverPri,
-      };
-    }
     return clientEstimatedPricing;
-  }, [clientEstimatedPricing, preview?.packagePriceLow, preview?.packagePriceRecommended, preview?.packagePricePriority]);
+  }, [clientEstimatedPricing]);
 
   const budgetRangePresets = useMemo(
     () =>
@@ -383,11 +389,13 @@ export default function HybridEventWizardModal({
     clientEstimatedPricing.recommended,
   ]);
 
+  const existingEventTitle = existingEvent?.title;
+  const existingEventId = existingEvent?.id;
   const generatedEventTitle = useMemo(() => {
-    if (existingEvent?.title) return existingEvent.title;
+    if (existingEventTitle) return existingEventTitle;
     const typeName = draft.eventTypeKey || eventType?.name || 'Event';
     return draft.city ? `${typeName} in ${draft.city}` : typeName;
-  }, [existingEvent?.title, draft.eventTypeKey, eventType?.name, draft.city]);
+  }, [existingEventTitle, draft.eventTypeKey, eventType?.name, draft.city]);
 
   const fetchPreview = useCallback(async () => {
     if (!draft.date || !draft.city) return;
@@ -407,7 +415,7 @@ export default function HybridEventWizardModal({
         specialty: eventType?.name || draft.eventTypeKey,
         photographerSpecialty: specialty,
         locationCoverage: coverage,
-        eventId: existingEvent?.id,
+        eventId: existingEventId,
         coverageMode: draft.coverageMode,
         clientType: draft.clientType,
         editedPhotos: draft.coverageMode === 'VIDEO' ? 0 : draft.editedPhotos,
@@ -448,7 +456,7 @@ export default function HybridEventWizardModal({
     eventType,
     specialty,
     coverage,
-    existingEvent?.id,
+    existingEventId,
   ]);
 
   // Background autosave of draft across steps 1..5
@@ -555,7 +563,7 @@ export default function HybridEventWizardModal({
     return null;
   };
 
-  const goNext = () => {
+  const goNext = async () => {
     setErrorMsg(null);
     if (step === 1) {
       const err = validateStep1();
@@ -569,6 +577,21 @@ export default function HybridEventWizardModal({
     } else if (step === 3) {
       const err = validateStep3();
       if (err) return setErrorMsg(err);
+      setAnalyzingPackagesPreloader(true);
+      setPreloaderStageIndex(0);
+      const stage1Timer = setTimeout(() => setPreloaderStageIndex(1), 500);
+      const stage2Timer = setTimeout(() => setPreloaderStageIndex(2), 1050);
+      try {
+        const [pkgs] = await Promise.all([
+          fetchAllPlatformPackagesForPricing(clientCurrency),
+          new Promise((resolve) => setTimeout(resolve, 1550)),
+        ]);
+        setPlatformPackages(pkgs);
+      } finally {
+        clearTimeout(stage1Timer);
+        clearTimeout(stage2Timer);
+        setAnalyzingPackagesPreloader(false);
+      }
       setStep(4);
     } else if (step === 4) {
       setStep(5);
@@ -1130,7 +1153,7 @@ export default function HybridEventWizardModal({
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {[
-              { label: 'Tomorrow', date: isoDate(new Date(Date.now() + 86400000)) },
+              { label: 'Tomorrow', date: isoDate(new Date(nowMs() + 86400000)) },
               { label: 'This Saturday', date: isoDate(nextWeekday(6, 0)) },
               { label: 'Next Saturday', date: isoDate(nextWeekday(6, 1)) },
             ].map((q) => (
@@ -1466,12 +1489,12 @@ export default function HybridEventWizardModal({
           </div>
         </div>
 
-        {/* Card 2: Live stream & instant wishes & memories sharing */}
+        {/* Card 2: Live stream, Drone Capturing & instant wishes & memories sharing */}
         <div style={{ padding: 16, borderRadius: 16, border: `1px solid ${colors.borderPrimary}`, background: colors.bgCard, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontSize: '0.92rem', fontWeight: 800, color: colors.textPrimary }}>
-            Live stream &amp; instant wishes &amp; memories sharing
+            Live stream, Drone Capturing &amp; instant wishes
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             <div>
               <div style={{ fontSize: '0.76rem', fontWeight: 700, color: colors.textSecondary, marginBottom: 6 }}>
                 LIVE STREAM
@@ -1479,6 +1502,15 @@ export default function HybridEventWizardModal({
               <div style={{ display: 'flex', gap: 8 }}>
                 <PillButton active={!draft.liveStream} onClick={() => updateDraft({ liveStream: false })}>No</PillButton>
                 <PillButton active={draft.liveStream} onClick={() => updateDraft({ liveStream: true })} icon="bi-broadcast">Yes</PillButton>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.76rem', fontWeight: 700, color: colors.textSecondary, marginBottom: 6 }}>
+                DRONE CAPTURING (AERIAL 4K)
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <PillButton active={!draft.droneCapturing} onClick={() => updateDraft({ droneCapturing: false })}>No</PillButton>
+                <PillButton active={draft.droneCapturing} onClick={() => updateDraft({ droneCapturing: true })} icon="bi-airplane">Yes</PillButton>
               </div>
             </div>
             <div>
@@ -1985,10 +2017,55 @@ export default function HybridEventWizardModal({
 
         {/* Compare matching packages */}
         <div style={{ padding: 16, borderRadius: 16, border: `1px solid ${colors.borderPrimary}`, background: colors.bgCard, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary }}>Recommended pricing</div>
-            <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Compare matching packages.</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary }}>Recommended pricing</div>
+              <div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>
+                Deduced from {packageAnalysis.totalPackagesSearched} photographer packages (Best 3 per item • Summation &amp; Average in {clientCurrency})
+              </div>
+            </div>
+            {packageAnalysis.foreignCurrencyPackagesConverted > 0 && (
+              <span style={{ padding: '4px 10px', borderRadius: 999, background: `${colors.brandPrimary}16`, color: colors.brandPrimary, fontSize: '0.7rem', fontWeight: 800 }}>
+                <i className="bi bi-currency-exchange" /> {packageAnalysis.foreignCurrencyPackagesConverted} USD/foreign converted to {clientCurrency}
+              </span>
+            )}
           </div>
+
+          {/* Itemized Best-3 Packages Analysis & Summation */}
+          {packageAnalysis.selectedItemsAnalysis.length > 0 && (
+            <div style={{ padding: 12, borderRadius: 12, background: colors.bgTertiary, border: `1px solid ${colors.borderPrimary}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.brandPrimary, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                Best 3 Packages Analysis per Selected Item
+              </div>
+              {packageAnalysis.selectedItemsAnalysis.map((item) => (
+                <div key={item.itemKey} style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 6, borderBottom: `1px dashed ${colors.borderPrimary}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: colors.textPrimary }}>{item.itemLabel}</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: colors.brandPrimary }}>
+                      Avg: {clientCurrency} {item.averagePrice.toLocaleString('en-US')}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary }}>
+                    Top 3:{' '}
+                    {item.bestThreePackages
+                      .map(
+                        (b) =>
+                          `${b.photographerName} (${b.packageName}: ${b.originalCurrency !== clientCurrency ? `${b.originalCurrency} ${b.originalPrice.toLocaleString('en-US')} → ` : ''}${clientCurrency} ${b.derivedItemContribution.toLocaleString('en-US')})`,
+                      )
+                      .join(' • ')}
+                  </div>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 2 }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: colors.textSecondary }}>
+                  Summation of selected items averages
+                </span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 900, color: colors.textPrimary }}>
+                  {clientCurrency} {packageAnalysis.totalSummation.toLocaleString('en-US')}
+                </span>
+              </div>
+            </div>
+          )}
 
           {[
             {
@@ -2247,6 +2324,7 @@ export default function HybridEventWizardModal({
               ['Short videos', formatShortVideosSummary(draft)],
               ['Long videos', formatLongVideosSummary(draft)],
               ['Live stream', formatLiveStreamSummary(draft)],
+              ['Drone capturing', formatDroneCapturingSummary(draft)],
               ['Wishes & memories', formatInstantWishesSummary(draft)],
               ['Photo book', formatPhotoBookSummary(draft)],
               ['Photo album', formatPhotoAlbumSummary(draft)],
@@ -2379,12 +2457,57 @@ export default function HybridEventWizardModal({
           ref={bodyScrollRef}
           style={{ padding: '1.25rem 1.4rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}
         >
-          {step === 'session' && renderSessionChoice()}
-          {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
-          {step === 4 && renderStep4()}
-          {step === 5 && renderStep5()}
+          {analyzingPackagesPreloader ? (
+            <div style={{ padding: '44px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+              <div
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: '50%',
+                  background: `${colors.brandPrimary}16`,
+                  color: colors.brandPrimary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 26,
+                }}
+              >
+                <i className="bi bi-search" />
+              </div>
+              <div style={{ fontSize: '1.08rem', fontWeight: 800, color: colors.textPrimary }}>
+                Searching for latest packages update to recommend...
+              </div>
+              <div style={{ fontSize: '0.84rem', color: colors.textSecondary, maxWidth: 420, lineHeight: 1.5 }}>
+                {preloaderStageIndex === 0
+                  ? 'Scanning active photographer packages across Indoor & Outdoor sessions...'
+                  : preloaderStageIndex === 1
+                    ? 'Selecting the best 3 packages for each item you picked...'
+                    : `Converting package currencies to ${clientCurrency} & computing summation and average...`}
+              </div>
+              <div style={{ width: '100%', maxWidth: 320, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 4 }}>
+                {[0, 1, 2].map((idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      height: 6,
+                      borderRadius: 999,
+                      background: idx <= preloaderStageIndex ? colors.brandPrimary : colors.bgTertiary,
+                      transition: 'background 0.25s',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              {step === 'session' && renderSessionChoice()}
+              {step === 1 && renderStep1()}
+              {step === 2 && renderStep2()}
+              {step === 3 && renderStep3()}
+              {step === 4 && renderStep4()}
+              {step === 5 && renderStep5()}
+            </>
+          )}
 
           {step === 'done' && result && (
             <div style={{ textAlign: 'center', padding: '24px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -2450,7 +2573,7 @@ export default function HybridEventWizardModal({
                   borderRadius: 12,
                   background: '#FEF2F2',
                   border: '1.5px solid #FCA5A5',
-                  color: '#DC2626',
+                  color: 'var(--g-error, #DC2626)',
                   fontSize: '0.84rem',
                   fontWeight: 700,
                 }}
@@ -2466,7 +2589,7 @@ export default function HybridEventWizardModal({
                     setOptionsError(null);
                   }}
                   aria-label="Dismiss error"
-                  style={{ background: 'transparent', border: 'none', color: '#DC2626', cursor: 'pointer', padding: 4, fontSize: 16, lineHeight: 1 }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--g-error, #DC2626)', cursor: 'pointer', padding: 4, fontSize: 16, lineHeight: 1 }}
                 >
                   <i className="bi bi-x-lg" />
                 </button>

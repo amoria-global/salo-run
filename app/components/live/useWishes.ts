@@ -5,7 +5,7 @@
  * good list in place and set `state` to 'error' only when there is nothing to show. Same behavior as the mobile hooks
  * (features/wishes/useWishFeed.ts).
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { hideOwnWish, listHostWishes, listWishes, moderateWish, type Fetcher } from '@/lib/live/api';
 import type { FeedState, Wish } from '@/lib/live/types';
 
@@ -84,7 +84,7 @@ export function useHostWishes(eventId: string | undefined, fetcher: Fetcher) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const live = useRef(true);
   const f = useRef(fetcher);
-  f.current = fetcher;
+  useLayoutEffect(() => { f.current = fetcher; }, [fetcher]);
   useEffect(() => {
     live.current = true; // set again on mount: a re-mounted effect (React strict mode) must not stay "gone"
     return () => void (live.current = false);

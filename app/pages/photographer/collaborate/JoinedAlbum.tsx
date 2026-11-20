@@ -210,7 +210,7 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
         <Card>
           <EmptyState icon={<i className="bi bi-lock" aria-hidden />} title="You cannot open this album"
             description={error}
-            action={<Link href="/user/photographer/collaborate?tab=joined"><Button>Back to joined albums</Button></Link>} />
+            action={<Link className="gk-target" href="/user/photographer/collaborate?tab=joined"><Button>Back to joined albums</Button></Link>} />
         </Card>
       </Shell>
     );
@@ -346,7 +346,7 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
                       <div key={f.key} className="ck-err-card">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-1.5">
-                            <i className="bi bi-file-earmark-x-fill shrink-0 text-sm" style={{ color: '#DC2626' }} aria-hidden />
+                            <i className="bi bi-file-earmark-x-fill shrink-0 text-sm" style={{ color: 'var(--g-error, #DC2626)' }} aria-hidden />
                             <span className="ck-err-name truncate" title={f.file.name}>
                               {f.file.name}
                             </span>
@@ -371,7 +371,7 @@ export default function JoinedAlbum({ albumId }: { albumId: string }) {
       <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Filter your photos">
         {([['ALL', 'All'], ['PENDING', 'Waiting'], ['APPROVED', 'Added'], ['REJECTED', 'Not accepted']] as [Filter, string][]).map(([key, label]) => (
           <button key={key} role="tab" aria-selected={filter === key} onClick={() => setFilter(key)}
-            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85] ${filter === key
+            className={`gk-target rounded-full px-3.5 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85] ${filter === key
               ? 'bg-[#083A85] text-white' : 'bg-[var(--ck-surface-muted)] text-[var(--ck-text-soft)] hover:text-[var(--ck-text)]'}`}>
             {label} <span className="opacity-70">{counts[key]}</span>
           </button>
@@ -442,7 +442,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
       <Link href="/user/photographer/collaborate?tab=joined"
-        className="mb-4 inline-flex items-center gap-1.5 rounded text-sm font-medium text-[var(--ck-text-soft)] hover:text-[#083A85] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85]">
+        className="gk-target mb-4 inline-flex items-center gap-1.5 rounded text-sm font-medium text-[var(--ck-text-soft)] hover:text-[#083A85] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#083A85]">
         <i className="bi bi-arrow-left" aria-hidden /> Joined albums
       </Link>
       {children}

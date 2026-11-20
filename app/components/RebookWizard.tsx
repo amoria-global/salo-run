@@ -405,7 +405,7 @@ export default function RebookWizard({ open, onClose, eventId, eventTitle, color
 
               {submitError && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '0.65rem 0.85rem', borderRadius: 10, background: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                  <i className="bi bi-exclamation-triangle-fill" style={{ color: '#EF4444', fontSize: 12, marginTop: 2 }} />
+                  <i className="bi bi-exclamation-triangle-fill" style={{ color: 'var(--g-error, #EF4444)', fontSize: 12, marginTop: 2 }} />
                   <span style={{ fontSize: '0.82rem', color: isDark ? '#FCA5A5' : '#B91C1C', fontWeight: 500 }}>{submitError}</span>
                 </div>
               )}
@@ -597,7 +597,7 @@ function ErrorState({ c, isDark, onRetry }: { c: TC; isDark: boolean; onRetry: (
   return (
     <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
       <div style={{ width: 64, height: 64, borderRadius: 18, margin: '0 auto 1rem', background: isDark ? 'rgba(239,68,68,0.14)' : 'rgba(239,68,68,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <i className="bi bi-exclamation-triangle" style={{ fontSize: 26, color: '#EF4444' }} />
+        <i className="bi bi-exclamation-triangle" style={{ fontSize: 26, color: 'var(--g-error, #EF4444)' }} />
       </div>
       <div style={{ fontSize: '1.02rem', fontWeight: 800, color: c.textPrimary, marginBottom: 6 }}>Couldn&apos;t load photographers</div>
       <div style={{ fontSize: '0.88rem', color: c.textSecondary, maxWidth: 360, margin: '0 auto 1.2rem', lineHeight: 1.55 }}>Something went wrong. Please try again.</div>

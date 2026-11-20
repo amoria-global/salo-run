@@ -6,6 +6,9 @@ import {
   type CurrencyCode,
   type CurrencyInfo,
   formatMoney,
+  formatMoneyIso,
+  moneyParts,
+  type MoneyParts,
   initialCurrencies,
   isRateLive as ratesIsLive,
   mergeLiveRates,
@@ -27,6 +30,9 @@ interface CurrencyContextType {
    *                      is used as-is and no conversion is performed.
    */
   formatPrice: (amount: number, fromCurrency?: string) => string;
+  /** The Compact Glass rule: ISO code before the amount ("RWF 5,000"); $ and € stay signs. */
+  formatPriceIso: (amount: number, fromCurrency?: string) => string;
+  priceParts: (amount: number, fromCurrency?: string) => MoneyParts;
   currencies: CurrencyInfo[];
   /** True when the backend supplied a usable rate for this currency. USD is always live. */
   isRateLive: (code: string) => boolean;
@@ -48,6 +54,7 @@ const DECIMALS_MAP: Record<string, number> = {
 const DEFAULT_CURRENCIES: CurrencyInfo[] = initialCurrencies();
 
 import { getApiUrl } from '@/lib/api';
+import { getActiveWorkspaceId } from '@/app/lib/workspace';
 import { useDashboardAuth, dashboardAuthFetch } from '../providers/AuthProvider';
 
 const STORAGE_KEY = "connekt-currency";
@@ -106,6 +113,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const saveToAccount = useCallback(async (code: CurrencyCode) => {
+    // Inside another photographer's workspace the server refuses account settings (WorkspacePolicy).
+    if (getActiveWorkspaceId()) return;
     try {
       await dashboardAuthFetch(`${getApiUrl()}${ACCOUNT_PATH}`, {
         method: "PUT",
@@ -120,6 +129,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   // Signed in: the account's saved currency wins; if it has none yet, save this browser's choice to it.
   useEffect(() => {
     if (!isAuthenticated) return;
+    // Same rule: in a workspace the browser's choice stands and no account read is made.
+    if (getActiveWorkspaceId()) return;
     (async () => {
       try {
         const res = await dashboardAuthFetch(`${getApiUrl()}${ACCOUNT_PATH}`);
@@ -152,6 +163,15 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [currency, currencies]
   );
 
+  const formatPriceIso = useCallback(
+    (amount: number, fromCurrency?: string) => formatMoneyIso(amount, fromCurrency, currency, currencies),
+    [currency, currencies]
+  );
+  const priceParts = useCallback(
+    (amount: number, fromCurrency?: string) => moneyParts(amount, fromCurrency, currency, currencies),
+    [currency, currencies]
+  );
+
   const isRateLive = useCallback((code: string) => ratesIsLive(currencies, code), [currencies]);
   const displayRateUnavailable = !ratesIsLive(currencies, currency);
 
@@ -159,7 +179,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CurrencyContext.Provider
-      value={{ currency, setCurrency, formatPrice, currencies, currencyId, isRateLive, displayRateUnavailable }}
+      value={{ currency, setCurrency, formatPrice, formatPriceIso, priceParts, currencies, currencyId, isRateLive, displayRateUnavailable }}
     >
       {children}
     </CurrencyContext.Provider>

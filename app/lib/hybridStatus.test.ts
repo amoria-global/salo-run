@@ -10,7 +10,14 @@ import {
 } from './hybridStatus';
 
 const ROOT = path.resolve(__dirname, '../..');
-const src = (p: string) => readFileSync(path.join(ROOT, p), 'utf8');
+// A page's rules may live in its extracted hook (the Compact Glass shared-logic pattern), so read both.
+const HOOKS: Record<string, string> = {
+  'app/pages/client/events.tsx': 'app/components/events/client/useClientEvents.tsx',
+  'app/pages/event-coordinator/events.tsx': 'app/components/events/coordinator/useCoordinatorEvents.tsx',
+  'app/pages/client/event-detail.tsx': 'app/components/events/detail/useEventDetail.tsx',
+  'app/pages/photographer/events.tsx': 'app/components/events/photographer/usePhotographerEvents.tsx',
+};
+const src = (p: string) => readFileSync(path.join(ROOT, p), 'utf8') + (HOOKS[p] ? '\n' + readFileSync(path.join(ROOT, HOOKS[p]), 'utf8') : '');
 
 describe('Post My Event status rules', () => {
   it('keeps every open Post My Event state on the Upcoming tab', () => {
@@ -81,6 +88,9 @@ describe('Post My Event screens use the shared rules', () => {
   });
 
   it('the opportunities view follows a notification to the right tab', () => {
-    expect(src('app/components/hybrid/PhotographerOpportunitiesView.tsx')).toContain('setTab(opportunityTabFor(o.status))');
+    // The behaviour lives in the hook that both the classic and the Compact Glass views use.
+    expect(src('app/components/hybrid/useOpportunities.ts')).toContain('setTab(opportunityTabFor(o.status))');
+    expect(src('app/components/hybrid/PhotographerOpportunitiesView.tsx')).toContain('useOpportunities(focusCandidateId)');
+    expect(src('app/components/glass/pages/GlassOpportunities.tsx')).toContain('useOpportunities(focusCandidateId)');
   });
 });

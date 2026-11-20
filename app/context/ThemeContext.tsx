@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { glassDarkColors, glassLightColors, isGlassDocument } from '../lib/glassColors';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type UserRole = 'photographer' | 'client' | 'default';
@@ -117,6 +118,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
   const [currentRole, setCurrentRole] = useState<UserRole>('default');
   const [isInitialized, setIsInitialized] = useState(false);
+  // The Compact Glass flag (app/lib/uiGlass.ts): the old colour names then carry the new palette.
+  const [glass, setGlass] = useState(false);
 
   useEffect(() => {
     const role = detectRoleFromPath(pathname);
@@ -128,6 +131,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const savedTheme = localStorage.getItem(storageKey) as ThemeMode | null;
     if (savedTheme) setThemeState(savedTheme);
     else setThemeState('light');
+    setGlass(isGlassDocument());
     setIsInitialized(true);
   }, [currentRole]);
 
@@ -150,13 +154,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isInitialized) return;
-    document.documentElement.setAttribute('data-theme', actualTheme);
-    const colors = actualTheme === 'dark' ? darkColors : lightColors;
+    // Resolved from `theme`, not `actualTheme`: on the first initialised render actualTheme is still its 'light'
+    // default (the effect above corrects it a render later), and writing that would flash a dark user's page light
+    // over the theme the head script already set (app/lib/uiGlass.ts).
+    const resolved: 'light' | 'dark' = theme === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : theme;
+    document.documentElement.setAttribute('data-theme', resolved);
+    const colors = glass
+      ? (resolved === 'dark' ? glassDarkColors : glassLightColors)
+      : (resolved === 'dark' ? darkColors : lightColors);
     const root = document.documentElement;
     Object.entries(colors).forEach(([key, value]) => {
       root.style.setProperty(`--${key}`, value);
     });
-  }, [actualTheme, isInitialized]);
+  }, [theme, actualTheme, isInitialized, glass]);
 
   const setTheme = (newTheme: ThemeMode) => {
     setThemeState(newTheme);
@@ -164,7 +176,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(storageKey, newTheme);
   };
 
-  const colors = actualTheme === 'dark' ? darkColors : lightColors;
+  const colors = glass
+      ? (actualTheme === 'dark' ? glassDarkColors : glassLightColors)
+      : (actualTheme === 'dark' ? darkColors : lightColors);
 
   return (
     <ThemeContext.Provider value={{ theme, actualTheme, setTheme, colors, currentRole }}>

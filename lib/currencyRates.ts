@@ -111,6 +111,44 @@ function render(info: CurrencyInfo, value: number): string {
   return `${info.symbol} ${text}`;
 }
 
+/** An amount ready to draw: the prefix (an ISO code, or $ / €) and the number, kept apart so a design can size them. */
+export interface MoneyParts {
+  code: string;
+  prefix: string;
+  /** True for a sign written against the number ($25.00); false for a code written before it (RWF 5,000). */
+  tight: boolean;
+  text: string;
+  value: number;
+}
+
+/**
+ * The mobile app's rule (connekt-mobile src/utils/currencyPrefix.ts): a letter code precedes the amount, spaced
+ * ("RWF 5,000"), never a local symbol (RF, KSh, USh, TSh) and never $ or €. Used by
+ * the Compact Glass UI; the old UI keeps formatMoney.
+ */
+export function moneyParts(
+  amount: number,
+  from: string | undefined,
+  to: string,
+  currencies: CurrencyInfo[],
+): MoneyParts {
+  const source = from || 'USD';
+  const converted = convertAmount(amount, source, to, currencies);
+  const info = (converted !== null ? currencies.find((c) => c.code === to) : undefined)
+    ?? currencies.find((c) => c.code === source);
+  const value = converted !== null && info?.code === to ? converted : amount;
+  const code = info?.code ?? source;
+  const decimals = info?.decimals ?? 2;
+  const text = value.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  // Owner rule (2026-11-18): every amount carries its ISO code, USD and EUR included ("USD 60.00"), never a sign.
+  return { code, prefix: code, tight: false, text, value };
+}
+
+export function formatMoneyIso(amount: number, from: string | undefined, to: string, currencies: CurrencyInfo[]): string {
+  const p = moneyParts(amount, from, to, currencies);
+  return p.tight ? `${p.prefix}${p.text}` : `${p.prefix} ${p.text}`;
+}
+
 /**
  * Format `amount` (denominated in `from`, USD when omitted) for display in `to`.
  * When the conversion cannot be done from live rates the amount is shown in the

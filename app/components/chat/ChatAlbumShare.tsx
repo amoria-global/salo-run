@@ -165,7 +165,7 @@ export function AlbumShareCard({ albumId, isOwn }: { albumId: string; isOwn: boo
         {card.badge === 'PRIVATE' && !isOwn ? (
           <span style={{ fontSize: '0.78rem', fontWeight: 500, color: '#8A5A00' }}>Private · needs the access code</span>
         ) : null}
-        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#083A85', marginTop: 4 }}>View album ›</span>
+        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--g-link, #083A85)', marginTop: 4 }}>View album ›</span>
       </div>
     </a>
   );
@@ -228,7 +228,7 @@ export function SpecialMessage({
             {share.note}
           </div>
         ) : null}
-        <span style={{ fontSize: '0.7rem', color: '#9CA3AF' }}>{time}</span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--g-text-muted, #9CA3AF)' }}>{time}</span>
       </div>
     </div>
   );
@@ -282,7 +282,7 @@ export function ShareAlbumButton({
           borderRadius: '50%',
           border: `1px solid ${colors.borderPrimary}`,
           background: colors.bgTertiary,
-          color: '#083A85',
+          color: 'var(--g-link, #083A85)',
           fontSize: '1.5rem',
           lineHeight: 1,
           cursor: 'pointer',
@@ -337,7 +337,7 @@ export function ShareAlbumButton({
               <span style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem' }}>Share an album</span>
               <span style={{ display: 'block', fontSize: '0.78rem', color: colors.textSecondary }}>Send a link to one of your albums</span>
             </span>
-            <span aria-hidden style={{ color: '#083A85' }}>›</span>
+            <span aria-hidden style={{ color: 'var(--g-link, #083A85)' }}>›</span>
           </button>
         </div>
       ) : null}
@@ -606,7 +606,7 @@ function AlbumShareModal({
         {albums && albums.length > 0 ? (
           <div style={{ padding: '0.75rem 1.25rem 1rem', borderTop: `1px solid ${colors.borderPrimary}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {problem ? (
-              <div role="alert" style={{ color: '#DC2626', fontSize: '0.85rem', fontWeight: 500 }}>
+              <div role="alert" style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.85rem', fontWeight: 500 }}>
                 {problem}
               </div>
             ) : null}

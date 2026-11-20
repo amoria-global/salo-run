@@ -431,7 +431,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
           <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
             Payment Failed
           </h4>
-          <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>
+          <p style={{ fontSize: '0.9rem', color: 'var(--g-error, #EF4444)', margin: '0 0 1.5rem' }}>
             {xentriPayError || 'Something went wrong. Please try again.'}
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
@@ -557,7 +557,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
 
           {/* XentriPay Error */}
           {xentriPayError && (
-            <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem', textAlign: 'center' }}>
               {xentriPayError}
             </p>
           )}
@@ -820,7 +820,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
         {(!donationAddressed || !phoneValid) && (
           <p style={{
             fontSize: '0.86rem',
-            color: '#EF4444',
+            color: 'var(--g-error, #EF4444)',
             margin: '0 0 0.75rem 0',
             textAlign: 'center'
           }}>

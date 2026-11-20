@@ -8,7 +8,8 @@ import { describe, expect, it } from 'vitest';
  * being swallowed; an album buyers cannot find says so in the list. Reading the source checks this without a signed-in
  * session (the same way the archived-albums contract does).
  */
-const SOURCE = readFileSync(path.join(__dirname, 'events.tsx'), 'utf8').replace(/\r\n/g, '\n');
+// The page and its extracted hook (shared with the Compact Glass page) together hold the rules.
+const SOURCE = (readFileSync(path.join(__dirname, 'events.tsx'), 'utf8') + '\n' + readFileSync(path.join(__dirname, '../../components/events/photographer/usePhotographerEvents.tsx'), 'utf8')).replace(/\r\n/g, '\n');
 
 describe('photographer Events page: Sell photos', () => {
   it('replaces the Host an event button on the events tab, leaving the Go live tiles and My hosted events alone', () => {

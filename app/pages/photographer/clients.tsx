@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
-import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import SortDropdown from '../../components/SortDropdown';
+import { useUiGlass } from '../../lib/useUiGlass';
+import GlassClients from '../../components/glass/pages/GlassClients';
+import { usePhotographerClients, type ClientsController, type FilterType, type PageTab, type BookingsFilter } from '../../components/clients/usePhotographerClients';
 
 // Icons
 const SearchIcon = () => (
@@ -112,94 +112,6 @@ const GiftIcon = () => (
   </svg>
 );
 
-interface Booking {
-  id: string;
-  eventName: string;
-  eventType: string;
-  eventDate: string;
-  eventTime: string;
-  duration: string;
-  location: string;
-  packageName: string;
-  totalAmount: number;
-  paidAmount: number;
-  paymentStatus: 'paid' | 'pending' | 'partially_paid' | 'failed';
-  status: 'upcoming' | 'completed' | 'cancelled';
-}
-
-interface ClientReview {
-  rating: number;
-  reviewText: string;
-  reviewDate: string;
-}
-
-interface TipBonus {
-  id: string;
-  amount: number;
-  type: 'tip' | 'bonus';
-  eventName: string;
-  date: string;
-  message?: string;
-}
-
-interface Client {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  profileImage?: string;
-  coverImage: string;
-  location: {
-    city: string;
-    country: string;
-  };
-  totalBookings: number;
-  totalSpent: number;
-  joinDate: string;
-  lastActive: string;
-  lastBookingDate: string;
-  lastEventType: string;
-  lastEventName: string;
-  status: 'active' | 'inactive';
-  isFavorite: boolean;
-  verified: boolean;
-  review?: ClientReview; // Review left by the client for the photographer
-  bookings: Booking[];
-  tipsAndBonuses: TipBonus[];
-}
-
-type FilterType = 'all' | 'active' | 'inactive' | 'favorites' | 'pending_payments';
-type ViewMode = 'grid' | 'list';
-type PageTab = 'clients' | 'bookings';
-type BookingsFilter = 'all' | 'pending' | 'accepted' | 'rejected';
-
-// API Booking interface. flexible to handle various response shapes
-interface APIBooking {
-  id: string;
-  status?: string;
-  bookingStatus?: string;
-  clientName?: string;
-  clientEmail?: string;
-  clientPhone?: string;
-  customerName?: string;
-  customerEmail?: string;
-  eventType?: string;
-  eventDate?: string;
-  eventTime?: string;
-  location?: string;
-  address?: string;
-  packageName?: string;
-  totalAmount?: number;
-  amount?: number;
-  price?: number;
-  notes?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
-
 // Modal Component
 interface ModalProps {
   isOpen: boolean;
@@ -277,358 +189,61 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-export default function Clients() {
+function ClassicClients({ ctl }: { ctl: ClientsController }) {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
-  const { token, user } = useDashboardAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<'recent' | 'bookings' | 'spent'>('recent');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; client: Client } | null>(null);
-  const [showTipsModal, setShowTipsModal] = useState(false);
-  const [tipsClient, setTipsClient] = useState<Client | null>(null);
-  const [deleteConfirmClient, setDeleteConfirmClient] = useState<Client | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  // Page tab state
-  const [pageTab, setPageTab] = useState<PageTab>('clients');
-
-  // Bookings state
-  const [bookings, setBookings] = useState<APIBooking[]>([]);
-  const [bookingsLoading, setBookingsLoading] = useState(false);
-  const [bookingsFilter, setBookingsFilter] = useState<BookingsFilter>('all');
-  const [processingBookingId, setProcessingBookingId] = useState<string | null>(null);
-
-  // Fetch bookings from API
-  const fetchBookings = useCallback(async () => {
-    if (!user) return;
-    setBookingsLoading(true);
-    try {
-      const response = await dashboardAuthFetch(`${getApiUrl()}/api/remote/photographer/bookings`);
-      const result = await response.json();
-      if (result.action === 1 && Array.isArray(result.data)) {
-        setBookings(result.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch bookings:', error);
-    } finally {
-      setBookingsLoading(false);
-    }
-  }, [user]);
-
-  // Fetch bookings on mount
-  useEffect(() => {
-    if (user) fetchBookings();
-  }, [user, fetchBookings]);
-
-  // Accept a booking
-  const acceptBooking = async (bookingId: string) => {
-    if (!user) return;
-    setProcessingBookingId(bookingId);
-    try {
-      const response = await dashboardAuthFetch(
-        `${getApiUrl()}/api/remote/photographer/bookings/${bookingId}/accept`,
-        { method: 'POST' }
-      );
-      const result = await response.json();
-      if (result.action === 1) {
-        await fetchBookings();
-      }
-    } catch (error) {
-      console.error('Failed to accept booking:', error);
-    } finally {
-      setProcessingBookingId(null);
-    }
-  };
-
-  // Reject a booking
-  const rejectBooking = async (bookingId: string) => {
-    if (!user) return;
-    setProcessingBookingId(bookingId);
-    try {
-      const response = await dashboardAuthFetch(
-        `${getApiUrl()}/api/remote/photographer/bookings/${bookingId}/reject`,
-        { method: 'POST' }
-      );
-      const result = await response.json();
-      if (result.action === 1) {
-        await fetchBookings();
-      }
-    } catch (error) {
-      console.error('Failed to reject booking:', error);
-    } finally {
-      setProcessingBookingId(null);
-    }
-  };
-
-  // Helper to get booking status
-  const getBookingStatus = (booking: APIBooking): string => {
-    return (booking.status || booking.bookingStatus || 'pending').toLowerCase();
-  };
-
-  // Helper to get client display name from booking
-  const getBookingClientName = (booking: APIBooking): string => {
-    return booking.clientName || booking.customerName || 'Unknown Client';
-  };
-
-  // Helper to get booking amount
-  const getBookingAmount = (booking: APIBooking): number => {
-    return booking.totalAmount || booking.amount || booking.price || 0;
-  };
-
-  // Filter bookings
-  const filteredBookings = bookings.filter(b => {
-    if (bookingsFilter === 'all') return true;
-    const status = getBookingStatus(b);
-    if (bookingsFilter === 'pending') return status === 'pending';
-    if (bookingsFilter === 'accepted') return status === 'accepted' || status === 'confirmed';
-    if (bookingsFilter === 'rejected') return status === 'rejected' || status === 'cancelled';
-    return true;
-  });
-
-  // Booking counts
-  const pendingCount = bookings.filter(b => getBookingStatus(b) === 'pending').length;
-  const acceptedCount = bookings.filter(b => ['accepted', 'confirmed'].includes(getBookingStatus(b))).length;
-  const rejectedCount = bookings.filter(b => ['rejected', 'cancelled'].includes(getBookingStatus(b))).length;
-
-  // Clients data - fetched from API
-  const [clientsLoading, setClientsLoading] = useState(true);
-  const [balance, setBalance] = useState<any>(null);
-
-  const fetchClients = useCallback(async () => {
-    try {
-      const apiUrl = getApiUrl();
-      const [clientsRes, convRes, favRes] = await Promise.allSettled([
-        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`),
-        dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`),
-        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/favorite-clients`),
-      ]);
-
-      let favoriteIds: string[] = [];
-      if (favRes.status === 'fulfilled' && favRes.value.ok) {
-        const favData = await favRes.value.json();
-        if (favData.action === 1 && favData.data) {
-          favoriteIds = favData.data.map((id: any) => String(id));
-        }
-      }
-
-      const normalizeImg = (url: string | undefined): string | undefined => normalizeImageUrl(url);
-      let clientsMapped: Client[] = [];
-
-      // Primary: use /photographer/clients (populated once backend deploys booking-based logic)
-      if (clientsRes.status === 'fulfilled' && clientsRes.value.ok) {
-        const data = await clientsRes.value.json().catch(() => null);
-        if (data?.data) {
-          const clientList = Array.isArray(data.data) ? data.data : data.data.content || [];
-          clientsMapped = clientList.map((c: any) => ({
-            id: c.id || '',
-            firstName: c.firstName || c.name?.split(' ')[0] || '',
-            lastName: c.lastName || c.name?.split(' ').slice(1).join(' ') || '',
-            email: c.email || '',
-            phone: c.phone || c.phoneNumber || '',
-            profileImage: normalizeImg(c.profilePicture || c.profileImage || undefined),
-            coverImage: normalizeImg(c.coverImage || undefined) || '',
-            location: {
-              city: c.city || c.location?.city || '',
-              country: c.country || c.location?.country || '',
-            },
-            totalBookings: c.totalBookings || 0,
-            totalSpent: c.totalSpent || 0,
-            joinDate: c.firstContactedAt || c.joinDate || c.createdAt || '',
-            lastActive: c.firstContactedAt || c.lastActive || c.lastSeen || '',
-            lastBookingDate: c.lastBookingDate || '',
-            lastEventType: c.lastEventType || '',
-            lastEventName: c.lastEventName || '',
-            status: c.status === 'inactive' ? 'inactive' : 'active' as Client['status'],
-            isFavorite: favoriteIds.includes(String(c.id)),
-            verified: c.verified || c.isVerified || false,
-            review: c.review || undefined,
-            bookings: c.bookings || [],
-            tipsAndBonuses: c.tipsAndBonuses || [],
-          }));
-        }
-      }
-
-      // Fallback: derive from chat conversations until backend deploys new /clients endpoint
-      if (clientsMapped.length === 0 && convRes.status === 'fulfilled' && convRes.value.ok) {
-        const convData = await convRes.value.json().catch(() => null);
-        const convList = convData?.data || convData || [];
-        if (Array.isArray(convList)) {
-          const currentId = user?.id || '';
-          clientsMapped = convList.map((conv: any) => {
-            const partner = conv.participants?.find((p: any) => p.id !== currentId) || {};
-            const pName = partner.name || conv.partnerName || conv.name || 'Client';
-            const nameParts = pName.split(' ');
-            return {
-              id: partner.id || conv.partnerId || conv.id || '',
-              firstName: nameParts[0] || '',
-              lastName: nameParts.slice(1).join(' ') || '',
-              email: '',
-              phone: '',
-              profileImage: normalizeImg(partner.image || conv.partnerImage || conv.image || undefined),
-              coverImage: '',
-              location: { city: '', country: '' },
-              totalBookings: 0,
-              totalSpent: 0,
-              joinDate: '',
-              lastActive: conv.lastMessage?.createdAt || '',
-              lastBookingDate: '',
-              lastEventType: '',
-              lastEventName: '',
-              status: 'active' as Client['status'],
-              isFavorite: favoriteIds.includes(String(partner.id || conv.partnerId || conv.id)),
-              verified: false,
-              review: undefined,
-              bookings: [],
-              tipsAndBonuses: [],
-            };
-          });
-        }
-      }
-
-      // Newest-added first. joinDate is mapped from firstContactedAt / joinDate / createdAt.
-      clientsMapped.sort((a, b) => {
-        const ta = a.joinDate ? new Date(a.joinDate).getTime() : 0;
-        const tb = b.joinDate ? new Date(b.joinDate).getTime() : 0;
-        return tb - ta;
-      });
-      setClients(clientsMapped);
-    } catch (err) {
-      console.error('Failed to fetch clients:', err);
-    } finally {
-      setClientsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchClients();
-    const fetchBalance = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.action === 1 && data.data) setBalance(data.data);
-        }
-      } catch (err) { console.error('Failed to fetch balance:', err); }
-    };
-    fetchBalance();
-  }, [fetchClients]);
-
-  const [clients, setClients] = useState<Client[]>([]);
-
-  const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Portrait', 'Fashion', 'Concert'];
-
-  const toggleFavorite = async (id: string) => {
-    setClients(prev => prev.map(c =>
-      c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
-    ));
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/favorite-clients/${id}`, { method: 'POST' });
-      if (!res.ok) {
-        // Rollback on failure
-        setClients(prev => prev.map(c =>
-          c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
-        ));
-      }
-    } catch {
-      setClients(prev => prev.map(c =>
-        c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
-      ));
-    }
-  };
-
-  const deleteClient = async (id: string) => {
-    setDeleting(true);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setClients(prev => prev.filter(c => c.id !== id));
-        if (selectedClient?.id === id) setSelectedClient(null);
-        setDeleteConfirmClient(null);
-      }
-    } catch (err) {
-      console.error('Failed to delete client:', err);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return 'N/A';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return 'N/A';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid': return { bg: '#DCFCE7', text: '#15803D' };
-      case 'pending': return { bg: '#FEF3C7', text: '#B45309' };
-      case 'partially_paid': return { bg: '#DBEAFE', text: '#1D4ED8' };
-      case 'failed': return { bg: '#FEE2E2', text: '#DC2626' };
-      default: return { bg: '#F3F4F6', text: '#6B7280' };
-    }
-  };
-
-  // Get clients with pending payments
-  const clientsWithPendingPayments = clients.filter(c =>
-    c.bookings.some(b => b.paymentStatus === 'pending' || b.paymentStatus === 'partially_paid' || b.paymentStatus === 'failed')
-  );
-
-  // Calculate total pending amount
-  const totalPendingAmount = clients.reduce((sum, c) => {
-    return sum + c.bookings.reduce((bookingSum, b) => {
-      if (b.paymentStatus === 'pending' || b.paymentStatus === 'partially_paid' || b.paymentStatus === 'failed') {
-        return bookingSum + (b.totalAmount - b.paidAmount);
-      }
-      return bookingSum;
-    }, 0);
-  }, 0);
-
-  // Balance values from API
-  const totalTips = balance?.totalTips || 0;
-  const totalCompletedEvents = clients.reduce((sum, c) => sum + c.bookings.filter((b: any) => b.status === 'completed').length, 0);
-  const bonusEligibleSets = Math.floor(totalCompletedEvents / 10);
-  const platformBonus = balance?.totalBonuses || 0;
-  const totalBalance = balance?.availableBalance || 0;
-
-  // Filter clients based on search query and active filter
-  const filteredClients = clients.filter(client => {
-    const matchesSearch = `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         client.email.toLowerCase().includes(searchQuery.toLowerCase());
-
-    if (activeFilter === 'all') return matchesSearch;
-    if (activeFilter === 'active') return matchesSearch && client.status === 'active';
-    if (activeFilter === 'inactive') return matchesSearch && client.status === 'inactive';
-    if (activeFilter === 'favorites') return matchesSearch && client.isFavorite;
-    if (activeFilter === 'pending_payments') return matchesSearch && client.bookings.some(b =>
-      b.paymentStatus === 'pending' || b.paymentStatus === 'partially_paid' || b.paymentStatus === 'failed'
-    );
-
-    return matchesSearch;
-  }).sort((a, b) => {
-    let comparison = 0;
-    switch (sortBy) {
-      case 'recent':
-        comparison = new Date(a.lastBookingDate).getTime() - new Date(b.lastBookingDate).getTime();
-        break;
-      case 'bookings':
-        comparison = a.totalBookings - b.totalBookings;
-        break;
-      case 'spent':
-        comparison = a.totalSpent - b.totalSpent;
-        break;
-    }
-    return sortOrder === 'desc' ? -comparison : comparison;
-  });
-
+  const {
+    searchQuery,
+    setSearchQuery,
+    activeFilter,
+    setActiveFilter,
+    viewMode,
+    setViewMode,
+    selectedClient,
+    setSelectedClient,
+    showFilters,
+    setShowFilters,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    showTipsModal,
+    setShowTipsModal,
+    tipsClient,
+    setTipsClient,
+    deleteConfirmClient,
+    setDeleteConfirmClient,
+    deleting,
+    pageTab,
+    setPageTab,
+    bookings,
+    bookingsLoading,
+    bookingsFilter,
+    setBookingsFilter,
+    processingBookingId,
+    acceptBooking,
+    rejectBooking,
+    getBookingStatus,
+    getBookingClientName,
+    getBookingAmount,
+    filteredBookings,
+    pendingCount,
+    acceptedCount,
+    rejectedCount,
+    clientsLoading,
+    clients,
+    toggleFavorite,
+    deleteClient,
+    formatDate,
+    getPaymentStatusColor,
+    clientsWithPendingPayments,
+    totalPendingAmount,
+    totalTips,
+    totalCompletedEvents,
+    bonusEligibleSets,
+    platformBonus,
+    filteredClients,
+  } = ctl;
   const renderStars = (rating: number) => {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
@@ -638,13 +253,6 @@ export default function Clients() {
       </div>
     );
   };
-
-  // Close context menu when clicking outside
-  useEffect(() => {
-    const handleClick = () => setContextMenu(null);
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, []);
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
@@ -910,7 +518,7 @@ export default function Clients() {
                 helper?: string;
                 alert?: boolean;
               }> = [
-                { label: 'Total Clients',   value: String(clients.length),         accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-people-fill' },
+                { label: 'Total Clients',   value: String(clients.length),         accent: 'var(--g-link, #083A85)', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-people-fill' },
                 { label: 'Total Bookings',  value: String(totalBookingsCount),     accent: '#3B82F6', tint: 'rgba(59,130,246,0.12)', icon: 'bi-calendar-check-fill' },
                 { label: 'Total Earned',    value: formatPrice(totalEarnedAmt),    accent: '#10B981', tint: 'rgba(16,185,129,0.12)', icon: 'bi-cash-stack' },
                 { label: 'Tips',            value: formatPrice(totalTips),         accent: '#F59E0B', tint: 'rgba(245,158,11,0.12)', icon: 'bi-gift-fill', helper: 'From clients' },
@@ -1052,7 +660,7 @@ export default function Clients() {
                 border: '1px solid var(--ck-stroke)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <i className="bi bi-people" style={{ fontSize: 26, color: '#083A85' }} />
+                <i className="bi bi-people" style={{ fontSize: 26, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>No clients found</div>
@@ -1954,7 +1562,7 @@ export default function Clients() {
                                 flex: 1,
                                 padding: '0.625rem 1rem',
                                 backgroundColor: 'transparent',
-                                color: '#DC2626',
+                                color: 'var(--g-error, #DC2626)',
                                 border: '2px solid #DC2626',
                                 borderRadius: '0.5rem',
                                 fontSize: '0.85rem',
@@ -2090,7 +1698,7 @@ export default function Clients() {
                     border: '1px solid rgba(8,58,133,0.18)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <i className={`bi ${stat.icon}`} style={{ fontSize: 11, color: '#083A85' }} />
+                    <i className={`bi ${stat.icon}`} style={{ fontSize: 11, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <p style={{
                     fontSize: stat.small ? '0.88rem' : '1.15rem',
@@ -2164,7 +1772,7 @@ export default function Clients() {
                     border: '1px solid rgba(8,58,133,0.16)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <i className="bi bi-chat-square-text" style={{ fontSize: 13, color: '#083A85' }} />
+                    <i className="bi bi-chat-square-text" style={{ fontSize: 13, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, fontStyle: 'italic' }}>
                     This client has not left a review yet
@@ -2202,7 +1810,7 @@ export default function Clients() {
                       border: '1px solid rgba(8,58,133,0.18)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                      <i className={`bi ${row.icon}`} style={{ fontSize: 11, color: '#083A85' }} />
+                      <i className={`bi ${row.icon}`} style={{ fontSize: 11, color: 'var(--g-link, #083A85)' }} />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{row.label}</div>
@@ -2583,7 +2191,7 @@ export default function Clients() {
                     border: '1px solid rgba(8,58,133,0.16)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <i className="bi bi-gift" style={{ fontSize: 18, color: '#083A85' }} />
+                    <i className="bi bi-gift" style={{ fontSize: 18, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <p style={{ fontSize: '0.9rem', color: colors.textPrimary, margin: 0, fontWeight: 700, letterSpacing: '-0.005em' }}>
                     No tips from this client yet
@@ -2648,7 +2256,7 @@ export default function Clients() {
             </div>
             <div style={{ textAlign: 'center', marginBottom: '1.1rem' }}>
               <div style={{
-                fontSize: '0.66rem', fontWeight: 700, color: '#DC2626',
+                fontSize: '0.66rem', fontWeight: 700, color: 'var(--g-error, #DC2626)',
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 marginBottom: 4,
               }}>Remove client</div>
@@ -2701,7 +2309,7 @@ export default function Clients() {
                   {deleteConfirmClient.firstName} {deleteConfirmClient.lastName}
                 </p>
                 <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '2px 0 0', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 10, color: '#DC2626' }} />
+                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 10, color: 'var(--g-error, #DC2626)' }} />
                   {deleteConfirmClient.totalBookings} booking{deleteConfirmClient.totalBookings !== 1 ? 's' : ''}
                 </p>
               </div>
@@ -2787,4 +2395,11 @@ export default function Clients() {
 
     </div>
   );
+}
+
+/** One controller for both views, so the classic page (UI_GLASS=off) and the Compact Glass page behave the same. */
+export default function Clients() {
+  const ctl = usePhotographerClients();
+  const glass = useUiGlass();
+  return glass ? <GlassClients ctl={ctl} /> : <ClassicClients ctl={ctl} />;
 }

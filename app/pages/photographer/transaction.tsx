@@ -12,6 +12,9 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { getApiUrl } from '@/lib/api';
 import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
 import { fetchPlatformConfig, type PlatformConfig, DEFAULT_CONFIG } from '@/lib/platformConfig';
+import { usePhotographerTransactions, type PhotographerTransactionsController } from '@/app/components/transactions/usePhotographerTransactions';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassTransactions from '@/app/components/glass/pages/GlassTransactions';
 
 // Icons
 const DownloadIcon = () => (
@@ -268,16 +271,16 @@ Transaction Summary:
                 <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary }}>{reportData.totalTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#10B981' }}>Completed</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#10B981' }}>{reportData.completedTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-success, #10B981)' }}>Completed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-success, #10B981)' }}>{reportData.completedTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#F59E0B' }}>Pending</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#F59E0B' }}>{reportData.pendingTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-warning, #F59E0B)' }}>Pending</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-warning, #F59E0B)' }}>{reportData.pendingTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#3B82F6' }}>Withdrawn</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#3B82F6' }}>{reportData.withdrawnTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--g-link, #3B82F6)' }}>Withdrawn</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--g-link, #3B82F6)' }}>{reportData.withdrawnTransactions}</span>
               </div>
             </div>
           </div>
@@ -762,7 +765,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       {/* Frame label */}
-      <div style={{ fontSize: '0.75rem', color: '#D1D5DB', marginBottom: '0.5rem' }}>Earnings Trend</div>
+      <div style={{ fontSize: '0.75rem', color: 'var(--g-text-muted, #D1D5DB)', marginBottom: '0.5rem' }}>Earnings Trend</div>
 
       <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
         <svg width="100%" height={height} viewBox={`0 0 ${chartWidth} ${height}`} preserveAspectRatio="none">
@@ -820,7 +823,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
           {safeData.map((item, index) => (
             <span key={index} style={{
               fontSize: '0.75rem',
-              color: '#9CA3AF',
+              color: 'var(--g-text-muted, #9CA3AF)',
               fontWeight: '500',
               minWidth: '45px',
               textAlign: 'center'
@@ -926,207 +929,74 @@ const ServiceTypeBadge: React.FC<ServiceTypeBadgeProps> = ({ type }) => {
   );
 };
 
-const TransactionsPage = () => {
-  const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
-  const { user } = useDashboardAuth();
-  const router = useRouter();
-  const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [chartType, setChartType] = useState<ChartType>('line');
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showSetupModal, setShowSetupModal] = useState(false);
-  const [hasPaymentAccount, setHasPaymentAccount] = useState<boolean | null>(null);
-  const [showTipsModal, setShowTipsModal] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [wallet, setWallet] = useState<WalletDTO | null>(null);
-  const [analytics, setAnalytics] = useState<any>(null);
-
-  useEffect(() => {
-    const apiUrl = getApiUrl();
-    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdrawal-methods`)
-      .then(res => res.json())
-      .then(result => {
-        const methods = result?.data || [];
-        setHasPaymentAccount(methods.length > 0);
-      })
-      .catch(() => setHasPaymentAccount(null));
-  }, []);
-
-  const handleViewTransaction = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setShowTransactionModal(true);
-  };
-
-  const handleDownloadReceipt = (transaction: Transaction) => {
-    const receiptContent = `
-=====================================
-        TRANSACTION RECEIPT
-=====================================
-
-Transaction ID: ${transaction.transactionId}
-Request ID: ${transaction.requestId}
-Date: ${transaction.date}
-Status: ${transaction.status}
-
-Client: ${transaction.clientName}
-Service: ${transaction.service}
-Payment Method: ${transaction.method}
-
-Amount: ${formatPrice(transaction.amountNum)}
-
-=====================================
-    Thank you for using Connekt
-=====================================
-    `;
-    const blob = new Blob([receiptContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receipt-${transaction.transactionId}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [walletError, setWalletError] = useState(false);
-  const [earningsData, setEarningsData] = useState<{ date: string; value: number }[]>([]);
-  const [tipsData, setTipsData] = useState<{ id: number; clientName: string; amount: number; date: string; eventName: string; message: string }[]>([]);
-  const [platformConfig, setPlatformConfig] = useState<PlatformConfig>(DEFAULT_CONFIG);
-  const [bonusStatus, setBonusStatus] = useState<{ status: string; amount?: number; currencyAbbreviation?: string; threshold?: number; completedEvents?: number; adminComment?: string }>({ status: 'NOT_ELIGIBLE' });
-
-  function formatTxDate(dateStr: string): string {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const h = d.getHours();
-    return `${months[d.getMonth()]}, ${String(d.getDate()).padStart(2, '0')} ${String(h % 12 || 12).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-  }
-
-  function mapStatus(s: string): TransactionStatus {
-    if (!s) return 'initiated';
-    const u = s.toUpperCase();
-    if (u === 'COMPLETED' || u === 'SUCCESS') return 'completed';
-    if (u === 'PENDING') return 'pending';
-    if (u === 'IN_PROGRESS' || u === 'PROCESSING') return 'in_progress';
-    if (u === 'WITHDRAWN') return 'withdrawn';
-    return 'initiated';
-  }
-
-  const fetchData = useCallback(async (page: number = 0) => {
-    const apiUrl = getApiUrl();
-    try {
-      const [txRes, analyticsRes] = await Promise.allSettled([
-        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=${page}&size=8`),
-        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/analytics`),
-      ]);
-
-      // Wallet. source of truth for balances
-      // A failed wallet read must not render as $0 earnings.
-      getMyWallet().then(w => { setWallet(w); setWalletError(false); }).catch(() => setWalletError(true));
-
-      if (txRes.status === 'fulfilled' && txRes.value.ok) {
-        const data = await txRes.value.json();
-        if (data.action === 1 && data.data) {
-          const content = Array.isArray(data.data) ? data.data : data.data.content || [];
-          // Newest-created first. Mapped shape formats date string, so sort raw.
-          content.sort((a: any, b: any) => {
-            const ta = (a?.createdAt || a?.date) ? new Date(a.createdAt || a.date).getTime() : 0;
-            const tb = (b?.createdAt || b?.date) ? new Date(b.createdAt || b.date).getTime() : 0;
-            return tb - ta;
-          });
-          const mapped: Transaction[] = content.map((t: any, i: number) => ({
-            id: t.id || i + 1,
-            date: formatTxDate(t.createdAt || t.date || ''),
-            // Ledger rows have no counterparty (a photographer's row is their
-            // own earning leg). Never fall back to photographerName. that
-            // wrongly showed the photographer as their own client.
-            clientName: t.viewerName || t.service || t.eventTitle || t.paymentType || '-',
-            clientImage: t.clientImage || t.customerImage || undefined,
-            service: t.service || t.description || t.eventTitle || t.paymentType || 'Payment',
-            serviceType: t.serviceType || t.eventType || t.paymentType || 'Service',
-            method: t.paymentMethod || t.method || '-',
-            amount: `$${t.amount || 0}`,
-            amountNum: t.amountInUsd ?? t.amount ?? 0,
-            status: mapStatus(t.status || ''),
-            transactionId: t.transactionId || t.reference || `${String(t.id).slice(0, 4)}****`,
-            requestId: t.requestId || t.reference || t.invoiceNumber || `AM${t.id || i}`,
-          }));
-          setTransactions(mapped);
-          if (data.data.totalPages) setTotalPages(data.data.totalPages);
-          if (data.data.number !== undefined) setCurrentPage(data.data.number);
-        }
-      }
-
-      if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
-        const data = await analyticsRes.value.json();
-        if (data.action === 1 && data.data) {
-          setAnalytics(data.data);
-          if (data.data.earningsChart && Array.isArray(data.data.earningsChart)) {
-            setEarningsData(data.data.earningsChart.map((e: any) => ({
-              date: e.date || e.label || '',
-              value: e.value || e.amount || 0,
-            })));
-          }
-        }
-      }
-    } catch (err) {
-      console.error('[Transactions] Error fetching:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData(0);
-  }, [fetchData]);
-
-  // Fetch platform config + bonus status
-  useEffect(() => {
-    fetchPlatformConfig().then(setPlatformConfig);
-    if (user) {
-      (async () => {
-        try {
-          const res = await dashboardAuthFetch(`${getApiUrl()}/api/remote/photographer/bonus-status`);
-          if (res.ok) {
-            const result = await res.json();
-            if (result.data) setBonusStatus(result.data);
-          }
-        } catch { /* ignore */ }
-      })();
-    }
-  }, [user]);
-
-  // Totals come from the reconciled wallet (the same source as the top-bar
-  // balance). NOT a sum of the gross transaction rows. Summing the rows
-  // double-counted gross client payments and surfaced never-paid phantom
-  // declarations, so Total Earnings / Earnings Summary disagreed with the
-  // $11.95 wallet. Completed = currently withdrawable net, Pending = real
-  // ledger-backed holds, Withdrawn = lifetime paid out.
-  const totalCompleted = wallet?.balanceAvailable ?? 0;
-  const totalPending = wallet?.pendingAmount ?? 0;
-  const totalWithdrawn = wallet?.totalWithdrawn ?? 0;
-
-  // Wallet-based values (source of truth)
-  const totalTips = wallet?.balanceTips ?? tipsData.reduce((sum, t) => sum + t.amount, 0);
-  const completedEventsCount = analytics?.completedEvents || analytics?.totalCompletedEvents || 0;
-  const totalEventsAmount = analytics?.totalEarnings || totalCompleted + totalPending + totalWithdrawn;
-  const BONUS_THRESHOLD = bonusStatus.threshold || platformConfig.photographer.bonusThreshold;
-  const platformBonus = wallet?.balanceBonuses ?? bonusStatus.amount ?? 0;
-  const bonusApproved = bonusStatus.status === 'APPROVED';
-  const bonusPending = bonusStatus.status === 'PENDING_APPROVAL';
-  const bonusRejected = bonusStatus.status === 'REJECTED';
-  const bonusEarned = bonusApproved;
-  const bonusReached = completedEventsCount >= BONUS_THRESHOLD;
-  const eventsToBonus = Math.max(0, BONUS_THRESHOLD - completedEventsCount);
-
-  const resultsPerPage = 8;
-  const totalResults = transactions.length;
-
+/** The classic page body (header, filters, list). The dialogs are TransactionsPageModals, shared with the Compact Glass page. */
+const TransactionsPageBody = ({ ctl }: { ctl: PhotographerTransactionsController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    user,
+    router,
+    activeTimeFilter,
+    setActiveTimeFilter,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    setTotalPages,
+    chartType,
+    setChartType,
+    showReportModal,
+    setShowReportModal,
+    showTransactionModal,
+    setShowTransactionModal,
+    showWithdrawModal,
+    setShowWithdrawModal,
+    showSetupModal,
+    setShowSetupModal,
+    hasPaymentAccount,
+    setHasPaymentAccount,
+    showTipsModal,
+    setShowTipsModal,
+    selectedTransaction,
+    setSelectedTransaction,
+    isLoading,
+    setIsLoading,
+    wallet,
+    setWallet,
+    analytics,
+    setAnalytics,
+    handleViewTransaction,
+    handleDownloadReceipt,
+    transactions,
+    setTransactions,
+    walletError,
+    setWalletError,
+    earningsData,
+    setEarningsData,
+    tipsData,
+    setTipsData,
+    platformConfig,
+    setPlatformConfig,
+    bonusStatus,
+    setBonusStatus,
+    fetchData,
+    totalCompleted,
+    totalPending,
+    totalWithdrawn,
+    totalTips,
+    completedEventsCount,
+    totalEventsAmount,
+    BONUS_THRESHOLD,
+    platformBonus,
+    bonusApproved,
+    bonusPending,
+    bonusRejected,
+    bonusEarned,
+    bonusReached,
+    eventsToBonus,
+    resultsPerPage,
+    totalResults,
+  } = ctl;
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <style>{`
@@ -1444,7 +1314,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#16A34A', letterSpacing: '-0.02em', lineHeight: 1.05 }}>{formatPrice(totalTips)}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--g-success, #16A34A)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>{formatPrice(totalTips)}</div>
                   <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 2, fontWeight: 500 }}>{tipsData.length} tip{tipsData.length === 1 ? '' : 's'} received</div>
                 </div>
               </div>
@@ -1455,7 +1325,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                   <span style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Recent tips</span>
                   <button
                     onClick={() => setShowTipsModal(true)}
-                    style={{ fontSize: '0.78rem', color: '#16A34A', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    style={{ fontSize: '0.78rem', color: 'var(--g-success, #16A34A)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
                     View all <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
                   </button>
@@ -1479,7 +1349,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                         <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{tip.eventName} • {tip.date}</div>
                         {tip.message && <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', fontStyle: 'italic', marginTop: '0.15rem' }}>&ldquo;{tip.message}&rdquo;</div>}
                       </div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16A34A', flexShrink: 0, marginLeft: 8 }}>+${tip.amount}</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--g-success, #16A34A)', flexShrink: 0, marginLeft: 8 }}>+${tip.amount}</div>
                     </div>
                   ))}
                 </div>
@@ -1501,7 +1371,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <i className="bi bi-award-fill" style={{ fontSize: 17, color: '#083A85' }} />
+                    <i className="bi bi-award-fill" style={{ fontSize: 17, color: 'var(--g-link, #083A85)' }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Platform bonus</h3>
@@ -1583,12 +1453,12 @@ Amount: ${formatPrice(transaction.amountNum)}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <div style={{ padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(22,163,74,0.12)' : '#F0FDF4', borderRadius: 9, border: `1px solid ${actualTheme === 'dark' ? 'rgba(22,163,74,0.30)' : '#BBF7D0'}` }}>
                     <div style={{ fontSize: '0.66rem', fontWeight: 700, color: actualTheme === 'dark' ? '#4ADE80' : '#166534', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>Completed events</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#16A34A', letterSpacing: '-0.01em' }}>{completedEventsCount}</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--g-success, #16A34A)', letterSpacing: '-0.01em' }}>{completedEventsCount}</div>
                   </div>
                   {!bonusReached && (
                     <div style={{ padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : '#EFF6FF', borderRadius: 9, border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.45)' : '#BFDBFE'}` }}>
                       <div style={{ fontSize: '0.66rem', fontWeight: 700, color: actualTheme === 'dark' ? '#93C5FD' : '#083A85', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>Events remaining</div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#083A85', letterSpacing: '-0.01em' }}>{eventsToBonus}</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--g-link, #083A85)', letterSpacing: '-0.01em' }}>{eventsToBonus}</div>
                     </div>
                   )}
                   {bonusReached && (
@@ -1738,7 +1608,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                   <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Earnings summary</div>
                   <div style={{ fontSize: '0.94rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Current period</div>
                 </div>
-                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.78rem', color: '#083A85', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.78rem', color: 'var(--g-link, #083A85)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   View report <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
                 </button>
               </div>
@@ -1879,6 +1749,80 @@ Amount: ${formatPrice(transaction.amountNum)}
         </div>
       </div>
 
+    </div>
+  );
+};
+
+/** Every dialog of the page, unchanged; rendered by both the classic and the Compact Glass page. */
+export const TransactionsPageModals = ({ ctl }: { ctl: PhotographerTransactionsController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    user,
+    router,
+    activeTimeFilter,
+    setActiveTimeFilter,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    setTotalPages,
+    chartType,
+    setChartType,
+    showReportModal,
+    setShowReportModal,
+    showTransactionModal,
+    setShowTransactionModal,
+    showWithdrawModal,
+    setShowWithdrawModal,
+    showSetupModal,
+    setShowSetupModal,
+    hasPaymentAccount,
+    setHasPaymentAccount,
+    showTipsModal,
+    setShowTipsModal,
+    selectedTransaction,
+    setSelectedTransaction,
+    isLoading,
+    setIsLoading,
+    wallet,
+    setWallet,
+    analytics,
+    setAnalytics,
+    handleViewTransaction,
+    handleDownloadReceipt,
+    transactions,
+    setTransactions,
+    walletError,
+    setWalletError,
+    earningsData,
+    setEarningsData,
+    tipsData,
+    setTipsData,
+    platformConfig,
+    setPlatformConfig,
+    bonusStatus,
+    setBonusStatus,
+    fetchData,
+    totalCompleted,
+    totalPending,
+    totalWithdrawn,
+    totalTips,
+    completedEventsCount,
+    totalEventsAmount,
+    BONUS_THRESHOLD,
+    platformBonus,
+    bonusApproved,
+    bonusPending,
+    bonusRejected,
+    bonusEarned,
+    bonusReached,
+    eventsToBonus,
+    resultsPerPage,
+    totalResults,
+  } = ctl;
+  return (
+    <>
       {/* Modals */}
       <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} available={totalCompleted} pending={totalPending} withdrawn={totalWithdrawn} transactions={transactions} />
       <TransactionDetailsModal
@@ -1946,7 +1890,7 @@ Amount: ${formatPrice(transaction.amountNum)}
             border: '1px solid #BBF7D0',
             marginBottom: '1.25rem'
           }}>
-            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalTips)}</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--g-success, #16A34A)' }}>{formatPrice(totalTips)}</div>
             <div style={{ fontSize: '0.85rem', color: '#166534' }}>Total Tips Received</div>
             <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{tipsData.length} tips from clients</div>
           </div>
@@ -1975,7 +1919,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                       }}>TIP</span>
                       <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{tip.date}</span>
                     </div>
-                    <span style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>+${tip.amount}</span>
+                    <span style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--g-success, #16A34A)' }}>+${tip.amount}</span>
                   </div>
                   <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>{tip.clientName}</div>
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{tip.eventName}</div>
@@ -2018,8 +1962,16 @@ Amount: ${formatPrice(transaction.amountNum)}
           }
         }
       `}</style>
-    </div>
+    </>
   );
+};
+
+/** One controller for both views, so the classic page (UI_GLASS=off) and the Compact Glass page behave the same. */
+const TransactionsPage = () => {
+  const ctl = usePhotographerTransactions();
+  const glass = useUiGlass();
+  if (glass) return <GlassTransactions ctl={ctl} modals={<TransactionsPageModals ctl={ctl} />} chart={<EarningsChart data={ctl.earningsData} height={150} chartType={ctl.chartType} />} />;
+  return <><TransactionsPageBody ctl={ctl} /><TransactionsPageModals ctl={ctl} /></>;
 };
 
 export default TransactionsPage;

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { getActiveWorkspaceId } from '@/app/lib/workspace';
 import { getApiUrl } from "@/lib/api";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import domTranslationsData from "@/lib/domTranslations.json";
@@ -79,6 +80,15 @@ for (const [enKey, trans] of Object.entries(EXACT_DICT)) {
   }
 }
 
+// Case-insensitive lookup of a canonical key, built once. getDashboardCanonical runs for every text node the DOM
+// translator sees; it used to lowercase all ~2,700 keys per node, which cost hundreds of milliseconds of blocking time
+// per page load. The first key wins on a collision, exactly as the loop it replaces did.
+const keyByLower = new Map<string, string>();
+for (const key of Object.keys(EXACT_DICT)) {
+  const k = key.toLowerCase();
+  if (!keyByLower.has(k)) keyByLower.set(k, key);
+}
+
 export function getDashboardCanonical(raw: string): { canonical: string; leading: string; suffix: string; trailing: string } | null {
   if (!raw) return null;
   const leading = raw.match(/^\s*/)?.[0] ?? "";
@@ -94,10 +104,9 @@ export function getDashboardCanonical(raw: string): { canonical: string; leading
     return { canonical: baseTrimmed, leading, suffix, trailing };
   }
   const lower = baseTrimmed.toLowerCase();
-  for (const key of Object.keys(EXACT_DICT)) {
-    if (key.toLowerCase() === lower) {
-      return { canonical: key, leading, suffix, trailing };
-    }
+  const keyMatch = keyByLower.get(lower);
+  if (keyMatch !== undefined) {
+    return { canonical: keyMatch, leading, suffix, trailing };
   }
   const rev = reverseDict.get(lower);
   if (rev) {
@@ -232,6 +241,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // 2. Sync with backend preferences when authenticated
   useEffect(() => {
     if (!isAuthenticated || !user) return;
+    // Inside another photographer's workspace the server refuses account settings (WorkspacePolicy), so the
+    // browser's own choice stands and no request is made.
+    if (getActiveWorkspaceId()) return;
     (async () => {
       try {
         const res = await dashboardAuthFetch(`${getApiUrl()}${getPreferencesBasePath()}`);

@@ -18,6 +18,8 @@ import { resetShown } from './getStarted';
 
 let latest: ReturnType<typeof useGetStarted>;
 function Probe({ hasItems = false, canCreate = true }: { hasItems?: boolean; canCreate?: boolean }) {
+  // A test probe: hands the hook value to the test body (not app code).
+  // eslint-disable-next-line react-hooks/globals
   latest = useGetStarted({ role: 'photographer', canHost: true, canCreate, listLoaded: true, hasItems });
   return null;
 }

@@ -1,31 +1,19 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/app/context/ThemeContext';
-import {
-  approveOpportunity,
-  budgetLabel,
-  getPhotographerOpportunities,
-  getPhotographerOpportunity,
-  hhmm,
-  rejectOpportunity,
-  syncServerClock,
-  type OpportunityFilter,
-  type PhotographerOpportunity,
-} from '@/app/lib/hybridBooking';
-import { opportunityTabFor } from '@/app/lib/hybridStatus';
+import { budgetLabel, hhmm, type OpportunityFilter, type PhotographerOpportunity } from '@/app/lib/hybridBooking';
+import { DECLINE_REASONS, useOpportunities } from './useOpportunities';
 import { CountdownText, EventStartClock, HybridStyles, MODE_META, Notice, useCountdown } from './hybridUi';
 
-const TABS: { key: OpportunityFilter; label: string; icon: string; empty: string }[] = [
+export const TABS: { key: OpportunityFilter; label: string; icon: string; empty: string }[] = [
   { key: 'PENDING_RESPONSE', label: 'New', icon: 'bi-lightning-charge', empty: "No open opportunities right now. When a client posts an event that fits your profile and calendar, it appears here and you get a call-style alert." },
   { key: 'APPROVED', label: 'Waiting for client', icon: 'bi-hourglass-split', empty: 'Opportunities you said yes to wait here until the client chooses.' },
   { key: 'ALL', label: 'History', icon: 'bi-clock-history', empty: 'Your past opportunities and their outcomes will appear here.' },
 ];
 
-const DECLINE_REASONS = ['Already booked', 'Too far', 'Budget too low', 'Not my specialty', 'Other'];
-
-const STATUS_LABEL: Record<string, { text: string; tone: string }> = {
+export const STATUS_LABEL: Record<string, { text: string; tone: string }> = {
   INVITED: { text: 'Waiting for your answer', tone: '#F20C8F' },
   APPROVED: { text: 'You said yes · client choosing', tone: '#3B82F6' },
   SELECTED: { text: 'You were selected', tone: '#10B981' },
@@ -36,7 +24,7 @@ const STATUS_LABEL: Record<string, { text: string; tone: string }> = {
   NO_LONGER_AVAILABLE: { text: 'Released: your calendar overlaps', tone: '#6A6D76' },
 };
 
-const fmtDate = (d: string) => {
+export const fmtDate = (d: string) => {
   const t = Date.parse(`${d}T00:00:00`);
   return Number.isFinite(t) ? new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : d;
 };
@@ -48,86 +36,7 @@ const fmtDate = (d: string) => {
  */
 export default function PhotographerOpportunitiesView({ focusCandidateId }: { focusCandidateId?: string | null }) {
   const { colors } = useTheme();
-  const [tab, setTab] = useState<OpportunityFilter>('PENDING_RESPONSE');
-  const [items, setItems] = useState<PhotographerOpportunity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null);
-  const [declining, setDeclining] = useState<PhotographerOpportunity | null>(null);
-  const [reason, setReason] = useState<string>('');
-
-  const load = useCallback(async (which: OpportunityFilter) => {
-    try {
-      const data = await getPhotographerOpportunities(which);
-      setItems(which === 'ALL' ? data.filter((d) => d.status !== 'INVITED' && d.status !== 'APPROVED') : data);
-      setError(null);
-    } catch (e: any) {
-      setError(e?.message || 'Could not load opportunities.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    syncServerClock();
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    load(tab);
-    const id = setInterval(() => load(tab), tab === 'PENDING_RESPONSE' ? 10000 : 30000);
-    return () => clearInterval(id);
-  }, [tab, load]);
-
-  // A notification names one opportunity. Selected, not selected, expired or
-  // closed ones are listed under History, not New, so open the tab that has it.
-  useEffect(() => {
-    if (!focusCandidateId) return;
-    getPhotographerOpportunity(focusCandidateId)
-      .then((o) => setTab(opportunityTabFor(o.status)))
-      .catch(() => {});
-  }, [focusCandidateId]);
-
-  useEffect(() => {
-    if (!focusCandidateId || loading) return;
-    const el = document.getElementById(`opp-${focusCandidateId}`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [focusCandidateId, loading, items]);
-
-  const approve = async (o: PhotographerOpportunity) => {
-    setBusyId(o.opportunityId);
-    setNotice(null);
-    try {
-      await approveOpportunity(o.opportunityId);
-      setNotice({ tone: 'success', text: `You said yes to ${o.eventTitle}. The client will be told, and we'll let you know if they choose you.` });
-      load(tab);
-    } catch (e: any) {
-      setNotice({ tone: 'error', text: e?.message || 'Could not send your answer.' });
-      load(tab);
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const confirmDecline = async () => {
-    if (!declining) return;
-    const o = declining;
-    setBusyId(o.opportunityId);
-    try {
-      await rejectOpportunity(o.opportunityId, reason || undefined);
-      setNotice({ tone: 'info', text: `You passed on ${o.eventTitle}. It goes to the next photographer.` });
-      setDeclining(null);
-      setReason('');
-      load(tab);
-    } catch (e: any) {
-      setNotice({ tone: 'error', text: e?.message || 'Could not send your answer.' });
-      setDeclining(null);
-      load(tab);
-    } finally {
-      setBusyId(null);
-    }
-  };
+  const { tab, setTab, items, loading, error, busyId, notice, declining, setDeclining, reason, setReason, load, approve, confirmDecline, startDecline } = useOpportunities(focusCandidateId);
 
   const Card = ({ o }: { o: PhotographerOpportunity }) => {
     const open = o.status === 'INVITED';
@@ -198,7 +107,7 @@ export default function PhotographerOpportunitiesView({ focusCandidateId }: { fo
               style={{ flex: '1 1 180px', padding: '0.75rem 1rem', borderRadius: 12, border: 'none', background: colors.statusSuccess, color: '#fff', fontWeight: 800, cursor: 'pointer', fontSize: '0.92rem' }}>
               <i className="bi bi-check-lg" aria-hidden /> {busyId === o.opportunityId ? 'Sending…' : "Yes, I'm available"}
             </button>
-            <button type="button" className="hy-focus" disabled={busyId === o.opportunityId || left?.done} onClick={() => { setReason(''); setDeclining(o); }}
+            <button type="button" className="hy-focus" disabled={busyId === o.opportunityId || left?.done} onClick={() => startDecline(o)}
               style={{ flex: '1 1 140px', padding: '0.75rem 1rem', borderRadius: 12, border: `1.5px solid ${colors.borderPrimary}`, background: colors.bgCard, color: colors.textSecondary, fontWeight: 700, cursor: 'pointer' }}>
               Not this time
             </button>

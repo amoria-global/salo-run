@@ -14,7 +14,7 @@ export const MODE_META = {
     label: 'Find a Photographer',
     short: 'Direct booking',
     icon: 'bi-search',
-    color: '#083A85',
+    color: 'var(--g-link, #083A85)',
     soft: 'rgba(8,58,133,0.10)',
     line: 'You browse photographers, pick one, and send them a request.',
   },

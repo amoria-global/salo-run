@@ -10,6 +10,9 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import PayNowModal, { Payment as PayNowPayment } from '../../components/UnlockModal';
 import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
+import { usePaymentDetail, type PaymentDetailController } from '@/app/components/payments/usePaymentDetail';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassPaymentDetail from '@/app/components/glass/pages/GlassPaymentDetail';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -194,164 +197,41 @@ const formatDateShort = (dateStr: string | null): string => {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-const PaymentDetailPage: React.FC<PaymentDetailPageProps> = ({ userRole }) => {
-  const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
-  const { token } = useDashboardAuth();
-  const router = useRouter();
-  const params = useParams();
-  const id = params?.id as string;
-  // Pop-animate the main card if arrived via "Go to notification" for this id.
-  const highlightId = useHighlightOnMount();
-  const shouldHighlight = highlightId != null && highlightId === id;
-
-  const [payment, setPayment] = useState<PaymentDeclaration | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showPayNowModal, setShowPayNowModal] = useState(false);
-
-  const fetchPayment = useCallback(async () => {
-    // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
-    // sends the HttpOnly cookie regardless, so gate only on id.
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/payments/${id}`);
-      if (!res.ok) {
-        if (res.status === 404) {
-          setError('Payment not found.');
-        } else {
-          setError('Failed to load payment details. Please try again.');
-        }
-        setLoading(false);
-        return;
-      }
-      const result = await res.json();
-      const data = result.data || result;
-      setPayment({
-        id: data.id,
-        eventId: data.eventId,
-        eventTitle: data.eventTitle || 'Untitled Event',
-        photographerName: data.photographerName || 'Unknown Photographer',
-        photographerImage: normalizeImageUrl(data.photographerImage) || null,
-        amount: Number(data.amount) || 0,
-        currencyAbbreviation: data.currencyAbbreviation || 'USD',
-        paymentType: data.paymentType || 'BOOKING',
-        status: data.status || 'PENDING',
-        paidAmount: Number(data.paidAmount) || 0,
-        dueDate: data.dueDate || null,
-        createdAt: data.createdAt || '',
-        escrowStatus: data.escrowStatus || null,
-        escrowPercentage: data.escrowPercentage != null ? Number(data.escrowPercentage) : null,
-        heldAmount: Number(data.heldAmount) || 0,
-        releasedAmount: Number(data.releasedAmount) || 0,
-        eventCompletionStatus: data.eventCompletionStatus || null,
-        withdrawableAmount: Number(data.withdrawableAmount) || 0,
-        deliveryHeldAmount: Number(data.deliveryHeldAmount) || 0,
-        deliveryHeldReleased: Boolean(data.deliveryHeldReleased),
-        amountInUsd: Number(data.amountInUsd ?? data.amount) || 0,
-        paidAmountInUsd: Number(data.paidAmountInUsd ?? data.paidAmount) || 0,
-        heldAmountInUsd: Number(data.heldAmountInUsd ?? data.heldAmount) || 0,
-        releasedAmountInUsd: Number(data.releasedAmountInUsd ?? data.releasedAmount) || 0,
-        withdrawableAmountInUsd: Number(data.withdrawableAmountInUsd ?? data.withdrawableAmount) || 0,
-        deliveryHeldAmountInUsd: Number(data.deliveryHeldAmountInUsd ?? data.deliveryHeldAmount) || 0,
-      });
-    } catch (err) {
-      console.error('Failed to fetch payment:', err);
-      setError('An error occurred while loading payment details.');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    fetchPayment();
-  }, [fetchPayment]);
-
-  const remainingBalance = payment ? payment.amountInUsd - payment.paidAmountInUsd : 0;
-  const paymentProgress = payment && payment.amountInUsd > 0
-    ? Math.min((payment.paidAmountInUsd / payment.amountInUsd) * 100, 100)
-    : 0;
-
-  const isBooking = payment?.paymentType?.toUpperCase() === 'BOOKING';
-  const canPay = payment && (payment.status?.toUpperCase() === 'PENDING' || payment.status?.toUpperCase() === 'PARTIAL');
-  const isPaid = payment && (payment.status?.toUpperCase() === 'COMPLETED' || payment.status?.toUpperCase() === 'PAID');
-
-  // 70/30 breakdown helpers
-  const has7030Split = isBooking && payment?.escrowPercentage === 70;
-  const totalEscrowAmount = payment ? payment.withdrawableAmount + payment.deliveryHeldAmount : 0;
-  const withdrawablePercent = totalEscrowAmount > 0
-    ? (payment!.withdrawableAmount / totalEscrowAmount) * 100
-    : 70;
-  const deliveryHeldPercent = totalEscrowAmount > 0
-    ? (payment!.deliveryHeldAmount / totalEscrowAmount) * 100
-    : 30;
-
-  const handlePayNow = () => {
-    if (!payment) return;
-    setShowPayNowModal(true);
-  };
-
-  // Convert PaymentDeclaration to the Payment type expected by PayNowModal
-  const payNowPayment: PayNowPayment | null = payment ? {
-    id: typeof payment.id === 'string' ? parseInt(payment.id, 10) || 0 : payment.id as unknown as number,
-    declarationId: String(payment.id),
-    eventId: payment.eventId,
-    date: payment.createdAt,
-    eventName: payment.eventTitle,
-    eventType: payment.paymentType,
-    photographerName: payment.photographerName,
-    photographerImage: payment.photographerImage || '',
-    method: '',
-    amount: formatPrice(payment.amount, payment.currencyAbbreviation),
-    amountNum: payment.amount,
-    paidAmount: payment.paidAmount,
-    status: payment.status?.toLowerCase() as any,
-    invoiceNumber: `INV-${String(payment.id).substring(0, 8).toUpperCase()}`,
-  } : null;
-
-  const handleDownloadReceipt = () => {
-    if (!payment) return;
-    const invoiceNumber = `INV-${String(payment.id).substring(0, 8).toUpperCase()}`;
-    const receiptContent = `
-=====================================
-        PAYMENT RECEIPT
-=====================================
-
-Invoice: ${invoiceNumber}
-Date: ${formatDateTime(payment.createdAt)}
-Status: ${getStatusLabel(payment.status)}
-
-Event: ${payment.eventTitle}
-Photographer: ${payment.photographerName}
-Payment Type: ${payment.paymentType}
-
-Amount: ${payment.currencyAbbreviation} ${payment.amount}
-Paid: ${payment.currencyAbbreviation} ${payment.paidAmount}
-Remaining: ${payment.currencyAbbreviation} ${Math.max(payment.amount - payment.paidAmount, 0)}
-${isBooking && payment.escrowPercentage ? `
-Escrow: ${payment.escrowPercentage}%
-Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
-` : ''}
-=====================================
-    Thank you for using Connekt
-=====================================
-    `;
-    const blob = new Blob([receiptContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receipt-${invoiceNumber}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleGoBack = () => {
-    router.back();
-  };
-
+const ClassicPaymentDetailPage = ({ ctl }: { ctl: PaymentDetailController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    token,
+    router,
+    params,
+    id,
+    highlightId,
+    shouldHighlight,
+    payment,
+    setPayment,
+    loading,
+    setLoading,
+    error,
+    setError,
+    showPayNowModal,
+    setShowPayNowModal,
+    fetchPayment,
+    remainingBalance,
+    paymentProgress,
+    isBooking,
+    canPay,
+    isPaid,
+    has7030Split,
+    totalEscrowAmount,
+    withdrawablePercent,
+    deliveryHeldPercent,
+    handlePayNow,
+    payNowPayment,
+    handleDownloadReceipt,
+    handleGoBack,
+    userRole,
+  } = ctl;
   // ── Render ─────────────────────────────────────────────────────────────────
 
   // Loading state
@@ -630,7 +510,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                     border: `1px solid ${colors.borderPrimary}`,
                   }}>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Paid</div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10B981' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--g-success, #10B981)' }}>
                       {formatPrice(payment.paidAmountInUsd)}
                     </div>
                   </div>
@@ -668,7 +548,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                   padding: '1.5rem',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <span style={{ color: '#3B82F6' }}><ShieldIcon /></span>
+                    <span style={{ color: 'var(--g-link, #3B82F6)' }}><ShieldIcon /></span>
                     <h2 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Escrow & Milestone</h2>
                   </div>
 
@@ -681,7 +561,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       border: `1px solid ${colors.borderPrimary}`,
                     }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Escrow Percentage</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#3B82F6' }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--g-link, #3B82F6)' }}>
                         {payment.escrowPercentage}%
                       </div>
                     </div>
@@ -716,7 +596,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       border: `1px solid ${colors.borderPrimary}`,
                     }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Held Amount</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#F59E0B' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--g-warning, #F59E0B)' }}>
                         {formatPrice(payment.heldAmountInUsd)}
                       </div>
                     </div>
@@ -727,7 +607,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       border: `1px solid ${colors.borderPrimary}`,
                     }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Released Amount</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10B981' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--g-success, #10B981)' }}>
                         {formatPrice(payment.releasedAmountInUsd)}
                       </div>
                     </div>
@@ -778,7 +658,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                           <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                           <div>
                             <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawable </span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#10B981' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--g-success, #10B981)' }}>
                               {formatPrice(payment.withdrawableAmountInUsd)}
                             </span>
                           </div>
@@ -815,12 +695,12 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       }}>
                         {payment.deliveryHeldReleased ? (
                           <>
-                            <span style={{ color: '#10B981' }}><CheckCircleIcon /></span>
+                            <span style={{ color: 'var(--g-success, #10B981)' }}><CheckCircleIcon /></span>
                             Delivery-held funds have been released
                           </>
                         ) : (
                           <>
-                            <span style={{ color: '#F59E0B' }}><ClockIcon /></span>
+                            <span style={{ color: 'var(--g-warning, #F59E0B)' }}><ClockIcon /></span>
                             Delivery-held funds are pending release
                           </>
                         )}
@@ -840,7 +720,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
                       fontWeight: '500',
                     }}>
                       {payment.eventCompletionStatus === 'COMPLETED' ? (
-                        <span style={{ color: '#10B981' }}><CheckCircleIcon /></span>
+                        <span style={{ color: 'var(--g-success, #10B981)' }}><CheckCircleIcon /></span>
                       ) : (
                         <span style={{ color: colors.textSecondary }}><ClockIcon /></span>
                       )}
@@ -1151,5 +1031,12 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ colors, icon, label, date, 
     </div>
   </div>
 );
+
+/** One controller for both views, so the classic page (UI_GLASS=off) and the Compact Glass page behave the same. */
+const PaymentDetailPage: React.FC<PaymentDetailPageProps> = ({ userRole }) => {
+  const ctl = usePaymentDetail(userRole);
+  const glass = useUiGlass();
+  return glass ? <GlassPaymentDetail ctl={ctl} /> : <ClassicPaymentDetailPage ctl={ctl} />;
+};
 
 export default PaymentDetailPage;

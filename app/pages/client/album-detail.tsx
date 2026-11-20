@@ -10,6 +10,9 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import ArchiveRestoreFlow from '../../components/ArchiveRestoreFlow';
 import { archivedMessage, archiveFeeText } from '@/lib/archivedCopy';
+import { useAlbumDetail, type AlbumDetailController } from '@/app/components/gallery/useAlbumDetail';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassAlbumDetail from '@/app/components/glass/pages/GlassAlbumDetail';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -182,146 +185,41 @@ const getPaymentStatusLabel = (status: string | null): string => {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
-  const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
-  const { token } = useDashboardAuth();
-  const router = useRouter();
-  const params = useParams();
-  const id = params?.id as string;
-
-  const [album, setAlbum] = useState<Album | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  const fetchAlbum = useCallback(async () => {
-    // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
-    // sends the HttpOnly cookie regardless, so gate only on id.
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const apiUrl = getApiUrl();
-      const endpoint = userRole === 'event-coordinator'
-        ? `${apiUrl}/api/remote/coordinator/galleries/${id}`
-        : `${apiUrl}/api/remote/customer/albums/${id}`;
-      const res = await dashboardAuthFetch(endpoint);
-      if (!res.ok) {
-        if (res.status === 404) {
-          setError('Album not found.');
-        } else {
-          setError('Failed to load album details. Please try again.');
-        }
-        setLoading(false);
-        return;
-      }
-      const result = await res.json();
-      const data = result.data || result;
-      setAlbum({
-        id: data.id,
-        title: data.title || 'Untitled Album',
-        eventId: data.eventId || null,
-        photographerId: data.photographerId || null,
-        photographer: data.photographer || 'Unknown Photographer',
-        photographerAvatar: normalizeImageUrl(data.photographerAvatar) || null,
-        category: data.category || '',
-        date: data.date || null,
-        eventLocation: data.eventLocation || null,
-        isArchived: Boolean(data.isArchived),
-        isCompleted: Boolean(data.isCompleted),
-        lockedAt: data.lockedAt || null,
-        archiveFee: typeof data.archiveFee === 'number' ? data.archiveFee : null,
-        archiveCurrency: data.archiveCurrency || null,
-        receivedDate: data.receivedDate || null,
-        thumbnail: normalizeImageUrl(data.thumbnail) || null,
-        photoCount: Number(data.photoCount) || 0,
-        downloadedCount: Number(data.downloadedCount) || 0,
-        favoriteCount: Number(data.favoriteCount) || 0,
-        images: (data.images || []).map((img: any) => ({
-          id: img.id,
-          fileUrl: normalizeImageUrl(img.fileUrl) || '',
-          caption: img.caption || null,
-          sortOrder: img.sortOrder || 0,
-        })),
-        payment: data.payment ? {
-          amountDue: Number(data.payment.amountDue) || 0,
-          status: data.payment.status || null,
-          eventName: data.payment.eventName || null,
-          photographerName: data.payment.photographerName || null,
-        } : null,
-        expiresAt: data.expiresAt || null,
-        isLocked: Boolean(data.isLocked),
-        storageSubscriptionId: data.storageSubscriptionId || null,
-      });
-    } catch (err) {
-      console.error('Failed to fetch album:', err);
-      setError('An error occurred while loading album details.');
-    } finally {
-      setLoading(false);
-    }
-  }, [id, userRole]);
-
-  useEffect(() => {
-    fetchAlbum();
-  }, [fetchAlbum]);
-
-  const handleGoBack = () => {
-    router.back();
-  };
-
-  const [showRestore, setShowRestore] = useState(false);
-  const handleUnlock = () => {
-    if (!album) return;
-    setShowRestore(true);
-  };
-
-  const handleDelete = async () => {
-    if (!album || actionLoading) return;
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/albums/${id}`, {
-        method: 'DELETE',
-      });
-      const body = await res.json().catch(() => null);
-      // The backend answers 200 with action 0 for some failures, so both are checked.
-      if (res.ok && body?.action !== 0) {
-        router.back();
-      } else {
-        setActionError(body?.message || 'This album could not be deleted. Please try again.');
-      }
-    } catch (err) {
-      console.error('Failed to delete album:', err);
-      setActionError('This album could not be deleted. Check your connection and try again.');
-    } finally {
-      setActionLoading(false);
-      setShowDeleteConfirm(false);
-    }
-  };
-
-  const openLightbox = (index: number) => {
-    setLightboxIndex(index);
-  };
-
-  const closeLightbox = () => {
-    setLightboxIndex(null);
-  };
-
-  const goToPrevImage = () => {
-    if (lightboxIndex === null || !album) return;
-    setLightboxIndex(lightboxIndex === 0 ? album.images.length - 1 : lightboxIndex - 1);
-  };
-
-  const goToNextImage = () => {
-    if (lightboxIndex === null || !album) return;
-    setLightboxIndex(lightboxIndex === album.images.length - 1 ? 0 : lightboxIndex + 1);
-  };
-
+const ClassicAlbumDetailPage = ({ ctl }: { ctl: AlbumDetailController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    token,
+    router,
+    params,
+    id,
+    album,
+    setAlbum,
+    loading,
+    setLoading,
+    error,
+    setError,
+    lightboxIndex,
+    setLightboxIndex,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    actionLoading,
+    setActionLoading,
+    actionError,
+    setActionError,
+    fetchAlbum,
+    handleGoBack,
+    showRestore,
+    setShowRestore,
+    handleUnlock,
+    handleDelete,
+    openLightbox,
+    closeLightbox,
+    goToPrevImage,
+    goToNextImage,
+    userRole,
+  } = ctl;
   // ── Render ─────────────────────────────────────────────────────────────────
 
   // Loading state
@@ -562,7 +460,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                   }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                    background: 'transparent', color: '#F59E0B',
+                    background: 'transparent', color: 'var(--g-warning, #F59E0B)',
                     border: '1.5px solid #F59E0B', borderRadius: '0.5rem',
                     padding: '0.55rem 1rem',
                     fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
@@ -619,9 +517,9 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                     textAlign: 'center',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                      <span style={{ color: '#3B82F6' }}><ImageIcon /></span>
+                      <span style={{ color: 'var(--g-link, #3B82F6)' }}><ImageIcon /></span>
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#3B82F6' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--g-link, #3B82F6)' }}>
                       {album.photoCount}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Photos</div>
@@ -634,9 +532,9 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                     textAlign: 'center',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                      <span style={{ color: '#10B981' }}><DownloadIcon /></span>
+                      <span style={{ color: 'var(--g-success, #10B981)' }}><DownloadIcon /></span>
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#10B981' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--g-success, #10B981)' }}>
                       {album.downloadedCount}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Downloaded</div>
@@ -649,9 +547,9 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                     textAlign: 'center',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                      <span style={{ color: '#EF4444' }}><HeartIcon /></span>
+                      <span style={{ color: 'var(--g-error, #EF4444)' }}><HeartIcon /></span>
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#EF4444' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--g-error, #EF4444)' }}>
                       {album.favoriteCount}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Favorites</div>
@@ -690,7 +588,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       margin: '0 auto 1rem',
-                      color: '#F59E0B',
+                      color: 'var(--g-warning, #F59E0B)',
                     }}>
                       <LockIcon />
                     </div>
@@ -850,7 +748,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                 )}
 
                 {actionError && (
-                  <div role="alert" style={{ color: '#DC2626', fontSize: '0.85rem', fontWeight: '500', textAlign: 'center' }}>
+                  <div role="alert" style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.85rem', fontWeight: '500', textAlign: 'center' }}>
                     {actionError}
                   </div>
                 )}
@@ -865,7 +763,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                       justifyContent: 'center',
                       gap: '0.5rem',
                       backgroundColor: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2',
-                      color: '#EF4444',
+                      color: 'var(--g-error, #EF4444)',
                       border: `2px solid ${actualTheme === 'dark' ? '#EF444440' : '#EF444430'}`,
                       borderRadius: '0.5rem',
                       padding: '0.875rem 1.5rem',
@@ -885,7 +783,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
                     borderRadius: '0.5rem',
                     padding: '1rem',
                   }}>
-                    <p style={{ fontSize: '0.85rem', color: '#EF4444', fontWeight: '600', marginBottom: '0.75rem', margin: '0 0 0.75rem 0' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--g-error, #EF4444)', fontWeight: '600', marginBottom: '0.75rem', margin: '0 0 0.75rem 0' }}>
                       Are you sure you want to delete this album? This action cannot be undone.
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1220,5 +1118,12 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value, colors, valueColor }) =
     </span>
   </div>
 );
+
+/** One controller for both views, so the classic page (UI_GLASS=off) and the Compact Glass page behave the same. */
+const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
+  const ctl = useAlbumDetail(userRole);
+  const glass = useUiGlass();
+  return glass ? <GlassAlbumDetail ctl={ctl} /> : <ClassicAlbumDetailPage ctl={ctl} />;
+};
 
 export default AlbumDetailPage;

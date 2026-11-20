@@ -17,6 +17,9 @@ import InternationalPhoneInput, { type PhoneValue } from '../../components/phone
 import { iconForOperator } from '@/lib/payments/operatorIcons';
 import type { PaymentOperator } from '@/lib/payments/types';
 import SortDropdown from '../../components/SortDropdown';
+import { StarIcon, useBookedPhotographers, type BookedPhotographersController } from '@/app/components/photographers/useBookedPhotographers';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassPhotographers from '@/app/components/glass/pages/GlassPhotographers';
 
 // Icons
 const SearchIcon = () => (
@@ -26,11 +29,6 @@ const SearchIcon = () => (
   </svg>
 );
 
-const StarIcon = ({ filled }: { filled: boolean }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? '#FBBF24' : 'none'} xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
 
 const HeartIcon = ({ filled }: { filled: boolean }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? '#F20C8F' : 'none'} xmlns="http://www.w3.org/2000/svg">
@@ -348,719 +346,187 @@ interface PhotographersPageProps {
   userRole?: 'client' | 'event-coordinator';
 }
 
-const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps) => {
-  const { colors, actualTheme } = useTheme();
-  const { formatPrice, currencyId } = useCurrency();
-  const { user } = useDashboardAuth();
-  const router = useRouter();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSpecialization, setSelectedSpecialization] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedPhotographer, setSelectedPhotographer] = useState<BookedPhotographer | null>(null);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportPhotographer, setReportPhotographer] = useState<BookedPhotographer | null>(null);
-  const [reportReason, setReportReason] = useState('');
-  const [reportDescription, setReportDescription] = useState('');
-  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [showRebookModal, setShowRebookModal] = useState(false);
-  const [rebookPhotographer, setRebookPhotographer] = useState<BookedPhotographer | null>(null);
-  const [rebookEventType, setRebookEventType] = useState('');
-  const [rebookDate, setRebookDate] = useState('');
-  const [rebookTime, setRebookTime] = useState('');
-  const [rebookLocation, setRebookLocation] = useState('');
-  const [rebookNotes, setRebookNotes] = useState('');
-  const [isSubmittingRebook, setIsSubmittingRebook] = useState(false);
-  const [rebookError, setRebookError] = useState<string | null>(null);
-  const [rebookEvents, setRebookEvents] = useState<{id: string; title: string; eventType: string; eventDate: string; startTime: string; endTime: string; location: string; city: string; country: string; address: string}[]>([]);
-  const [rebookEventsLoading, setRebookEventsLoading] = useState(false);
-  const [selectedRebookEventId, setSelectedRebookEventId] = useState<string>('');
-  const [rebookPackages, setRebookPackages] = useState<any[]>([]);
-  const [rebookPackageId, setRebookPackageId] = useState<string>('');
-  const [rebookPackagesLoading, setRebookPackagesLoading] = useState(false);
-  const [rebookPackagesError, setRebookPackagesError] = useState<string | null>(null);
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewPhotographer, setReviewPhotographer] = useState<BookedPhotographer | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; photographer: BookedPhotographer } | null>(null);
-  const [sortBy, setSortBy] = useState<'recent' | 'rating' | 'bookings' | 'spent'>('recent');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'pending_payments'>('all');
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewText, setReviewText] = useState('');
-  const [reviewEvents, setReviewEvents] = useState<{id: string; title: string; eventDate: string}[]>([]);
-  const [selectedReviewEventId, setSelectedReviewEventId] = useState<string>('');
-  const [reviewEventsLoading, setReviewEventsLoading] = useState(false);
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [reviewError, setReviewError] = useState<string | null>(null);
-  const [tipAmount, setTipAmount] = useState<number | 'custom' | ''>('');
-  const [customTipAmount, setCustomTipAmount] = useState('');
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  // New states for tip flow
-  const [showTipPromptModal, setShowTipPromptModal] = useState(false);
-  const [showTipSelectionModal, setShowTipSelectionModal] = useState(false);
-  const [showTipPaymentModal, setShowTipPaymentModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  // Invite modal states
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteError, setInviteError] = useState<string | null>(null);
-  const [isSendingInvite, setIsSendingInvite] = useState(false);
-  const [inviteCopied, setInviteCopied] = useState(false);
-  const [pendingReviewPhotographer, setPendingReviewPhotographer] = useState<BookedPhotographer | null>(null);
-  const [selectedTipPaymentMethod, setSelectedTipPaymentMethod] = useState<string>('card');
-  const [selectedTipOperator, setSelectedTipOperator] = useState<PaymentOperator | null>(null);
-  const [paymentBooking, setPaymentBooking] = useState<{ photographer: BookedPhotographer; booking: Booking } | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
-  // Multi-country PawaPay: detected/overridable country + selected operator
-  // object (for receipt logo/name). Shared by both payment flows below.
-  const { country: payCountry, setCountry: setPayCountry } = usePaymentCountry();
-  const [selectedOperator, setSelectedOperator] = useState<PaymentOperator | null>(null);
-  // Donation states for payment modal
-  const [payDonationAmount, setPayDonationAmount] = useState<string>('');
-  const [payCustomDonation, setPayCustomDonation] = useState<string>('');
-  const [payDonationSkipped, setPayDonationSkipped] = useState<boolean>(false);
-  const [payShowCustomInput, setPayShowCustomInput] = useState<boolean>(false);
-  const [payShowReceipt, setPayShowReceipt] = useState<boolean>(false);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  // XentriPay states
-  const [paymentPhone, setPaymentPhone] = useState<PhoneValue | null>(null);
-  const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
-  const [xentriPayError, setXentriPayError] = useState<string>('');
-  const stopPollingRef = React.useRef<(() => void) | null>(null);
-  // Donation states for tip payment modal
-  const [tipDonationAmount, setTipDonationAmount] = useState<string>('');
-  const [tipCustomDonation, setTipCustomDonation] = useState<string>('');
-  const [tipDonationSkipped, setTipDonationSkipped] = useState<boolean>(false);
-  const [tipShowCustomInput, setTipShowCustomInput] = useState<boolean>(false);
-  const [tipShowReceipt, setTipShowReceipt] = useState<boolean>(false);
-
-  const [photographers, setPhotographers] = useState<BookedPhotographer[]>([]);
-
-  const specializations = ['Weddings', 'Events', 'Portraits', 'Birthdays', 'Corporate', 'Fashion', 'Festivals', 'Concerts'];
-
-  // Fetch booked photographers from API
-  useEffect(() => {
-    // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
-    // sends the HttpOnly cookie regardless, so gate only on user id.
-    if (!user?.id) return;
-
-    const fetchPhotographers = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const ns = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
-        const endpoint = `${apiUrl}/api/remote/${ns}/photographers`;
-
-        // Fetch photographers and bookmarks in parallel
-        const [response, bookmarksResponse] = await Promise.all([
-          dashboardAuthFetch(endpoint, { headers: { 'Content-Type': 'application/json' } }),
-          dashboardAuthFetch(`${apiUrl}/api/remote/customer/photographers/bookmarks`, { headers: { 'Content-Type': 'application/json' } }).catch(() => null),
-        ]);
-        if (!response.ok) throw new Error('Failed to fetch photographers');
-        const result = await response.json();
-
-        // Build a set of bookmarked photographer IDs
-        const bookmarkedIds = new Set<string>();
-        if (bookmarksResponse?.ok) {
-          try {
-            const bmResult = await bookmarksResponse.json();
-            const bmData = bmResult?.data?.content || bmResult?.data || [];
-            const bmArr = Array.isArray(bmData) ? bmData : [];
-            bmArr.forEach((b: any) => {
-              if (b.photographerId) bookmarkedIds.add(b.photographerId);
-            });
-          } catch { /* ignore parse errors */ }
-        }
-
-        // Coordinator endpoint returns paginated {content:[...]}, customer returns flat array
-        const data = result?.data?.content || result?.data || [];
-        const mapped: BookedPhotographer[] = data.map((p: any) => ({
-          id: p.id,
-          firstName: p.firstName || '',
-          lastName: p.lastName || '',
-          profileImage: normalizeImageUrl(p.profileImage || p.profilePicture || undefined),
-          coverImage: normalizeImageUrl(p.coverImage || p.coverPicture || '') || '',
-          portfolioImages: (p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || '')).map((url: string) => normalizeImageUrl(url) || ''),
-          bio: p.bio || p.about || '',
-          specializations: p.specializations || (p.specialties || []).map((s: any) => typeof s === 'string' ? s : s.name || ''),
-          experience: p.experience || 0,
-          location: p.location || (p.address ? { city: p.address, country: '' } : { city: '', country: '' }),
-          rating: Number(p.rating) || 0, // unrated shows as New, not an invented 5.0
-          reviewCount: p.reviewCount || (p.reviews || []).length || 0,
-          completedBookings: p.completedBookings || 0,
-          verified: p.isVerified || p.profileReviewStatus === 'ACCEPTED' || false,
-          startingPrice: p.startingPrice || 0,
-          responseTime: p.responseTime || 'N/A',
-          isFavorite: p.isFavorite || p.isBookmarked || p.bookmarked || bookmarkedIds.has(p.id) || false,
-          isAvailable: p.isAvailable || false,
-          languages: p.languages || [],
-          equipment: p.equipment || (p.equipments || []).map((e: any) => typeof e === 'string' ? e : e.name || ''),
-          lastBookingDate: p.lastBookingDate || '',
-          lastEventType: p.lastEventType || '',
-          lastEventName: p.lastEventName || '',
-          totalBookingsWithClient: p.totalBookingsWithClient || 0,
-          totalSpent: p.totalSpent || 0,
-          myRating: p.myRating || undefined,
-          myReview: p.myReview || undefined,
-          bookings: (p.bookings || []).map((b: any) => ({
-            id: b.id,
-            declarationId: b.declarationId || b.paymentDeclarationId || b.id,
-            eventName: b.eventName || '',
-            eventType: b.eventType || '',
-            eventDate: b.eventDate || '',
-            eventTime: b.eventTime || '',
-            duration: b.duration || '',
-            location: b.location || '',
-            packageName: b.packageName || '',
-            totalAmount: b.totalAmount || 0,
-            paidAmount: b.paidAmount || 0,
-            paymentStatus: b.paymentStatus || 'pending',
-            status: b.status || 'upcoming',
-          })),
-        }));
-        setPhotographers(mapped);
-      } catch (err) {
-        console.error('Failed to fetch photographers:', err);
-      }
-    };
-
-    fetchPhotographers();
-  }, [user?.id]);
-
-  // Fetch completed events when review modal opens. dashboardAuthFetch
-  // authenticates via the HttpOnly cookie; the context token is always null,
-  // so gating on it meant this list never loaded (CONN-AUTH-10).
-  useEffect(() => {
-    if (!showReviewModal || !reviewPhotographer) return;
-
-    const fetchEvents = async () => {
-      setReviewEventsLoading(true);
-      setReviewError(null);
-      try {
-        const apiUrl = getApiUrl();
-        const eventsNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
-        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/${eventsNs}/events?page=0&size=100`);
-
-        if (!response.ok) throw new Error('Failed to fetch events');
-
-        const result = await response.json();
-        const events = result?.data?.content || result?.data || [];
-
-        // Filter for completed events involving this photographer
-        const completedEvents = events
-          .filter((evt: { status?: string; photographerId?: string }) =>
-            evt.photographerId === reviewPhotographer.id &&
-            (evt.status === 'COMPLETED' || evt.status === 'completed')
-          )
-          .map((evt: { id: string; title?: string; eventDate?: string }) => ({
-            id: evt.id,
-            title: evt.title || 'Untitled Event',
-            eventDate: evt.eventDate || '',
-          }));
-
-        setReviewEvents(completedEvents);
-      } catch (err) {
-        console.error('Failed to fetch events for review:', err);
-        setReviewEvents([]);
-      } finally {
-        setReviewEventsLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, [showReviewModal, reviewPhotographer]);
-
-  // Fetch existing events when rebook modal opens
-  useEffect(() => {
-    if (!showRebookModal) return;
-
-    const fetchRebookEvents = async () => {
-      setRebookEventsLoading(true);
-      try {
-        const apiUrl = getApiUrl();
-        const eventsNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
-        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/${eventsNs}/events?page=0&size=100`);
-        if (!response.ok) throw new Error('Failed to fetch events');
-        const result = await response.json();
-        const rawEvents = result?.data?.content || result?.data || [];
-        const events = Array.isArray(rawEvents) ? rawEvents : [];
-        const upcoming = events
-          .filter((evt: any) => {
-            const s = (evt.eventStatus || evt.status || '').toUpperCase();
-            return s !== 'CANCELLED' && s !== 'CANCELED';
-          })
-          .map((evt: any) => ({
-            id: evt.id,
-            title: evt.title || evt.eventName || 'Untitled Event',
-            eventType: evt.eventCategory || evt.eventType || evt.title || '',
-            eventDate: evt.eventDate || '',
-            startTime: evt.startTime || '',
-            endTime: evt.endTime || '',
-            location: evt.location || '',
-            city: '',
-            country: '',
-            address: '',
-          }));
-        setRebookEvents(upcoming);
-      } catch (err) {
-        console.error('Failed to fetch events for rebook:', err);
-        setRebookEvents([]);
-      } finally {
-        setRebookEventsLoading(false);
-      }
-    };
-
-    fetchRebookEvents();
-  }, [showRebookModal]);
-
-  // Fetch photographer packages when rebook modal opens
-  useEffect(() => {
-    if (!showRebookModal || !rebookPhotographer) return;
-
-    const fetchPackages = async () => {
-      setRebookPackagesLoading(true);
-      setRebookPackagesError(null);
-      try {
-        const apiUrl = getApiUrl();
-        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/public/photographers/${rebookPhotographer.id}/packages`);
-        if (!response.ok) throw new Error('Failed to fetch packages');
-        const result = await response.json();
-        const pkgs = result?.data || result || [];
-        setRebookPackages(Array.isArray(pkgs) ? pkgs : []);
-      } catch (err) {
-        console.error('Failed to fetch photographer packages:', err);
-        setRebookPackagesError('Could not load packages');
-        setRebookPackages([]);
-      } finally {
-        setRebookPackagesLoading(false);
-      }
-    };
-
-    fetchPackages();
-  }, [showRebookModal, rebookPhotographer]);
-
-  const handleRebookEventSelect = (eventId: string) => {
-    setSelectedRebookEventId(eventId);
-    if (!eventId) {
-      // Cleared selection. reset fields
-      setRebookEventType('');
-      setRebookDate('');
-      setRebookTime('');
-      setRebookLocation('');
-      return;
-    }
-    const evt = rebookEvents.find(e => e.id === eventId);
-    if (!evt) return;
-    setRebookEventType(evt.eventType || '');
-    setRebookDate(evt.eventDate || '');
-    setRebookTime(evt.startTime || '');
-    setRebookLocation(evt.location || '');
-  };
-
-  const toggleFavorite = async (id: string) => {
-    const photographer = photographers.find(p => p.id === id);
-    if (!photographer) return;
-    const willFavorite = !photographer.isFavorite;
-    setPhotographers(prev => prev.map(p =>
-      p.id === id ? { ...p, isFavorite: willFavorite } : p
-    ));
-    try {
-      const apiUrl = getApiUrl();
-      // Bookmark endpoints are under /customer/ for all roles (no role restriction)
-      const endpoint = willFavorite
-        ? `${apiUrl}/api/remote/customer/photographers/bookmark/${id}`
-        : `${apiUrl}/api/remote/customer/photographers/unbookmark/${id}`;
-      const res = await dashboardAuthFetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.message || 'Bookmark failed');
-      }
-    } catch (err) {
-      console.error('Failed to toggle favorite:', err);
-      setPhotographers(prev => prev.map(p =>
-        p.id === id ? { ...p, isFavorite: !willFavorite } : p
-      ));
-    }
-  };
-
-  const handleContextMenu = (e: React.MouseEvent, photographer: BookedPhotographer) => {
-    e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, photographer });
-  };
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '-';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const getPaymentStatusColor = (status: PaymentStatus) => {
-    switch (status) {
-      case 'paid': return { bg: actualTheme === 'dark' ? '#14532D' : '#DCFCE7', text: actualTheme === 'dark' ? '#86EFAC' : '#15803D' };
-      case 'pending': return { bg: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', text: actualTheme === 'dark' ? '#FCD34D' : '#B45309' };
-      case 'partially_paid': return { bg: actualTheme === 'dark' ? '#1E3A8A' : '#DBEAFE', text: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8' };
-      case 'failed': return { bg: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', text: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' };
-      default: return { bg: actualTheme === 'dark' ? '#374151' : '#F3F4F6', text: actualTheme === 'dark' ? '#D1D5DB' : '#6B7280' };
-    }
-  };
-
-  // Get photographers with pending payments
-  const photographersWithPendingPayments = photographers.filter(p =>
-    p.bookings.some(b => b.paymentStatus === 'pending' || b.paymentStatus === 'partially_paid' || b.paymentStatus === 'failed')
-  );
-
-  // Calculate total pending amount
-  const totalPendingAmount = photographers.reduce((sum, p) => {
-    return sum + p.bookings.reduce((bookingSum, b) => {
-      if (b.paymentStatus === 'pending' || b.paymentStatus === 'partially_paid' || b.paymentStatus === 'failed') {
-        return bookingSum + (b.totalAmount - b.paidAmount);
-      }
-      return bookingSum;
-    }, 0);
-  }, 0);
-
-  const filteredPhotographers = photographers.filter(photographer => {
-    const matchesSearch = searchQuery === '' ||
-      `${photographer.firstName} ${photographer.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      photographer.specializations.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesSpecialization = !selectedSpecialization ||
-      photographer.specializations.includes(selectedSpecialization);
-    const matchesTab = activeTab === 'all' ||
-      (activeTab === 'favorites' && photographer.isFavorite) ||
-      (activeTab === 'pending_payments' && photographer.bookings.some(b =>
-        b.paymentStatus === 'pending' || b.paymentStatus === 'partially_paid' || b.paymentStatus === 'failed'
-      ));
-    return matchesSearch && matchesSpecialization && matchesTab;
-  }).sort((a, b) => {
-    let comparison = 0;
-    switch (sortBy) {
-      case 'recent':
-        comparison = new Date(a.lastBookingDate).getTime() - new Date(b.lastBookingDate).getTime();
-        break;
-      case 'rating':
-        comparison = a.rating - b.rating;
-        break;
-      case 'bookings':
-        comparison = a.totalBookingsWithClient - b.totalBookingsWithClient;
-        break;
-      case 'spent':
-        comparison = a.totalSpent - b.totalSpent;
-        break;
-    }
-    return sortOrder === 'desc' ? -comparison : comparison;
-  });
-
-  const renderStars = (rating: number, interactive = false, onSelect?: (r: number) => void) => {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            onClick={() => interactive && onSelect && onSelect(star)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: interactive ? 'pointer' : 'default',
-              padding: '0.125rem'
-            }}
-            disabled={!interactive}
-          >
-            <StarIcon filled={star <= Math.floor(rating)} />
-          </button>
-        ))}
-      </div>
-    );
-  };
-
-  const submitReview = async () => {
-    if (!reviewPhotographer) return;
-
-    if (!selectedReviewEventId) {
-      setReviewError('Please select an event to review');
-      return;
-    }
-
-    if (!reviewText.trim()) {
-      setReviewError('Please write a review comment');
-      return;
-    }
-
-    setIsSubmittingReview(true);
-    setReviewError(null);
-
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer-reviews`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId: selectedReviewEventId,
-          rating: reviewRating,
-          comment: reviewText,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(errorText || `Failed to submit review: ${response.status}`);
-      }
-
-      // Update local state
-      setPhotographers(prev => prev.map(p =>
-        p.id === reviewPhotographer.id
-          ? { ...p, myRating: reviewRating, myReview: reviewText }
-          : p
-      ));
-
-      // Store photographer for tip flow
-      setPendingReviewPhotographer(reviewPhotographer);
-
-      // Close review modal and reset
-      setShowReviewModal(false);
-      setReviewRating(5);
-      setReviewText('');
-      setSelectedReviewEventId('');
-      setReviewEvents([]);
-      setReviewError(null);
-
-      // The tip step is off. Its "payment" screen never charged anything: it only
-      // called record-tip, which the backend used to accept and book as a paid tip
-      // for the photographer, and now refuses. A tip must go through a real
-      // gateway checkout before this prompt comes back.
-      setSuccessMessage('Review submitted successfully!');
-      setShowSuccessModal(true);
-      setPendingReviewPhotographer(null);
-    } catch (err) {
-      console.error('Submit review error:', err);
-      setReviewError(err instanceof Error ? err.message : 'Failed to submit review');
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  };
-
-  const handleTipPromptYes = () => {
-    setShowTipPromptModal(false);
-    setShowTipSelectionModal(true);
-  };
-
-  const handleTipPromptNo = () => {
-    setShowTipPromptModal(false);
-    setSuccessMessage('Review submitted successfully!');
-    setShowSuccessModal(true);
-    setPendingReviewPhotographer(null);
-  };
-
-  const handleSendTip = () => {
-    setShowTipSelectionModal(false);
-    setShowTipPaymentModal(true);
-  };
-
-  const handleTipPaymentComplete = async () => {
-    if (pendingReviewPhotographer) {
-      const finalTipAmount = tipAmount === 'custom' ? parseFloat(customTipAmount) || 0 : (tipAmount as number) || 0;
-
-      // Find an eventId from the photographer's bookings
-      const completedBooking = pendingReviewPhotographer.bookings?.find(b => b.status === 'completed');
-      const eventId = completedBooking?.id;
-
-      let tipRecorded = false;
-      if (eventId && finalTipAmount > 0) {
-        try {
-          const apiUrl = getApiUrl();
-          const tipDonationValue = tipDonationAmount === 'custom' ? (parseFloat(tipCustomDonation) || 0) : (parseFloat(tipDonationAmount) || 0);
-          const params = new URLSearchParams({
-            recipientId: pendingReviewPhotographer.id,
-            eventId,
-            amount: finalTipAmount.toString(),
-            ...(currencyId ? { currencyId } : {}),
-            ...(tipDonationValue > 0 ? { donationAmount: tipDonationValue.toString() } : {}),
-          });
-          const res = await dashboardAuthFetch(
-            `${apiUrl}/api/remote/payments/record-tip?${params.toString()}`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' } }
-          );
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.message || 'Failed to record tip');
-          }
-          tipRecorded = true;
-        } catch (err) {
-          console.error('Failed to record tip:', err);
-        }
-      }
-
-      // Only update local total spent if tip was successfully recorded
-      if (tipRecorded) {
-        setPhotographers(prev => prev.map(p =>
-          p.id === pendingReviewPhotographer.id
-            ? { ...p, totalSpent: p.totalSpent + finalTipAmount }
-            : p
-        ));
-      }
-
-      setShowTipPaymentModal(false);
-      setTipAmount('');
-      setCustomTipAmount('');
-      setSelectedTipPaymentMethod('card');
-      if (tipRecorded) {
-        setSuccessMessage('Review and tip submitted successfully!');
-      } else if (finalTipAmount > 0) {
-        setSuccessMessage('Review submitted, but the tip could not be processed. Please try tipping from the photographer\'s profile.');
-      } else {
-        setSuccessMessage('Review submitted successfully!');
-      }
-      setShowSuccessModal(true);
-      setPendingReviewPhotographer(null);
-    }
-  };
-
-  const handleSuccessClose = () => {
-    setShowSuccessModal(false);
-    setSuccessMessage('');
-  };
-
-  // Auto-submit rebook when package is selected and all required fields are filled
-  useEffect(() => {
-    if (rebookPackageId && !isSubmittingRebook && (
-      selectedRebookEventId || (rebookEventType && rebookDate && rebookTime && rebookLocation)
-    )) {
-      const timer = setTimeout(() => {
-        handleSendBookingRequest();
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rebookPackageId]);
-
-  // --- Send rebook request (both client and coordinator) ---
-  const handleSendBookingRequest = async () => {
-    if (!rebookPhotographer) return;
-
-    if (!rebookPackageId) {
-      setRebookError('Please select a photographer package');
-      return;
-    }
-
-    if (!rebookEventType || !rebookDate || !rebookTime || !rebookLocation) {
-      setRebookError('Please fill in all required fields');
-      return;
-    }
-
-    setIsSubmittingRebook(true);
-    setRebookError(null);
-
-    try {
-      const apiUrl = getApiUrl();
-      const rebookNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/${rebookNs}/rebook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(selectedRebookEventId ? { eventId: selectedRebookEventId } : {}),
-          title: selectedRebookEventId
-            ? (rebookEvents.find(e => e.id === selectedRebookEventId)?.title || `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim())
-            : `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim(),
-          photographerId: rebookPhotographer.id,
-          packageId: rebookPackageId,
-          eventType: rebookEventType,
-          eventDate: rebookDate,
-          startTime: rebookTime,
-          endTime: rebookTime,
-          location: rebookLocation,
-          notes: rebookNotes,
-        }),
-      });
-
-      const result = await response.json();
-      if (!response.ok || result.action === 0) {
-        throw new Error(result.message || 'Failed to send booking request');
-      }
-
-      // Reset form & close modal
-      setShowRebookModal(false);
-      setRebookEventType('');
-      setRebookDate('');
-      setRebookTime('');
-      setRebookLocation('');
-      setRebookNotes('');
-      setRebookPhotographer(null);
-      setSelectedRebookEventId('');
-      setRebookEvents([]);
-      setRebookPackages([]);
-      setRebookPackageId('');
-      setRebookPackagesError(null);
-
-      setSuccessMessage('Booking request sent successfully!');
-      setShowSuccessModal(true);
-    } catch (err) {
-      console.error('Rebook error:', err);
-      setRebookError(err instanceof Error ? err.message : 'Failed to send booking request');
-    } finally {
-      setIsSubmittingRebook(false);
-    }
-  };
-
-  // --- Invite photographer by email (coordinator + client) ---
-  const inviteLink = `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/auth/signup?userType=Photographer&invitedBy=${user?.id || ''}`;
-
-  const handleInvitePhotographer = async () => {
-    if (!inviteEmail.trim()) {
-      setInviteError('Please enter a valid email address');
-      return;
-    }
-
-    setIsSendingInvite(true);
-    setInviteError(null);
-
-    try {
-      const apiUrl = getApiUrl();
-      const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
-      const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/${rolePrefix}/photographers/invite?email=${encodeURIComponent(inviteEmail.trim())}`,
-        { method: 'POST' }
-      );
-
-      const result = await response.json();
-      if (!response.ok || result.action === 0) {
-        throw new Error(result.message || 'Failed to invite photographer');
-      }
-
-      setInviteEmail('');
-      setInviteError(null);
-      setShowInviteModal(false);
-      setSuccessMessage('Invitation sent successfully!');
-      setShowSuccessModal(true);
-    } catch (err) {
-      console.error('Invite photographer error:', err);
-      setInviteError(err instanceof Error ? err.message : 'Failed to invite photographer');
-    } finally {
-      setIsSendingInvite(false);
-    }
-  };
-
-  const handleCopyInviteLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    setInviteCopied(true);
-    setTimeout(() => setInviteCopied(false), 2000);
-  };
-
-  // Allow reviews only for photographers with completed events
-  const hasCompletedEvent = (photographer: BookedPhotographer) => {
-    if (photographer.completedBookings > 0) return true;
-    return photographer.bookings.some(booking => {
-      const s = (booking.status || '').toUpperCase();
-      return s === 'COMPLETED';
-    });
-  };
-
-  // Close context menu when clicking outside
-  React.useEffect(() => {
-    const handleClick = () => setContextMenu(null);
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, []);
-
+/** The classic page body (header, filters, list). The dialogs are BookedPhotographersPageModals, shared with the Compact Glass page. */
+const BookedPhotographersPageBody = ({ ctl }: { ctl: BookedPhotographersController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    currencyId,
+    user,
+    router,
+    viewMode,
+    setViewMode,
+    searchQuery,
+    setSearchQuery,
+    selectedSpecialization,
+    setSelectedSpecialization,
+    showFilters,
+    setShowFilters,
+    selectedPhotographer,
+    setSelectedPhotographer,
+    showReportModal,
+    setShowReportModal,
+    reportPhotographer,
+    setReportPhotographer,
+    reportReason,
+    setReportReason,
+    reportDescription,
+    setReportDescription,
+    isSubmittingReport,
+    setIsSubmittingReport,
+    showRebookModal,
+    setShowRebookModal,
+    rebookPhotographer,
+    setRebookPhotographer,
+    rebookEventType,
+    setRebookEventType,
+    rebookDate,
+    setRebookDate,
+    rebookTime,
+    setRebookTime,
+    rebookLocation,
+    setRebookLocation,
+    rebookNotes,
+    setRebookNotes,
+    isSubmittingRebook,
+    setIsSubmittingRebook,
+    rebookError,
+    setRebookError,
+    rebookEvents,
+    setRebookEvents,
+    rebookEventsLoading,
+    setRebookEventsLoading,
+    selectedRebookEventId,
+    setSelectedRebookEventId,
+    rebookPackages,
+    setRebookPackages,
+    rebookPackageId,
+    setRebookPackageId,
+    rebookPackagesLoading,
+    setRebookPackagesLoading,
+    rebookPackagesError,
+    setRebookPackagesError,
+    showReviewModal,
+    setShowReviewModal,
+    reviewPhotographer,
+    setReviewPhotographer,
+    contextMenu,
+    setContextMenu,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    activeTab,
+    setActiveTab,
+    reviewRating,
+    setReviewRating,
+    reviewText,
+    setReviewText,
+    reviewEvents,
+    setReviewEvents,
+    selectedReviewEventId,
+    setSelectedReviewEventId,
+    reviewEventsLoading,
+    setReviewEventsLoading,
+    isSubmittingReview,
+    setIsSubmittingReview,
+    reviewError,
+    setReviewError,
+    tipAmount,
+    setTipAmount,
+    customTipAmount,
+    setCustomTipAmount,
+    showPaymentModal,
+    setShowPaymentModal,
+    showTipPromptModal,
+    setShowTipPromptModal,
+    showTipSelectionModal,
+    setShowTipSelectionModal,
+    showTipPaymentModal,
+    setShowTipPaymentModal,
+    showSuccessModal,
+    setShowSuccessModal,
+    successMessage,
+    setSuccessMessage,
+    showInviteModal,
+    setShowInviteModal,
+    inviteEmail,
+    setInviteEmail,
+    inviteError,
+    setInviteError,
+    isSendingInvite,
+    setIsSendingInvite,
+    inviteCopied,
+    setInviteCopied,
+    pendingReviewPhotographer,
+    setPendingReviewPhotographer,
+    selectedTipPaymentMethod,
+    setSelectedTipPaymentMethod,
+    selectedTipOperator,
+    setSelectedTipOperator,
+    paymentBooking,
+    setPaymentBooking,
+    selectedPaymentMethod,
+    setSelectedPaymentMethod,
+    payCountry,
+    setPayCountry,
+    selectedOperator,
+    setSelectedOperator,
+    payDonationAmount,
+    setPayDonationAmount,
+    payCustomDonation,
+    setPayCustomDonation,
+    payDonationSkipped,
+    setPayDonationSkipped,
+    payShowCustomInput,
+    setPayShowCustomInput,
+    payShowReceipt,
+    setPayShowReceipt,
+    isProcessingPayment,
+    setIsProcessingPayment,
+    paymentPhone,
+    setPaymentPhone,
+    xentriPayStep,
+    setXentriPayStep,
+    xentriPayError,
+    setXentriPayError,
+    stopPollingRef,
+    tipDonationAmount,
+    setTipDonationAmount,
+    tipCustomDonation,
+    setTipCustomDonation,
+    tipDonationSkipped,
+    setTipDonationSkipped,
+    tipShowCustomInput,
+    setTipShowCustomInput,
+    tipShowReceipt,
+    setTipShowReceipt,
+    photographers,
+    setPhotographers,
+    specializations,
+    handleRebookEventSelect,
+    toggleFavorite,
+    handleContextMenu,
+    formatDate,
+    getPaymentStatusColor,
+    photographersWithPendingPayments,
+    totalPendingAmount,
+    filteredPhotographers,
+    renderStars,
+    submitReview,
+    handleTipPromptYes,
+    handleTipPromptNo,
+    handleSendTip,
+    handleTipPaymentComplete,
+    handleSuccessClose,
+    handleSendBookingRequest,
+    inviteLink,
+    handleInvitePhotographer,
+    handleCopyInviteLink,
+    hasCompletedEvent,
+    userRole,
+  } = ctl;
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
@@ -1288,7 +754,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               const totalSpent = photographers.reduce((sum, p) => sum + p.totalSpent, 0);
               const favCount = photographers.filter(p => p.isFavorite).length;
               const cards: Array<{ label: string; value: string; accent: string; tint: string; icon: string; alert?: boolean; }> = [
-                { label: 'Total Photographers', value: String(photographers.length), accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-camera2' },
+                { label: 'Total Photographers', value: String(photographers.length), accent: 'var(--g-link, #083A85)', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-camera2' },
                 { label: 'Total Bookings',      value: String(totalBookings),         accent: '#3B82F6', tint: 'rgba(59,130,246,0.12)', icon: 'bi-calendar-check-fill' },
                 { label: 'Total Spent',         value: formatPrice(totalSpent),       accent: '#10B981', tint: 'rgba(16,185,129,0.12)', icon: 'bi-cash-stack' },
                 { label: 'Favorites',           value: String(favCount),              accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-heart-fill' },
@@ -1415,7 +881,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   style={{
                     alignSelf: 'flex-end',
                     fontSize: '0.85rem',
-                    color: '#DC2626',
+                    color: 'var(--g-error, #DC2626)',
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
@@ -1451,7 +917,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 border: '1px solid var(--ck-stroke)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <i className="bi bi-camera2" style={{ fontSize: 26, color: '#083A85' }} />
+                <i className="bi bi-camera2" style={{ fontSize: 26, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>No photographers found</div>
@@ -1824,7 +1290,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                           <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
                             {photographer.location.city}, {photographer.location.country}
                           </span>
-                          <span style={{ color: '#D1D5DB', margin: '0 0.5rem' }}>•</span>
+                          <span style={{ color: 'var(--g-text-muted, #D1D5DB)', margin: '0 0.5rem' }}>•</span>
                           <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Last: {formatDate(photographer.lastBookingDate)}</span>
                         </div>
                         <div style={{ fontSize: '0.85rem', color: colors.textPrimary, marginTop: '0.25rem' }}>
@@ -2015,6 +1481,193 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         </div>
       )}
 
+    </div>
+  );
+};
+
+/** Every dialog of the page, unchanged; rendered by both the classic and the Compact Glass page. */
+export const BookedPhotographersPageModals = ({ ctl }: { ctl: BookedPhotographersController }) => {
+  const {
+    colors,
+    actualTheme,
+    formatPrice,
+    currencyId,
+    user,
+    router,
+    viewMode,
+    setViewMode,
+    searchQuery,
+    setSearchQuery,
+    selectedSpecialization,
+    setSelectedSpecialization,
+    showFilters,
+    setShowFilters,
+    selectedPhotographer,
+    setSelectedPhotographer,
+    showReportModal,
+    setShowReportModal,
+    reportPhotographer,
+    setReportPhotographer,
+    reportReason,
+    setReportReason,
+    reportDescription,
+    setReportDescription,
+    isSubmittingReport,
+    setIsSubmittingReport,
+    showRebookModal,
+    setShowRebookModal,
+    rebookPhotographer,
+    setRebookPhotographer,
+    rebookEventType,
+    setRebookEventType,
+    rebookDate,
+    setRebookDate,
+    rebookTime,
+    setRebookTime,
+    rebookLocation,
+    setRebookLocation,
+    rebookNotes,
+    setRebookNotes,
+    isSubmittingRebook,
+    setIsSubmittingRebook,
+    rebookError,
+    setRebookError,
+    rebookEvents,
+    setRebookEvents,
+    rebookEventsLoading,
+    setRebookEventsLoading,
+    selectedRebookEventId,
+    setSelectedRebookEventId,
+    rebookPackages,
+    setRebookPackages,
+    rebookPackageId,
+    setRebookPackageId,
+    rebookPackagesLoading,
+    setRebookPackagesLoading,
+    rebookPackagesError,
+    setRebookPackagesError,
+    showReviewModal,
+    setShowReviewModal,
+    reviewPhotographer,
+    setReviewPhotographer,
+    contextMenu,
+    setContextMenu,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    activeTab,
+    setActiveTab,
+    reviewRating,
+    setReviewRating,
+    reviewText,
+    setReviewText,
+    reviewEvents,
+    setReviewEvents,
+    selectedReviewEventId,
+    setSelectedReviewEventId,
+    reviewEventsLoading,
+    setReviewEventsLoading,
+    isSubmittingReview,
+    setIsSubmittingReview,
+    reviewError,
+    setReviewError,
+    tipAmount,
+    setTipAmount,
+    customTipAmount,
+    setCustomTipAmount,
+    showPaymentModal,
+    setShowPaymentModal,
+    showTipPromptModal,
+    setShowTipPromptModal,
+    showTipSelectionModal,
+    setShowTipSelectionModal,
+    showTipPaymentModal,
+    setShowTipPaymentModal,
+    showSuccessModal,
+    setShowSuccessModal,
+    successMessage,
+    setSuccessMessage,
+    showInviteModal,
+    setShowInviteModal,
+    inviteEmail,
+    setInviteEmail,
+    inviteError,
+    setInviteError,
+    isSendingInvite,
+    setIsSendingInvite,
+    inviteCopied,
+    setInviteCopied,
+    pendingReviewPhotographer,
+    setPendingReviewPhotographer,
+    selectedTipPaymentMethod,
+    setSelectedTipPaymentMethod,
+    selectedTipOperator,
+    setSelectedTipOperator,
+    paymentBooking,
+    setPaymentBooking,
+    selectedPaymentMethod,
+    setSelectedPaymentMethod,
+    payCountry,
+    setPayCountry,
+    selectedOperator,
+    setSelectedOperator,
+    payDonationAmount,
+    setPayDonationAmount,
+    payCustomDonation,
+    setPayCustomDonation,
+    payDonationSkipped,
+    setPayDonationSkipped,
+    payShowCustomInput,
+    setPayShowCustomInput,
+    payShowReceipt,
+    setPayShowReceipt,
+    isProcessingPayment,
+    setIsProcessingPayment,
+    paymentPhone,
+    setPaymentPhone,
+    xentriPayStep,
+    setXentriPayStep,
+    xentriPayError,
+    setXentriPayError,
+    stopPollingRef,
+    tipDonationAmount,
+    setTipDonationAmount,
+    tipCustomDonation,
+    setTipCustomDonation,
+    tipDonationSkipped,
+    setTipDonationSkipped,
+    tipShowCustomInput,
+    setTipShowCustomInput,
+    tipShowReceipt,
+    setTipShowReceipt,
+    photographers,
+    setPhotographers,
+    specializations,
+    handleRebookEventSelect,
+    toggleFavorite,
+    handleContextMenu,
+    formatDate,
+    getPaymentStatusColor,
+    photographersWithPendingPayments,
+    totalPendingAmount,
+    filteredPhotographers,
+    renderStars,
+    submitReview,
+    handleTipPromptYes,
+    handleTipPromptNo,
+    handleSendTip,
+    handleTipPaymentComplete,
+    handleSuccessClose,
+    handleSendBookingRequest,
+    inviteLink,
+    handleInvitePhotographer,
+    handleCopyInviteLink,
+    hasCompletedEvent,
+    userRole,
+  } = ctl;
+  return (
+    <>
       {/* Photographer Detail Modal */}
       <Modal
         isOpen={!!selectedPhotographer}
@@ -2349,7 +2002,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     justifyContent: 'center',
                     gap: 8,
                     background: 'transparent',
-                    color: '#083A85',
+                    color: 'var(--g-link, #083A85)',
                     border: `1.5px solid rgba(8,58,133,0.40)`,
                     borderRadius: 11,
                     padding: '0.75rem 1rem',
@@ -2471,12 +2124,12 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             {/* Package Selection */}
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
-                Select a Package <span style={{ color: '#DC2626' }}>*</span>
+                Select a Package <span style={{ color: 'var(--g-error, #DC2626)' }}>*</span>
               </label>
               {rebookPackagesLoading ? (
                 <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>Loading packages…</div>
               ) : rebookPackagesError ? (
-                <div style={{ color: '#DC2626', fontSize: '0.85rem', padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(127,29,29,0.32)' : '#FEF2F2', borderRadius: 10, border: `1px solid ${actualTheme === 'dark' ? 'rgba(252,165,165,0.32)' : '#FECACA'}` }}>{rebookPackagesError}</div>
+                <div style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.85rem', padding: '0.55rem 0.75rem', background: actualTheme === 'dark' ? 'rgba(127,29,29,0.32)' : '#FEF2F2', borderRadius: 10, border: `1px solid ${actualTheme === 'dark' ? 'rgba(252,165,165,0.32)' : '#FECACA'}` }}>{rebookPackagesError}</div>
               ) : rebookPackages.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>No packages available</div>
               ) : (
@@ -2834,7 +2487,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             {/* Event Selector */}
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
-                Select Event <span style={{ color: '#DC2626' }}>*</span>
+                Select Event <span style={{ color: 'var(--g-error, #DC2626)' }}>*</span>
               </label>
               {reviewEventsLoading ? (
                 <div style={{
@@ -3158,6 +2811,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           setPayDonationSkipped(true); setPayDonationAmount(''); setPayCustomDonation(''); setPayShowCustomInput(false);
         };
         const handlePayClose = () => {
+          // eslint-disable-next-line react-hooks/refs -- a close handler: it reads the ref when the dialog closes, never during render
           if (stopPollingRef.current) { stopPollingRef.current(); stopPollingRef.current = null; }
           setPayShowReceipt(false); setShowPaymentModal(false); setXentriPayStep('select'); setXentriPayError(''); setPaymentPhone(null);
         };
@@ -3233,7 +2887,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>
                 <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Failed</h4>
-                <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--g-error, #EF4444)', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                   <button onClick={handlePayClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
                   <button onClick={() => { setXentriPayStep('select'); setXentriPayError(''); setPayShowReceipt(false); setIsProcessingPayment(false); }} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
@@ -3303,7 +2957,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   </div>
                 </div>
                 {xentriPayError && (
-                  <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
                 )}
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <button onClick={() => { setPayShowReceipt(false); setXentriPayError(''); }} disabled={isProcessingPayment} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: isProcessingPayment ? 'not-allowed' : 'pointer', opacity: isProcessingPayment ? 0.6 : 1 }}>Cancel</button>
@@ -3421,7 +3075,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               </div>
 
               {(!payDonationAddressed || !payPhoneValid) && (
-                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.86rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
                   {!payPhoneValid ? 'Please enter your phone number' : 'Please select a donation amount or skip to continue'}
                 </p>
               )}
@@ -3812,7 +3466,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               </div>
 
               {!tipDonationAddressed && (
-                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>Please select a donation amount or skip to continue</p>
+                <p style={{ fontSize: '0.86rem', color: 'var(--g-error, #EF4444)', margin: '0 0 0.75rem 0', textAlign: 'center' }}>Please select a donation amount or skip to continue</p>
               )}
 
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -4164,8 +3818,16 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           </button>
         </div>
       </Modal>
-    </div>
+    </>
   );
+};
+
+/** One controller for both views, so the classic page (UI_GLASS=off) and the Compact Glass page behave the same. */
+const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps) => {
+  const ctl = useBookedPhotographers({ userRole });
+  const glass = useUiGlass();
+  if (glass) return <GlassPhotographers ctl={ctl} modals={<BookedPhotographersPageModals ctl={ctl} />} />;
+  return <><BookedPhotographersPageBody ctl={ctl} /><BookedPhotographersPageModals ctl={ctl} /></>;
 };
 
 export default BookedPhotographersPage;

@@ -1,5 +1,5 @@
-import react from 'react';
-import PhotographerDashboard from '@/app/pages/photographer/dashboard';
+import HomeSwitch from '@/app/components/glass/home/HomeSwitch';
+
 export default function Page() {
-  return <PhotographerDashboard />;
+  return <HomeSwitch />;
 }

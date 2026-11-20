@@ -20,7 +20,7 @@ export default function ActivityRow({ item, onClick }: ActivityRowProps) {
   const isDark = actualTheme === 'dark';
 
   const sign = item.direction === 'in' ? '+' : '-';
-  const amountColor = item.direction === 'in' ? '#059669' : colors.textPrimary;
+  const amountColor = item.direction === 'in' ? 'var(--g-success, #059669)' : colors.textPrimary;
 
   const formattedTime = formatRelativeTime(item.timestamp);
 

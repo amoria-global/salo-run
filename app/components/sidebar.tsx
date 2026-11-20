@@ -11,6 +11,8 @@ import { getLandingUrl } from "@/lib/urls";
 import { getApiUrl } from '@/lib/api';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
+import { useNavBadges } from './navBadges';
+import { useUiGlass } from '../lib/useUiGlass';
 
 type UserRole = "photographer" | "client" | "event-coordinator" | "admin";
 
@@ -109,7 +111,7 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
 
 // Working in another photographer's workspace: the transaction history, donating, the owner's account settings and
 // collaboration are not part of it (the server refuses them), so the menu does not offer them.
-const SHARED_WORKSPACE_HIDDEN = new Set(['Transactions', 'Donate', 'Collaborate', 'Profile', 'Preferences']);
+export const SHARED_WORKSPACE_HIDDEN = new Set(['Transactions', 'Donate', 'Collaborate', 'Profile', 'Preferences']);
 
 const roleFromCustomerType = (customerType: string | null | undefined): UserRole | null => {
   const t = (customerType || '').toUpperCase();
@@ -126,7 +128,7 @@ const roleFromCustomerType = (customerType: string | null | undefined): UserRole
 // outside any role bucket - for those we fall back to the authenticated
 // user's customerType so a photographer on a shared page doesn't see
 // the client sidebar wired with /user/client/* links.
-const detectRole = (pathname: string | null, customerType: string | null | undefined): UserRole => {
+export const detectRole = (pathname: string | null, customerType: string | null | undefined): UserRole => {
   if (pathname && pathname.includes("/user/admin")) return "admin";
   if (pathname && pathname.includes("/user/photographer")) return "photographer";
   if (pathname && pathname.includes("/user/event-coordinator")) return "event-coordinator";
@@ -134,7 +136,13 @@ const detectRole = (pathname: string | null, customerType: string | null | undef
   return roleFromCustomerType(customerType) ?? "client";
 };
 
+/** The Compact Glass shell (components/glass) draws its own sidebar; with the flag off this is the sidebar. */
 export default function Sidebar() {
+  const glass = useUiGlass();
+  return glass ? null : <LegacySidebar />;
+}
+
+function LegacySidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -150,72 +158,7 @@ export default function Sidebar() {
 
   const currentRole = useMemo(() => detectRole(pathname, user?.customerType), [pathname, user?.customerType]);
 
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [messageCount, setMessageCount] = useState(0);
-  const [opportunityCount, setOpportunityCount] = useState(0);
-  const lastInboxEventTimeRef = useRef<number>(0);
-
-  const fetchBadgeCounts = useCallback(async () => {
-    if (!user) return;
-    const fetchStartTime = Date.now();
-    const apiUrl = getApiUrl();
-    const notifPrefix = currentRole === 'photographer' ? 'photographer' : currentRole === 'event-coordinator' ? 'coordinator' : 'customer';
-    const isOnInboxPage = pathname?.includes('/inbox');
-    try {
-      const [notifRes, convRes] = await Promise.all([
-        dashboardAuthFetch(`${apiUrl}/api/remote/${notifPrefix}/notifications/unread-count`, { method: 'GET' }),
-        dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`, { method: 'GET' }),
-      ]);
-      if (currentRole === 'photographer') {
-        // Open Post My Event invites; each has a short response window, so they get their own badge.
-        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/opportunities/count`, { method: 'GET' })
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d) => { if (d?.action === 1) setOpportunityCount(Number(d.data?.pending) || 0); })
-          .catch(() => {});
-      }
-      if (notifRes.ok) {
-        const data = await notifRes.json();
-        if (data.action === 1) setNotificationCount(data.data ?? 0);
-      }
-      if (convRes.ok && !isOnInboxPage) {
-        const data = await convRes.json();
-        const list = data.data || data || [];
-        if (Array.isArray(list)) {
-          const validList = currentUserId
-            ? list.filter((c: any) => (c.participants || []).some((p: any) => p.id && p.id !== currentUserId))
-            : list;
-          const total = validList.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
-          if (lastInboxEventTimeRef.current <= fetchStartTime) setMessageCount(total);
-        }
-      }
-    } catch { /* silent */ }
-  }, [user, currentRole, pathname, currentUserId]);
-
-  useEffect(() => {
-    fetchBadgeCounts();
-    const interval = setInterval(fetchBadgeCounts, 30000);
-    const handleBadgeUpdate = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.type === 'notification') {
-        setNotificationCount(prev => Math.max(0, prev - (detail.count || 1)));
-      } else fetchBadgeCounts();
-    };
-    window.addEventListener('badge-update', handleBadgeUpdate);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('badge-update', handleBadgeUpdate);
-    };
-  }, [fetchBadgeCounts]);
-
-  useEffect(() => {
-    const handleTotalCount = (e: Event) => {
-      const total = (e as CustomEvent<{ total: number }>).detail?.total ?? 0;
-      setMessageCount(total);
-      lastInboxEventTimeRef.current = Date.now();
-    };
-    window.addEventListener('inbox:totalCount', handleTotalCount);
-    return () => window.removeEventListener('inbox:totalCount', handleTotalCount);
-  }, []);
+  const { notificationCount, messageCount, opportunityCount } = useNavBadges(currentRole);
 
   const isNotAccepted = currentRole === 'photographer'
     && !!user
@@ -424,7 +367,7 @@ export default function Sidebar() {
                 className={`ck-side-link ${isActive ? 'active' : ''}`}
                 style={{
                   justifyContent: isCollapsed ? 'center' : 'flex-start',
-                  ...(isLogout ? { color: '#DC2626' } : {}),
+                  ...(isLogout ? { color: 'var(--g-error, #DC2626)' } : {}),
                 }}>
                 {inner}
               </Link>
@@ -457,7 +400,7 @@ export default function Sidebar() {
           background: '#FEF2F2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 4px',
         }}>
-          <i className="bi bi-box-arrow-right" style={{ color: '#DC2626', fontSize: 22 }} />
+          <i className="bi bi-box-arrow-right" style={{ color: 'var(--g-error, #DC2626)', fontSize: 22 }} />
         </div>
         <p style={{ textAlign: 'center', color: 'var(--ck-text-soft)', margin: '8px 0 0' }}>
           Your session will end on this device.

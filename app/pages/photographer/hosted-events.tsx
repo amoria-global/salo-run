@@ -15,13 +15,16 @@ import { useTheme } from '../../context/ThemeContext';
 import { getApiUrl } from '@/lib/api';
 import OwnerGoLive from '../../components/live/OwnerGoLive';
 import { WishInvitesField, focusWishInvitesField } from '../../components/wishes/WishInvitesField';
-import { invitesOn, wishInvitesStatus } from '@/lib/wishes/wishInvites';
+import { wishInvitesStatus } from '@/lib/wishes/wishInvites';
 import {
-  UNPUBLISH_BODY, bucketOf, createHostedEvent, getEarningsPreview, getEligibility, getUnpublishImpact, listHostedEvents, publishActionFor, publishHostedEvent,
-  runHostFlow, setEventPublished, setWishInvites as setWishInvitesApi, unpublishWarning, uploadCover, validateHostForm,
+  UNPUBLISH_BODY, bucketOf, createHostedEvent, getEarningsPreview, getEligibility, getUnpublishImpact, listHostedEvents, publishHostedEvent,
+  runHostFlow, setEventPublished, setWishInvites as setWishInvitesApi, uploadCover, validateHostForm,
   type EarningsPreview, type HostedBucket, type HostedEvent, type UnpublishImpact, type HostFormErrors, type HostingEligibility, type HostProgress,
 } from '@/lib/hosting/hostedEvents';
-import { formatEventDay, getEventStatus, isStartingSoon } from '@/lib/events/eventStatus';
+import { formatEventDay } from '@/lib/events/eventStatus';
+import { useHostedRow } from '../../components/useHostedRow';
+import { useUiGlass } from '../../lib/useUiGlass';
+import GlassHostedEvents from '../../components/glass/pages/GlassHostedEvents';
 
 const todayYmd = () => {
   const d = new Date();
@@ -32,7 +35,8 @@ const TABS: { key: HostedBucket; label: string }[] = [
 ];
 
 export default function HostedEventsPage({ profilePath = '/user/photographer/profile' }: { profilePath?: string } = {}) {
-  const { colors, actualTheme } = useTheme();
+  const { colors } = useTheme();
+  const glass = useUiGlass();
   const apiUrl = getApiUrl();
   const fetcher = dashboardAuthFetch as (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -63,6 +67,32 @@ export default function HostedEventsPage({ profilePath = '/user/photographer/pro
   const shown = useMemo(() => (events ?? []).filter((e) => bucketOf(e, now) === tab), [events, tab, now]);
   const card: React.CSSProperties = { background: colors.bgCard, border: `1px solid ${colors.borderPrimary}`, borderRadius: 14, padding: 16 };
 
+  if (glass) {
+    const modals = (
+      <>
+        {showForm ? (
+          <HostForm elig={elig!} apiUrl={apiUrl} fetcher={fetcher} colors={colors} profilePath={profilePath} onClose={() => setShowForm(false)}
+            onDone={(id, goLive) => {
+              setShowForm(false);
+              listHostedEvents(apiUrl, fetcher).then((list) => {
+                setEvents(list);
+                if (goLive) { const e = list.find((x) => x.id === id); if (e) openLive(e); }
+              }).catch((e: Error) => setListError(e.message));
+            }} />
+        ) : null}
+        {live ? <OwnerGoLive onClose={() => { setLive(null); loadEvents(); }} eventTitle={live.title} eventId={live.id} allowWishInvites={live.allowWishInvites} /> : null}
+      </>
+    );
+    return (
+      <GlassHostedEvents elig={elig} eligError={eligError} onRetryElig={() => { setEligError(null); loadElig(); }}
+        events={events} listError={listError} onRetryEvents={() => { setListError(null); loadEvents(); }}
+        tab={tab} setTab={setTab} shown={shown} onHost={() => setShowForm(true)} modals={elig?.canHostFree ? modals : null}
+        deps={{ now, onLive: openLive, onChanged: loadEvents,
+          setPublished: (id, published) => setEventPublished(apiUrl, fetcher, id, published),
+          loadImpact: (id) => getUnpublishImpact(apiUrl, fetcher, id),
+          setInvites: (id, allow) => setWishInvitesApi(apiUrl, fetcher, id, allow) }} />
+    );
+  }
   if (eligError) {
     return <Notice colors={colors} title="Could not check hosting" body={eligError} action={{ label: 'Try again', onClick: () => { setEligError(null); loadElig(); } }} />;
   }
@@ -166,32 +196,9 @@ function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished, 
   loadImpact: () => Promise<UnpublishImpact | undefined>;
   setInvites: (allow: boolean) => Promise<void>;
 }) {
-  const status = getEventStatus(event, now);
-  const soon = isStartingSoon(event, now);
-  const action = publishActionFor(event.published, status);
-  const canGoLive = status !== 'ENDED' && event.published;
-  const [menu, setMenu] = useState(false);
-  const [confirm, setConfirm] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [impact, setImpact] = useState<UnpublishImpact | undefined>();
-  const warning = unpublishWarning(impact);
-  const [invites, setInvitesOn] = useState(invitesOn(event.allowWishInvites));
-  const toggleInvites = async () => {
-    setBusy(true); setError(null);
-    try { await setInvites(!invites); setInvitesOn(!invites); setMenu(false); onChanged(); }
-    catch (e) { setError(e instanceof Error ? e.message : 'That did not work. Please try again.'); }
-    finally { setBusy(false); }
-  };
-  const label = status === 'LIVE' ? 'Live now' : status === 'ENDED' ? 'Ended' : soon ? 'Starting soon' : 'Upcoming';
+  const { status, action, canGoLive, menu, setMenu, confirm, setConfirm, busy, error, warning, invites, toggleInvites, run, askUnpublish, label } = useHostedRow(event, now, { setPublished, loadImpact, setInvites, onChanged });
   const badge: React.CSSProperties = { padding: '2px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 700, border: '1px solid currentColor' };
   const item: React.CSSProperties = { width: '100%', textAlign: 'left', padding: '10px 12px', background: 'transparent', border: 0, color: colors.textPrimary, cursor: 'pointer', fontWeight: 600 };
-  const run = async (published: boolean) => {
-    setBusy(true); setError(null);
-    try { await setPublished(published); setConfirm(false); setMenu(false); onChanged(); }
-    catch (e) { setError(e instanceof Error ? e.message : 'That did not work. Please try again.'); }
-    finally { setBusy(false); }
-  };
   return (
     <li style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', position: 'relative' }}>
       <div style={{ display: 'grid', gap: 4 }}>
@@ -220,7 +227,7 @@ function HostedRow({ event, now, colors, card, onLive, onChanged, setPublished, 
                 {action.kind === 'blocked' ? (
                   <div role="menuitem" style={{ padding: '10px 12px', color: colors.textSecondary }}>{action.reason}</div>
                 ) : action.kind === 'unpublish' ? (
-                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setImpact(undefined); setConfirm(true); void loadImpact().then(setImpact); }} style={item}>Unpublish</button>
+                  <button type="button" role="menuitem" onClick={askUnpublish} style={item}>Unpublish</button>
                 ) : (
                   <button type="button" role="menuitem" disabled={busy} onClick={() => run(true)} style={item}>{busy ? 'Republishing...' : 'Republish'}</button>
                 )}
@@ -344,7 +351,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
 
   const field: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 10, border: `1px solid ${colors.borderPrimary}`, background: colors.bgPrimary, color: colors.textPrimary };
   const label: React.CSSProperties = { display: 'grid', gap: 6, color: colors.textSecondary, fontSize: '0.85rem', fontWeight: 600 };
-  const err = (m?: string) => (m ? <span role="alert" style={{ color: '#DC2626', fontSize: '0.8rem' }}>{m}</span> : null);
+  const err = (m?: string) => (m ? <span role="alert" style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.8rem' }}>{m}</span> : null);
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Host an event" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'grid', placeItems: 'center', zIndex: 60, padding: 16 }}>
@@ -414,7 +421,7 @@ function HostForm({ elig, apiUrl, fetcher, colors, profilePath, onClose, onDone 
         <p style={{ margin: 0, color: colors.textSecondary, fontSize: '0.85rem' }}>
           When you go live your browser will ask for camera and microphone access. A steady connection keeps the stream smooth.
         </p>
-        {failure ? <p role="alert" style={{ margin: 0, color: '#DC2626' }}>{failure}</p> : null}
+        {failure ? <p role="alert" style={{ margin: 0, color: 'var(--g-error, #DC2626)' }}>{failure}</p> : null}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <button type="button" onClick={onClose} disabled={busy} style={{ cursor: 'pointer' }}>Cancel</button>
           <button type="button" onClick={() => void submit(false)} disabled={busy} style={{ cursor: 'pointer' }}>Publish and schedule for later</button>

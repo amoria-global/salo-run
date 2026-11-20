@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
+import { perfNowMs } from "../lib/clock";
 
 interface KycVerificationModalProps {
   isOpen: boolean;
@@ -241,7 +242,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     setLivenessStage(s);
     // Reset timer when entering a new challenge stage
     if (s === 'blink' || s === 'turn-left' || s === 'turn-right') {
-      challengeStartTimeRef.current = performance.now();
+      challengeStartTimeRef.current = perfNowMs();
     }
   };
 
@@ -261,7 +262,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
 
   const advanceToNextChallenge = () => {
     // Record elapsed time for the challenge just completed
-    const elapsed = Math.round(performance.now() - challengeStartTimeRef.current);
+    const elapsed = Math.round(perfNowMs() - challengeStartTimeRef.current);
     challengeTimingsRef.current.push(elapsed);
     // Capture a frame on each completed challenge
     captureFrameToBuffer();
@@ -405,7 +406,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       setTooDark(!bright);
     }
 
-    const result = lm.detectForVideo(video, performance.now());
+    const result = lm.detectForVideo(video, perfNowMs());
     const hasFace = result.faceLandmarks && result.faceLandmarks.length > 0;
     setFaceDetected(hasFace);
 
@@ -438,7 +439,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
 
     // Check challenge timeout (pause timer display ~4x/sec)
     if (stage === 'blink' || stage === 'turn-left' || stage === 'turn-right') {
-      const elapsed = performance.now() - challengeStartTimeRef.current;
+      const elapsed = perfNowMs() - challengeStartTimeRef.current;
       if (brightnessCheckCounter % 15 === 0) {
         setChallengeTimeLeft(Math.max(0, Math.ceil((CHALLENGE_TIME_LIMIT - elapsed) / 1000)));
       }
@@ -1364,7 +1365,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               background: 'rgba(8,58,133,0.10)',
               border: '1px solid rgba(8,58,133,0.25)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, color: '#083A85',
+              flexShrink: 0, color: 'var(--g-link, #083A85)',
             }}>
               <ShieldIcon />
             </div>
@@ -1447,7 +1448,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>
                 Submission failed
               </h3>
-              <p style={{ fontSize: '0.88rem', color: '#DC2626', marginBottom: '1.5rem', lineHeight: 1.5, maxWidth: 420, margin: '0 auto 1.5rem' }}>{error}</p>
+              <p style={{ fontSize: '0.88rem', color: 'var(--g-error, #DC2626)', marginBottom: '1.5rem', lineHeight: 1.5, maxWidth: 420, margin: '0 auto 1.5rem' }}>{error}</p>
               <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button
                   onClick={async () => {
@@ -1570,9 +1571,9 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                     position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
                     background: 'linear-gradient(180deg, #DC2626 0%, #F20C8F 130%)',
                   }} />
-                  <i className="bi bi-x-octagon-fill" style={{ color: '#DC2626', fontSize: 15, marginTop: 1, flexShrink: 0 }} />
+                  <i className="bi bi-x-octagon-fill" style={{ color: 'var(--g-error, #DC2626)', fontSize: 15, marginTop: 1, flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#DC2626', margin: 0, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--g-error, #DC2626)', margin: 0, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                       Previous submission rejected
                     </div>
                     <p style={{ fontSize: '0.82rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', margin: '4px 0 0', lineHeight: 1.45 }}>
@@ -1687,6 +1688,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                   )}
 
                   {/* Live camera view with liveness challenges */}
+                  {/* eslint-disable-next-line react-hooks/refs -- challenge progress is a ref the capture loop owns; setChallengeTimeLeft re-renders this block every few frames */}
                   {cameraMode === 'live' && (() => {
                     const isChallenge = livenessStage === 'blink' || livenessStage === 'turn-left' || livenessStage === 'turn-right';
                     const ovalColor = tooDark
@@ -1848,12 +1850,12 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                       </button>
 
                       {tokenError && (
-                        <p role="alert" style={{ fontSize: '0.75rem', color: '#DC2626', margin: '0.5rem 0 0 0' }}>
+                        <p role="alert" style={{ fontSize: '0.75rem', color: 'var(--g-error, #DC2626)', margin: '0.5rem 0 0 0' }}>
                           {tokenError}{' '}
                           <button
                             onClick={fetchChallengeToken}
                             style={{
-                              background: 'none', border: 'none', padding: 0, color: '#DC2626',
+                              background: 'none', border: 'none', padding: 0, color: 'var(--g-error, #DC2626)',
                               textDecoration: 'underline', cursor: 'pointer', font: 'inherit',
                             }}
                           >
@@ -1879,7 +1881,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                         )}
                         {preloadState === 'ready' && !cameraError && (
                           <>
-                            <span style={{ color: '#10B981' }}>&#10003;</span>
+                            <span style={{ color: 'var(--g-success, #10B981)' }}>&#10003;</span>
                             {/* This tracks the liveness MODEL, not the webcam. It used to
                                 render alongside "Camera access denied", telling the user
                                 the camera was ready and unavailable in consecutive lines
@@ -1888,13 +1890,13 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                           </>
                         )}
                         {preloadState === 'failed' && (
-                          <span style={{ color: '#DC2626' }}>
+                          <span style={{ color: 'var(--g-error, #DC2626)' }}>
                             Liveness model failed to load. Check your connection and try starting the camera.
                           </span>
                         )}
                       </div>
                       {cameraError && (
-                        <p style={{ fontSize: '0.75rem', color: '#DC2626', margin: '0.5rem 0 0 0' }}>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--g-error, #DC2626)', margin: '0.5rem 0 0 0' }}>
                           {cameraError}
                         </p>
                       )}
@@ -1904,6 +1906,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
               )}
 
               {/* Step 3: Government ID. type selector + front/back capture */}
+              {/* eslint-disable-next-line react-hooks/refs -- the ID step reads its file inputs only to open them and clear them, never to decide what renders */}
               {wizardStep === 3 && (() => {
                 const backRequired = documentType && documentType !== 'PASSPORT';
                 const docOptions: Array<{ value: DocumentType; label: string; hint: string }> = [
@@ -2099,7 +2102,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                             padding: '0.6rem 0.85rem', marginBottom: '0.75rem',
                             borderRadius: '0.5rem',
                             background: '#ECFDF5', border: '1px solid #A7F3D0',
-                            color: '#065F46', fontSize: '0.82rem',
+                            color: 'var(--g-success, #065F46)', fontSize: '0.82rem',
                             display: 'flex', gap: '0.5rem', alignItems: 'center',
                           }}>
                             <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>&#10003;</span>
@@ -2146,7 +2149,7 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                     )}
 
                     {cameraError && (
-                      <p style={{ fontSize: '0.75rem', color: '#DC2626', margin: '0.5rem 0 0 0' }}>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--g-error, #DC2626)', margin: '0.5rem 0 0 0' }}>
                         {cameraError}
                       </p>
                     )}

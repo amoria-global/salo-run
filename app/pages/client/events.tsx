@@ -40,6 +40,9 @@ import HybridEventWizardModal from '../../components/hybrid/HybridEventWizardMod
 import CandidatesShortlistModal from '../../components/hybrid/CandidatesShortlistModal';
 import { convertToHybrid } from '@/app/lib/hybridBooking';
 import { ModeBadge, friendlyEventStatus, isOpenHybrid, isUpcomingEventStatus, modeOf } from '../../components/hybrid/hybridUi';
+import { useClientEvents, type ClientEventsController } from '@/app/components/events/client/useClientEvents';
+import { useUiGlass } from '@/app/lib/useUiGlass';
+import GlassClientEvents from '@/app/components/glass/pages/GlassClientEvents';
 
 function parseTimeToApiString(timeStr: string): string {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -354,1499 +357,300 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 };
 
 // Photographers the client has worked with before
-const MyEventsPage = () => {
-  const { formatPrice, currencies } = useCurrency();
-  const { colors, actualTheme } = useTheme();
-  const { token, user } = useDashboardAuth();
-  const { profile } = useUserProfile();
-  const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'published' | 'past' | 'all'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const { canHost, caption: hostedCaption } = useHostEntry();
-  const [showEventDetails, setShowEventDetails] = useState<Event | null>(null);
-  const [showShareModal, setShowShareModal] = useState(false);
-  // Go live (camera or OBS) for a private event the user streams themselves.
-  const [goLiveEvent, setGoLiveEvent] = useState<Event | null>(null);
-  const [shareEvent, setShareEvent] = useState<Event | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteEvent, setDeleteEvent] = useState<Event | null>(null);
-  const [showPauseModal, setShowPauseModal] = useState(false);
-  const [pauseEvent, setPauseEvent] = useState<Event | null>(null);
-  const [pausingEventId, setPausingEventId] = useState<string | null>(null);
-  const [resumingEventId, setResumingEventId] = useState<string | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editEvent, setEditEvent] = useState<Event | null>(null);
-  const [copiedLink, setCopiedLink] = useState(false);
-
-  // Photographers fetched from API
-  const [pastPhotographers, setPastPhotographers] = useState<{id: string; name: string; image?: string; speciality: string; rating: number; eventsWorked: number}[]>([]);
-  const [platformPhotographers, setPlatformPhotographers] = useState<{id: string; name: string; image?: string; speciality: string; rating: number; eventsWorked: number}[]>([]);
-  const [showFindPhotographerModal, setShowFindPhotographerModal] = useState(false);
-  const [photographerSearchQuery, setPhotographerSearchQuery] = useState('');
-  const [photographerAssignMode, setPhotographerAssignMode] = useState<'none' | 'existing' | 'platform' | 'invite'>('none');
-  const [invitePhotographerEmail, setInvitePhotographerEmail] = useState('');
-  const [isSendingInvite, setIsSendingInvite] = useState(false);
-  const [inviteError, setInviteError] = useState<string | null>(null);
-  const [showInviteSuccessModal, setShowInviteSuccessModal] = useState(false);
-  const [editPhotographerId, setEditPhotographerId] = useState<string>('');
-  const [editPhotographerAssignMode, setEditPhotographerAssignMode] = useState<'none' | 'existing' | 'platform'>('none');
-  const [editPhotographerSearchQuery, setEditPhotographerSearchQuery] = useState('');
-
-  const filteredPhotographers = pastPhotographers.filter((photographer) => {
-    if (!photographerSearchQuery.trim()) return true;
-    const query = photographerSearchQuery.toLowerCase();
-    return photographer.name.toLowerCase().includes(query) || photographer.speciality.toLowerCase().includes(query);
-  });
-
-  useEffect(() => {
-    const normalizeImg = (url: string | undefined | null): string | undefined => {
-      if (!url || url.includes('/null')) return undefined;
-      return normalizeImageUrl(url);
-    };
-    // Fetch booked/existing photographers (authenticated)
-    const fetchBookedPhotographers = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/photographers`);
-        if (res.ok) {
-          const data = await res.json();
-          const list = (data.data?.content || data.data || []).map((p: Record<string, unknown>) => ({
-            id: (p.id as string) || '',
-            name: `${(p.firstName as string) || ''} ${(p.lastName as string) || ''}`.trim() || (p.name as string) || 'Photographer',
-            image: normalizeImg((p.profilePicture as string) || (p.profileImage as string) || (p.image as string) || null),
-            speciality: (p.speciality as string) || (p.category as string) || 'Photography',
-            rating: (p.rating as number) || 0,
-            eventsWorked: 0,
-          }));
-          setPastPhotographers(list);
-        }
-      } catch {
-        // Silently fail
-      }
-    };
-    // Fetch all platform photographers (public endpoint)
-    const fetchPlatformPhotographers = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const response = await fetch(`${apiUrl}/api/remote/public/photographers/list?page=0&size=50&sortColumn=createdAt&sortDirection=desc`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data.action === 1 && data.data?.content) {
-          const mapped = data.data.content.map((p: Record<string, unknown>) => ({
-            id: (p.id as string) || '',
-            name: `${(p.firstName as string) || ''} ${(p.lastName as string) || ''}`.trim() || 'Photographer',
-            image: normalizeImg((p.profilePicture as string) || null),
-            speciality: Array.isArray(p.specialties) ? p.specialties.map((s: any) => typeof s === 'string' ? s : s.name).join(', ') : (p.customerType as string) || 'Photography',
-            rating: (p.rating as number) || 0,
-            eventsWorked: 0,
-          }));
-          setPlatformPhotographers(mapped);
-        }
-      } catch {
-        // Silently fail
-      }
-    };
-    fetchBookedPhotographers();
-    fetchPlatformPhotographers();
-  }, []);
-
-  // Edit form state
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editEventType, setEditEventType] = useState('');
-  const [editCategory, setEditCategory] = useState<EventCategory | ''>('');
-  const [editStatus, setEditStatus] = useState<'UPCOMING' | 'LIVE'>('UPCOMING');
-  const [editDate, setEditDate] = useState('');
-  const [editTime, setEditTime] = useState('');
-  const [editEndTime, setEditEndTime] = useState('');
-  const [editDuration, setEditDuration] = useState('');
-  const [editVenueName, setEditVenueName] = useState('');
-  const [editAddress, setEditAddress] = useState('');
-  const [editCity, setEditCity] = useState('');
-  const [editCountry, setEditCountry] = useState('');
-  // The saved mode is preselected when an event is opened for editing.
-  const [editAttendance, setEditAttendance] = useState<AttendanceChoice | null>(null);
-  const [editPrice, setEditPrice] = useState('');
-  const [editPriceCurrency, setEditPriceCurrency] = useState('RWF');
-  usePaymentLimit(editPriceCurrency); // fills the cache the fee validators read
-  const [editMaxGuests, setEditMaxGuests] = useState('');
-  const [editOrganizer, setEditOrganizer] = useState('');
-  const [editTags, setEditTags] = useState<string[]>([]);
-  const [editTagInput, setEditTagInput] = useState('');
-  const [editBannerImage, setEditBannerImage] = useState<string | null>(null);
-  const [editBannerImagePreview, setEditBannerImagePreview] = useState<string | null>(null);
-  const [editBannerImageFile, setEditBannerImageFile] = useState<File | null>(null);
-
-  // Create form state
-  const [createTitle, setCreateTitle] = useState('');
-  const [createDescription, setCreateDescription] = useState('');
-  const [createEventType, setCreateEventType] = useState('');
-  const [createCategory, setCreateCategory] = useState<EventCategory | ''>('');
-  const [createStatus, setCreateStatus] = useState<'UPCOMING' | 'LIVE'>('UPCOMING');
-  const [statusFieldHovered, setStatusFieldHovered] = useState(false);
-  const [createDate, setCreateDate] = useState('');
-  const [createTime, setCreateTime] = useState('');
-  const [createEndTime, setCreateEndTime] = useState('');
-  const [createDuration, setCreateDuration] = useState('');
-  const [createVenueName, setCreateVenueName] = useState('');
-  const [createAddress, setCreateAddress] = useState('');
-  const [createCity, setCreateCity] = useState('');
-  // Empty until the person types one: the form shows the country of their profile instead of a hardcoded one.
-  const [createCountry, setCreateCountry] = useState('');
-  // How guests attend: no default on a new event, so the choice is required (see lib/events/eventFormRules).
-  const [createAttendance, setCreateAttendance] = useState<AttendanceChoice | null>(null);
-  const [createShowMore, setCreateShowMore] = useState(false);
-  // Errors stay hidden until the first click on Create, then follow the form live as each field is fixed.
-  const [createShowErrors, setCreateShowErrors] = useState(false);
-  const [createPrice, setCreatePrice] = useState('');
-  const [createPriceCurrency, setCreatePriceCurrency] = useState('RWF');
-  usePaymentLimit(createPriceCurrency);
-  const [createMaxGuests, setCreateMaxGuests] = useState('');
-  const [createOrganizer, setCreateOrganizer] = useState('');
-  const [createTags, setCreateTags] = useState<string[]>([]);
-  const [createTagInput, setCreateTagInput] = useState('');
-  const [createBannerImage, setCreateBannerImage] = useState<string | null>(null);
-  const [createBannerImagePreview, setCreateBannerImagePreview] = useState<string | null>(null);
-  const [createBannerImageFile, setCreateBannerImageFile] = useState<File | null>(null);
-  const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
-  const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
-  // Wish invites: no default on a new event, so the choice is required before it can be created.
-  const [createWishInvites, setCreateWishInvites] = useState<boolean | null>(null);
-  const [createWishInvitesErr, setCreateWishInvitesErr] = useState<string | null>(null);
-  const [editWishInvites, setEditWishInvites] = useState<boolean | null>(null);
-  const [createPackageId, setCreatePackageId] = useState<string>('');
-  const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; currencySymbol: string; currencyAbbreviation: string; description: string; durationHours: number; hasLiveStream: boolean; includedPhotos: number; includedVideos: number}[]>([]);
-  const [packagesLoading, setPackagesLoading] = useState(false);
-  const [packagesError, setPackagesError] = useState<string | null>(null);
-  const [createEscrowPercentage, setCreateEscrowPercentage] = useState<number>(50);
-
-  // Hybrid booking state
-  const [showBookingModeSelector, setShowBookingModeSelector] = useState(false);
-  const [showHybridWizard, setShowHybridWizard] = useState(false);
-  // Set when posting an event that already exists (a Direct event, or one whose matching ended).
-  const [hybridWizardEvent, setHybridWizardEvent] = useState<{ id: string; title?: string; eventDate?: string; startTime?: string; endTime?: string; city?: string; venue?: string } | null>(null);
-  const openPostWizard = (ev?: Event | null) => {
-    setHybridWizardEvent(ev ? { id: ev.id, title: ev.title, eventDate: ev.date, startTime: ev.time, endTime: ev.endTime, city: ev.location?.city, venue: ev.location?.address } : null);
-    setShowHybridWizard(true);
-  };
-  const [candidateModalEvent, setCandidateModalEvent] = useState<Event | null>(null);
-  const [convertingHybridId, setConvertingHybridId] = useState<string | null>(null);
-
-  const handleConvertToHybrid = async (ev: Event) => {
-    setConvertingHybridId(ev.id);
-    try {
-      await convertToHybrid(ev.id);
-      platformAlert('Your event brief has been broadcast to verified local photographers.', {
-        title: 'Hybrid Matching Active',
-        tone: 'success',
-      });
-      fetchMyEvents();
-    } catch (e: any) {
-      platformAlert(e.message || 'Could not broadcast event to photographers.', {
-        title: 'Error',
-        tone: 'danger',
-      });
-    } finally {
-      setConvertingHybridId(null);
-    }
-  };
-
-  // Completion confirmation modal
-  const [completionModalEvent, setCompletionModalEvent] = useState<Event | null>(null);
-  const [completionFeedbackStatus, setCompletionFeedbackStatus] = useState<'COMPLETED' | 'REQUIRE_CHANGES'>('COMPLETED');
-  const [completionComment, setCompletionComment] = useState('');
-  const [completionSubmitting, setCompletionSubmitting] = useState(false);
-  // Satisfaction survey - shown AFTER the client picks "Completed" on
-  // the confirmation modal. Submission of the survey then triggers the
-  // backend's confirm-completion endpoint (which releases survey-held
-  // escrow). "Require Changes" skips the survey entirely.
-  const [surveyForEvent, setSurveyForEvent] = useState<Event | null>(null);
-
-  // Fetch packages when photographer changes
-  useEffect(() => {
-    if (!createPhotographerId || !isValidUUID(createPhotographerId)) {
-      setPhotographerPackages([]);
-      setCreatePackageId('');
-      setPackagesError(null);
-      return;
-    }
-    setPackagesLoading(true);
-    setCreatePackageId('');
-    const fetchPackages = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const response = await fetch(`${apiUrl}/api/remote/public/photographers/${createPhotographerId}/packages`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!response.ok) {
-          setPackagesError('Could not load packages. Please try again.');
-          return;
-        }
-        const data = await response.json();
-        const pkgs = data.action === 1 && Array.isArray(data.data) ? data.data : [];
-        setPhotographerPackages(pkgs.filter((p: Record<string, unknown>) => p.isActive !== false).map((p: Record<string, unknown>) => ({
-          id: (p.id as string) || '',
-          packageName: (p.packageName as string) || 'Package',
-          price: (p.price as number) || 0,
-          currencyId: (p.currencyId as string) || 'RWF',
-          currencySymbol: (p.currencySymbol as string) || (p.currency as any)?.symbol || '',
-          currencyAbbreviation: (p.currencyAbbreviation as string) || (p.currency as any)?.abbreviation || '',
-          description: (p.description as string) || '',
-          durationHours: (p.durationHours as number) || 0,
-          hasLiveStream: (p.hasLiveStream as boolean) ?? false,
-          includedPhotos: (p.includedPhotos as number) || 0,
-          includedVideos: (p.includedVideos as number) || 0,
-        })));
-      } catch {
-        setPackagesError('Could not load packages. Please try again.');
-      } finally {
-        setPackagesLoading(false);
-      }
-    };
-    fetchPackages();
-  }, [createPhotographerId]);
-
-  // Auto-set status based on selected package: hasLiveStream → Live Event, else Upcoming
-  useEffect(() => {
-    if (!createPackageId) {
-      setCreateStatus('UPCOMING');
-      return;
-    }
-    const selected = photographerPackages.find(p => p.id === createPackageId);
-    if (selected && selected.hasLiveStream) {
-      setCreateStatus('LIVE');
-    } else {
-      setCreateStatus('UPCOMING');
-    }
-  }, [createPackageId, photographerPackages]);
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [dateError, setDateError] = useState<string>('');
-  const [timeError, setTimeError] = useState<string>('');
-  const [isRestoringDraft, setIsRestoringDraft] = useState(false);
-  const [showDraftRestoredNotice, setShowDraftRestoredNotice] = useState(false);
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Auto-save form data to IndexedDB
-  const saveFormDraft = useCallback(async () => {
-    const formData: CreateEventFormData = {
-      createTitle,
-      createDescription,
-      createEventType,
-      createCategory: createCategory as string,
-      createStatus,
-      createDate,
-      createTime,
-      createEndTime,
-      createDuration,
-      createVenueName,
-      createAddress,
-      createCity,
-      createCountry,
-      createPrice,
-      createMaxGuests,
-      createOrganizer,
-      createTags,
-      createPhotographerId,
-      createPackageId,
-      createEventVisibility,
-      createBannerImagePreview,
-      savedAt: Date.now()
-    };
-
-    // Only save if there's actual data entered
-    const hasData = createTitle || createDescription || createEventType ||
-                    createCategory || createDate || createTime ||
-                    createAddress || createCity || createOrganizer;
-
-    if (hasData) {
-      try {
-        await eventFormStorage.setItem(CREATE_EVENT_FORM_KEY, formData);
-      } catch (error) {
-        console.error('Failed to save form draft:', error);
-      }
-    }
-  }, [
-    createTitle, createDescription, createEventType, createCategory, createStatus,
-    createDate, createTime, createEndTime, createDuration, createVenueName,
-    createAddress, createCity, createCountry, createPrice, createMaxGuests,
-    createOrganizer, createTags, createPhotographerId, createPackageId, createEventVisibility, createBannerImagePreview
-  ]);
-
-  // Debounced auto-save when form fields change
-  useEffect(() => {
-    if (showCreateModal && !isRestoringDraft) {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-      autoSaveTimeoutRef.current = setTimeout(() => {
-        saveFormDraft();
-      }, 500); // Save after 500ms of inactivity
-    }
-
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-    };
-  }, [
-    showCreateModal, isRestoringDraft, saveFormDraft
-  ]);
-
-  // Restore saved draft when modal opens
-  useEffect(() => {
-    const restoreDraft = async () => {
-      if (showCreateModal) {
-        try {
-          const savedDraft = await eventFormStorage.getItem<CreateEventFormData>(CREATE_EVENT_FORM_KEY);
-          if (savedDraft) {
-            setIsRestoringDraft(true);
-            setCreateTitle(savedDraft.createTitle || '');
-            setCreateDescription(savedDraft.createDescription || '');
-            setCreateEventType(savedDraft.createEventType || '');
-            setCreateCategory((savedDraft.createCategory as EventCategory) || '');
-            setCreateStatus(savedDraft.createStatus || 'UPCOMING');
-            setCreateDate(savedDraft.createDate || '');
-            setCreateTime(savedDraft.createTime || '');
-            setCreateEndTime(savedDraft.createEndTime || '');
-            setCreateDuration(savedDraft.createDuration || '');
-            setCreateVenueName(savedDraft.createVenueName || '');
-            setCreateAddress(savedDraft.createAddress || '');
-            setCreateCity(savedDraft.createCity || '');
-            setCreateCountry(savedDraft.createCountry || '');
-            setCreatePrice(savedDraft.createPrice || '');
-            setCreateMaxGuests(savedDraft.createMaxGuests || '');
-            setCreateOrganizer(savedDraft.createOrganizer || '');
-            setCreateTags(savedDraft.createTags || []);
-            setCreatePhotographerId(savedDraft.createPhotographerId || '');
-            setCreatePackageId(savedDraft.createPackageId || '');
-            setCreateEventVisibility('PUBLIC');
-            setCreateBannerImagePreview(savedDraft.createBannerImagePreview || null);
-
-            // Show notice that draft was restored
-            setShowDraftRestoredNotice(true);
-            setTimeout(() => setShowDraftRestoredNotice(false), 3000);
-
-            // Allow auto-save after restoration is complete
-            setTimeout(() => setIsRestoringDraft(false), 100);
-          }
-        } catch (error) {
-          console.error('Failed to restore form draft:', error);
-        }
-      }
-    };
-
-    restoreDraft();
-  }, [showCreateModal]);
-
-  // Sidebar "Post My Event" and the landing page link here with ?post=1, ?mode=select, or ?candidates=<eventId>.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const url = new URL(window.location.href);
-    let changed = false;
-    if (params.get('post') === '1') {
-      openPostWizard(null);
-      url.searchParams.delete('post');
-      changed = true;
-    }
-    if (params.get('mode') === 'select') {
-      setShowBookingModeSelector(true);
-      url.searchParams.delete('mode');
-      changed = true;
-    }
-    const candidatesEventId = params.get('candidates');
-    if (candidatesEventId && isValidUUID(candidatesEventId)) {
-      setCandidateModalEvent({ id: candidatesEventId, title: 'Your Event Offer', status: 'OPEN_FOR_INTEREST' } as unknown as Event);
-      url.searchParams.delete('candidates');
-      changed = true;
-    }
-    if (changed) {
-      window.history.replaceState({}, '', url.toString());
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Auto-open create modal pre-filled when redirected from landing with ?photographerId=&packageId=
-  useEffect(() => {
-    // Delay to ensure AuthProvider has processed the token param first
-    const timer = setTimeout(() => {
-      const params = new URLSearchParams(window.location.search);
-      const landingPhotographerId = params.get('photographerId');
-      const landingPackageId = params.get('packageId');
-      if (!landingPhotographerId) return;
-      setCreatePhotographerId(landingPhotographerId);
-      if (landingPackageId) setCreatePackageId(landingPackageId);
-      setPhotographerAssignMode('platform');
-      setShowCreateModal(true);
-      // Clean params from URL without reload
-      const url = new URL(window.location.href);
-      url.searchParams.delete('photographerId');
-      url.searchParams.delete('packageId');
-      window.history.replaceState({}, '', url.pathname + (url.search !== '?' ? url.search : ''));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Clear saved draft from IndexedDB
-  const clearFormDraft = useCallback(async () => {
-    try {
-      await eventFormStorage.removeItem(CREATE_EVENT_FORM_KEY);
-    } catch (error) {
-      console.error('Failed to clear form draft:', error);
-    }
-  }, []);
-
-  const [eventCategories, setEventCategories] = useState<{ id: string; name: string }[]>([]);
-
-  // Fetch event categories from API
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/remote/public/events/categories`);
-        const data = await res.json();
-        if (data.action === 1 && Array.isArray(data.data)) {
-          setEventCategories(data.data);
-        }
-      } catch {
-        // Fallback silently
-      }
-    })();
-  }, []);
-
-
-  // Auto-scroll to escrow/payment terms section when package is selected
-  useEffect(() => {
-    if (createPackageId && createPhotographerId) {
-      const timer = setTimeout(() => {
-        const escrowSection = document.querySelector('[data-section="escrow"]');
-        if (escrowSection) {
-          escrowSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [createPackageId, createPhotographerId]);
-
-  const [events, setEvents] = useState<Event[]>([]);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const router = useRouter();
-  const getStarted = useGetStarted({ role: 'client', canHost, listLoaded: !isLoadingEvents, hasItems: events.length > 0 });
-  const [eventsError, setEventsError] = useState<string | null>(null);
-  const [publishingEventId, setPublishingEventId] = useState<string | null>(null);
-  const [unpublishingEventId, setUnpublishingEventId] = useState<string | null>(null);
-  const [qrEvent, setQrEvent] = useState<{ id: string; title: string; justPublished: boolean } | null>(null);
-  const [publishConfirmEvent, setPublishConfirmEvent] = useState<Event | null>(null);
-  const [unpublishConfirmEvent, setUnpublishConfirmEvent] = useState<Event | null>(null);
-  // Surfaced when the backend rejects an unpublish because the event is
-  // currently live. The creator has to wait for the photographer to end the
-  // stream before they can take the event offline.
-  const [ongoingUnpublishBlock, setOngoingUnpublishBlock] = useState<{ title: string; photographerName: string | null } | null>(null);
-  const [noPhotographerEvent, setNoPhotographerEvent] = useState<Event | null>(null);
-  const [pendingBookingEvent, setPendingBookingEvent] = useState<Event | null>(null);
-  const [rebookEvent, setRebookEvent] = useState<Event | null>(null);
-  const [noPhotoEvent, setNoPhotoEvent] = useState<Event | null>(null);
-
-  // Fetch events using authenticated customer endpoint
-  const fetchMyEvents = useCallback(async () => {
-    setIsLoadingEvents(true);
-    setEventsError(null);
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events?page=0&size=100`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch events: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.action === 1 && (data.data?.content || Array.isArray(data.data))) {
-        const myEvents = data.data?.content || data.data || [];
-
-        const mappedEvents: Event[] = myEvents.map((evt: Record<string, unknown>) => {
-          const locationStr = (evt.location as string) || '';
-          const lp = locationStr.split(',').map((s: string) => s.trim());
-          // Handle both "Venue, Address, City, Country" (4 parts) and "Address, City, Country" (3 parts)
-          const locAddress = lp.length >= 4 ? `${lp[0]}, ${lp[1]}` : (lp[0] || locationStr);
-          const locCity = lp.length >= 4 ? (lp[2] || '') : (lp[1] || '');
-          const locCountry = lp.length >= 4 ? (lp[3] || '') : (lp[2] || '');
-          const rawPhoto = (evt.eventPhoto as string) || (evt.bannerImage as string) || (evt.coverImage as string) || '';
-          const photo = normalizeImageUrl(rawPhoto) || '';
-          return {
-            id: (evt.id as string) || '',
-            title: (evt.title as string) || 'Untitled Event',
-            description: (evt.description as string) || '',
-            eventType: (typeof evt.eventType === 'object' && evt.eventType !== null ? (evt.eventType as Record<string, unknown>).name as string : evt.eventType as string)
-              || (typeof evt.eventCategory === 'object' && evt.eventCategory !== null ? (evt.eventCategory as Record<string, unknown>).name as string : evt.eventCategory as string)
-              || (typeof evt.category === 'object' && evt.category !== null ? (evt.category as Record<string, unknown>).name as string : evt.category as string)
-              || '',
-            category: ((typeof evt.eventCategory === 'object' && evt.eventCategory !== null ? (evt.eventCategory as Record<string, unknown>).name as string : evt.eventCategory as string)
-              || (typeof evt.category === 'object' && evt.category !== null ? (evt.category as Record<string, unknown>).name as string : evt.category as string)
-              || (typeof evt.eventType === 'object' && evt.eventType !== null ? (evt.eventType as Record<string, unknown>).name as string : evt.eventType as string)
-              || 'Entertainment') as EventCategory,
-            date: (evt.eventDate as string) || '',
-            time: (evt.startTime as string) || '',
-            endTime: (evt.endTime as string) || '',
-            duration: '',
-            location: {
-              address: locAddress,
-              city: locCity,
-              country: locCountry,
-            },
-            coverImage: photo,
-            bannerImage: photo,
-            price: evt.price ? `${evt.price}` : (evt.isEventFree ? 'Free' : 'Free'),
-            priceCurrency: (evt.streamFeeCurrencyAbbreviation as string) || (evt.priceCurrency as string) || 'RWF',
-            hasLiveStream: (evt.hasLiveStream as boolean) ?? false,
-            isPublished: evt.isPublished === true,
-            eventVisibility: typeof evt.eventVisibility === 'string' ? evt.eventVisibility : undefined,
-            attendanceMode: typeof evt.attendanceMode === 'string' ? evt.attendanceMode : undefined,
-            allowWishInvites: typeof evt.allowWishInvites === 'boolean' ? evt.allowWishInvites : undefined,
-            guestCount: (evt.guestCount as number) || 0,
-            maxGuests: (evt.maxGuests as number) || 0,
-            status: (() => {
-              const raw = ((evt.eventStatus as string) || (evt.status as string) || 'UPCOMING').toUpperCase();
-              if (raw === 'PAUSED') return 'PAUSED';
-              if (evt.isPublished === true && (raw === 'UPCOMING' || raw === 'PUBLISHED')) return 'PUBLISHED';
-              return raw;
-            })() as EventStatus,
-            organizer: (evt.eventOrganizer as string) || '',
-            tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
-            hasPhotographer: !!(evt.photographerId || (evt.photographer as Record<string, unknown>)?.id),
-            bookingStatus: (evt.bookingStatus as string) || undefined,
-            // Without it every posted event reads as Direct: no answers button, and a "Post" button on an event already posted.
-            bookingMode: (evt.bookingMode as string) || undefined,
-            photographerId: (evt.photographerId as string) || ((evt.photographer as Record<string, unknown>)?.id as string) || undefined,
-            photographerName: (evt.photographerName as string) || `${((evt.photographer as Record<string, unknown>)?.firstName as string) || ''} ${((evt.photographer as Record<string, unknown>)?.lastName as string) || ''}`.trim() || '',
-            photographerImage: (evt.photographerImage as string) || ((evt.photographer as Record<string, unknown>)?.profilePicture as string) || '',
-            inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
-            streamInviteToken: (evt.streamInviteToken as string) || undefined,
-            shareLink: (() => {
-              const base = `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/events/view-event?id=${evt.id}`;
-              const code = (evt.inviteCode as string) || (evt.hostId as string) || '';
-              return code ? `${base}&hostId=${code}` : base;
-            })(),
-            completionStatus: (evt.completionStatus as string) || undefined,
-            createdAt: (evt.createdAt as string) || '',
-            latitude: (evt.latitude as number) ?? null,
-            longitude: (evt.longitude as number) ?? null,
-            eventDate: (evt.eventDate as string) || (evt.date as string) || null,
-          };
-        });
-
-        // Newest-created first. ISO timestamps include milliseconds so ties
-        // inside the same second break naturally by ms precision.
-        mappedEvents.sort((a, b) => {
-          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return tb - ta;
-        });
-        setEvents(mappedEvents);
-      }
-    } catch (err) {
-      setEventsError(err instanceof Error ? err.message : 'Failed to fetch events');
-    } finally {
-      setIsLoadingEvents(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchMyEvents();
-  }, [user?.id, fetchMyEvents]);
-
-  // Deep-link from album-detail's "Request changes" CTA:
-  //   /user/client/events?requestChanges=<eventId>
-  //   /user/client/events?requestChangesAlbum=<albumId>  (fallback for older builds)
-  // Open the completion-confirmation modal pre-set to REQUIRE_CHANGES so the
-  // client lands directly in the feedback flow instead of having to hunt for
-  // the right event and re-pick the option.
-  const [requestChangesConsumed, setRequestChangesConsumed] = useState(false);
-  useEffect(() => {
-    if (requestChangesConsumed || !searchParams) return;
-    if (isLoadingEvents) return;
-    const eventIdParam = searchParams.get('requestChanges');
-    const albumIdParam = searchParams.get('requestChangesAlbum');
-    if (!eventIdParam && !albumIdParam) return;
-
-    let target: Event | undefined;
-    if (eventIdParam) {
-      target = events.find(e => e.id === eventIdParam);
-    } else if (albumIdParam) {
-      // Best-effort fallback: any event with an album delivered and pending
-      // customer confirmation. If there's exactly one, take it; otherwise
-      // leave the modal closed so the user can pick manually.
-      const candidates = events.filter(e =>
-        e.albumDelivered && e.completionStatus === 'PENDING_CUSTOMER_CONFIRMATION'
-      );
-      if (candidates.length === 1) target = candidates[0];
-    }
-    if (target) {
-      setCompletionModalEvent(target);
-      setCompletionFeedbackStatus('REQUIRE_CHANGES');
-      setCompletionComment('');
-    }
-    setRequestChangesConsumed(true);
-  }, [searchParams, isLoadingEvents, events, requestChangesConsumed]);
-
-  // Auto-refresh events when tab regains focus (e.g. after photographer accepts on their dashboard)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user) {
-        fetchMyEvents();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user, fetchMyEvents]);
-
-  const handlePublishEvent = async (eventId: string) => {
-    if (!user) return;
-    setPublishConfirmEvent(null);
-    setPublishingEventId(eventId);
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${eventId}/publish`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to publish event (${response.status})`);
-      }
-
-      setEvents(prev => prev.map(evt =>
-        evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus, isPublished: true } : evt
-      ));
-      if (activeTab === 'upcoming') setActiveTab('all');
-      setQrEvent({ id: eventId, title: events.find(e => e.id === eventId)?.title ?? 'Your event', justPublished: true });
-    } catch (err) {
-      console.error('Publish event error:', err);
-      platformAlert(err instanceof Error ? err.message : 'Failed to publish event');
-    } finally {
-      setPublishingEventId(null);
-    }
-  };
-
-  const handleUnpublishEvent = async (eventId: string) => {
-    if (!user) return;
-    // Capture the title before closing the confirm modal. used below if the
-    // backend rejects with EVENT_ONGOING so the block modal can name it.
-    const targetTitle = unpublishConfirmEvent?.title
-      ?? events.find(e => e.id === eventId)?.title
-      ?? 'this event';
-    setUnpublishConfirmEvent(null);
-    setUnpublishingEventId(eventId);
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${eventId}/unpublish`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        // Backend returns 409 + { error: "EVENT_ONGOING", photographerName } when
-        // the event is live. Show the dedicated block modal instead of platformAlert().
-        if (response.status === 409 && errorData?.error === 'EVENT_ONGOING') {
-          setOngoingUnpublishBlock({
-            title: targetTitle,
-            photographerName: errorData?.photographerName ?? null,
-          });
-          return;
-        }
-        throw new Error(errorData.message || `Failed to unpublish event (${response.status})`);
-      }
-
-      setEvents(prev => prev.map(evt =>
-        evt.id === eventId ? { ...evt, status: 'UPCOMING' as EventStatus, isPublished: false } : evt
-      ));
-      if (activeTab === 'published') setActiveTab('all');
-    } catch (err) {
-      console.error('Unpublish event error:', err);
-      platformAlert(err instanceof Error ? err.message : 'Failed to unpublish event');
-    } finally {
-      setUnpublishingEventId(null);
-    }
-  };
-
-
-  // Re-fetch a single event from server and run publish pre-checks with fresh data
-  const handlePublishClick = async (event: Event) => {
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${event.id}`);
-      if (res.ok) {
-        const json = await res.json();
-        const fresh = json.data;
-        if (fresh) {
-          // Update local event state with fresh data
-          const updatedEvent: Event = {
-            ...event,
-            hasPhotographer: !!((fresh.photographerId as string) || (fresh.photographer as any)?.id),
-            bookingStatus: (fresh.bookingStatus as string) || undefined,
-            photographerId: (fresh.photographerId as string) || (fresh.photographer as any)?.id || undefined,
-            coverImage: fresh.eventPhoto || fresh.bannerImage || fresh.coverImage || event.coverImage,
-          };
-          setEvents(prev => prev.map(e => e.id === event.id ? updatedEvent : e));
-
-          // Run publish checks with fresh data
-          if (!updatedEvent.coverImage) {
-            setNoPhotoEvent(updatedEvent);
-          } else if (!updatedEvent.hasPhotographer) {
-            setNoPhotographerEvent(updatedEvent);
-          } else if (updatedEvent.bookingStatus && updatedEvent.bookingStatus.toUpperCase() !== 'ACCEPTED' && updatedEvent.bookingStatus.toUpperCase() !== 'UNASSIGNED') {
-            setPendingBookingEvent(updatedEvent);
-          } else {
-            setPublishConfirmEvent(updatedEvent);
-          }
-          return;
-        }
-      }
-    } catch (err) {
-      console.error('Failed to refresh event before publish:', err);
-    }
-    // Fallback: use stale data if refresh fails
-    if (!event.coverImage) {
-      setNoPhotoEvent(event);
-    } else if (!event.hasPhotographer) {
-      setNoPhotographerEvent(event);
-    } else if (event.bookingStatus && event.bookingStatus.toUpperCase() !== 'ACCEPTED' && event.bookingStatus.toUpperCase() !== 'UNASSIGNED') {
-      setPendingBookingEvent(event);
-    } else {
-      setPublishConfirmEvent(event);
-    }
-  };
-
-  const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Baby Shower', 'Graduation', 'Anniversary', 'Engagement', 'Other'];
-
-  const handleDeleteEvent = async () => {
-    if (!deleteEvent) return;
-    const eventId = deleteEvent.id;
-    const wasPublished = deleteEvent.status.toUpperCase() === 'PUBLISHED';
-    setDeleteEvent(null);
-    setShowDeleteModal(false);
-    try {
-      const apiUrl = getApiUrl();
-      // Unpublish first if the event is published, so it's removed from the public platform
-      if (wasPublished) {
-        const unpubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${eventId}/unpublish`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!unpubRes.ok) {
-          const errorData = await unpubRes.json().catch(() => ({}));
-          throw new Error(errorData.message || `Failed to unpublish event before deletion (${unpubRes.status})`);
-        }
-        // Update local state to reflect unpublish
-        setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'UPCOMING' as EventStatus } : e));
-      }
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${eventId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to delete event (${res.status})`);
-      }
-      setEvents(prev => prev.filter(e => e.id !== eventId));
-    } catch (err) {
-      console.error('Delete event error:', err);
-      platformAlert(err instanceof Error ? err.message : 'Failed to delete event');
-      // Refetch to sync state with backend
-      fetchMyEvents();
-    }
-  };
-
-  const isEventDeletable = (event: Event): boolean => {
-    if (event.status.toUpperCase() === 'COMPLETED') return false;
-    if (event.completionStatus && event.completionStatus !== 'NOT_COMPLETED') return false;
-    if (event.bookingStatus?.toUpperCase() === 'ACCEPTED') return false;
-    if (event.status.toUpperCase() === 'PAUSED') return false;
-    return true;
-  };
-
-  const isEventPausable = (event: Event): boolean => {
-    if (event.bookingStatus?.toUpperCase() !== 'ACCEPTED') return false;
-    if (event.status.toUpperCase() === 'COMPLETED') return false;
-    if (event.status.toUpperCase() === 'PAUSED') return false;
-    return true;
-  };
-
-  const isEventResumable = (event: Event): boolean => {
-    return event.status.toUpperCase() === 'PAUSED';
-  };
-
-  const handlePauseEvent = async () => {
-    if (!pauseEvent) return;
-    const eventId = pauseEvent.id;
-    setPauseEvent(null);
-    setShowPauseModal(false);
-    setPausingEventId(eventId);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${eventId}/pause`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to pause event (${res.status})`);
-      }
-      setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'PAUSED' as EventStatus, isPublished: false } : e));
-    } catch (err) {
-      console.error('Pause event error:', err);
-      platformAlert(err instanceof Error ? err.message : 'Failed to pause event');
-      fetchMyEvents();
-    } finally {
-      setPausingEventId(null);
-    }
-  };
-
-  const handleResumeEvent = async (eventId: string) => {
-    setResumingEventId(eventId);
-    try {
-      const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${eventId}/resume`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to resume event (${res.status})`);
-      }
-      const data = await res.json();
-      const newStatus = data.data?.eventStatus?.toUpperCase() || 'UPCOMING';
-      setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: newStatus as EventStatus } : e));
-    } catch (err) {
-      console.error('Resume event error:', err);
-      platformAlert(err instanceof Error ? err.message : 'Failed to resume event');
-      fetchMyEvents();
-    } finally {
-      setResumingEventId(null);
-    }
-  };
-
-  const openEditModal = (event: Event) => {
-    setEditEvent(event);
-    // The saved value; an event from before the setting reads as on.
-    setEditWishInvites(invitesOn(event.allowWishInvites));
-    setEditAttendance(attendanceFromSaved(event.attendanceMode, event.location.address));
-    setEditTitle(event.title);
-    setEditDescription(event.description);
-    setEditEventType(event.eventType);
-    setEditCategory((event.category as EventCategory) || '');
-    setEditStatus(event.hasLiveStream ? 'LIVE' : 'UPCOMING');
-    setEditDate(event.date);
-    setEditTime(event.time);
-    setEditEndTime(event.endTime || '');
-    setEditDuration(event.duration);
-    // Parse venue name and address from location.address
-    // location.address may be "Venue, Address" (from 4-part location) or just "Venue"
-    const addrComma = event.location.address.indexOf(',');
-    if (addrComma !== -1) {
-      setEditVenueName(event.location.address.substring(0, addrComma).trim());
-      setEditAddress(event.location.address.substring(addrComma + 1).trim());
-    } else {
-      setEditVenueName(event.location.address);
-      setEditAddress('');
-    }
-    setEditCity(event.location.city);
-    setEditCountry(event.location.country);
-    setEditPrice(event.price || '');
-    setEditPriceCurrency(event.priceCurrency || 'RWF');
-    setEditMaxGuests(event.maxGuests.toString());
-    setEditOrganizer(event.organizer || '');
-    setEditTags(event.tags || []);
-    setEditTagInput('');
-    setEditBannerImage(event.bannerImage || null);
-    setEditBannerImagePreview(event.bannerImage || null);
-    setEditBannerImageFile(null);
-    setEditPhotographerId(event.photographerId || '');
-    setEditPhotographerAssignMode('none');
-    setEditPhotographerSearchQuery('');
-    setShowEditModal(true);
-  };
-
-  const handleEditEvent = async () => {
-    if (!editEvent) return;
-    const editRules = validateEventForm(
-      {
-        hasCover: true,
-        title: editTitle,
-        category: String(editCategory ?? ''),
-        eventDate: editDate,
-        startTime: editTime,
-        attendance: editAttendance,
-        venueName: editVenueName,
-        city: editCity,
-        wishInvites: editWishInvites,
-      },
-      { legacyLocation: true },
-    );
-    const editBlocked = firstInvalidField(editRules);
-    if (editBlocked) {
-      setSubmitError(editRules[editBlocked] ?? null);
-      if (editBlocked === 'wishInvites') focusWishInvitesField();
-      else focusEventField(editBlocked);
-      return;
-    }
-
-    // Currency-aware minimum stream access fee
-    if (!confirmYear(editDate)) return;
-    if (eventPriceError(editPrice || '', editPriceCurrency)) {
-      setSubmitError(eventPriceError(editPrice || '', editPriceCurrency) ?? 'Enter a valid price.');
-      return;
-    }
-
-    // Calculate duration from start and end time
-    let calculatedDuration = editDuration;
-    if (editTime && editEndTime) {
-      const [startHours, startMins] = editTime.split(':').map(Number);
-      const [endHours, endMins] = editEndTime.split(':').map(Number);
-      const startTotalMins = startHours * 60 + startMins;
-      const endTotalMins = endHours * 60 + endMins;
-      const durationMins = endTotalMins >= startTotalMins ? endTotalMins - startTotalMins : (24 * 60 - startTotalMins) + endTotalMins;
-      const hours = Math.floor(durationMins / 60);
-      const mins = durationMins % 60;
-      calculatedDuration = mins > 0 ? `${hours}h ${mins}m` : `${hours} hours`;
-    }
-
-    // Format time for display
-    const formatTimeDisplay = (time24: string) => {
-      if (!time24) return '';
-      const [hours, mins] = time24.split(':').map(Number);
-      const period = hours >= 12 ? 'PM' : 'AM';
-      const displayHours = hours % 12 || 12;
-      return `${displayHours}:${mins.toString().padStart(2, '0')} ${period}`;
-    };
-    const timeDisplay = editEndTime
-      ? `${formatTimeDisplay(editTime)} - ${formatTimeDisplay(editEndTime)}`
-      : formatTimeDisplay(editTime);
-
-    try {
-      const apiUrl = getApiUrl();
-      const editNumericPrice = editPrice.replace(/[^\d]/g, '');
-      const editPayload: Record<string, unknown> = {
-        title: capitalizeWords(editTitle),
-        description: autoCapitalize(editDescription),
-        eventType: editCategory,
-        eventDate: editDate,
-        startTime: editTime ? parseTimeToApiString(editTime) : null,
-        endTime: editEndTime ? parseTimeToApiString(editEndTime) : null,
-        location: capitalizeWords(locationPayload(editAttendance, { venueName: editVenueName, address: editAddress, city: editCity, country: editCountry }) ?? ''),
-        attendanceMode: editAttendance ?? undefined,
-        eventOrganizer: capitalizeWords(editOrganizer),
-        eventTags: editTags.length > 0 ? editTags.join(',') : editCategory,
-        price: editNumericPrice ? Number(editNumericPrice) : 0,
-        priceCurrency: editPriceCurrency || 'RWF',
-        allowWishInvites: editWishInvites === true,
-        // Empty means no limit and sends nothing. Only clearing a limit that was set sends 0, the one way to remove it.
-        maxGuests: maxGuestsPayload(editMaxGuests) ?? ((editEvent.maxGuests ?? 0) > 0 ? 0 : undefined),
-      };
-      const validEditPhotographerId = (editPhotographerId && isValidUUID(editPhotographerId)) ? editPhotographerId : null;
-      if (validEditPhotographerId) {
-        editPayload.photographerId = validEditPhotographerId;
-      }
-      Object.keys(editPayload).forEach(key => {
-        if (editPayload[key] === undefined || editPayload[key] === null) delete editPayload[key];
-      });
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${editEvent.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editPayload),
-      });
-      // Upload banner image if a new file was selected
-      if (editBannerImageFile) {
-        try {
-          const photoForm = new FormData();
-          photoForm.append('file', editBannerImageFile);
-          const photoRes = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${editEvent.id}/photo`, {
-            method: 'POST',
-            body: photoForm,
-          });
-          const photoJson = await photoRes.json().catch(() => null);
-          if (!photoRes.ok || photoJson?.action === 0) {
-            platformAlert(photoJson?.message || 'The event was saved but its photo could not be uploaded. Please try again.', {
-              title: 'Event photo not saved',
-              tone: 'danger',
-            });
-          }
-        } catch (photoErr) {
-          console.error('Failed to upload event photo:', photoErr);
-        }
-      }
-      if (!response.ok) {
-        const errData = await response.json().catch(() => null);
-        throw new Error(errData?.message || `Failed to update event: ${response.status}`);
-      }
-      const editResult = await response.json().catch(() => null);
-      if (editResult && editResult.action === 0) {
-        throw new Error(editResult.message || 'Failed to update event.');
-      }
-    } catch (err) {
-      console.error('Edit event error:', err);
-      platformAlert(err instanceof Error ? err.message : 'Failed to update event');
-      return;
-    }
-
-    setEvents(prev => prev.map(event => {
-      if (event.id === editEvent.id) {
-        return {
-          ...event,
-          title: editTitle,
-          description: editDescription,
-          eventType: editCategory,
-          category: editCategory,
-          date: editDate,
-          time: timeDisplay,
-          endTime: editEndTime,
-          duration: calculatedDuration,
-          location: { address: [editVenueName, editAddress].filter(Boolean).join(', '), city: editCity, country: editCountry },
-          coverImage: editBannerImage || event.coverImage,
-          bannerImage: editBannerImage || event.bannerImage,
-          price: editPrice || 'Free',
-          maxGuests: parseInt(editMaxGuests) || event.maxGuests,
-          organizer: editOrganizer,
-          tags: editTags,
-          hasPhotographer: !!(editPhotographerId && isValidUUID(editPhotographerId)),
-          photographerId: (editPhotographerId && isValidUUID(editPhotographerId)) ? editPhotographerId : event.photographerId,
-          photographerName: (() => {
-            if (editPhotographerId && isValidUUID(editPhotographerId)) {
-              const sel = pastPhotographers.find(p => p.id === editPhotographerId) || platformPhotographers.find(p => p.id === editPhotographerId);
-              return sel?.name || event.photographerName || '';
-            }
-            return event.photographerName || '';
-          })(),
-          photographerImage: (() => {
-            if (editPhotographerId && isValidUUID(editPhotographerId)) {
-              const sel = pastPhotographers.find(p => p.id === editPhotographerId) || platformPhotographers.find(p => p.id === editPhotographerId);
-              return sel?.image || event.photographerImage || '';
-            }
-            return event.photographerImage || '';
-          })(),
-        };
-      }
-      return event;
-    }));
-
-    setShowEditModal(false);
-    setEditEvent(null);
-  };
-
-  // Reset create form
-  const resetCreateForm = (clearDraft: boolean = true) => {
-    setCreateWishInvites(null);
-    setCreateWishInvitesErr(null);
-    setCreateTitle('');
-    setCreateDescription('');
-    setCreateEventType('');
-    setCreateCategory('');
-    setCreateStatus('UPCOMING');
-    setCreateDate('');
-    setCreateTime('');
-    setCreateEndTime('');
-    setCreateDuration('');
-    setCreateVenueName('');
-    setCreateAddress('');
-    setCreateCity('');
-    setCreateCountry('');
-    setCreateAttendance(null);
-    setCreateShowMore(false);
-    setCreateShowErrors(false);
-    setCreatePrice('');
-    setCreateMaxGuests('');
-    setCreateOrganizer('');
-    setCreateTags([]);
-    setCreateTagInput('');
-    setCreateBannerImage(null);
-    setCreateBannerImagePreview(null);
-    setCreateBannerImageFile(null);
-    setCreatePhotographerId('');
-    setCreatePackageId('');
-    setPhotographerPackages([]);
-    setCreateEscrowPercentage(50);
-    setCreateEventVisibility('PUBLIC');
-    setShowFindPhotographerModal(false);
-    setPhotographerSearchQuery('');
-    setPhotographerAssignMode('none');
-    setInvitePhotographerEmail('');
-    setIsSubmitting(false);
-    setSubmitError(null);
-    setDateError('');
-    setTimeError('');
-    // Clear saved draft from IndexedDB when explicitly requested
-    if (clearDraft) {
-      clearFormDraft();
-    }
-  };
-
-  // Handle tag addition via Enter key
-  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && createTagInput.trim()) {
-      e.preventDefault();
-      addTagFromInput();
-    }
-  };
-
-  // Add tag from input (used by both Enter key and button click)
-  const addTagFromInput = () => {
-    if (!createTagInput.trim()) return;
-    // Remove # prefix if user typed it, store without #
-    let tagValue = createTagInput.trim();
-    if (tagValue.startsWith('#')) {
-      tagValue = tagValue.substring(1).trim();
-    }
-    if (tagValue && !createTags.includes(tagValue)) {
-      setCreateTags([...createTags, tagValue]);
-    }
-    setCreateTagInput('');
-  };
-
-  // Handle tag removal
-  const handleRemoveTag = (tagToRemove: string) => {
-    setCreateTags(createTags.filter(tag => tag !== tagToRemove));
-  };
-
-  // Handle banner image change
-  const handleBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCreateBannerImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCreateBannerImage(reader.result as string);
-        setCreateBannerImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Edit tag handlers
-  const handleEditAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && editTagInput.trim()) {
-      e.preventDefault();
-      addEditTagFromInput();
-    }
-  };
-
-  const addEditTagFromInput = () => {
-    if (!editTagInput.trim()) return;
-    let tagValue = editTagInput.trim();
-    if (tagValue.startsWith('#')) {
-      tagValue = tagValue.substring(1).trim();
-    }
-    if (tagValue && !editTags.includes(tagValue)) {
-      setEditTags([...editTags, tagValue]);
-    }
-    setEditTagInput('');
-  };
-
-  const handleEditRemoveTag = (tagToRemove: string) => {
-    setEditTags(editTags.filter(tag => tag !== tagToRemove));
-  };
-
-  // Handle edit banner image change
-  const handleEditBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setEditBannerImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditBannerImage(reader.result as string);
-        setEditBannerImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Which required fields still block Create, from the one shared rule set (lib/events/eventFormRules).
-  const createRules = validateEventForm({
-    hasCover: !!(createBannerImageFile || createBannerImagePreview),
-    title: createTitle,
-    category: String(createCategory ?? ''),
-    eventDate: createDate,
-    startTime: createTime,
-    attendance: createAttendance,
-    venueName: createVenueName,
-    city: createCity,
-    wishInvites: createWishInvites,
-  });
-  const createShown = createShowErrors ? createRules : {};
-  const createBlocked = Object.keys(createRules).length > 0;
-  const eventLabelStyle: React.CSSProperties = { display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' };
-  const eventInputStyle: React.CSSProperties = { width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary };
-
-  // Handle create event
-  const handleCreateEvent = async () => {
-    // Every required field is checked together by the shared rules; the first blocked one is scrolled to and focused.
-    // Required fields are never inside "More options", so an error never needs it opened.
-    setCreateShowErrors(true);
-    const firstBlocked = firstInvalidField(createRules);
-    if (firstBlocked) {
-      setSubmitError(null);
-      if (firstBlocked === 'wishInvites') focusWishInvitesField();
-      else focusEventField(firstBlocked);
-      return;
-    }
-
-    if (!confirmYear(createDate)) return;
-
-    // Currency-aware minimum stream access fee
-    if (createEventVisibility === 'PRIVATE') {
-      const feeError = selfStreamFeeError(createPrice, createPriceCurrency || 'RWF');
-      if (feeError) { setSubmitError(feeError); return; }
-    } else if (eventPriceError(createPrice || '', createPriceCurrency)) {
-      setSubmitError(eventPriceError(createPrice || '', createPriceCurrency) ?? 'Enter a valid price.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      // Call the backend API
-      let backendEventId: string | null = null;
-      if (user) {
-        const apiUrl = getApiUrl();
-        // Only an in person event has a venue; a stream-only event sends none.
-        const locationStr = locationPayload(createAttendance, { venueName: createVenueName, address: createAddress, city: createCity, country: createCountry || profile.country }) ?? '';
-        const tagsStr = createTags.length > 0 ? createTags.join(',') : createCategory;
-
-        const validPhotographerId = (createEventVisibility !== 'PRIVATE' && createPhotographerId && isValidUUID(createPhotographerId)) ? createPhotographerId : null;
-
-        const numericPrice = createPrice.replace(/[^\d]/g, '');
-
-        const payload: Record<string, unknown> = {
-          title: capitalizeWords(createTitle),
-          description: autoCapitalize(createDescription || ''),
-          eventType: createCategory,
-          startTime: parseTimeToApiString(createTime),
-          endTime: createEndTime ? parseTimeToApiString(createEndTime) : parseTimeToApiString(createTime),
-          eventDate: createDate,
-          location: capitalizeWords(locationStr),
-          attendanceMode: createAttendance ?? undefined,
-          eventOrganizer: capitalizeWords(createOrganizer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Organizer'),
-          eventVisibility: createEventVisibility || 'PUBLIC',
-          allowWishInvites: createWishInvites === true,
-          eventTags: tagsStr,
-          price: numericPrice ? Number(numericPrice) : 0,
-          priceCurrency: createPriceCurrency || 'RWF',
-          // Empty means no limit: nothing is sent.
-          maxGuests: maxGuestsPayload(createMaxGuests),
-          notes: '',
-        };
-
-        // An event the owner streams themselves is paid by its viewers: the fee, in the picked currency, and no photographer.
-        if (createEventVisibility === 'PRIVATE') {
-          const fee = numericPrice ? Number(numericPrice) : 0;
-          payload.streamFee = fee;
-          payload.price = fee;
-          const currencyId = currencies.find((c) => c.code === (createPriceCurrency || 'RWF'))?.id;
-          if (currencyId) payload.streamFeeCurrencyId = currencyId;
-        }
-
-        // Only include photographer/package IDs if they are valid UUIDs. sending null causes backend JPA errors
-        if (validPhotographerId) {
-          payload.photographerId = validPhotographerId;
-        }
-
-        if (createEventVisibility !== 'PRIVATE' && createPackageId && isValidUUID(createPackageId)) {
-          payload.packageId = createPackageId;
-        }
-
-        if (validPhotographerId && createPackageId) {
-          payload.escrowPercentage = createEscrowPercentage;
-        }
-
-        // Strip any undefined/null values to prevent backend "id must not be null" errors
-        Object.keys(payload).forEach(key => {
-          if (payload[key] === undefined || payload[key] === null) delete payload[key];
-        });
-
-        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/book`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errorBody = await response.json().catch(() => null);
-          // Log field-level validation errors if available
-          if (errorBody?.errors) {
-            console.error('Validation errors:', errorBody.errors);
-          }
-          throw new Error(errorBody?.message || 'Failed to create event. Please try again.');
-        }
-
-        const responseData = await response.json();
-        // Extract the real event ID from backend response
-        // Response shape: { data: { event: { id }, booking } } or { data: { eventId } } or { data: { id } }
-        backendEventId = responseData?.data?.event?.id || responseData?.data?.eventId || responseData?.data?.id || null;
-
-        // Upload banner image if a file was selected
-        if (createBannerImageFile && backendEventId) {
-          try {
-            const photoForm = new FormData();
-            photoForm.append('file', createBannerImageFile);
-            const photoRes = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${backendEventId}/photo`, {
-              method: 'POST',
-              body: photoForm,
-            });
-            const photoJson = await photoRes.json().catch(() => null);
-            if (!photoRes.ok || photoJson?.action === 0) {
-              platformAlert(photoJson?.message || 'The event was saved but its photo could not be uploaded. Please try again.', {
-                title: 'Event photo not saved',
-                tone: 'danger',
-              });
-            }
-          } catch (photoErr) {
-            console.error('Failed to upload event photo:', photoErr);
-          }
-        }
-      }
-
-      // Also update local state for immediate UI feedback
-      const selectedPhotographer = pastPhotographers.find(p => p.id === createPhotographerId) || platformPhotographers.find(p => p.id === createPhotographerId);
-
-      let calculatedDuration = createDuration || '4 hours';
-      if (createTime && createEndTime) {
-        const startParts = createTime.split(':').map(Number);
-        const endParts = createEndTime.split(':').map(Number);
-        const startMinutes = startParts[0] * 60 + startParts[1];
-        const endMinutes = endParts[0] * 60 + endParts[1];
-        const durationMinutes = endMinutes - startMinutes;
-        if (durationMinutes > 0) {
-          const hours = Math.floor(durationMinutes / 60);
-          const minutes = durationMinutes % 60;
-          calculatedDuration = minutes > 0 ? `${hours} hours ${minutes} minutes` : `${hours} hours`;
-        }
-      }
-
-      const formatTimeDisplay = (time: string) => {
-        const [hours, minutes] = time.split(':').map(Number);
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12;
-        return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
-      };
-
-      const timeDisplay = createEndTime
-        ? `${formatTimeDisplay(createTime)} - ${formatTimeDisplay(createEndTime)}`
-        : formatTimeDisplay(createTime);
-
-      const newEvent: Event = {
-        id: backendEventId || `evt_${Date.now()}`,
-        title: createTitle,
-        description: createDescription,
-        eventType: createCategory,
-        category: createCategory as EventCategory,
-        date: createDate,
-        time: timeDisplay,
-        endTime: createEndTime,
-        duration: calculatedDuration,
-        location: {
-          address: [createVenueName, createAddress].filter(Boolean).join(', '),
-          city: createCity,
-          country: createCountry
-        },
-        coverImage: createBannerImage || '',
-        bannerImage: createBannerImage || '',
-        price: createPrice || 'Free',
-        hasLiveStream: createStatus === 'LIVE',
-        isPublished: false,
-        allowWishInvites: createWishInvites === true,
-        guestCount: 0,
-        maxGuests: parseInt(createMaxGuests) || 100,
-        status: createStatus,
-        organizer: createOrganizer || 'Organizer',
-        tags: createTags.length > 0 ? createTags : [createCategory],
-        hasPhotographer: !!selectedPhotographer,
-        photographerName: selectedPhotographer?.name,
-        photographerImage: selectedPhotographer?.image,
-        shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/events/view-event?id=${backendEventId || `evt_${Date.now()}`}`,
-        createdAt: new Date().toISOString().split('T')[0]
-      };
-
-      setEvents(prev => [newEvent, ...prev]);
-      resetCreateForm();
-      setShowCreateModal(false);
-    } catch (error) {
-      console.error('Event creation error:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to create event. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCopyLink = (link: string) => {
-    navigator.clipboard.writeText(link);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const getStatusBadgeStyle = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'matches_awaiting_selection':
-      case 'candidates_available':
-        return { background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(124,58,237,0.30)' };
-      case 'hybrid_matching':
-      case 'matching':
-      case 'published_pending_assignment':
-        return { background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(2,132,199,0.30)' };
-      case 'hybrid_timeout':
-      case 'matching_failed':
-        return { background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(217,119,6,0.30)' };
-      case 'upcoming':
-      case 'awaiting_review':
-        return { background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(245,158,11,0.30)' };
-      case 'published':
-        return { background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(16,185,129,0.30)' };
-      case 'ongoing':
-      case 'live':
-        return { background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(220,38,38,0.30)' };
-      case 'completed':
-        return { background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(8,58,133,0.30)' };
-      case 'paused':
-        return { background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)', color: '#FFFFFF', boxShadow: '0 4px 10px rgba(75,85,99,0.25)' };
-      default:
-        return { background: colors.bgTertiary, color: colors.textSecondary };
-    }
-  };
-
-  const filteredEvents = events.filter(event => {
-    const matchesSearch = searchQuery === '' ||
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.eventType.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const statusLower = event.status.toLowerCase();
-    if (activeTab === 'upcoming') {
-      return matchesSearch && isUpcomingEventStatus(event.status);
-    } else if (activeTab === 'published') {
-      return matchesSearch && statusLower === 'published';
-    } else if (activeTab === 'past') {
-      return matchesSearch && (statusLower === 'completed' || statusLower === 'awaiting_review');
-    }
-    return matchesSearch;
-  });
-
-  const upcomingCount = events.filter(e => isUpcomingEventStatus(e.status)).length;
-  const publishedCount = events.filter(e => e.status.toLowerCase() === 'published').length;
-  const completedCount = events.filter(e => {
-    const s = e.status.toLowerCase();
-    return s === 'completed' || s === 'awaiting_review';
-  }).length;
-  const pastCount = completedCount;
-
+/** The classic page body (header, filters, list). The dialogs are MyEventsPageModals, shared with the Compact Glass page. */
+const MyEventsPageBody = ({ ctl }: { ctl: ClientEventsController }) => {
+  const {
+    formatPrice,
+    currencies,
+    colors,
+    actualTheme,
+    token,
+    user,
+    profile,
+    searchParams,
+    activeTab,
+    setActiveTab,
+    searchQuery,
+    setSearchQuery,
+    showCreateModal,
+    setShowCreateModal,
+    canHost,
+    hostedCaption,
+    showEventDetails,
+    setShowEventDetails,
+    showShareModal,
+    setShowShareModal,
+    goLiveEvent,
+    setGoLiveEvent,
+    shareEvent,
+    setShareEvent,
+    showDeleteModal,
+    setShowDeleteModal,
+    deleteEvent,
+    setDeleteEvent,
+    showPauseModal,
+    setShowPauseModal,
+    pauseEvent,
+    setPauseEvent,
+    pausingEventId,
+    setPausingEventId,
+    resumingEventId,
+    setResumingEventId,
+    showEditModal,
+    setShowEditModal,
+    editEvent,
+    setEditEvent,
+    copiedLink,
+    setCopiedLink,
+    pastPhotographers,
+    setPastPhotographers,
+    platformPhotographers,
+    setPlatformPhotographers,
+    showFindPhotographerModal,
+    setShowFindPhotographerModal,
+    photographerSearchQuery,
+    setPhotographerSearchQuery,
+    photographerAssignMode,
+    setPhotographerAssignMode,
+    invitePhotographerEmail,
+    setInvitePhotographerEmail,
+    isSendingInvite,
+    setIsSendingInvite,
+    inviteError,
+    setInviteError,
+    showInviteSuccessModal,
+    setShowInviteSuccessModal,
+    editPhotographerId,
+    setEditPhotographerId,
+    editPhotographerAssignMode,
+    setEditPhotographerAssignMode,
+    editPhotographerSearchQuery,
+    setEditPhotographerSearchQuery,
+    filteredPhotographers,
+    editTitle,
+    setEditTitle,
+    editDescription,
+    setEditDescription,
+    editEventType,
+    setEditEventType,
+    editCategory,
+    setEditCategory,
+    editStatus,
+    setEditStatus,
+    editDate,
+    setEditDate,
+    editTime,
+    setEditTime,
+    editEndTime,
+    setEditEndTime,
+    editDuration,
+    setEditDuration,
+    editVenueName,
+    setEditVenueName,
+    editAddress,
+    setEditAddress,
+    editCity,
+    setEditCity,
+    editCountry,
+    setEditCountry,
+    editAttendance,
+    setEditAttendance,
+    editPrice,
+    setEditPrice,
+    editPriceCurrency,
+    setEditPriceCurrency,
+    editMaxGuests,
+    setEditMaxGuests,
+    editOrganizer,
+    setEditOrganizer,
+    editTags,
+    setEditTags,
+    editTagInput,
+    setEditTagInput,
+    editBannerImage,
+    setEditBannerImage,
+    editBannerImagePreview,
+    setEditBannerImagePreview,
+    editBannerImageFile,
+    setEditBannerImageFile,
+    createTitle,
+    setCreateTitle,
+    createDescription,
+    setCreateDescription,
+    createEventType,
+    setCreateEventType,
+    createCategory,
+    setCreateCategory,
+    createStatus,
+    setCreateStatus,
+    statusFieldHovered,
+    setStatusFieldHovered,
+    createDate,
+    setCreateDate,
+    createTime,
+    setCreateTime,
+    createEndTime,
+    setCreateEndTime,
+    createDuration,
+    setCreateDuration,
+    createVenueName,
+    setCreateVenueName,
+    createAddress,
+    setCreateAddress,
+    createCity,
+    setCreateCity,
+    createCountry,
+    setCreateCountry,
+    createAttendance,
+    setCreateAttendance,
+    createShowMore,
+    setCreateShowMore,
+    createShowErrors,
+    setCreateShowErrors,
+    createPrice,
+    setCreatePrice,
+    createPriceCurrency,
+    setCreatePriceCurrency,
+    createMaxGuests,
+    setCreateMaxGuests,
+    createOrganizer,
+    setCreateOrganizer,
+    createTags,
+    setCreateTags,
+    createTagInput,
+    setCreateTagInput,
+    createBannerImage,
+    setCreateBannerImage,
+    createBannerImagePreview,
+    setCreateBannerImagePreview,
+    createBannerImageFile,
+    setCreateBannerImageFile,
+    createPhotographerId,
+    setCreatePhotographerId,
+    createEventVisibility,
+    setCreateEventVisibility,
+    createWishInvites,
+    setCreateWishInvites,
+    createWishInvitesErr,
+    setCreateWishInvitesErr,
+    editWishInvites,
+    setEditWishInvites,
+    createPackageId,
+    setCreatePackageId,
+    photographerPackages,
+    setPhotographerPackages,
+    packagesLoading,
+    setPackagesLoading,
+    packagesError,
+    setPackagesError,
+    createEscrowPercentage,
+    setCreateEscrowPercentage,
+    showBookingModeSelector,
+    setShowBookingModeSelector,
+    showHybridWizard,
+    setShowHybridWizard,
+    hybridWizardEvent,
+    setHybridWizardEvent,
+    openPostWizard,
+    candidateModalEvent,
+    setCandidateModalEvent,
+    convertingHybridId,
+    setConvertingHybridId,
+    handleConvertToHybrid,
+    completionModalEvent,
+    setCompletionModalEvent,
+    completionFeedbackStatus,
+    setCompletionFeedbackStatus,
+    completionComment,
+    setCompletionComment,
+    completionSubmitting,
+    setCompletionSubmitting,
+    surveyForEvent,
+    setSurveyForEvent,
+    isSubmitting,
+    setIsSubmitting,
+    submitError,
+    setSubmitError,
+    dateError,
+    setDateError,
+    timeError,
+    setTimeError,
+    isRestoringDraft,
+    setIsRestoringDraft,
+    showDraftRestoredNotice,
+    setShowDraftRestoredNotice,
+    autoSaveTimeoutRef,
+    saveFormDraft,
+    clearFormDraft,
+    eventCategories,
+    setEventCategories,
+    events,
+    setEvents,
+    isLoadingEvents,
+    setIsLoadingEvents,
+    router,
+    getStarted,
+    eventsError,
+    setEventsError,
+    publishingEventId,
+    setPublishingEventId,
+    unpublishingEventId,
+    setUnpublishingEventId,
+    qrEvent,
+    setQrEvent,
+    publishConfirmEvent,
+    setPublishConfirmEvent,
+    unpublishConfirmEvent,
+    setUnpublishConfirmEvent,
+    ongoingUnpublishBlock,
+    setOngoingUnpublishBlock,
+    noPhotographerEvent,
+    setNoPhotographerEvent,
+    pendingBookingEvent,
+    setPendingBookingEvent,
+    rebookEvent,
+    setRebookEvent,
+    noPhotoEvent,
+    setNoPhotoEvent,
+    fetchMyEvents,
+    requestChangesConsumed,
+    setRequestChangesConsumed,
+    handlePublishEvent,
+    handleUnpublishEvent,
+    handlePublishClick,
+    eventTypes,
+    handleDeleteEvent,
+    isEventDeletable,
+    isEventPausable,
+    isEventResumable,
+    handlePauseEvent,
+    handleResumeEvent,
+    openEditModal,
+    handleEditEvent,
+    resetCreateForm,
+    handleAddTag,
+    addTagFromInput,
+    handleRemoveTag,
+    handleBannerImageChange,
+    handleEditAddTag,
+    addEditTagFromInput,
+    handleEditRemoveTag,
+    handleEditBannerImageChange,
+    createRules,
+    createShown,
+    createBlocked,
+    eventLabelStyle,
+    eventInputStyle,
+    handleCreateEvent,
+    handleCopyLink,
+    formatDate,
+    getStatusBadgeStyle,
+    filteredEvents,
+    upcomingCount,
+    publishedCount,
+    completedCount,
+    pastCount,
+  } = ctl;
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
@@ -2104,7 +908,7 @@ const MyEventsPage = () => {
             </div>
           ) : eventsError ? (
             <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem' }}>
-              <p style={{ color: '#DC2626', marginBottom: '0.5rem' }}>{eventsError}</p>
+              <p style={{ color: 'var(--g-error, #DC2626)', marginBottom: '0.5rem' }}>{eventsError}</p>
               <button
                 onClick={() => fetchMyEvents()}
                 style={{
@@ -2337,7 +1141,7 @@ const MyEventsPage = () => {
                           </button>
                         )}
                         {event.completionStatus === 'PENDING_CUSTOMER_CONFIRMATION' && !event.albumDelivered && (
-                          <div style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '0.375rem', fontSize: '0.65rem', fontWeight: 500, textAlign: 'center', lineHeight: '1.2' }}>
+                          <div style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(245, 158, 11, 0.2)', color: 'var(--g-warning, #F59E0B)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '0.375rem', fontSize: '0.65rem', fontWeight: 500, textAlign: 'center', lineHeight: '1.2' }}>
                             Waiting for album delivery
                           </div>
                         )}
@@ -2351,6 +1155,306 @@ const MyEventsPage = () => {
         </div>
       </div>
 
+    </div>
+  );
+};
+
+/** Every dialog of the page, unchanged; rendered by both the classic and the Compact Glass page. */
+export const MyEventsPageModals = ({ ctl }: { ctl: ClientEventsController }) => {
+  const {
+    formatPrice,
+    currencies,
+    colors,
+    actualTheme,
+    token,
+    user,
+    profile,
+    searchParams,
+    activeTab,
+    setActiveTab,
+    searchQuery,
+    setSearchQuery,
+    showCreateModal,
+    setShowCreateModal,
+    canHost,
+    hostedCaption,
+    showEventDetails,
+    setShowEventDetails,
+    showShareModal,
+    setShowShareModal,
+    goLiveEvent,
+    setGoLiveEvent,
+    shareEvent,
+    setShareEvent,
+    showDeleteModal,
+    setShowDeleteModal,
+    deleteEvent,
+    setDeleteEvent,
+    showPauseModal,
+    setShowPauseModal,
+    pauseEvent,
+    setPauseEvent,
+    pausingEventId,
+    setPausingEventId,
+    resumingEventId,
+    setResumingEventId,
+    showEditModal,
+    setShowEditModal,
+    editEvent,
+    setEditEvent,
+    copiedLink,
+    setCopiedLink,
+    pastPhotographers,
+    setPastPhotographers,
+    platformPhotographers,
+    setPlatformPhotographers,
+    showFindPhotographerModal,
+    setShowFindPhotographerModal,
+    photographerSearchQuery,
+    setPhotographerSearchQuery,
+    photographerAssignMode,
+    setPhotographerAssignMode,
+    invitePhotographerEmail,
+    setInvitePhotographerEmail,
+    isSendingInvite,
+    setIsSendingInvite,
+    inviteError,
+    setInviteError,
+    showInviteSuccessModal,
+    setShowInviteSuccessModal,
+    editPhotographerId,
+    setEditPhotographerId,
+    editPhotographerAssignMode,
+    setEditPhotographerAssignMode,
+    editPhotographerSearchQuery,
+    setEditPhotographerSearchQuery,
+    filteredPhotographers,
+    editTitle,
+    setEditTitle,
+    editDescription,
+    setEditDescription,
+    editEventType,
+    setEditEventType,
+    editCategory,
+    setEditCategory,
+    editStatus,
+    setEditStatus,
+    editDate,
+    setEditDate,
+    editTime,
+    setEditTime,
+    editEndTime,
+    setEditEndTime,
+    editDuration,
+    setEditDuration,
+    editVenueName,
+    setEditVenueName,
+    editAddress,
+    setEditAddress,
+    editCity,
+    setEditCity,
+    editCountry,
+    setEditCountry,
+    editAttendance,
+    setEditAttendance,
+    editPrice,
+    setEditPrice,
+    editPriceCurrency,
+    setEditPriceCurrency,
+    editMaxGuests,
+    setEditMaxGuests,
+    editOrganizer,
+    setEditOrganizer,
+    editTags,
+    setEditTags,
+    editTagInput,
+    setEditTagInput,
+    editBannerImage,
+    setEditBannerImage,
+    editBannerImagePreview,
+    setEditBannerImagePreview,
+    editBannerImageFile,
+    setEditBannerImageFile,
+    createTitle,
+    setCreateTitle,
+    createDescription,
+    setCreateDescription,
+    createEventType,
+    setCreateEventType,
+    createCategory,
+    setCreateCategory,
+    createStatus,
+    setCreateStatus,
+    statusFieldHovered,
+    setStatusFieldHovered,
+    createDate,
+    setCreateDate,
+    createTime,
+    setCreateTime,
+    createEndTime,
+    setCreateEndTime,
+    createDuration,
+    setCreateDuration,
+    createVenueName,
+    setCreateVenueName,
+    createAddress,
+    setCreateAddress,
+    createCity,
+    setCreateCity,
+    createCountry,
+    setCreateCountry,
+    createAttendance,
+    setCreateAttendance,
+    createShowMore,
+    setCreateShowMore,
+    createShowErrors,
+    setCreateShowErrors,
+    createPrice,
+    setCreatePrice,
+    createPriceCurrency,
+    setCreatePriceCurrency,
+    createMaxGuests,
+    setCreateMaxGuests,
+    createOrganizer,
+    setCreateOrganizer,
+    createTags,
+    setCreateTags,
+    createTagInput,
+    setCreateTagInput,
+    createBannerImage,
+    setCreateBannerImage,
+    createBannerImagePreview,
+    setCreateBannerImagePreview,
+    createBannerImageFile,
+    setCreateBannerImageFile,
+    createPhotographerId,
+    setCreatePhotographerId,
+    createEventVisibility,
+    setCreateEventVisibility,
+    createWishInvites,
+    setCreateWishInvites,
+    createWishInvitesErr,
+    setCreateWishInvitesErr,
+    editWishInvites,
+    setEditWishInvites,
+    createPackageId,
+    setCreatePackageId,
+    photographerPackages,
+    setPhotographerPackages,
+    packagesLoading,
+    setPackagesLoading,
+    packagesError,
+    setPackagesError,
+    createEscrowPercentage,
+    setCreateEscrowPercentage,
+    showBookingModeSelector,
+    setShowBookingModeSelector,
+    showHybridWizard,
+    setShowHybridWizard,
+    hybridWizardEvent,
+    setHybridWizardEvent,
+    openPostWizard,
+    candidateModalEvent,
+    setCandidateModalEvent,
+    convertingHybridId,
+    setConvertingHybridId,
+    handleConvertToHybrid,
+    completionModalEvent,
+    setCompletionModalEvent,
+    completionFeedbackStatus,
+    setCompletionFeedbackStatus,
+    completionComment,
+    setCompletionComment,
+    completionSubmitting,
+    setCompletionSubmitting,
+    surveyForEvent,
+    setSurveyForEvent,
+    isSubmitting,
+    setIsSubmitting,
+    submitError,
+    setSubmitError,
+    dateError,
+    setDateError,
+    timeError,
+    setTimeError,
+    isRestoringDraft,
+    setIsRestoringDraft,
+    showDraftRestoredNotice,
+    setShowDraftRestoredNotice,
+    autoSaveTimeoutRef,
+    saveFormDraft,
+    clearFormDraft,
+    eventCategories,
+    setEventCategories,
+    events,
+    setEvents,
+    isLoadingEvents,
+    setIsLoadingEvents,
+    router,
+    getStarted,
+    eventsError,
+    setEventsError,
+    publishingEventId,
+    setPublishingEventId,
+    unpublishingEventId,
+    setUnpublishingEventId,
+    qrEvent,
+    setQrEvent,
+    publishConfirmEvent,
+    setPublishConfirmEvent,
+    unpublishConfirmEvent,
+    setUnpublishConfirmEvent,
+    ongoingUnpublishBlock,
+    setOngoingUnpublishBlock,
+    noPhotographerEvent,
+    setNoPhotographerEvent,
+    pendingBookingEvent,
+    setPendingBookingEvent,
+    rebookEvent,
+    setRebookEvent,
+    noPhotoEvent,
+    setNoPhotoEvent,
+    fetchMyEvents,
+    requestChangesConsumed,
+    setRequestChangesConsumed,
+    handlePublishEvent,
+    handleUnpublishEvent,
+    handlePublishClick,
+    eventTypes,
+    handleDeleteEvent,
+    isEventDeletable,
+    isEventPausable,
+    isEventResumable,
+    handlePauseEvent,
+    handleResumeEvent,
+    openEditModal,
+    handleEditEvent,
+    resetCreateForm,
+    handleAddTag,
+    addTagFromInput,
+    handleRemoveTag,
+    handleBannerImageChange,
+    handleEditAddTag,
+    addEditTagFromInput,
+    handleEditRemoveTag,
+    handleEditBannerImageChange,
+    createRules,
+    createShown,
+    createBlocked,
+    eventLabelStyle,
+    eventInputStyle,
+    handleCreateEvent,
+    handleCopyLink,
+    formatDate,
+    getStatusBadgeStyle,
+    filteredEvents,
+    upcomingCount,
+    publishedCount,
+    completedCount,
+    pastCount,
+  } = ctl;
+  return (
+    <>
       {/* Completion Confirmation Modal */}
       <Modal isOpen={!!completionModalEvent} onClose={() => setCompletionModalEvent(null)} title="Confirm Event Completion" maxWidth="480px">
         {completionModalEvent && (
@@ -2532,7 +1636,7 @@ const MyEventsPage = () => {
                 border: '1px solid rgba(8,58,133,0.25)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                <i className="bi bi-camera-fill" style={{ fontSize: 13, color: '#083A85' }} />
+                <i className="bi bi-camera-fill" style={{ fontSize: 13, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Visuals</div>
@@ -2540,7 +1644,7 @@ const MyEventsPage = () => {
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Banner image (1200×800) <span style={{ color: '#DC2626' }}>*</span></label>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Banner image (1200×800) <span style={{ color: 'var(--g-error, #DC2626)' }}>*</span></label>
               <div
                 onClick={(e) => { if (!createBannerImagePreview) { (e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement | null)?.click(); } }}
                 style={{
@@ -2673,7 +1777,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: '#F59E0B' }} />
+                <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: 'var(--g-warning, #F59E0B)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Schedule</div>
@@ -2684,13 +1788,13 @@ const MyEventsPage = () => {
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Date *</label>
                 <input id={eventFieldId('eventDate')} type="date" value={createDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateError(''); setCreateDate(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
-                {dateError && <p style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{dateError}</p>}
+                {dateError && <p style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{dateError}</p>}
                 <FieldError id="event-field-eventDate-error" message={dateError ? null : createShown.eventDate} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Start Time *</label>
                 <input id={eventFieldId('startTime')} type="time" value={createTime} onChange={(e) => { setTimeError(''); setCreateTime(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: timeError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
-                {timeError && <p style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{timeError}</p>}
+                {timeError && <p style={{ color: 'var(--g-error, #DC2626)', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{timeError}</p>}
                 <FieldError id="event-field-startTime-error" message={timeError ? null : createShown.startTime} />
               </div>
               <div>
@@ -2705,7 +1809,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-geo-alt-fill" style={{ fontSize: 13, color: '#10B981' }} />
+                <i className="bi bi-geo-alt-fill" style={{ fontSize: 13, color: 'var(--g-success, #10B981)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Attendance</div>
@@ -2759,7 +1863,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-people-fill" style={{ fontSize: 13, color: '#3B82F6' }} />
+                <i className="bi bi-people-fill" style={{ fontSize: 13, color: 'var(--g-link, #3B82F6)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Attendance</div>
@@ -2793,7 +1897,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-file-text-fill" style={{ fontSize: 13, color: '#083A85' }} />
+                <i className="bi bi-file-text-fill" style={{ fontSize: 13, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>About</div>
@@ -2839,7 +1943,7 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-camera2" style={{ fontSize: 14, color: '#083A85' }} />
+                <i className="bi bi-camera2" style={{ fontSize: 14, color: 'var(--g-link, #083A85)' }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Coverage</div>
@@ -2960,7 +2064,7 @@ const MyEventsPage = () => {
                   }} disabled={isSendingInvite || !invitePhotographerEmail.trim()} style={{ padding: '0.625rem 1rem', backgroundColor: (!invitePhotographerEmail.trim() || isSendingInvite) ? '#9CA3AF' : '#083A85', color: 'white', border: '2px solid #062a63', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: (!invitePhotographerEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer' }}>{isSendingInvite ? 'Sending...' : 'Send Invite'}</button>
                 </div>
                 {inviteError && (
-                  <p style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.375rem' }}>{inviteError}</p>
+                  <p style={{ color: 'var(--g-error, #EF4444)', fontSize: '0.8rem', marginTop: '0.375rem' }}>{inviteError}</p>
                 )}
                 <button type="button" onClick={() => { setPhotographerAssignMode('none'); setInvitePhotographerEmail(''); setInviteError(null); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
               </div>
@@ -2978,7 +2082,7 @@ const MyEventsPage = () => {
                     <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{selected.name}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{selected.speciality}</div>
                   </div>
-                  <button type="button" onClick={() => setCreatePhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">×</button>
+                  <button type="button" onClick={() => setCreatePhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #DC2626)', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">×</button>
                 </div>
               ) : null;
             })()}
@@ -2987,11 +2091,11 @@ const MyEventsPage = () => {
             {createPhotographerId && photographerAssignMode === 'none' && (
               <div style={{ marginTop: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Select a Package <span style={{ color: '#DC2626' }}>*</span></span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Select a Package <span style={{ color: 'var(--g-error, #DC2626)' }}>*</span></span>
                   {packagesLoading && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Loading...</span>}
                 </div>
                 {packagesError && (
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', color: '#DC2626', borderRadius: '0.375rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', color: 'var(--g-error, #DC2626)', borderRadius: '0.375rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
                     {packagesError}
                   </div>
                 )}
@@ -3020,7 +2124,7 @@ const MyEventsPage = () => {
                         <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem' }}>
                           {pkg.packageName}
                         </div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85', marginBottom: '0.25rem' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--g-link, #083A85)', marginBottom: '0.25rem' }}>
                           {formatPrice(pkg.price, pkg.currencyAbbreviation || undefined)}
                         </div>
                         {pkg.durationHours > 0 && (
@@ -3545,7 +2649,7 @@ const MyEventsPage = () => {
                         justifyContent: 'center',
                         gap: '0.5rem',
                         backgroundColor: '#FEF2F2',
-                        color: '#DC2626',
+                        color: 'var(--g-error, #DC2626)',
                         border: '2px solid #FECACA',
                         borderRadius: '0.5rem',
                         padding: '0.75rem 1rem',
@@ -3567,7 +2671,7 @@ const MyEventsPage = () => {
                         justifyContent: 'center',
                         gap: '0.5rem',
                         backgroundColor: '#FEF3C7',
-                        color: '#D97706',
+                        color: 'var(--g-warning, #D97706)',
                         border: '2px solid #FDE68A',
                         borderRadius: '0.5rem',
                         padding: '0.75rem 1rem',
@@ -3589,7 +2693,7 @@ const MyEventsPage = () => {
                         justifyContent: 'center',
                         gap: '0.5rem',
                         backgroundColor: '#D1FAE5',
-                        color: '#059669',
+                        color: 'var(--g-success, #059669)',
                         border: '2px solid #A7F3D0',
                         borderRadius: '0.5rem',
                         padding: '0.75rem 1rem',
@@ -3689,7 +2793,7 @@ const MyEventsPage = () => {
                 { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
                 { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Join ${title} event stream`)}` },
                 { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(`Join ${title} Event Stream`)}&body=${encodeURIComponent(`You're invited to join the ${title} event stream: ${link}`)}` },
-                { name: 'Copy Link', icon: <LinkIcon />, color: '#083A85', getUrl: () => '' },
+                { name: 'Copy Link', icon: <LinkIcon />, color: 'var(--g-link, #083A85)', getUrl: () => '' },
                 { name: 'QR Code', icon: <QRCodeIcon />, color: '#F20C8F', getUrl: () => '' }
               ].map((option) => {
                 const isCopyActive = option.name === 'Copy Link' && copiedLink;
@@ -4026,7 +3130,7 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
                 <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(8,58,133,0.10)', border: '1px solid rgba(8,58,133,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <i className="bi bi-camera-fill" style={{ fontSize: 13, color: '#083A85' }} />
+                  <i className="bi bi-camera-fill" style={{ fontSize: 13, color: 'var(--g-link, #083A85)' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Visuals</div>
@@ -4125,7 +3229,7 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
                 <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: '#F59E0B' }} />
+                  <i className="bi bi-calendar-event-fill" style={{ fontSize: 13, color: 'var(--g-warning, #F59E0B)' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Schedule</div>
@@ -4308,7 +3412,7 @@ const MyEventsPage = () => {
                       <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{selected.name}</div>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{selected.speciality}</div>
                     </div>
-                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
+                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #DC2626)', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', border: `2px solid #083A85`, borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF' }}>
@@ -4316,7 +3420,7 @@ const MyEventsPage = () => {
                       <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{editEvent?.photographerName || 'Assigned Photographer'}</div>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Currently assigned</div>
                     </div>
-                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
+                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--g-error, #DC2626)', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
                   </div>
                 );
               })()}
@@ -4327,7 +3431,7 @@ const MyEventsPage = () => {
               <WishInvitesField value={editWishInvites} onChange={setEditWishInvites} />
             </div>
             {submitError && (
-              <div style={{ padding: '0.75rem', backgroundColor: '#FEE2E2', color: '#DC2626', borderRadius: '0.5rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ padding: '0.75rem', backgroundColor: '#FEE2E2', color: 'var(--g-error, #DC2626)', borderRadius: '0.5rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ flexShrink: 0 }}>⚠</span>
                 {submitError}
               </div>
@@ -4525,8 +3629,16 @@ const MyEventsPage = () => {
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
-    </div>
+    </>
   );
+};
+
+/** One controller for both views, so the classic page (UI_GLASS=off) and the Compact Glass page behave the same. */
+const MyEventsPage = () => {
+  const ctl = useClientEvents();
+  const glass = useUiGlass();
+  if (glass) return <GlassClientEvents ctl={ctl} modals={<MyEventsPageModals ctl={ctl} />} />;
+  return <><MyEventsPageBody ctl={ctl} /><MyEventsPageModals ctl={ctl} /></>;
 };
 
 export default MyEventsPage;

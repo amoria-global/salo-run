@@ -1,10 +1,15 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Pragati_Narrow } from "next/font/google";
+import { Inter, Pragati_Narrow, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-// bootstrap-icons was dropped from package.json in PR #162; the webfont is now
-// loaded via the CDN <link> in the <head> below. CSP already whitelists
-// cdn.jsdelivr.net in style-src and font-src.
+import "./glass.css";
+import "./glass-shell.css";
+import "./glass-home.css";
+import "./glass-pages.css";
+import "./glass-ui.css";
+import { HEAD_SCRIPT, ICONS_CSS } from "./lib/uiGlass";
+// Bootstrap Icons 1.11.3 is self-hosted under public/vendor (no CDN): preloaded here, applied by the head script so
+// the stylesheet never blocks the first paint (app/lib/uiGlass.ts).
 import { DashboardAuthProvider } from "./providers/AuthProvider";
 import { ThemeProvider } from "./context/ThemeContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
@@ -23,6 +28,22 @@ const pragatiNarrow = Pragati_Narrow({
   variable: "--font-pragati-narrow",
 });
 
+// Compact Glass type (app/glass.css): Space Grotesk for titles and numbers, Inter for text. Self-hosted by next/font
+// and not preloaded, so a browser only fetches them when a ui-glass page uses them; the old UI never does.
+const spaceGrotesk = Space_Grotesk({
+  weight: ["500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-grotesk",
+  display: "swap",
+  preload: false,
+});
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: "Connekyt Dashboard",
   description: "Dashboard application for Connekyt",
@@ -34,14 +55,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the head script sets data-theme and the ui-glass class before React hydrates.
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-        />
+        <script dangerouslySetInnerHTML={{ __html: HEAD_SCRIPT }} />
+        <link rel="preload" as="style" href={ICONS_CSS} />
       </head>
-      <body className={`${pragatiNarrow.variable} font-sans antialiased`}>
+      <body className={`${pragatiNarrow.variable} ${spaceGrotesk.variable} ${inter.variable} font-sans antialiased`}>
         <DashboardAuthProvider>
           <PermissionProvider>
             <WorkspaceProvider>

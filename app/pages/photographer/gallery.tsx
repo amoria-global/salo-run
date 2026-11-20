@@ -1055,7 +1055,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               border: `1px solid ${colors.borderPrimary}`
             }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Shared</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#10B981' }}>{stats.shared}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--g-success, #10B981)' }}>{stats.shared}</div>
             </div>
             <div style={{
               backgroundColor: colors.bgCard,
@@ -1064,7 +1064,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               border: `1px solid ${colors.borderPrimary}`
             }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Private</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>{stats.private}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--g-warning, #F59E0B)' }}>{stats.private}</div>
             </div>
           </div>
 
@@ -1273,7 +1273,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       }}>
                         <div style={{
                           backgroundColor: '#FCD34D',
-                          color: '#92400E',
+                          color: 'var(--g-warning, #92400E)',
                           padding: '0.25rem 0.5rem',
                           borderRadius: '0.375rem',
                           fontSize: '0.7rem',
@@ -1343,7 +1343,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       paddingTop: '0.75rem',
                       borderTop: '1px solid #F3F4F6'
                     }}>
-                      <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>{photo.date}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--g-text-muted, #9CA3AF)' }}>{photo.date}</span>
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1408,7 +1408,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                           borderRadius: '0.375rem',
                           border: '2px solid #16A34A',
                           backgroundColor: '#F0FDF4',
-                          color: '#16A34A',
+                          color: 'var(--g-success, #16A34A)',
                           fontSize: '0.8rem',
                           fontWeight: '600',
                           cursor: 'pointer',
@@ -1461,7 +1461,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                           borderRadius: '0.375rem',
                           border: '2px solid #FCA5A5',
                           backgroundColor: '#FEE2E2',
-                          color: '#DC2626',
+                          color: 'var(--g-error, #DC2626)',
                           fontSize: '0.85rem',
                           fontWeight: '600',
                           cursor: 'pointer',
@@ -1762,7 +1762,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               textAlign: 'center',
               border: `1px solid ${colors.borderPrimary}`
             }}>
-              <i className="bi bi-exclamation-triangle" style={{ fontSize: '3rem', color: '#DC2626', marginBottom: '1rem' }}></i>
+              <i className="bi bi-exclamation-triangle" style={{ fontSize: '3rem', color: 'var(--g-error, #DC2626)', marginBottom: '1rem' }}></i>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
                 Couldn&apos;t load your gallery
               </h3>
@@ -1792,7 +1792,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               textAlign: 'center',
               border: `1px solid ${colors.borderPrimary}`
             }}>
-              <i className="bi bi-images" style={{ fontSize: '4rem', color: '#D1D5DB', marginBottom: '1rem' }}></i>
+              <i className="bi bi-images" style={{ fontSize: '4rem', color: 'var(--g-text-muted, #D1D5DB)', marginBottom: '1rem' }}></i>
               <h3 style={{
                 fontSize: '1.25rem',
                 fontWeight: '600',
@@ -1814,7 +1814,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               textAlign: 'center',
               border: `1px solid ${colors.borderPrimary}`
             }}>
-              <i className="bi bi-images" style={{ fontSize: '4rem', color: '#D1D5DB', marginBottom: '1rem' }}></i>
+              <i className="bi bi-images" style={{ fontSize: '4rem', color: 'var(--g-text-muted, #D1D5DB)', marginBottom: '1rem' }}></i>
               <h3 style={{
                 fontSize: '1.25rem',
                 fontWeight: '600',
@@ -2321,7 +2321,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   top: '1rem',
                   left: '1rem',
                   backgroundColor: '#FCD34D',
-                  color: '#92400E',
+                  color: 'var(--g-warning, #92400E)',
                   padding: '0.375rem 0.75rem',
                   borderRadius: '0.5rem',
                   fontSize: '0.8rem',
@@ -2410,7 +2410,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Photos</div>
                 </div>
                 <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#10B981' }}>{formatNumber(selectedPhoto.downloads)}</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--g-success, #10B981)' }}>{formatNumber(selectedPhoto.downloads)}</div>
                   <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Downloads</div>
                 </div>
               </div>
@@ -2485,7 +2485,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       borderRadius: '0.5rem',
                       border: '2px solid #16A34A',
                       backgroundColor: '#F0FDF4',
-                      color: '#16A34A',
+                      color: 'var(--g-success, #16A34A)',
                       fontSize: '0.9rem',
                       fontWeight: '600',
                       cursor: 'pointer',
@@ -2823,7 +2823,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       </div>
                       <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{dedicatedClient.email}</div>
                     </div>
-                    <div style={{ color: '#16A34A' }}>
+                    <div style={{ color: 'var(--g-success, #16A34A)' }}>
                       <CheckCircleIcon />
                     </div>
                   </div>
@@ -3011,7 +3011,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                         </div>
                         <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{dedicatedClient.email}</div>
                       </div>
-                      <div style={{ color: '#16A34A' }}>
+                      <div style={{ color: 'var(--g-success, #16A34A)' }}>
                         <CheckCircleIcon />
                       </div>
                     </div>
@@ -3057,7 +3057,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     padding: '1rem',
                     textAlign: 'center'
                   }}>
-                    <div style={{ fontSize: '0.9rem', color: '#DC2626' }}>No client assigned to this album</div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--g-error, #DC2626)' }}>No client assigned to this album</div>
                   </div>
                 );
               })()
@@ -3496,7 +3496,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 <span style={{
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: '#16A34A'
+                  color: 'var(--g-success, #16A34A)'
                 }}>
                   {selectedImages.length} of {multiSelectAlbum.images.length} selected
                 </span>
@@ -3507,7 +3507,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     borderRadius: '0.375rem',
                     border: '1px solid #16A34A',
                     backgroundColor: 'transparent',
-                    color: '#16A34A',
+                    color: 'var(--g-success, #16A34A)',
                     fontSize: '0.8rem',
                     fontWeight: '500',
                     cursor: 'pointer',
@@ -3908,7 +3908,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '2rem', color: '#DC2626' }}></i>
+                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '2rem', color: 'var(--g-error, #DC2626)' }}></i>
               </div>
             </div>
 
@@ -3935,7 +3935,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             </p>
             <p style={{
               fontSize: '0.85rem',
-              color: '#DC2626',
+              color: 'var(--g-error, #DC2626)',
               margin: 0,
               marginBottom: '1.5rem',
               textAlign: 'center',

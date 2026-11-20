@@ -400,14 +400,14 @@ export default function StreamPreview({
 
   // Status configuration
   const statusConfig: Record<string, { color: string; label: string; bg: string }> = {
-    disconnected: { color: '#F59E0B', label: 'Waiting for Encoder', bg: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB' },
-    connected: { color: '#10B981', label: 'Live', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5' },
-    paused: { color: '#F59E0B', label: 'Paused', bg: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB' },
+    disconnected: { color: 'var(--g-warning, #F59E0B)', label: 'Waiting for Encoder', bg: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB' },
+    connected: { color: 'var(--g-success, #10B981)', label: 'Live', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5' },
+    paused: { color: 'var(--g-warning, #F59E0B)', label: 'Paused', bg: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB' },
     ended: { color: '#6B7280', label: 'Ended', bg: isDark ? 'rgba(107,114,128,0.15)' : '#F3F4F6' },
   };
 
   const status = isTestPreview
-    ? { color: '#3B82F6', label: 'Test Preview', bg: isDark ? 'rgba(59,130,246,0.12)' : '#EFF6FF' }
+    ? { color: 'var(--g-link, #3B82F6)', label: 'Test Preview', bg: isDark ? 'rgba(59,130,246,0.12)' : '#EFF6FF' }
     : statusConfig[connectionStatus] || statusConfig.disconnected;
 
   // ============================================
@@ -534,10 +534,10 @@ export default function StreamPreview({
                   marginBottom: '0.85rem',
                   backdropFilter: 'blur(6px)',
                 }}>
-                  <i className="bi bi-stop-circle-fill" style={{ fontSize: 28, color: '#9CA3AF' }} />
+                  <i className="bi bi-stop-circle-fill" style={{ fontSize: 28, color: 'var(--g-text-muted, #9CA3AF)' }} />
                 </div>
                 <div style={{
-                  fontSize: '0.62rem', fontWeight: 700, color: '#9CA3AF',
+                  fontSize: '0.62rem', fontWeight: 700, color: 'var(--g-text-muted, #9CA3AF)',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                   marginBottom: 4,
                 }}>Broadcast finished</div>
@@ -666,7 +666,7 @@ export default function StreamPreview({
         <div style={{ display: 'flex', gap: 6, marginTop: '0.65rem' }}>
           {[
             { label: 'Health', value: streamHealth ? streamHealth.charAt(0).toUpperCase() + streamHealth.slice(1) : 'N/A', icon: 'bi-activity', color: streamHealth === 'good' ? '#10B981' : streamHealth === 'fair' ? '#F59E0B' : '#6B7280' },
-            { label: 'Upload', value: uploadSpeed || 'N/A', icon: 'bi-arrow-up-circle-fill', color: '#3B82F6' },
+            { label: 'Upload', value: uploadSpeed || 'N/A', icon: 'bi-arrow-up-circle-fill', color: 'var(--g-link, #3B82F6)' },
             { label: 'Viewers', value: viewerCount.toLocaleString(), icon: 'bi-eye-fill', color: '#8B5CF6' },
             { label: 'Peak', value: peakViewers.toLocaleString(), icon: 'bi-graph-up-arrow', color: '#F20C8F' },
           ].map(stat => (
@@ -846,7 +846,7 @@ export default function StreamPreview({
                       marginBottom: '0.85rem',
                       display: 'flex', alignItems: 'flex-start', gap: 8,
                     }}>
-                      <i className="bi bi-exclamation-triangle-fill" style={{ color: '#EF4444', fontSize: 12, marginTop: 2, flexShrink: 0 }} />
+                      <i className="bi bi-exclamation-triangle-fill" style={{ color: 'var(--g-error, #EF4444)', fontSize: 12, marginTop: 2, flexShrink: 0 }} />
                       <span style={{ fontSize: '0.82rem', color: isDark ? '#FCA5A5' : '#B91C1C', fontWeight: 500, lineHeight: 1.45 }}>{browserCaptureError}</span>
                     </div>
                   )}
@@ -1125,7 +1125,7 @@ export default function StreamPreview({
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                   opacity: 0.85,
                 }}>
-                  <i className="bi bi-shield-lock-fill" style={{ fontSize: 10, color: '#10B981' }} />
+                  <i className="bi bi-shield-lock-fill" style={{ fontSize: 10, color: 'var(--g-success, #10B981)' }} />
                   No stream key or bearer token needed. The URL is self-authenticating.
                 </div>
               </div>
@@ -1266,7 +1266,7 @@ export default function StreamPreview({
               background: isDark
                 ? 'linear-gradient(135deg, rgba(8,58,133,0.16) 0%, rgba(242,12,143,0.08) 100%)'
                 : colors.bgCard,
-              color: '#083A85',
+              color: 'var(--g-link, #083A85)',
               padding: '0.65rem 0.85rem',
               border: `1px solid ${isDark ? 'rgba(139,92,246,0.30)' : 'rgba(139,92,246,0.20)'}`,
               borderRadius: 10,
@@ -1312,7 +1312,7 @@ export default function StreamPreview({
             position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
             background: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)',
           }} />
-          <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 14, color: '#DC2626', flexShrink: 0, marginLeft: 4 }} />
+          <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 14, color: 'var(--g-error, #DC2626)', flexShrink: 0, marginLeft: 4 }} />
           <span style={{ fontSize: '0.82rem', color: isDark ? '#FCA5A5' : '#B91C1C', lineHeight: 1.4 }}>{error}</span>
         </div>
       )}
@@ -1625,7 +1625,7 @@ export default function StreamPreview({
             </div>
             <div style={{ textAlign: 'center', marginBottom: '0.85rem' }}>
               <div style={{
-                fontSize: '0.66rem', fontWeight: 700, color: '#DC2626',
+                fontSize: '0.66rem', fontWeight: 700, color: 'var(--g-error, #DC2626)',
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 marginBottom: 4,
               }}>End broadcast</div>

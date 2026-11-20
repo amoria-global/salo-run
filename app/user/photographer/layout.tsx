@@ -5,7 +5,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useDashboardAuth } from '@/app/providers/AuthProvider';
 import { usePermissions } from '@/app/lib/usePermissions';
 import RouteGuard from '@/app/components/RouteGuard';
+import GlassShell from '@/app/components/glass/GlassShell';
 import { MatchingProfilePrompt } from '@/app/components/hybrid/MatchingProfile';
+import { useUiGlass } from '@/app/lib/useUiGlass';
 import { useWorkspace } from '@/app/providers/WorkspaceProvider';
 import WorkspaceBanner from '@/app/components/workspace/WorkspaceBanner';
 
@@ -86,6 +88,8 @@ export default function PhotographerLayout({ children }: { children: React.React
   // Registered photographers are asked once for their Instagram (and city when
   // their address doesn't say), after their profile is complete.
   const type = (user?.customerType || '').toUpperCase();
+  // In Compact Glass the same ask is a dismissible card on Home (MatchingProfileHomeCard), not a timed modal.
+  const glass = useUiGlass();
   const askMatching = !!user && (type === 'PHOTOGRAPHER' || type === 'VIDEOGRAPHER')
     && user.isTeamMember !== true
     && !isShared
@@ -93,9 +97,11 @@ export default function PhotographerLayout({ children }: { children: React.React
     && !(pathname && pathname.startsWith(PROFILE_PATH));
   return (
     <RouteGuard>
-      <WorkspaceBanner />
-      {children}
-      {askMatching && <MatchingProfilePrompt />}
+      <GlassShell>
+        <WorkspaceBanner />
+        {children}
+      </GlassShell>
+      {askMatching && !glass && <MatchingProfilePrompt />}
     </RouteGuard>
   );
 }
