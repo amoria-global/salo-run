@@ -36,6 +36,10 @@ import { useResource, type Analytics, type PerfPoint, type Wallet } from './useH
 import { useGoals } from './useGoals';
 const GoalsSheet = dynamic(() => import('./GoalsSheet'), { ssr: false });
 import ShareMenu from '@/app/components/referral/ShareMenu';
+import GrowCard from '@/app/components/referral/GrowCard';
+import MilestoneCongrats from '@/app/components/referral/MilestoneCongrats';
+import ReferredChecklistCard from '@/app/components/referral/ReferredChecklistCard';
+import { useReferralStats } from '@/app/components/referral/useReferralStats';
 import { Empty, Hidden, Kpi, ListSkeleton, SectionError, StatusChip, formatIso, statusLabel } from './HomeParts';
 
 const PerformanceChart = dynamic(() => import('./PerformanceChart'), {
@@ -66,6 +70,7 @@ export default function GlassHome() {
     if (!isShared && user && user.profileReviewStatus?.toUpperCase() !== 'ACCEPTED') router.replace(`${P}/profile`);
   }, [user, router, isShared]);
 
+  const [referral, retryReferral] = useReferralStats(!isShared);
   const [period, setPeriod] = useState<Period>('week');
   const [range, setRange] = useState<Range>({ from: '', to: '' });
   const q = periodQuery(period, range);
@@ -129,7 +134,7 @@ export default function GlassHome() {
             </div>
             {!isShared && (
               <div style={{ marginTop: 12 }}>
-                <ShareMenu canCreateAlbum={hasPermission('events.create')} />
+                <ShareMenu canCreateAlbum={hasPermission('events.create')} referral={referral} />
               </div>
             )}
           </div>
@@ -173,6 +178,15 @@ export default function GlassHome() {
           </section>
         )}
       </div>
+
+      {/* ── Grow your store (milestone referral earnings) ───────────── */}
+      {!isShared && (
+        <div className="gh-grow" style={{ display: 'grid', gap: 12 }}>
+          <GrowCard state={referral} onRetry={retryReferral} />
+          {referral.status === 'ready' && <ReferredChecklistCard mine={referral.data.myReferral} />}
+        </div>
+      )}
+      {!isShared && <MilestoneCongrats stats={referral.status === 'ready' ? referral.data : null} />}
 
       {/* ── Overview: one switch for the cards and the chart ───────── */}
       <div className="gh-overview-head">

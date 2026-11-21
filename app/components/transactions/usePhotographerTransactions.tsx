@@ -4,6 +4,7 @@
 // source of truth (no behaviour change).
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { parseSaleSplit, type SaleSplit } from '@/app/components/referral/SaleSplitDetails';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/app/components/sidebar';
@@ -32,6 +33,8 @@ export interface Transaction {
   status: TransactionStatus;
   transactionId: string;
   requestId: string;
+  /** Photo sales only: the split stored when the payment was confirmed (price, rate, platform share, time). */
+  saleSplit?: SaleSplit | null;
 }
 
 export type ChartType = 'line' | 'bar' | 'scatter';
@@ -170,6 +173,7 @@ Amount: ${formatPrice(transaction.amountNum)}
             status: mapStatus(t.status || ''),
             transactionId: t.transactionId || t.reference || `${String(t.id).slice(0, 4)}****`,
             requestId: t.requestId || t.reference || t.invoiceNumber || `AM${t.id || i}`,
+            saleSplit: parseSaleSplit(t.saleSplit),
           }));
           setTransactions(mapped);
           if (data.data.totalPages) setTotalPages(data.data.totalPages);
