@@ -32,12 +32,12 @@ afterEach(() => { act(() => root.unmount()); host.remove(); });
 const button = (text: string) => [...document.body.querySelectorAll('button')].find((b) => (b.textContent ?? '').includes(text)) as HTMLButtonElement | undefined;
 
 describe('ArchiveRestoreFlow', () => {
-  it('confirms first, with the archive date, the price and the year of access, and charges nothing yet', () => {
+  it('confirms first, with the archive date, the price and the 6 months of access, and charges nothing yet', () => {
     act(() => root.render(<ArchiveRestoreFlow album={album} colors={colors} actualTheme="light" onClose={() => {}} onRestored={() => {}} />));
     const text = document.body.textContent ?? '';
     expect(text).toContain('Restore this album?');
     expect(text).toContain('This album was archived on 30 October 2026. Restore it for RWF 5,000 to view and download again.');
-    expect(text).toContain('You will pay RWF 5,000, and you will have access to the album again for 1 year.');
+    expect(text).toContain('You will pay RWF 5,000, and you will have access to the album again for 6 months.');
     expect(text).not.toMatch(/cold storage/i);
     expect(document.body.querySelector('[data-testid="pay"]')).toBeNull();
     expect(button('Restore for RWF 5,000')).toBeTruthy();

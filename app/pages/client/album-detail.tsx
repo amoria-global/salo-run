@@ -114,7 +114,7 @@ interface Album {
   category: string;
   date: string | null;
   eventLocation: string | null;
-  /** Locked after its year of access ran out (same fact as isLocked). Not the event's completion. */
+  /** Locked after its 6 months of access ran out (same fact as isLocked). Not the event's completion. */
   isArchived: boolean;
   /** The client confirmed the event is complete. */
   isCompleted: boolean;

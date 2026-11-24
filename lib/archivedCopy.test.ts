@@ -23,8 +23,8 @@ describe('archived album copy', () => {
     expect(archivedMessage({ price: 'RWF 5,000' })).not.toMatch(/cold storage/i);
   });
 
-  it('states the price and the year of access in the confirmation', () => {
-    expect(restoreDetail('RWF 5,000')).toBe('You will pay RWF 5,000, and you will have access to the album again for 1 year.');
+  it('states the price and the 6 months of access in the confirmation', () => {
+    expect(restoreDetail('RWF 5,000')).toBe('You will pay RWF 5,000, and you will have access to the album again for 6 months.');
     expect(restoreDetail()).toContain('the archive fee');
   });
 });

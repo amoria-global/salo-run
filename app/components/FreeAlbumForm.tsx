@@ -66,7 +66,7 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
           • Photos are NOT searchable via facial recognition<br />
           • Recipient gets email with access code<br />
           • Free downloads (or set a cap + price for extras below)<br />
-          • Album expires in 60 days with 7-day warning
+          • Album expires in 6 months with 7-day warning
         </div>
       </div>
 
@@ -171,7 +171,7 @@ const FreeAlbumForm: React.FC<FreeAlbumFormProps> = ({
         <div style={{ fontSize: '0.7rem', color: '#1e40af', lineHeight: 1.4 }}>
           <strong>✓ Access Code:</strong> A 6-digit code will be generated automatically<br />
           <strong>✓ Email Verification:</strong> Recipient must verify with OTP sent to their email<br />
-          <strong>✓ Reusable:</strong> Recipient can return anytime within 60 days
+          <strong>✓ Reusable:</strong> Recipient can return anytime within 6 months
         </div>
       </div>
     </div>

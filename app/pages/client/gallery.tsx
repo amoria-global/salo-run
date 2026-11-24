@@ -203,7 +203,7 @@ interface Album {
   downloadedCount: number;
   favoriteCount: number;
   images: string[];
-  /** Archived: locked after its year of access ran out. Opening it offers to restore it. */
+  /** Archived: locked after its 6 months of access ran out. Opening it offers to restore it. */
   isLocked: boolean;
   lockedAt: string | null;
   archiveFee: number | null;

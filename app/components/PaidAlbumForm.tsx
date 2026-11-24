@@ -65,7 +65,7 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
         <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4 }}>
           • Photos will be indexed for facial recognition search<br />
           • Platform takes 30% commission on each photo sale<br />
-          • Album expires in 60 days with 7-day warning
+          • Album expires in 6 months with 7-day warning
         </div>
       </div>
 

@@ -27,5 +27,5 @@ export function archivedMessage(opts: { lockedAt?: string | null; price?: string
 
 /** The detail line of the confirmation shown before the owner is taken to pay. */
 export function restoreDetail(price?: string | null): string {
-  return `${price ? `You will pay ${price}` : 'You will pay the archive fee'}, and you will have access to the album again for 1 year.`;
+  return `${price ? `You will pay ${price}` : 'You will pay the archive fee'}, and you will have access to the album again for 6 months.`;
 }
