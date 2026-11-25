@@ -42,6 +42,10 @@ export function PbMosaic({ photos, label }: { photos: (string | undefined)[]; la
   if (urls.length === 0) {
     return <div className="pbk-mosaic pbk-empty" role="img" aria-label={label}><ImageIcon size={22} aria-hidden /><span>{label}</span></div>;
   }
+  if (urls.length === 1) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <div className="pbk-mosaic"><img className="pbk-big" src={urls[0]} alt="" loading="lazy" /></div>;
+  }
   return (
     <div className="pbk-mosaic">
       {/* eslint-disable @next/next/no-img-element */}
