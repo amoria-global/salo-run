@@ -2200,11 +2200,8 @@ export const EventsModals = ({ ctl }: { ctl: PhotographerEventsController }) => 
 
       {showNewPhotobook ? (
         <NewPhotobookModal
-          apiUrl={apiUrl}
-          albums={albums}
-          mediaIdMap={mediaIdMap}
           onClose={() => setShowNewPhotobook(false)}
-          onCreated={() => { setShowNewPhotobook(false); setPhotobooksReload((n) => n + 1); }}
+          onCreated={(id) => { setShowNewPhotobook(false); setPhotobooksReload((n) => n + 1); router.push(`/user/photographer/photobooks/${id}`); }}
         />
       ) : null}
 

@@ -1,5 +1,5 @@
-import PhotobookDetailPage from '@/app/pages/client/photobook-detail';
+import PhotobookDetailView from '@/app/components/photobooks/PhotobookDetailView';
 
 export default function Page() {
-  return <PhotobookDetailPage userRole="event-coordinator" />;
+  return <PhotobookDetailView role="event-coordinator" />;
 }

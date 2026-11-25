@@ -9,7 +9,7 @@
  * buttons), Albums (summary cards, filters with counts, search, glass album cards in Grid or List), Photobooks
  * (summary cards, search, cards with the review status as a chip), Content and Opportunities (their own views).
  */
-import { Archive, BookOpen, Check, CheckCheck, CircleHelp, Download, Eye, EyeOff, Hourglass, Images, LayoutGrid, Link2, List, Pencil, Plus, QrCode, Radio, RotateCw, Search, Send, Share2, Tag, Trash2, UserRoundSearch, X } from 'lucide-react';
+import { Archive, Check, CheckCheck, CircleHelp, EyeOff, Images, LayoutGrid, Link2, List, Pencil, Plus, QrCode, Radio, RotateCw, Search, Send, Share2, Tag, Trash2, UserRoundSearch, X } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 import HostEntryTiles from '@/app/components/HostEntryTiles';
 import { dayFilter } from '@/lib/events/eventsFilter';
@@ -18,8 +18,8 @@ import ContentAlbumsTab from '@/app/pages/photographer/ContentAlbumsTab';
 import GlassOpportunities from './GlassOpportunities';
 import { notVisibleBadge, SELL_SUBTITLE } from '@/lib/albums/sellPhotos';
 import { CREATE_LABEL } from '@/app/lib/getStarted';
-import { fmtDay } from '../format';
 import { Card, Chip, EmptyState, OverflowMenu, PageHeader, Segmented } from '../ui';
+import PhotobooksShelf from '@/app/components/photobooks/PhotobooksShelf';
 import type { PhotographerEventsController, Album } from '@/app/components/events/photographer/usePhotographerEvents';
 
 type Ctl = PhotographerEventsController;
@@ -199,70 +199,10 @@ function AlbumsSection({ c }: { c: Ctl }) {
   );
 }
 
-const PB_STATUS: Record<string, { tone: 'info' | 'accent' | 'success' | 'pending'; label: string }> = {
-  SENT_TO_PHOTOGRAPHER: { tone: 'info', label: 'Received' }, PHOTOGRAPHER_EDITING: { tone: 'accent', label: 'Editing' },
-  RESUBMITTED: { tone: 'pending', label: 'Awaiting review' }, COMPLETED: { tone: 'success', label: 'Accepted' },
-};
-
-function PhotobooksSection({ c }: { c: Ctl }) {
-  const { t, language } = useLanguage();
-  const q = c.photobookSearch.toLowerCase();
-  const list = c.receivedPhotobooks.filter((pb) => !q || pb.name.toLowerCase().includes(q) || pb.senderName.toLowerCase().includes(q));
-  const recent = c.receivedPhotobooks.filter((pb) => c.nowMs - new Date(pb.sentAt || pb.createdAt).getTime() < 7 * 864e5).length;
-  return (
-    <>
-      <div className="gc-sums gev-sums-3">
-        <Stat label="Photobooks received" value={c.receivedPhotobooks.length} />
-        <Stat label="Photos" value={c.receivedPhotobooks.reduce((s, pb) => s + pb.images.length, 0)} />
-        <Stat label="Last 7 days" value={recent} />
-      </div>
-      <label className="gc-search gev-search"><Search size={15} aria-hidden /><span className="sr-only">{t('Search photobooks')}</span>
-        <input type="search" value={c.photobookSearch} onChange={(e) => c.setPhotobookSearch(e.target.value)} placeholder={t('Search photobooks')} /></label>
-      {!list.length ? (
-        <EmptyState icon={<BookOpen size={20} />} title={c.photobookSearch ? 'No photobooks match your search' : 'No photobooks yet'}
-          body={c.photobookSearch ? 'Try a different keyword or clear the search.' : 'Clients and coordinators can send you photobooks with their photo selections. They appear here for review.'} />
-      ) : (
-        <div className="gev-grid">
-          {list.map((pb) => {
-            const st = pb.status ? PB_STATUS[pb.status] : undefined;
-            return (
-              <Card key={pb.id} className="gev-album">
-                <button type="button" className="gev-cover" onClick={() => { if (pb.images.length > 0) c.openPhotobookBrowse(pb); }} aria-label={`${t('Open photobook')} ${pb.name}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={pb.thumbnail || '/coverr.jpg'} alt="" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                  <span className="gev-cover-chips">
-                    {st ? <Chip tone={st.tone}>{t(st.label)}</Chip> : null}
-                    <Chip tone="neutral"><Images size={12} aria-hidden /> {pb.images.length}</Chip>
-                  </span>
-                </button>
-                <div className="gev-album-body">
-                  <span className="gc-two">
-                    <strong className="g-ellipsis">{pb.name}</strong>
-                    <small className="g-ellipsis">{t('From')} {pb.senderName || t('Client')} · {fmtDay(pb.sentAt || pb.createdAt, language)}</small>
-                    {pb.description ? <small className="g-ellipsis">{pb.description}</small> : null}
-                  </span>
-                  <div className="gev-actions">
-                    <button type="button" className="g-btn g-btn-ghost gev-act" onClick={() => c.openPhotobookBrowse(pb)}><Eye size={15} aria-hidden /> {t('View')}</button>
-                    {(pb.status === 'SENT_TO_PHOTOGRAPHER' || pb.status === 'PHOTOGRAPHER_EDITING') && <button type="button" className="g-btn g-btn-primary gev-act" onClick={() => c.setPhotobookToResubmit(pb)}><Send size={15} aria-hidden /> {t('Send back')}</button>}
-                    {pb.status === 'RESUBMITTED' && <Chip tone="pending"><Hourglass size={12} aria-hidden /> {t('Awaiting review')}</Chip>}
-                    {(!pb.status || !PB_STATUS[pb.status]) && <button type="button" className="g-btn g-btn-ghost gev-act" onClick={() => c.downloadAllImages(pb)}><Download size={15} aria-hidden /> {t('Download')}</button>}
-                    <button type="button" className="g-icon-btn gpf-danger-icon" aria-label={`${t('Delete photobook')} ${pb.name}`} onClick={() => { c.setPhotobookToDelete(pb); c.setShowDeletePhotobookModal(true); }}><Trash2 size={16} aria-hidden /></button>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
-}
-
 export default function GlassEvents({ ctl: c, modals }: { ctl: Ctl; modals: React.ReactNode }) {
   const { t } = useLanguage();
   const tab = c.activeTab as Section;
   const action = tab === 'events' && c.canCreateEvents ? <button type="button" className="g-btn g-btn-primary" onClick={c.handleSellPhotos} title={t(SELL_SUBTITLE)}><Tag size={16} aria-hidden /> {t('Sell photos')}</button>
-    : tab === 'photobooks' && c.canCreateEvents ? <button type="button" className="g-btn g-btn-primary" onClick={() => c.setShowNewPhotobook(true)}><Plus size={16} aria-hidden /> {t(CREATE_LABEL.photobooks)}</button>
     : tab === 'albums' && c.canCreateEvents ? <button type="button" className="g-btn g-btn-primary" onClick={() => c.handleOpenCreateAlbum()}><Plus size={16} aria-hidden /> {t(CREATE_LABEL.albums)}</button>
     : null;
   return (
@@ -277,7 +217,7 @@ export default function GlassEvents({ ctl: c, modals }: { ctl: Ctl; modals: Reac
       <Segmented<Section> label="Library sections" value={tab} onChange={c.setActiveTab} options={SECTIONS.map((s) => ({ key: s.key, label: s.label }))} />
       {tab === 'events' && <EventsSection c={c} />}
       {tab === 'albums' && <AlbumsSection c={c} />}
-      {tab === 'photobooks' && <PhotobooksSection c={c} />}
+      {tab === 'photobooks' && <PhotobooksShelf role="photographer" embedded />}
       {tab === 'content' && <ContentAlbumsTab openCreateSignal={c.contentCreateSignal} currencies={c.currencies as never} defaultCurrencyId={c.paidAlbumCurrencyId} />}
       {tab === 'opportunities' && <GlassOpportunities />}
       {modals}
