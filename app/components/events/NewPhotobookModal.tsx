@@ -193,7 +193,7 @@ export default function NewPhotobookModal({ onClose, onCreated }: { onClose: () 
                 {list.map((p, i) => {
                   const idx = picked.findIndex((x) => x.id === p.id);
                   return (
-                    <button key={p.id} type="button" className={`pbk-photo${idx >= 0 ? ' is-on' : ''}`} aria-pressed={idx >= 0} aria-label={p.caption || `${t('photos')} ${i + 1}`} onClick={(e) => click(i, e.shiftKey)}>
+                    <button key={p.id} type="button" data-ck-shape="card" className={`pbk-photo${idx >= 0 ? ' is-on' : ''}`} aria-pressed={idx >= 0} aria-label={p.caption || `${t('photos')} ${i + 1}`} onClick={(e) => click(i, e.shiftKey)}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {p.thumbUrl ? <img src={p.thumbUrl} alt="" loading="lazy" /> : <span className="pbk-noimg" />}
                       <span className="pbk-tick" aria-hidden>{idx >= 0 ? <><Check size={12} />{idx + 1}</> : null}</span>
@@ -221,7 +221,7 @@ export default function NewPhotobookModal({ onClose, onCreated }: { onClose: () 
               {picked.slice(0, 60).map((p, i) => {
                 const on = (coverId ?? picked[0]?.id) === p.id;
                 return (
-                  <button key={p.id} type="button" className={`pbk-cover${on ? ' is-on' : ''}`} aria-pressed={on} aria-label={`${t('cover_label')} ${i + 1}`} onClick={() => setCoverId(p.id)}>
+                  <button key={p.id} type="button" data-ck-shape="card" className={`pbk-cover${on ? ' is-on' : ''}`} aria-pressed={on} aria-label={`${t('cover_label')} ${i + 1}`} onClick={() => setCoverId(p.id)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {p.thumb ? <img src={p.thumb} alt="" loading="lazy" /> : <span className="pbk-noimg" />}
                   </button>
@@ -250,7 +250,7 @@ function AlbumRow({ a, lockedOwner, picked, on, onPick, t, language }: {
   const n = picked.filter((p) => p.albumId === a.id).length;
   return (
     <li>
-      <button type="button" className={`pbk-album${on ? ' is-on' : ''}`} disabled={blocked} onClick={onPick} aria-current={on ? 'true' : undefined}>
+      <button type="button" data-ck-shape="card" className={`pbk-album${on ? ' is-on' : ''}`} disabled={blocked} onClick={onPick} aria-current={on ? 'true' : undefined}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {a.coverUrl ? <img src={a.coverUrl} alt="" loading="lazy" /> : <span className="pbk-noimg" />}
         <span className="pbk-album-body">

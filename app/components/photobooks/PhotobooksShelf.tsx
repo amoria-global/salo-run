@@ -64,7 +64,7 @@ function PbCard({ book, shelf, onOpen }: { book: Pb; shelf: Shelf; onOpen: () =>
     : (book.toName ? pbCopy(language, 'to_who', { name: book.toName }) : undefined);
   const meta = [who, photoCountLabel(language, book.mediaCount) && book.mediaCount > 0 ? photoCountLabel(language, book.mediaCount) : dateText(book.sentAt ?? book.createdAt, language)].filter(Boolean).join(' · ');
   return (
-    <button type="button" className="pbk-card" onClick={onOpen} aria-label={`${book.name}, ${label}`}>
+    <button type="button" data-ck-shape="card" className="pbk-card" onClick={onOpen} aria-label={`${book.name}, ${label}`}>
       <PbMosaic photos={book.photos.map((p) => p.url)} label={book.mediaCount === 0 ? pbCopy(language, 'no_photos_left') : pbCopy(language, 'no_photos')} />
       <span className="pbk-body">
         <strong className="g-ellipsis">{book.name}</strong>
