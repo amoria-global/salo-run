@@ -958,3 +958,6 @@ html.ui-glass .pbk-help-body p, html.ui-glass .pbk-help-body ul { margin: 0; }
   html.ui-glass .pbk-fchip, html.ui-glass .pbk-switch button, html.ui-glass .pbk-help summary { min-height: 44px; }
   html.ui-glass .pbk-photos-head .g-btn, html.ui-glass .pbk-foot .g-btn { min-height: 44px; }
 }
+
+/* The shared accent chip is 3.5:1 in light mode; photobook chips use the accent text token that passes AA. */
+html.ui-glass .pbk-chips .gp-chip-accent { color: var(--g-accent-text); }
