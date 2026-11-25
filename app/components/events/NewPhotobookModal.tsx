@@ -10,6 +10,7 @@
  * ticked in is the book's order.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Lock } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -157,7 +158,9 @@ export default function NewPhotobookModal({ onClose, onCreated }: { onClose: () 
     </div>
   );
 
-  return (
+  // Portalled to the body: inside the page it sat under the sidebar's stacking context and was clipped.
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <Modal isOpen onClose={onClose} size="xl" title={t('new_book')} description={<span className="pbk-crumbs">{crumbs}</span>} footer={footer}>
       {step === 'albums' ? (
         <div className="pbk-pick">
@@ -238,7 +241,8 @@ export default function NewPhotobookModal({ onClose, onCreated }: { onClose: () 
         </div>
       ) : null}
       {error ? <p className="pbk-error" role="alert">{error}</p> : null}
-    </Modal>
+    </Modal>,
+    document.body,
   );
 }
 

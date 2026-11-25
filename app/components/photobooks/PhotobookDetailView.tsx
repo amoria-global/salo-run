@@ -7,6 +7,7 @@
  * was sent to. Photos the viewer does not own or hasn't bought arrive as watermarked thumbnails, or without a url.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Check, CreditCard, Lock, Send, X } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -214,7 +215,7 @@ export default function PhotobookDetailView({ role }: { role: PbRole }) {
         </div>
       </div>
 
-      {viewer !== null && photos[viewer] ? (
+      {viewer !== null && photos[viewer] ? createPortal(
         <div className="pbk-lightbox" role="dialog" aria-modal="true" aria-label={t('photos')} onClick={() => setViewer(null)}>
           <button type="button" className="pbk-lb-close g-icon-btn" aria-label={t('done')} onClick={() => setViewer(null)}><X size={20} aria-hidden /></button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -225,7 +226,8 @@ export default function PhotobookDetailView({ role }: { role: PbRole }) {
             <span>{viewer + 1} / {photos.length}</span>
             <button type="button" className="g-btn g-btn-ghost" disabled={viewer >= photos.length - 1} onClick={() => setViewer(viewer + 1)}>{t('next')}</button>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
 
       {confirm === 'send' ? <ConfirmDialog title={t('confirm_send_title')} body={t('confirm_send_body')} confirmLabel={t('act_send')} cancelLabel={t('cancel')} danger={false} busy={busy} onClose={() => setConfirm(null)} onConfirm={() => void run(() => sendBook(book.id, role))} /> : null}
