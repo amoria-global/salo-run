@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/app/context/LanguageContext', () => ({ useLanguage: () => ({ t: (s: string) => s, language: 'en' }) }));
 vi.mock('@/app/components/HostEntryTiles', () => ({ default: () => null }));
 vi.mock('@/app/pages/photographer/ContentAlbumsTab', () => ({ default: () => <div data-stub="content" /> }));
+vi.mock('@/app/components/photobooks/PhotobooksShelf', () => ({ default: () => <div data-stub="photobooks">No photobooks yet</div> }));
 vi.mock('./GlassOpportunities', () => ({ default: () => <div data-stub="opps" /> }));
 vi.mock('@/app/components/events/EventsBrowser', () => ({
   EventsToolbar: () => <div data-stub="toolbar" />, EventsCalendar: () => null, EmptyResult: () => <div>empty-result</div>,

@@ -1,160 +1,265 @@
 'use client';
 
 /**
- * "New photobook": pick an album, choose the photos, name it and create it. Same request as the mobile app
- * (POST /customer/events/photobook with name, description, mediaIds, layout, coverImage and eventId).
+ * "New photobook", in three steps: Albums, Photos, Details.
+ *
+ * Step 2 is two panes: the person's albums on the left (type chip and selected / total, "0/12 bought" for paid or priced
+ * content) and the photo grid on the right with ticks, Select all and shift-click ranges. The server only lists photos
+ * the person may add, so a paid or priced content photo they have not bought is never shown; a book uses ONE
+ * photographer's photos, so albums of any other photographer switch off once a photo is chosen. The order photos are
+ * ticked in is the book's order.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Lock } from 'lucide-react';
 import Modal from '../ui/Modal';
-import { dashboardAuthFetch } from '../../providers/AuthProvider';
+import { useLanguage } from '@/app/context/LanguageContext';
+import { pbCopy, photoCountLabel, type CopyKey } from '@/lib/photobookCopy';
+import {
+  createBook, eventTerms, listPickerAlbums, listPickerPhotos, sendBook, SOURCE_TONE,
+  type PickerAlbum, type PickerPhoto, type SourceKey,
+} from '@/lib/photobooks';
+import { Chip } from '../glass/ui';
 
-export type PhotobookAlbum = { id: string; title: string; eventId?: string; images: string[] };
+type Step = 'albums' | 'photos' | 'details';
+type Picked = { id: string; thumb?: string; albumId: string; ownerId?: string };
+type ChipKey = 'all' | SourceKey;
+const CHIPS: { key: ChipKey; label: CopyKey }[] = [
+  { key: 'all', label: 'chip_all' }, { key: 'event', label: 'chip_event' }, { key: 'free', label: 'chip_free' },
+  { key: 'purchased', label: 'chip_purchased' }, { key: 'content', label: 'chip_content' }, { key: 'mine', label: 'chip_mine' },
+];
 
-const LAYOUTS = [
-  { value: 'GRID', label: 'Classic Grid', hint: 'Even 3-column grid with balanced borders' },
-  { value: 'MAGAZINE', label: 'Editorial Magazine', hint: 'Mixed portrait and landscape magazine spread' },
-  { value: 'STORY', label: 'Story Flow', hint: 'Full-bleed vertical narrative scroll' },
-] as const;
+export default function NewPhotobookModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+  const { language } = useLanguage();
+  const t = useCallback((k: CopyKey, p?: Record<string, string | number>) => pbCopy(language, k, p), [language]);
 
-/** The photos of an album that the dashboard can name by id, in album order. */
-export function selectableImages(album: PhotobookAlbum | undefined, mediaIdMap: Record<string, string>): { url: string; id: string }[] {
-  if (!album) return [];
-  return album.images.filter((u) => !!mediaIdMap[u]).map((u) => ({ url: u, id: mediaIdMap[u] }));
-}
-
-export default function NewPhotobookModal({
-  apiUrl, albums, mediaIdMap, onClose, onCreated,
-}: {
-  apiUrl: string;
-  albums: PhotobookAlbum[];
-  mediaIdMap: Record<string, string>;
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const [albumId, setAlbumId] = useState(albums[0]?.id ?? '');
+  const [albums, setAlbums] = useState<PickerAlbum[] | null>(null);
+  const [albumsError, setAlbumsError] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>('albums');
+  const [chip, setChip] = useState<ChipKey>('all');
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<Record<string, PickerPhoto[]>>({});
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [picked, setPicked] = useState<Picked[]>([]);
+  const [terms, setTerms] = useState<{ eventId: string; free: number; price: number; title?: string } | null>(null);
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [layout, setLayout] = useState<string>('GRID');
-  const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState(false);
+  const [layout, setLayout] = useState<'grid' | 'gallery-wall'>('grid');
+  const [coverId, setCoverId] = useState<string | null>(null);
+  const [linkEvent, setLinkEvent] = useState(true);
+  const [busy, setBusy] = useState<'create' | 'send' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const lastIndex = useRef<number>(-1);
 
-  const album = albums.find((a) => a.id === albumId);
-  const photos = useMemo(() => selectableImages(album, mediaIdMap), [album, mediaIdMap]);
+  useEffect(() => {
+    let live = true;
+    listPickerAlbums().then((a) => live && setAlbums(a)).catch((e: Error) => live && setAlbumsError(e.message));
+    return () => { live = false; };
+  }, []);
 
-  const toggle = (id: string) => setPicked((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
-  const chooseAlbum = (id: string) => { setAlbumId(id); setPicked(new Set()); };
-  const allPicked = photos.length > 0 && photos.every((p) => picked.has(p.id));
+  const byId = useMemo(() => new Map((albums ?? []).map((a) => [a.id, a])), [albums]);
+  const lockedOwner = picked[0]?.ownerId;
+  const current = currentId ? byId.get(currentId) ?? null : null;
+  const eventId = useMemo(() => {
+    const ids = new Set(picked.map((p) => byId.get(p.albumId)?.eventId));
+    return ids.size === 1 ? ([...ids][0] || undefined) : undefined;
+  }, [picked, byId]);
+  useEffect(() => {
+    if (!eventId) return;
+    let live = true;
+    eventTerms(eventId).then((x) => live && setTerms({ eventId, free: x.freePhotosLimit, price: x.pricePerExtraPhoto, title: x.title })).catch(() => undefined);
+    return () => { live = false; };
+  }, [eventId]);
+  const activeTerms = eventId && terms?.eventId === eventId ? terms : null;
+  const extras = activeTerms ? Math.max(0, picked.length - activeTerms.free) : 0;
 
-  const create = async () => {
-    if (!name.trim()) { setError('Give the photobook a name.'); return; }
-    if (picked.size === 0) { setError('Choose at least one photo.'); return; }
-    setBusy(true);
-    setError(null);
+  const loadPhotos = useCallback(async (id: string) => {
+    if (photos[id]) return;
+    setLoadingPhotos(true);
     try {
-      const mediaIds = photos.filter((p) => picked.has(p.id)).map((p) => p.id);
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/photobook`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          ...(description.trim() ? { description: description.trim() } : {}),
-          mediaIds,
-          layout,
-          coverImage: photos.find((p) => picked.has(p.id))?.url,
-          ...(album?.eventId ? { eventId: album.eventId } : {}),
-        }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok || body?.action !== 1) { setError(body?.message || 'Could not create the photobook.'); return; }
-      onCreated();
-    } catch {
-      setError('Could not create the photobook. Check your connection and try again.');
+      const items = await listPickerPhotos(id);
+      setPhotos((p) => ({ ...p, [id]: items }));
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
-      setBusy(false);
+      setLoadingPhotos(false);
+    }
+  }, [photos]);
+
+  const openAlbum = (a: PickerAlbum) => {
+    setCurrentId(a.id);
+    setStep('photos');
+    lastIndex.current = -1;
+    void loadPhotos(a.id);
+  };
+
+  const list = current ? photos[current.id] ?? [] : [];
+  const isOn = (id: string) => picked.some((x) => x.id === id);
+  const add = (a: PickerAlbum, ps: PickerPhoto[]) =>
+    setPicked((cur) => [...cur, ...ps.filter((p) => !cur.some((x) => x.id === p.id)).map((p) => ({ id: p.id, thumb: p.thumbUrl, albumId: a.id, ownerId: a.ownerId }))]);
+  const click = (i: number, shift: boolean) => {
+    if (!current) return;
+    const p = list[i];
+    if (shift && lastIndex.current >= 0) {
+      const [lo, hi] = [Math.min(lastIndex.current, i), Math.max(lastIndex.current, i)];
+      add(current, list.slice(lo, hi + 1));
+    } else if (isOn(p.id)) {
+      setPicked((cur) => cur.filter((x) => x.id !== p.id));
+    } else {
+      add(current, [p]);
+    }
+    lastIndex.current = i;
+  };
+  const allOn = list.length > 0 && list.every((p) => isOn(p.id));
+  const selectAll = () => {
+    if (!current) return;
+    if (allOn) setPicked((cur) => cur.filter((x) => !list.some((p) => p.id === x.id)));
+    else add(current, list);
+  };
+  const visible = (albums ?? []).filter((a) => chip === 'all' || a.sourceType === chip);
+
+  const submit = async (send: boolean) => {
+    setBusy(send ? 'send' : 'create');
+    setError(null);
+    let id: string | undefined;
+    try {
+      const cover = picked.find((p) => p.id === coverId)?.thumb ?? picked[0]?.thumb;
+      const book = await createBook({ name: name.trim(), layout, mediaIds: picked.map((p) => p.id), coverImage: cover, eventId: linkEvent ? eventId : undefined });
+      id = book.id;
+      if (send) await sendBook(book.id, 'client');
+      onCreated(book.id);
+    } catch (e) {
+      setError((e as Error).message);
+      if (id) onCreated(id);
+    } finally {
+      setBusy(null);
     }
   };
 
-  return (
-    <Modal
-      isOpen
-      onClose={() => { if (!busy) onClose(); }}
-      lockBackdrop={busy}
-      size="lg"
-      title="New photobook"
-      description="Choose an album, pick the photos and name your photobook."
-      footer={
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
-          <button type="button" className="ck-btn ck-btn-ghost" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="button" className="ck-btn ck-btn-primary" onClick={create} disabled={busy}>
-            {busy ? 'Creating…' : `Create photobook${picked.size ? ` (${picked.size})` : ''}`}
-          </button>
-        </div>
-      }
-    >
-      {albums.length === 0 ? (
-        <p role="status" style={{ color: 'var(--ck-text-soft)', margin: 0 }}>
-          You need an album with photos first. Create an album, upload photos, then come back to make a photobook.
-        </p>
+  const crumbs = (['albums', 'photos', 'details'] as const).map((s, i) => (
+    <span key={s} className={`pbk-crumb${step === s ? ' is-on' : ''}`}>{i + 1} {t(`step_${s}` as CopyKey)}</span>
+  ));
+
+  const footer = (
+    <div className="pbk-foot">
+      <span className="pbk-lock"><Lock size={13} aria-hidden /> {t('lock_note')}</span>
+      <span className="pbk-selected">
+        <strong>{t('n_selected', { n: picked.length })}</strong>
+        {activeTerms ? <small>{t('free_up_to', { n: activeTerms.free })}{extras > 0 ? ` · ${t('extras_over', { n: extras, price: activeTerms.price })}` : ''}</small> : null}
+      </span>
+      {step !== 'albums' ? <button type="button" className="g-btn g-btn-ghost" onClick={() => setStep(step === 'details' ? 'photos' : 'albums')}>{t('back')}</button> : null}
+      {step === 'details' ? (
+        <>
+          <button type="button" className="g-btn g-btn-ghost" disabled={!name.trim() || !!busy} onClick={() => void submit(false)}>{busy === 'create' ? t('creating') : t('create')}</button>
+          <button type="button" className="g-btn g-btn-primary" disabled={!name.trim() || !!busy} onClick={() => void submit(true)}>{busy === 'send' ? t('sending') : t('create_send')}</button>
+        </>
       ) : (
-        <div style={{ display: 'grid', gap: 12 }}>
-          <label style={{ display: 'grid', gap: 4, fontSize: '0.88rem', fontWeight: 600 }}>
-            Name
-            <input className="ck-input" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} placeholder="Wedding, Nyarutarama" />
-          </label>
-          <label style={{ display: 'grid', gap: 4, fontSize: '0.88rem', fontWeight: 600 }}>
-            Description (optional)
-            <textarea className="ck-input" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
-          </label>
-          <label style={{ display: 'grid', gap: 4, fontSize: '0.88rem', fontWeight: 600 }}>
-            Album
-            <select className="ck-input" value={albumId} onChange={(e) => chooseAlbum(e.target.value)}>
-              {albums.map((a) => <option key={a.id} value={a.id}>{a.title}</option>)}
-            </select>
-          </label>
-          <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'grid', gap: 6 }}>
-            <legend style={{ fontSize: '0.88rem', fontWeight: 600, padding: 0 }}>Layout</legend>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {LAYOUTS.map((l) => (
-                <label key={l.value} title={l.hint} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.88rem' }}>
-                  <input type="radio" name="photobook-layout" checked={layout === l.value} onChange={() => setLayout(l.value)} /> {l.label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>Photos ({picked.size} of {photos.length} chosen)</span>
-              {photos.length > 0 ? (
-                <button type="button" className="ck-btn ck-btn-ghost" onClick={() => setPicked(allPicked ? new Set() : new Set(photos.map((p) => p.id)))}>
-                  {allPicked ? 'Clear all' : 'Choose all'}
-                </button>
-              ) : null}
-            </div>
-            {photos.length === 0 ? (
-              <p role="status" style={{ color: 'var(--ck-text-soft)', margin: 0, fontSize: '0.88rem' }}>This album has no photos yet.</p>
+        <button type="button" className="g-btn g-btn-primary" disabled={picked.length === 0} onClick={() => setStep('details')}>{t('next')}</button>
+      )}
+    </div>
+  );
+
+  return (
+    <Modal isOpen onClose={onClose} size="xl" title={t('new_book')} description={<span className="pbk-crumbs">{crumbs}</span>} footer={footer}>
+      {step === 'albums' ? (
+        <div className="pbk-pick">
+          <div className="pbk-filters" role="group" aria-label={t('step_albums')}>
+            {CHIPS.map((c) => <button key={c.key} type="button" aria-pressed={chip === c.key} className={`pbk-fchip${chip === c.key ? ' is-on' : ''}`} onClick={() => setChip(c.key)}>{t(c.label)}</button>)}
+          </div>
+          {albums === null && !albumsError ? <p className="gpf-help">…</p> : albumsError ? <p className="pbk-error" role="alert">{albumsError}</p> : visible.length === 0 ? (
+            <div className="pbk-none"><strong>{t('albums_empty_title')}</strong><p>{t('albums_empty_body')}</p></div>
+          ) : (
+            <ul className="pbk-albums">
+              {visible.map((a) => <AlbumRow key={a.id} a={a} lockedOwner={lockedOwner} picked={picked} on={false} onPick={() => openAlbum(a)} t={t} language={language} />)}
+            </ul>
+          )}
+        </div>
+      ) : null}
+
+      {step === 'photos' ? (
+        <div className="pbk-two">
+          <ul className="pbk-albums pbk-left" aria-label={t('step_albums')}>
+            {(albums ?? []).map((a) => <AlbumRow key={a.id} a={a} lockedOwner={lockedOwner} picked={picked} on={a.id === currentId} onPick={() => openAlbum(a)} t={t} language={language} />)}
+          </ul>
+          <div className="pbk-right">
+            {current ? (
+              <div className="pbk-photos-head">
+                <strong className="g-ellipsis">{current.title}</strong>
+                {list.length > 0 ? <button type="button" className="g-btn g-btn-ghost" onClick={selectAll}>{allOn ? t('clear_all') : t('select_all')}</button> : null}
+              </div>
+            ) : null}
+            {loadingPhotos ? <p className="gpf-help">…</p> : list.length === 0 ? (
+              <div className="pbk-none"><Lock size={18} aria-hidden /><strong>{t('no_photos')}</strong><p>{t('lock_note')}</p></div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
-                {photos.map((p, i) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => toggle(p.id)}
-                    aria-pressed={picked.has(p.id)}
-                    aria-label={`Photo ${i + 1}${picked.has(p.id) ? ', chosen' : ''}`}
-                    style={{ position: 'relative', padding: 0, border: picked.has(p.id) ? '3px solid var(--ck-blue)' : '1px solid var(--ck-stroke)', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: 'transparent', cursor: 'pointer' }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    {picked.has(p.id) ? <i className="bi bi-check-circle-fill" aria-hidden="true" style={{ position: 'absolute', top: 4, right: 4, color: '#fff', background: 'var(--ck-blue)', borderRadius: '50%' }} /> : null}
-                  </button>
-                ))}
+              <div className="pbk-photo-grid" role="group" aria-label={t('photos')}>
+                {list.map((p, i) => {
+                  const idx = picked.findIndex((x) => x.id === p.id);
+                  return (
+                    <button key={p.id} type="button" className={`pbk-photo${idx >= 0 ? ' is-on' : ''}`} aria-pressed={idx >= 0} aria-label={p.caption || `${t('photos')} ${i + 1}`} onClick={(e) => click(i, e.shiftKey)}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {p.thumbUrl ? <img src={p.thumbUrl} alt="" loading="lazy" /> : <span className="pbk-noimg" />}
+                      <span className="pbk-tick" aria-hidden>{idx >= 0 ? <><Check size={12} />{idx + 1}</> : null}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
-          {error ? <p role="alert" style={{ color: '#d92d20', margin: 0, fontSize: '0.88rem' }}>{error}</p> : null}
         </div>
-      )}
+      ) : null}
+
+      {step === 'details' ? (
+        <div className="pbk-form">
+          <label>{t('name_label')}
+            <input className="ck-input" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} placeholder={t('name_placeholder')} />
+          </label>
+          <fieldset className="pbk-radios"><legend>{t('layout_label')}</legend>
+            {(['grid', 'gallery-wall'] as const).map((l) => (
+              <label key={l} className={layout === l ? 'is-on' : ''}><input type="radio" name="pbk-layout" checked={layout === l} onChange={() => setLayout(l)} /> {t(l === 'grid' ? 'layout_grid' : 'layout_wall')}</label>
+            ))}
+          </fieldset>
+          <div><span className="pbk-label">{t('cover_label')}</span><small className="gpf-help">{t('cover_hint')}</small>
+            <div className="pbk-covers">
+              {picked.slice(0, 60).map((p, i) => {
+                const on = (coverId ?? picked[0]?.id) === p.id;
+                return (
+                  <button key={p.id} type="button" className={`pbk-cover${on ? ' is-on' : ''}`} aria-pressed={on} aria-label={`${t('cover_label')} ${i + 1}`} onClick={() => setCoverId(p.id)}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {p.thumb ? <img src={p.thumb} alt="" loading="lazy" /> : <span className="pbk-noimg" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {eventId ? (
+            <label className="pbk-event"><input type="checkbox" checked={linkEvent} onChange={(e) => setLinkEvent(e.target.checked)} />
+              <span><strong>{t('event_label')}</strong><small>{linkEvent ? activeTerms?.title ?? byId.get(picked[0]?.albumId ?? '')?.eventTitle ?? '' : t('event_none')}</small></span>
+            </label>
+          ) : null}
+          <p className="gpf-help">{photoCountLabel(language, picked.length)}</p>
+        </div>
+      ) : null}
+      {error ? <p className="pbk-error" role="alert">{error}</p> : null}
     </Modal>
+  );
+}
+
+function AlbumRow({ a, lockedOwner, picked, on, onPick, t, language }: {
+  a: PickerAlbum; lockedOwner?: string; picked: Picked[]; on: boolean; onPick: () => void;
+  t: (k: CopyKey, p?: Record<string, string | number>) => string; language: string;
+}) {
+  const blocked = !!lockedOwner && !!a.ownerId && a.ownerId !== lockedOwner;
+  const n = picked.filter((p) => p.albumId === a.id).length;
+  return (
+    <li>
+      <button type="button" className={`pbk-album${on ? ' is-on' : ''}`} disabled={blocked} onClick={onPick} aria-current={on ? 'true' : undefined}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {a.coverUrl ? <img src={a.coverUrl} alt="" loading="lazy" /> : <span className="pbk-noimg" />}
+        <span className="pbk-album-body">
+          <strong className="g-ellipsis">{a.title}</strong>
+          <Chip tone={SOURCE_TONE[a.sourceType as SourceKey] ?? 'neutral'}>{t(`src_${a.sourceType}` as CopyKey)}</Chip>
+          {blocked ? <small className="pbk-warn">{t('one_photographer')}</small> : null}
+        </span>
+        <span className="pbk-count">{a.priced ? `${n}/${a.usableCount}` : `${n}/${a.photoCount}`}{a.priced ? ` ${language === 'en' ? 'bought' : ''}`.trimEnd() : ''}</span>
+      </button>
+    </li>
   );
 }
