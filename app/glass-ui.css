@@ -953,3 +953,8 @@ html.ui-glass .pbk-help { border: 1px solid var(--g-border); border-radius: 14px
 html.ui-glass .pbk-help summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--g-link); min-height: 32px; }
 html.ui-glass .pbk-help-body { display: flex; flex-direction: column; gap: 8px; padding: 6px 0 4px; color: var(--g-text-soft); max-width: 70ch; }
 html.ui-glass .pbk-help-body p, html.ui-glass .pbk-help-body ul { margin: 0; }
+
+@media (max-width: 767.98px) {
+  html.ui-glass .pbk-fchip, html.ui-glass .pbk-switch button, html.ui-glass .pbk-help summary { min-height: 44px; }
+  html.ui-glass .pbk-photos-head .g-btn, html.ui-glass .pbk-foot .g-btn { min-height: 44px; }
+}
