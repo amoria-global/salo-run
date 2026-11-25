@@ -10,7 +10,7 @@
  */
 import type { LucideIcon } from 'lucide-react';
 import {
-  Bell, Briefcase, CalendarDays, CreditCard, Handshake, Heart, House, Image as ImageIcon, MessageCircle, Package,
+  BookOpen, Bell, Briefcase, CalendarDays, CreditCard, Handshake, Heart, House, Image as ImageIcon, MessageCircle, Package,
   Radio, Search, SlidersHorizontal, Tag, User, Users, Wallet, Clapperboard,
 } from 'lucide-react';
 import { SELL_PHOTOS_QUERY } from '@/lib/albums/sellPhotos';
@@ -42,6 +42,7 @@ const photographer: GlassNavGroup[] = [
   ] },
   { label: 'Work', items: [
     { key: 'Events', label: 'Events', href: `${P}/events`, icon: CalendarDays, requires: ['events.view'], alsoActive: [`${P}/host`] },
+    { key: 'Photobooks', label: 'Photobooks', href: `${P}/photobooks`, icon: BookOpen, requires: ['events.view'] },
     { key: 'Opportunities', label: 'Opportunities', href: `${P}/opportunities`, icon: Radio, requires: ['events.view'], badge: 'opportunities' },
     { key: 'Clients', label: 'Clients', href: `${P}/clients`, icon: Users, requires: ['bookings.view'] },
     { key: 'Packages', label: 'Packages', href: `${P}/profile?tab=packages`, icon: Package },
@@ -64,6 +65,7 @@ const buyer = (base: string): GlassNavGroup[] => [
     { key: 'My Events', label: 'My Events', href: `${base}/events`, icon: CalendarDays, requires: ['events.view'] },
     { key: 'Streams', label: 'Streams', href: `${base}/streams`, icon: Clapperboard },
     { key: 'Gallery', label: 'Gallery', href: `${base}/gallery`, icon: ImageIcon },
+    { key: 'Photobooks', label: 'Photobooks', href: `${base}/photobooks`, icon: BookOpen, alsoActive: [`${base}/gallery/photobooks`] },
   ] },
   { label: 'Book a photographer', items: [
     { key: 'Post My Event', label: 'Post My Event', href: `${base}/events?post=1`, icon: Briefcase, requires: ['events.view'] },
