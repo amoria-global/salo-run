@@ -16,7 +16,7 @@ export type FilterKey = 'all' | Bucket;
 export type Tone = 'success' | 'pending' | 'error' | 'info' | 'neutral' | 'accent';
 export type SourceKey = 'event' | 'free' | 'purchased' | 'content' | 'mine';
 
-export type PbPhoto = { id: string; url?: string; caption?: string; sourceType?: string; original: boolean; watermarked: boolean };
+export type PbPhoto = { id: string; url?: string; /** The public thumbnail: safe for grids, needs no session. */ thumb?: string; caption?: string; sourceType?: string; original: boolean; watermarked: boolean };
 
 export type Pb = {
   id: string;
@@ -79,6 +79,7 @@ export function mapPb(r: Raw): Pb {
     photos: items.map((m) => ({
       id: String(m.id ?? ''),
       url: normalizeImageUrl(str(m.fileUrl)) || undefined,
+      thumb: normalizeImageUrl(str(m.thumbUrl)) || undefined,
       caption: str(m.caption),
       sourceType: str(m.sourceType),
       original: m.original === true,

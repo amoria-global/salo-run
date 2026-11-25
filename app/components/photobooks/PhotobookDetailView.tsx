@@ -132,7 +132,7 @@ export default function PhotobookDetailView({ role }: { role: PbRole }) {
                     draggable={canEdit} onDragStart={() => setDragId(p.id)} onDragOver={(e) => canEdit && e.preventDefault()} onDrop={() => drop(p.id)} onDragEnd={() => setDragId(null)}>
                     <button type="button" data-ck-shape="card" className="pbk-open" aria-label={p.caption || `${t('photos')} ${i + 1}`} onClick={() => setViewer(i)}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {p.url ? <img src={p.url} alt={p.caption ?? ''} loading="lazy" /> : <span className="pbk-noimg"><Lock size={16} aria-hidden /></span>}
+                      {p.thumb ?? p.url ? <img src={p.thumb ?? p.url} alt={p.caption ?? ''} loading="lazy" /> : <span className="pbk-noimg"><Lock size={16} aria-hidden /></span>}
                       {!p.original ? <span className="pbk-wm">{t('watermarked')}</span> : null}
                     </button>
                   </div>
