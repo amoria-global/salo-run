@@ -79,6 +79,7 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   ],
   admin: [
     { name: "Wallets", href: "/user/admin/wallets", icon: "bi-wallet2", group: 'Admin' },
+    { name: "Explore review", href: "/user/admin/explore-review", icon: "bi-camera-video", group: 'Admin' },
   ],
 };
 
