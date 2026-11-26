@@ -7,6 +7,7 @@ import { dashboardAuthFetch } from '@/app/providers/AuthProvider';
 import { Can, usePermissions } from '@/app/lib/usePermissions';
 import { getApiUrl } from '@/lib/api';
 import { useCurrency } from '@/app/context/CurrencyContext';
+import ExploreStudio from './ExploreStudio';
 
 /**
  * Content-album tab on the photographer events page.
@@ -86,6 +87,7 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId, openCr
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<ContentAlbumDto | null>(null);
+  const [studioAlbum, setStudioAlbum] = useState<ContentAlbumDto | null>(null);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedSlugId, setCopiedSlugId] = useState<string | null>(null);
@@ -240,6 +242,15 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId, openCr
           currencies={currencies}
           onClose={() => setEditingAlbum(null)}
           onSaved={async () => { setEditingAlbum(null); await refresh(); }}
+        />
+      )}
+
+      {studioAlbum && (
+        <ExploreStudio
+          albumId={studioAlbum.id}
+          albumTitle={studioAlbum.title}
+          currency={studioAlbum.currencyAbbreviation || 'USD'}
+          onClose={() => { setStudioAlbum(null); void refresh(); }}
         />
       )}
 
@@ -464,6 +475,13 @@ export default function ContentAlbumsTab({ currencies, defaultCurrencyId, openCr
                           }}
                         >
                           <i className="bi bi-pencil" style={{ fontSize: 11 }} /> Edit
+                        </button>
+                      </Can>
+
+                      <Can permission="albums.create">
+                        <button type="button" onClick={() => setStudioAlbum(a)} title="Photos, clips, prices and tags"
+                          style={{ ...cardActionBtn, background: 'rgba(255,255,255,0.12)' }}>
+                          <i className="bi bi-grid-3x3-gap" style={{ fontSize: 11 }} /> Items
                         </button>
                       </Can>
 
