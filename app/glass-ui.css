@@ -961,3 +961,32 @@ html.ui-glass .pbk-help-body p, html.ui-glass .pbk-help-body ul { margin: 0; }
 
 /* The shared accent chip is 3.5:1 in light mode; photobook chips use the accent text token that passes AA. */
 html.ui-glass .pbk-chips .gp-chip-accent { color: var(--g-accent-text); }
+
+/* Explore: Saved and My purchases. A masonry of watermarked previews, a list of purchases, and the files of one purchase. */
+html.ui-glass .xpl-masonry { column-count: 2; column-gap: 12px; margin-top: 8px; }
+@media (min-width: 720px) { html.ui-glass .xpl-masonry { column-count: 3; } }
+@media (min-width: 1100px) { html.ui-glass .xpl-masonry { column-count: 4; } }
+@media (min-width: 1500px) { html.ui-glass .xpl-masonry { column-count: 5; } }
+html.ui-glass .xpl-card { position: relative; break-inside: avoid; margin: 0 0 12px; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+html.ui-glass .xpl-media { display: block; position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: var(--g-muted); }
+html.ui-glass .xpl-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+html.ui-glass .xpl-media:focus-visible { outline: 2px solid var(--g-primary-light); outline-offset: 2px; }
+html.ui-glass .xpl-badge { position: absolute; left: 8px; top: 8px; display: inline-flex; gap: 4px; align-items: center; padding: 4px 8px; border-radius: 999px; background: rgba(5, 10, 24, 0.72); color: #fff; font-size: 0.75rem; font-weight: 600; }
+html.ui-glass .xpl-body { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 0 0 4px; }
+html.ui-glass .xpl-body-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+html.ui-glass .xpl-body-text strong { font-size: 0.875rem; color: var(--g-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .xpl-body-text small { color: var(--g-text-muted); font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .xpl-heart { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; border: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: transparent; color: var(--g-accent); }
+html.ui-glass .xpl-heart:hover { background: var(--g-well); }
+html.ui-glass .xpl-heart:focus-visible { outline: 2px solid var(--g-primary-light); outline-offset: 2px; }
+html.ui-glass .xpl-heart:disabled { opacity: 0.6; cursor: wait; }
+html.ui-glass .xpl-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+html.ui-glass .xpl-purchase { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; }
+html.ui-glass .xpl-purchase-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+html.ui-glass .xpl-purchase-text strong { color: var(--g-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.ui-glass .xpl-purchase-text small { color: var(--g-text-muted); }
+html.ui-glass .xpl-note { margin: 0 0 12px; color: var(--g-text-soft); font-size: 0.875rem; }
+html.ui-glass .xpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+html.ui-glass .xpl-file { display: flex; flex-direction: column; gap: 6px; }
+html.ui-glass .xpl-file img { width: 100%; height: 110px; object-fit: cover; border-radius: 10px; background: var(--g-muted); }
+html.ui-glass .xpl-file small { color: var(--g-text-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
