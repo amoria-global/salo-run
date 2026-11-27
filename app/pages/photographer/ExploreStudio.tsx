@@ -19,6 +19,8 @@ interface Item {
   mediaType: 'PHOTO' | 'VIDEO';
   status: 'LIVE' | 'PROCESSING' | 'PENDING_REVIEW' | 'REJECTED' | 'UNPUBLISHED' | 'FAILED';
   detail?: string | null;
+  /** A plain sentence from the server about an item that is not live (why it failed, what to do). */
+  message?: string | null;
   title?: string | null;
   priceOverride?: number | null;
   albumPrice?: number | null;
@@ -30,6 +32,22 @@ interface Item {
 interface Upload { key: string; name: string; kind: 'photo' | 'clip'; pct: number; state: 'uploading' | 'done' | 'error'; message?: string }
 
 const MAX_CLIP_BYTES = 1024 * 1024 * 1024;
+const MAX_CLIP_SECONDS = 120;
+
+/** The clip's length, read from the file in the browser before anything is uploaded; null when the browser cannot tell. */
+function clipSeconds(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    const url = URL.createObjectURL(file);
+    const done = (d: number | null) => { URL.revokeObjectURL(url); resolve(d); };
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => done(Number.isFinite(v.duration) ? v.duration : null);
+    v.onerror = () => done(null);
+    setTimeout(() => done(null), 8000);
+    v.src = url;
+  });
+}
+const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 const MAX_PHOTO_BYTES = 30 * 1024 * 1024;
 const CHUNK = 5 * 1024 * 1024; // Stream wants chunks in multiples of 256 KiB, 5 MiB or more
 
@@ -102,6 +120,12 @@ export default function ExploreStudio({ albumId, albumTitle, currency, onClose }
 
   const uploadClip = async (file: File, key: string) => {
     if (file.size > MAX_CLIP_BYTES) { setUpload(key, { state: 'error', message: 'A clip can be up to 1 GB and 2 minutes.' }); return; }
+    const secs = await clipSeconds(file);
+    if (secs != null && secs > MAX_CLIP_SECONDS + 0.5) {
+      setUpload(key, { state: 'error', message: `This clip is ${mmss(secs)} long. Clips can be up to 2 minutes. Trim it and upload it again.` });
+      return;
+    }
+    if (secs != null && secs < 1) { setUpload(key, { state: 'error', message: 'This clip is shorter than 1 second.' }); return; }
     try {
       const start = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/explore/videos/upload`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -251,8 +275,8 @@ export default function ExploreStudio({ albumId, albumTitle, currency, onClose }
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 6 }}>
                       {it.mediaType === 'VIDEO' ? 'Clip' : 'Photo'}{it.durationSeconds ? ` · ${Math.floor(it.durationSeconds / 60)}:${String(it.durationSeconds % 60).padStart(2, '0')}` : ''} · {it.sales} sold
                     </div>
-                    {it.status === 'PENDING_REVIEW' && <div style={{ fontSize: 12, color: '#bcd0ff' }}>Waiting for an admin to approve it.</div>}
-                    {(it.status === 'FAILED' || it.status === 'REJECTED') && <div style={{ fontSize: 12, color: '#ffb3c0' }}>{it.detail || 'This item could not be published.'}</div>}
+                    {it.status === 'PENDING_REVIEW' && <div style={{ fontSize: 12, color: '#bcd0ff' }}>{it.message || 'Waiting for an admin to approve it.'}</div>}
+                    {(it.status === 'FAILED' || it.status === 'REJECTED') && <div role="alert" style={{ fontSize: 12, color: '#ffb3c0' }}>{it.message || 'This item could not be published.'}</div>}
                   </div>
                 </div>
                 <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>Title

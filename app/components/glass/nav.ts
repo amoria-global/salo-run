@@ -10,8 +10,8 @@
  */
 import type { LucideIcon } from 'lucide-react';
 import {
-  BookOpen, Bell, Briefcase, CalendarDays, CreditCard, Handshake, Heart, House, Image as ImageIcon, MessageCircle, Package,
-  Radio, Search, SlidersHorizontal, Tag, User, Users, Wallet, Clapperboard,
+  Bookmark, BookOpen, Bell, Briefcase, CalendarDays, CreditCard, Handshake, Heart, House, Image as ImageIcon, MessageCircle, Package,
+  Radio, Search, ShoppingBag, SlidersHorizontal, Tag, User, Users, Wallet, Clapperboard,
 } from 'lucide-react';
 import { SELL_PHOTOS_QUERY } from '@/lib/albums/sellPhotos';
 
@@ -49,6 +49,10 @@ const photographer: GlassNavGroup[] = [
     { key: 'Sell photos', label: 'Sell photos', href: `${P}/events?${SELL_PHOTOS_QUERY}`, icon: Tag, requires: ['events.view'] },
     { key: 'Collaborate', label: 'Collaborate', href: `${P}/collaborate`, icon: Handshake },
   ] },
+  { label: 'Explore', items: [
+    { key: 'Saved', label: 'Saved', href: `${P}/explore/saved`, icon: Bookmark },
+    { key: 'My purchases', label: 'My purchases', href: `${P}/explore/purchases`, icon: ShoppingBag },
+  ] },
   { label: 'Money', items: [
     { key: 'Wallet', label: 'Wallet', href: `${P}/wallet`, icon: Wallet, requires: ['payments.view'],
       alsoActive: [`${P}/transaction`, `${P}/all-transactions`, `${P}/payroll-report`] },
@@ -70,6 +74,10 @@ const buyer = (base: string): GlassNavGroup[] => [
   { label: 'Book a photographer', items: [
     { key: 'Post My Event', label: 'Post My Event', href: `${base}/events?post=1`, icon: Briefcase, requires: ['events.view'] },
     { key: 'Find a Photographer', label: 'Find a Photographer', href: `${base}/photographers`, icon: Search, requires: ['bookings.view'] },
+  ] },
+  { label: 'Explore', items: [
+    { key: 'Saved', label: 'Saved', href: `${base}/explore/saved`, icon: Bookmark },
+    { key: 'My purchases', label: 'My purchases', href: `${base}/explore/purchases`, icon: ShoppingBag },
   ] },
   { label: 'Money', items: [
     { key: 'Payments', label: 'Payments', href: `${base}/payments`, icon: CreditCard, requires: ['payments.view'] },
